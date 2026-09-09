@@ -1,20 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  Terminal,
-  FolderGit2,
-  Briefcase,
-  Package,
-  MessageSquareQuote,
-  Mail,
+  Monitor,
   Shield,
-  Palette,
   Clock,
-  ChevronRight,
   Globe,
-  RotateCcw,
 } from "lucide-react";
 import { useUser, UserButton } from "@clerk/nextjs";
 import { useOSTheme, OSTheme } from "./theme-context";
@@ -28,10 +20,7 @@ export function OSMenubar({ profileName }: OSMenubarProps) {
   const { isLoaded, isSignedIn } = useUser();
   const { theme, setTheme } = useOSTheme();
   const { t, language, setLanguage } = useTranslation();
-  const [startOpen, setStartOpen] = useState(false);
-  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [timeStr, setTimeStr] = useState("00:00:00");
-  const startRef = useRef<HTMLDivElement>(null);
 
   // Live Digital Clock
   useEffect(() => {
@@ -47,247 +36,47 @@ export function OSMenubar({ profileName }: OSMenubarProps) {
     return () => clearInterval(interval);
   }, []);
 
-  // Close start menu on click outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (startRef.current && !startRef.current.contains(e.target as Node)) {
-        setStartOpen(false);
-        setThemeMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const themes: { id: OSTheme; label: string; tag: string }[] = [
-    { id: "retro90s", label: "Classic 90s OS", tag: "DEFAULT" },
-    { id: "dark", label: "Cyber Dark OS", tag: "DARK" },
-    { id: "tokyo", label: "Tokyo Night Cyber", tag: "NEON" },
-    { id: "vscode", label: "VS Code Hacker", tag: "DEV" },
-  ];
-
   return (
     <header className="sticky top-0 z-50 w-full bg-[var(--vt-chrome)] border-b-2 border-[#5a5750] shadow-[0_2px_8px_rgba(0,0,0,0.35)] select-none">
       <div className="max-w-7xl mx-auto px-2 sm:px-4 flex items-center justify-between h-10">
-        {/* Left Side: Start Button & Section Nav */}
-        <div className="flex items-center gap-1 sm:gap-2">
-          {/* Start Button */}
-          <div ref={startRef} className="relative">
-            <button
-              type="button"
-              onClick={() => setStartOpen(!startOpen)}
-              className={`vt-btn px-2.5 py-1 text-xs font-bold flex items-center gap-1.5 cursor-pointer select-none transition-all ${
-                startOpen
-                  ? "vt-btn-inset bg-[var(--vt-card)]"
-                  : "vt-btn-chrome text-foreground"
-              }`}
-            >
-              <div className="grid grid-cols-2 gap-0.5 w-3.5 h-3.5 p-0.5 bg-black/20 rounded-xs">
-                <span className="bg-red-500 rounded-xs" />
-                <span className="bg-green-500 rounded-xs" />
-                <span className="bg-blue-500 rounded-xs" />
-                <span className="bg-yellow-400 rounded-xs" />
-              </div>
-              <span className="font-pixel text-[11px] tracking-wide">{t.os_start_btn}</span>
-            </button>
-
-            {/* Classic Windows 95 Start Menu Dropdown */}
-            {startOpen && (
-              <div
-                ref={startRef}
-                className="absolute left-0 top-full mt-1.5 w-64 vt-window bg-[var(--vt-chrome)] text-foreground text-xs shadow-2xl z-50 flex flex-row overflow-hidden animate-in fade-in-50 zoom-in-95 duration-100"
-              >
-                {/* Left Blue Gradient Sidebar */}
-                <div className="w-8 bg-gradient-to-t from-[var(--vt-navy)] via-[var(--vt-blue)] to-[#7c5cff] text-white flex items-end justify-center pb-4 select-none">
-                  <span className="font-pixel text-xs tracking-widest -rotate-90 origin-bottom-center whitespace-nowrap text-[#37ff9b]">
-                    SIGIT 98
-                  </span>
-                </div>
-
-                {/* Menu Items List */}
-                <div className="flex-1 p-1 space-y-0.5 font-mono">
-                  <div className="px-2 py-1 bg-muted/60 mb-1 border-b border-border/60">
-                    <p className="font-bold text-foreground truncate">{profileName}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t.os_start_title}</p>
-                  </div>
-
-                  <a
-                    href="#hero"
-                    onClick={() => setStartOpen(false)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors"
-                  >
-                    <Terminal className="h-3.5 w-3.5 text-primary" />
-                    <span>{t.os_start_profile}</span>
-                  </a>
-
-                  <a
-                    href="#proyek"
-                    onClick={() => setStartOpen(false)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors"
-                  >
-                    <FolderGit2 className="h-3.5 w-3.5 text-emerald-600" />
-                    <span>{t.os_start_projects}</span>
-                  </a>
-
-                  <a
-                    href="#layanan"
-                    onClick={() => setStartOpen(false)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors"
-                  >
-                    <Briefcase className="h-3.5 w-3.5 text-blue-600" />
-                    <span>{t.os_start_services}</span>
-                  </a>
-
-                  <a
-                    href="#produk"
-                    onClick={() => setStartOpen(false)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors"
-                  >
-                    <Package className="h-3.5 w-3.5 text-amber-600" />
-                    <span>{t.os_start_store}</span>
-                  </a>
-
-                  <a
-                    href="#testimoni"
-                    onClick={() => setStartOpen(false)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors"
-                  >
-                    <MessageSquareQuote className="h-3.5 w-3.5 text-purple-600" />
-                    <span>{t.os_start_testimonials}</span>
-                  </a>
-
-                  <a
-                    href="#kontak"
-                    onClick={() => setStartOpen(false)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors"
-                  >
-                    <Mail className="h-3.5 w-3.5 text-rose-600" />
-                    <span>{t.os_start_contact}</span>
-                  </a>
-
-                  <div className="h-px bg-[#9a968e] my-1 shadow-[0_1px_0_#fff]" />
-
-                  {/* Theme Selector Submenu Toggle */}
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setThemeMenuOpen(!themeMenuOpen)}
-                      className="w-full flex items-center justify-between px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors text-left"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Palette className="h-3.5 w-3.5 text-indigo-600" />
-                        <span>{t.os_start_theme}</span>
-                      </div>
-                      <ChevronRight className="h-3 w-3" />
-                    </button>
-
-                    {themeMenuOpen && (
-                      <div className="mt-1 pl-4 space-y-1 bg-muted/40 p-1.5 rounded-xs border border-border">
-                        {themes.map((th) => (
-                          <button
-                            key={th.id}
-                            type="button"
-                            onClick={() => {
-                              setTheme(th.id);
-                              setStartOpen(false);
-                            }}
-                            className={`w-full flex items-center justify-between px-2 py-1 text-[11px] rounded-xs ${
-                              theme === th.id
-                                ? "bg-[var(--vt-blue)] text-white font-bold"
-                                : "hover:bg-muted text-foreground"
-                            }`}
-                          >
-                            <span>{th.label}</span>
-                            <span className="text-[9px] opacity-70">[{th.tag}]</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <Link
-                    href="/admin"
-                    onClick={() => setStartOpen(false)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors"
-                  >
-                    <Shield className="h-3.5 w-3.5 text-foreground" />
-                    <span>{t.os_start_admin}</span>
-                  </Link>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sessionStorage.removeItem("sigitos_booted_session");
-                      window.location.reload();
-                    }}
-                    className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-amber-600 hover:text-white rounded-xs transition-colors text-left cursor-pointer"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5 text-amber-500 hover:text-white" />
-                    <span>{t.os_start_reboot}</span>
-                  </button>
-                </div>
-              </div>
-            )}
+        {/* Left Side: Retro System OS Branding & Status */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--vt-card)] vt-card-inset">
+            <Monitor className="h-3.5 w-3.5 text-primary" />
+            <span className="font-pixel text-xs font-bold tracking-wider text-[var(--vt-ink)]">
+              SIGIT-OS
+            </span>
+            <span className="hidden sm:inline font-mono text-[10px] font-bold text-[var(--vt-ink)] opacity-80">
+              Workstation
+            </span>
           </div>
 
-          {/* Retro Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-1 font-mono text-xs">
-            <a
-              href="#hero"
-              className="px-2 py-1 text-foreground hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors"
-            >
-              {t.nav_home}
-            </a>
-            <a
-              href="#layanan"
-              className="px-2 py-1 text-foreground hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors"
-            >
-              {t.nav_services}
-            </a>
-            <a
-              href="#proyek"
-              className="px-2 py-1 text-foreground hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors"
-            >
-              {t.nav_projects}
-            </a>
-            <a
-              href="#produk"
-              className="px-2 py-1 text-foreground hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors"
-            >
-              {t.nav_products}
-            </a>
-            <a
-              href="#testimoni"
-              className="px-2 py-1 text-foreground hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors"
-            >
-              {t.nav_testimonials}
-            </a>
-            <a
-              href="#kontak"
-              className="px-2 py-1 text-foreground hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors"
-            >
-              {t.nav_contact}
-            </a>
-          </nav>
+          <div className="hidden md:flex items-center gap-1.5 px-2 py-1 bg-[var(--vt-paper)] vt-card-inset text-xs font-mono font-bold text-[var(--vt-ink)]">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold">ONLINE</span>
+            <span className="text-[10px] text-[var(--vt-ink)] opacity-60">|</span>
+            <span className="text-[10px] text-[var(--vt-ink)] font-bold truncate max-w-[120px] lg:max-w-none">
+              {profileName}
+            </span>
+          </div>
         </div>
 
         {/* Right Side: System Status, Language, Theme & Clock */}
         <div className="flex items-center gap-1.5 sm:gap-2 font-mono text-xs">
           {/* Status Badge */}
-          <div className="hidden lg:flex items-center gap-1.5 px-2 py-0.5 bg-[var(--vt-card)] vt-card-inset text-[10px] text-muted-foreground">
+          <div className="hidden lg:flex items-center gap-1.5 px-2 py-0.5 bg-[var(--vt-card)] vt-card-inset text-xs font-bold text-[var(--vt-ink)]">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--vt-crt)] animate-pulse" />
-            <span className="font-semibold text-foreground">SIGIT-OS</span>
-            <span>v2.5</span>
+            <span className="font-bold text-[var(--vt-ink)]">v2.5 PRO</span>
           </div>
 
           {/* Language Switcher Button */}
           <button
             type="button"
             onClick={() => setLanguage(language === "id" ? "en" : "id")}
-            className="vt-btn vt-btn-chrome px-2 py-0.5 text-[10px] font-bold"
+            className="vt-btn vt-btn-chrome px-2 py-0.5 text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-1 cursor-pointer"
             title={t.os_lang_tooltip}
           >
-            <Globe className="h-3 w-3 text-primary" />
+            <Globe className="h-3.5 w-3.5 text-primary" />
             <span>{language.toUpperCase()}</span>
           </button>
 
@@ -296,7 +85,7 @@ export function OSMenubar({ profileName }: OSMenubarProps) {
             <select
               value={theme}
               onChange={(e) => setTheme(e.target.value as OSTheme)}
-              className="vt-btn vt-btn-chrome px-1.5 py-0.5 text-[10px] font-bold appearance-none cursor-pointer bg-transparent text-foreground"
+              className="vt-btn vt-btn-chrome px-2 py-0.5 text-[11px] font-bold appearance-none cursor-pointer bg-transparent text-[var(--vt-ink)]"
               title={t.os_theme_tooltip}
             >
               <option value="retro90s" className="bg-[var(--vt-chrome)] text-foreground">90s Retro</option>
@@ -307,8 +96,8 @@ export function OSMenubar({ profileName }: OSMenubarProps) {
           </div>
 
           {/* Digital Clock Box */}
-          <div className="vt-card-inset px-2 py-0.5 bg-[var(--vt-paper)] font-pixel text-[11px] tracking-wider text-foreground flex items-center gap-1 shadow-inner">
-            <Clock className="h-3 w-3 text-primary" />
+          <div className="vt-card-inset px-2.5 py-0.5 bg-[var(--vt-paper)] font-pixel text-xs tracking-wider text-[var(--vt-ink)] font-bold flex items-center gap-1.5 shadow-inner">
+            <Clock className="h-3.5 w-3.5 text-primary" />
             <span>{timeStr}</span>
           </div>
 
@@ -317,10 +106,10 @@ export function OSMenubar({ profileName }: OSMenubarProps) {
             <div className="flex items-center gap-1.5 ml-1">
               <Link
                 href="/admin"
-                className="hidden sm:inline-flex vt-btn vt-btn-chrome px-1.5 py-0.5 text-[10px] font-bold text-foreground"
+                className="hidden sm:inline-flex vt-btn vt-btn-chrome px-2 py-0.5 text-xs font-bold text-foreground"
                 title="Masuk ke Panel Admin"
               >
-                <Shield className="h-3 w-3 text-primary" />
+                <Shield className="h-3.5 w-3.5 text-primary mr-1" />
                 <span>Admin</span>
               </Link>
               <UserButton />

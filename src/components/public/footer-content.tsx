@@ -49,20 +49,20 @@ export function FooterContent({ profile }: { profile: ProfileData }) {
   return (
     <footer className="border-t-2 border-border bg-card text-foreground transition-colors font-mono">
       {/* OS Status Strip */}
-      <div className="bg-muted/70 border-b border-border/80 px-4 py-1.5 flex flex-wrap items-center justify-between text-[11px] text-muted-foreground select-none">
+      <div className="bg-muted/70 border-b border-border/80 px-4 py-1.5 flex flex-wrap items-center justify-between text-xs text-[var(--vt-ink)] font-bold select-none">
         <div className="flex items-center gap-3">
           <span className="inline-flex items-center gap-1.5 text-primary font-bold">
-            <HardDrive className="h-3 w-3" />
+            <HardDrive className="h-3.5 w-3.5" />
             <span>SIGIT_OS v3.2.0</span>
           </span>
-          <span className="hidden sm:inline text-muted-foreground/60">|</span>
+          <span className="hidden sm:inline opacity-60">|</span>
           <span className="hidden sm:inline">RAM: 64MB OK</span>
-          <span className="hidden sm:inline text-muted-foreground/60">|</span>
+          <span className="hidden sm:inline opacity-60">|</span>
           <span className="hidden sm:inline">VRAM: 8MB PCI</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-emerald-500 font-bold">KERNEL: ACTIVE</span>
+          <span className="text-emerald-700 dark:text-emerald-400 font-bold">KERNEL: ACTIVE</span>
         </div>
       </div>
 
@@ -72,11 +72,11 @@ export function FooterContent({ profile }: { profile: ProfileData }) {
           <div className="md:col-span-2 space-y-3">
             <div className="flex items-center gap-2">
               <span className="h-3 w-3 rounded-none bg-primary animate-pulse" />
-              <span className="font-pixel text-sm sm:text-base tracking-wider text-foreground">
+              <span className="font-pixel text-sm sm:text-base tracking-wider text-foreground font-bold">
                 SIGIT<span className="text-primary">.DEV</span>
               </span>
             </div>
-            <p className="text-xs text-muted-foreground max-w-sm leading-relaxed font-mono">
+            <p className="text-xs text-[var(--vt-ink)] font-medium max-w-sm leading-relaxed font-mono">
               {language === "id"
                 ? `Personal branding & portofolio digital karya ${profile.name || "Sigit"} — ${profile.headline || "Web Developer & Systems Architect"}. Dibangun dengan standar performa dan keindahan estetika retro 90s.`
                 : `Personal branding & digital portfolio of ${profile.name || "Sigit"} — ${profile.headline || "Web Developer & Systems Architect"}. Crafted with speed and retro 90s desktop aesthetics.`}
@@ -143,29 +143,29 @@ export function FooterContent({ profile }: { profile: ProfileData }) {
             <h4 className="text-xs font-bold uppercase tracking-wider text-primary font-mono">
               {"//"} {t.footer_navigation}
             </h4>
-            <ul className="space-y-1.5 text-xs font-mono">
+            <ul className="space-y-1.5 text-xs font-mono font-medium">
               <li>
-                <Link href="/" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/" className="text-[var(--vt-ink)] hover:text-primary transition-colors">
                   &gt; {t.nav_home}
                 </Link>
               </li>
               <li>
-                <Link href="/proyek" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/proyek" className="text-[var(--vt-ink)] hover:text-primary transition-colors">
                   &gt; {t.nav_projects}
                 </Link>
               </li>
               <li>
-                <Link href="/#layanan" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/#layanan" className="text-[var(--vt-ink)] hover:text-primary transition-colors">
                   &gt; {t.nav_services}
                 </Link>
               </li>
               <li>
-                <Link href="/#produk" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/#produk" className="text-[var(--vt-ink)] hover:text-primary transition-colors">
                   &gt; {t.nav_products}
                 </Link>
               </li>
               <li>
-                <Link href="/#testimoni" className="text-muted-foreground hover:text-primary transition-colors">
+                <Link href="/#testimoni" className="text-[var(--vt-ink)] hover:text-primary transition-colors">
                   &gt; {t.nav_testimonials}
                 </Link>
               </li>
@@ -177,19 +177,19 @@ export function FooterContent({ profile }: { profile: ProfileData }) {
             <h4 className="text-xs font-bold uppercase tracking-wider text-primary font-mono">
               {"//"} {t.footer_legal}
             </h4>
-            <ul className="space-y-1.5 text-xs font-mono">
+            <ul className="space-y-1.5 text-xs font-mono font-medium">
               <li>
-                <Link href="/admin" className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
-                  <Terminal className="h-3 w-3 text-emerald-500" />
+                <Link href="/admin" className="text-[var(--vt-ink)] hover:text-primary transition-colors inline-flex items-center gap-1 font-bold">
+                  <Terminal className="h-3.5 w-3.5 text-emerald-500" />
                   <span>{t.nav_admin_panel}</span>
                 </Link>
               </li>
               <li>
                 <a
                   href="#top"
-                  className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 pt-2 text-xs"
+                  className="text-[var(--vt-ink)] hover:text-primary transition-colors inline-flex items-center gap-1 pt-2 text-xs font-bold"
                 >
-                  <ArrowUp className="h-3 w-3" />
+                  <ArrowUp className="h-3.5 w-3.5" />
                   <span>{t.footer_back_to_top}</span>
                 </a>
               </li>
@@ -197,9 +197,9 @@ export function FooterContent({ profile }: { profile: ProfileData }) {
           </div>
         </div>
 
-        <div className="pt-6 border-t border-border/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] font-mono text-muted-foreground">
+        <div className="pt-6 border-t border-border/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono font-bold text-[var(--vt-ink)]">
           <p>© {currentYear} Sigit. {t.footer_rights}</p>
-          <p className="text-muted-foreground">
+          <p className="text-[var(--vt-ink)] opacity-85">
             {language === "id" ? "SigitOS Retro Engine • Next.js 15 & Tailwind" : "SigitOS Retro Engine • Next.js 15 & Tailwind"}
           </p>
         </div>

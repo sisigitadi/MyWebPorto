@@ -65,35 +65,35 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
           {/* Retro Explorer Address Bar */}
           <div className="mb-6 p-2 rounded bg-muted/40 border border-border flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-muted-foreground font-semibold">Address:</span>
-              <div className="px-2 py-1 bg-background border border-border/80 rounded flex items-center gap-1 text-primary">
+              <span className="text-[var(--vt-ink)] font-bold">Address:</span>
+              <div className="px-2 py-1 bg-background border border-border/80 rounded flex items-center gap-1 text-primary font-bold">
                 <HardDrive className="h-3.5 w-3.5" />
                 <span className="truncate">C:\Sigit\Portfolio\Projects\Catalog.exe</span>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-muted-foreground text-[11px]">
-              <Terminal className="h-3 w-3 text-emerald-500" />
+            <div className="flex items-center gap-2 text-[var(--vt-ink)] font-bold text-xs">
+              <Terminal className="h-3.5 w-3.5 text-emerald-500" />
               <span>SIGIT_KERNEL_OK</span>
             </div>
           </div>
 
           {/* Heading */}
           <div className="mb-8 space-y-2">
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-primary/10 border border-primary/30 text-primary text-xs font-mono">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-primary/10 border border-primary/30 text-primary text-xs font-mono font-bold">
               <span className="h-1.5 w-1.5 rounded-full bg-primary animate-ping" />
               <span>{t.projects_page_badge}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold font-pixel tracking-tight text-foreground">
               {t.projects_page_title}
             </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground font-mono max-w-2xl">
+            <p className="text-xs sm:text-sm text-[var(--vt-ink)] font-medium font-mono max-w-2xl">
               {t.projects_page_subtitle}
             </p>
           </div>
 
           {/* Projects Grid */}
           {projects.length === 0 ? (
-            <div className="text-center py-16 border border-dashed border-border rounded-lg bg-card/40 font-mono text-xs text-muted-foreground">
+            <div className="text-center py-16 border border-dashed border-border rounded-lg bg-card/40 font-mono text-xs text-[var(--vt-ink)] font-bold">
               <p>{t.projects_empty}</p>
             </div>
           ) : (
@@ -113,10 +113,10 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
                     className="catalog-project-card vt-window flex flex-col group overflow-hidden"
                   >
                     {/* Sub-window Titlebar */}
-                    <div className="vt-titlebar py-1 px-2 text-[11px]">
+                    <div className="vt-titlebar py-1 px-2 text-xs font-bold">
                       <span className="truncate">ITEM_{String(idx + 1).padStart(2, "0")}.DAT</span>
                       {project.featured && (
-                        <span className="bg-amber-400 text-black text-[9px] font-bold px-1.5 py-0.2 rounded font-mono uppercase">
+                        <span className="bg-amber-400 text-black text-[10px] font-bold px-1.5 py-0.2 rounded font-mono uppercase">
                           FEATURED
                         </span>
                       )}
@@ -141,7 +141,7 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
                           </h2>
                         </Link>
 
-                        <p className="text-xs text-muted-foreground font-mono leading-relaxed line-clamp-2">
+                        <p className="text-xs text-[var(--vt-ink)] font-medium font-mono leading-relaxed line-clamp-2">
                           {summary}
                         </p>
 
@@ -149,7 +149,7 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
                           {project.techStack.map((tech) => (
                             <span
                               key={tech}
-                              className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground border border-border"
+                              className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-muted text-[var(--vt-ink)] border border-border"
                             >
                               {tech}
                             </span>
@@ -157,7 +157,7 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
                         </div>
                       </div>
 
-                      <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-[11px] font-mono text-muted-foreground">
+                      <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-mono font-bold text-[var(--vt-ink)]">
                         <span className="inline-flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
                           {new Date(project.createdAt).toLocaleDateString(t.date_locale || "id-ID", {

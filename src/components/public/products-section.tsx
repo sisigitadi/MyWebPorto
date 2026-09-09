@@ -62,7 +62,7 @@ export function ProductsSection({ products: propProducts }: ProductsSectionProps
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
             {t.products_title}
           </h2>
-          <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink-soft)] mt-1 max-w-2xl">
+          <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] font-medium mt-1 max-w-2xl">
             {t.products_subtitle}
           </p>
         </div>
@@ -92,7 +92,7 @@ export function ProductsSection({ products: propProducts }: ProductsSectionProps
                         className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                       />
                       {/* Price Badge */}
-                      <div className="absolute top-2 right-2 vt-btn vt-btn-pink px-2.5 py-1 text-[11px] font-pixel">
+                      <div className="absolute top-2 right-2 vt-btn vt-btn-pink px-3 py-1 text-xs font-pixel font-bold shadow-md">
                         {product.priceFormatted}
                       </div>
                     </div>
@@ -101,7 +101,7 @@ export function ProductsSection({ products: propProducts }: ProductsSectionProps
                       {title}
                     </h3>
 
-                    <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink-soft)] leading-relaxed">
+                    <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] font-medium leading-relaxed">
                       {description}
                     </p>
                   </div>

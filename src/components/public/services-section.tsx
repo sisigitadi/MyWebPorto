@@ -63,7 +63,7 @@ export function ServicesSection({ services: propServices, profile }: ServicesSec
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
             {t.services_title}
           </h2>
-          <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink-soft)] mt-1 max-w-2xl">
+          <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] font-medium mt-1 max-w-2xl">
             {t.services_subtitle}
           </p>
         </div>
@@ -99,11 +99,11 @@ export function ServicesSection({ services: propServices, profile }: ServicesSec
                 >
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="font-pixel text-[10px] px-1.5 py-0.5 bg-[var(--vt-blue)] text-white">
+                      <span className="font-pixel text-[11px] px-2 py-0.5 bg-[var(--vt-blue)] text-white font-bold tracking-wider">
                         MODULE 0{index + 1}
                       </span>
-                      <span className="inline-flex items-center gap-1 font-mono text-[10px] text-emerald-700 dark:text-[#37ff9b]">
-                        <CheckCircle2 className="h-3 w-3" />
+                      <span className="inline-flex items-center gap-1 font-mono text-xs font-bold text-emerald-600">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
                         <span>ACTIVE</span>
                       </span>
                     </div>
@@ -112,7 +112,7 @@ export function ServicesSection({ services: propServices, profile }: ServicesSec
                       {title}
                     </h3>
 
-                    <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink-soft)] leading-relaxed">
+                    <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] font-medium leading-relaxed">
                       {description}
                     </p>
                   </div>

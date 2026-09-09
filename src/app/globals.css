@@ -11,9 +11,9 @@
   --vt-chrome: #cfcdc8;
   --vt-paper: #f3f2ee;
   --vt-card: #e9e7e2;
-  --vt-ink: #12121a;
-  --vt-ink-soft: #42424c;
-  --vt-ink-mute: #6a6a74;
+  --vt-ink: #0d0d14;
+  --vt-ink-soft: #23232c;
+  --vt-ink-mute: #454552;
   --vt-blue: #3b2fd6;
   --vt-violet: #7c5cff;
   --vt-navy: #0a0a5e;
@@ -45,7 +45,7 @@
   --secondary: 40 6% 85%;
   --secondary-foreground: 240 18% 9%;
   --muted: 40 8% 88%;
-  --muted-foreground: 240 7% 40%;
+  --muted-foreground: 240 10% 25%;
   --border: 40 6% 70%;
   --input: 40 6% 70%;
   --ring: 245 64% 51%;
@@ -58,9 +58,9 @@
   --vt-chrome: #23232b;
   --vt-paper: #16161d;
   --vt-card: #1d1d26;
-  --vt-ink: #ececf3;
-  --vt-ink-soft: #b9b9c7;
-  --vt-ink-mute: #7c7c8c;
+  --vt-ink: #f7f7fc;
+  --vt-ink-soft: #dcdce8;
+  --vt-ink-mute: #a3a3b5;
   --vt-blue: #7a86ff;
   --vt-violet: #a48bff;
   --vt-navy: #101040;
@@ -87,7 +87,7 @@
   --secondary: 240 10% 18%;
   --secondary-foreground: 240 15% 94%;
   --muted: 240 12% 18%;
-  --muted-foreground: 240 8% 65%;
+  --muted-foreground: 240 15% 82%;
   --border: 240 10% 25%;
   --input: 240 10% 25%;
   --ring: 235 100% 74%;
@@ -101,8 +101,8 @@
   --vt-paper: #1a1b26;
   --vt-card: #20212f;
   --vt-ink: #c0caf5;
-  --vt-ink-soft: #9aa5ce;
-  --vt-ink-mute: #565f89;
+  --vt-ink-soft: #bac6f0;
+  --vt-ink-mute: #8590bc;
   --vt-blue: #7aa2f7;
   --vt-violet: #bb9af7;
   --vt-navy: #24283b;
@@ -128,7 +128,7 @@
   --secondary: 235 20% 20%;
   --secondary-foreground: 230 75% 85%;
   --muted: 235 24% 19%;
-  --muted-foreground: 230 30% 70%;
+  --muted-foreground: 230 40% 80%;
   --border: 235 25% 24%;
   --input: 235 25% 24%;
   --ring: 222 89% 72%;
@@ -141,9 +141,9 @@
   --vt-chrome: #252526;
   --vt-paper: #1e1e1e;
   --vt-card: #2a2a2b;
-  --vt-ink: #d4d4d4;
-  --vt-ink-soft: #a8a8a8;
-  --vt-ink-mute: #6e6e6e;
+  --vt-ink: #f0f0f0;
+  --vt-ink-soft: #d8d8d8;
+  --vt-ink-mute: #a0a0a0;
   --vt-blue: #4fc1ff;
   --vt-violet: #c586c0;
   --vt-navy: #252526;
@@ -170,7 +170,7 @@
   --secondary: 0 0% 18%;
   --secondary-foreground: 0 0% 83%;
   --muted: 0 0% 20%;
-  --muted-foreground: 0 0% 65%;
+  --muted-foreground: 0 0% 80%;
   --border: 0 0% 25%;
   --input: 0 0% 25%;
   --ring: 201 100% 40%;

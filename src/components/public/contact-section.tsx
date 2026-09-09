@@ -63,7 +63,7 @@ export function ContactSection({ profile }: ContactSectionProps) {
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
             {t.contact_title}
           </h2>
-          <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink-soft)] mt-1 max-w-2xl">
+          <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] font-medium mt-1 max-w-2xl">
             {t.contact_subtitle}
           </p>
         </div>
@@ -84,14 +84,14 @@ export function ContactSection({ profile }: ContactSectionProps) {
                   <h3 className="font-mono text-sm font-bold text-[var(--vt-ink)]">
                     {t.contact_direct_channels_title}
                   </h3>
-                  <p className="font-mono text-xs text-[var(--vt-ink-soft)] mt-1 leading-relaxed">
+                  <p className="font-mono text-xs text-[var(--vt-ink)] font-medium mt-1 leading-relaxed">
                     {t.contact_direct_channels_desc}
                   </p>
                 </div>
 
                 {/* Email Box */}
                 <div className="vt-card-inset p-3 bg-[var(--vt-card)] space-y-1">
-                  <span className="font-pixel text-[10px] text-[var(--vt-ink-mute)] uppercase">
+                  <span className="font-pixel text-xs text-[var(--vt-ink)] font-bold uppercase">
                     {t.contact_email_label}:
                   </span>
                   <a
@@ -108,10 +108,10 @@ export function ContactSection({ profile }: ContactSectionProps) {
 
                 {/* Location Box */}
                 <div className="vt-card-inset p-3 bg-[var(--vt-card)] space-y-1">
-                  <span className="font-pixel text-[10px] text-muted-foreground uppercase">
+                  <span className="font-pixel text-xs text-[var(--vt-ink)] font-bold uppercase">
                     {t.contact_location_label}:
                   </span>
-                  <p className="flex items-center gap-2 font-mono text-xs sm:text-sm font-bold text-foreground">
+                  <p className="flex items-center gap-2 font-mono text-xs sm:text-sm font-bold text-[var(--vt-ink)]">
                     <MapPin className="h-3.5 w-3.5 text-primary" />
                     <span>{profile.location}</span>
                   </p>

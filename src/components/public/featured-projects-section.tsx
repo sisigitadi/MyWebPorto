@@ -52,21 +52,21 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
         {/* Explorer Address Bar Banner */}
         <div className="vt-raised p-2.5 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
           <div className="flex items-center gap-2 flex-1">
-            <span className="text-[10px] font-bold text-foreground font-pixel">DIRECTORY:</span>
-            <div className="vt-card-inset flex-1 px-2.5 py-1 bg-background text-foreground font-mono text-xs truncate">
+            <span className="text-xs font-bold text-[var(--vt-ink)] font-pixel">DIRECTORY:</span>
+            <div className="vt-card-inset flex-1 px-2.5 py-1 bg-background text-[var(--vt-ink)] font-mono text-xs font-bold truncate">
               C:\Sigit\Portfolio\Projects\Featured\
             </div>
-            <span className="hidden sm:inline-flex px-2 py-1 vt-btn vt-btn-chrome text-[10px] font-bold">
+            <span className="hidden sm:inline-flex px-2.5 py-1 vt-btn vt-btn-chrome text-xs font-bold">
               [32 ITEMS]
             </span>
           </div>
 
           <Link
             href="/proyek"
-            className="vt-btn vt-btn-chrome px-3 py-1 text-xs font-bold text-foreground shrink-0 self-end sm:self-auto"
+            className="vt-btn vt-btn-chrome px-3.5 py-1.5 text-xs font-bold text-foreground shrink-0 self-end sm:self-auto"
           >
             <span>{t.projects_view_all}</span>
-            <ArrowRight className="h-3 w-3 ml-1" />
+            <ArrowRight className="h-3.5 w-3.5 ml-1" />
           </Link>
         </div>
 
@@ -79,7 +79,7 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
             {t.projects_title}
           </h2>
-          <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink-soft)] mt-1 max-w-2xl">
+          <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] font-medium mt-1 max-w-2xl">
             {t.projects_page_subtitle}
           </p>
         </div>
@@ -110,7 +110,7 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
                         alt={title}
                         className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                       />
-                      <span className="absolute top-2 right-2 font-pixel text-[9px] bg-[var(--vt-pink)] text-white px-1.5 py-0.5 shadow-md">
+                      <span className="absolute top-2 right-2 font-pixel text-[10px] bg-[var(--vt-pink)] text-white px-2 py-0.5 shadow-md font-bold">
                         FEATURED
                       </span>
                     </div>
@@ -121,7 +121,7 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
                     </h3>
 
                     {/* Summary */}
-                    <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink-soft)] leading-relaxed line-clamp-2">
+                    <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] font-medium leading-relaxed line-clamp-2">
                       {summary}
                     </p>
 
@@ -130,7 +130,7 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
                       {project.techStack.slice(0, 4).map((tech) => (
                         <span
                           key={tech}
-                          className="vt-card-inset px-2 py-0.5 font-mono text-[10px] text-[var(--vt-ink)] bg-[var(--vt-card)]"
+                          className="vt-card-inset px-2.5 py-0.5 font-mono text-xs font-bold text-[var(--vt-ink)] bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)]"
                         >
                           {tech}
                         </span>

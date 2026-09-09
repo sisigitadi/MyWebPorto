@@ -68,9 +68,12 @@ export function HeroSection({ profile }: HeroSectionProps) {
               <div>
                 {/* Availability Badge */}
                 {profile.availableForHire && (
-                  <div className="inline-flex items-center gap-2 px-2.5 py-1 mb-4 text-[11px] font-mono font-bold bg-[#37ff9b]/15 text-[#006633] dark:text-[#37ff9b] border border-[#37ff9b]/40 rounded-xs">
-                    <span className="h-2 w-2 rounded-full bg-[#37ff9b] animate-ping" />
-                    <span>SYSTEM ONLINE // {t.hero_available_badge}</span>
+                  <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 mb-4 text-xs font-mono font-bold bg-[#032614] text-[#34d399] border-2 border-[#10b981] rounded-xs shadow-md">
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#34d399] opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#10b981]"></span>
+                    </span>
+                    <span className="tracking-wide">SYSTEM ONLINE // {t.hero_available_badge}</span>
                   </div>
                 )}
 
@@ -88,14 +91,14 @@ export function HeroSection({ profile }: HeroSectionProps) {
                     <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight font-display text-[var(--vt-ink)] leading-[1.05]">
                       {profile.name}
                     </h1>
-                    <p className="text-sm sm:text-base font-mono font-medium text-[var(--vt-blue)] mt-1">
+                    <p className="text-sm sm:text-base font-mono font-bold text-[var(--vt-blue)] mt-1">
                       &lt;{headline} /&gt;
                     </p>
                   </div>
                 </div>
 
                 {/* Bio text */}
-                <div className="vt-card-inset p-3 bg-card text-[var(--vt-ink)] font-mono text-xs sm:text-sm leading-relaxed border-l-4 border-l-[var(--vt-blue)]">
+                <div className="vt-card-inset p-3 bg-card text-[var(--vt-ink)] font-mono text-xs sm:text-sm leading-relaxed border-l-4 border-l-[var(--vt-blue)] font-medium">
                   {bio}
                 </div>
               </div>
@@ -110,7 +113,7 @@ export function HeroSection({ profile }: HeroSectionProps) {
                     <div className="text-xl sm:text-2xl font-black font-display text-[var(--vt-ink)]">
                       {stat.value}
                     </div>
-                    <div className="text-[10px] font-mono text-[var(--vt-ink-soft)] uppercase tracking-tight mt-0.5">
+                    <div className="text-xs font-mono font-bold text-[var(--vt-ink)] uppercase tracking-wide mt-1">
                       {getTranslatedStatLabel(stat.label)}
                     </div>
                   </div>
@@ -137,8 +140,8 @@ export function HeroSection({ profile }: HeroSectionProps) {
                   <span>{t.hero_cta_portfolio}</span>
                 </a>
 
-                <span className="text-xs font-mono text-[var(--vt-ink-soft)] ml-auto hidden sm:inline-flex items-center gap-1">
-                  <MapPin className="h-3 w-3 text-primary" />
+                <span className="text-xs font-mono font-bold text-[var(--vt-ink)] ml-auto hidden sm:inline-flex items-center gap-1">
+                  <MapPin className="h-3.5 w-3.5 text-primary" />
                   <span>{profile.location}</span>
                 </span>
               </div>

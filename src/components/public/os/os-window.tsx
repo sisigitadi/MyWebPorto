@@ -88,11 +88,11 @@ export function OSWindow({
 
       {/* Window Statusline (optional) */}
       {!isMinimized && statusText && (
-        <div className="mt-1 px-3 py-1 bg-muted/60 border-t border-border/80 flex items-center justify-between text-[10px] font-mono text-muted-foreground select-none">
-          <span className="truncate">{statusText}</span>
-          <span className="shrink-0 flex items-center gap-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>OK</span>
+        <div className="mt-1 px-3 py-1.5 bg-[var(--vt-card)] border-t-2 border-[var(--vt-edge-lo-2)] flex items-center justify-between text-xs font-mono font-bold text-[var(--vt-ink)] select-none">
+          <span className="truncate tracking-tight">{statusText}</span>
+          <span className="shrink-0 flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-400 text-xs">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>READY</span>
           </span>
         </div>
       )}
