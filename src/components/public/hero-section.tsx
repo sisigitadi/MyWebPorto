@@ -118,22 +118,14 @@ export function HeroSection({ profile }: HeroSectionProps) {
 
             {/* Action Buttons (Tactile 3D Buttons) */}
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-2">
-              <Link
-                href="#proyek"
-                className="vt-btn vt-btn-pink vt-btn-sweep px-4 sm:px-6 py-2 sm:py-2.5 text-xs font-bold uppercase tracking-wider font-mono text-center flex-1 sm:flex-initial"
-              >
-                <span>{t.hero_cta_projects}</span>
-                <ArrowRight className="h-3.5 w-3.5 ml-1 inline" />
-              </Link>
-
               <a
                 href="https://porto.sigitadi.id/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="vt-btn vt-btn-chrome px-4 sm:px-5 py-2 sm:py-2.5 text-xs font-bold font-mono text-[var(--vt-ink)] text-center flex-1 sm:flex-initial"
+                className="vt-btn vt-btn-pink vt-btn-sweep px-4 sm:px-6 py-2 sm:py-2.5 text-xs font-bold uppercase tracking-wider font-mono text-center flex-1 sm:flex-initial"
               >
-                <ExternalLink className="h-3.5 w-3.5 text-primary mr-1 inline" />
                 <span>{t.hero_cta_portfolio}</span>
+                <ExternalLink className="h-3.5 w-3.5 ml-1 inline" />
               </a>
 
               <span className="text-[11px] sm:text-xs font-mono font-bold text-[var(--vt-ink)] w-full sm:w-auto sm:ml-auto flex items-center justify-center sm:justify-start gap-1 pt-1 sm:pt-0">
