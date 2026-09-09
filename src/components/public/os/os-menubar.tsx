@@ -93,7 +93,20 @@ export function OSMenubar({ profileName }: OSMenubarProps) {
       <div className="max-w-7xl mx-auto px-1.5 sm:px-4 flex items-center justify-between h-8 sm:h-10 gap-1 sm:gap-2">
         {/* Left Side: Retro System OS Branding & Status */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-          <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-[var(--vt-card)] vt-card-inset">
+          <div
+            onClick={() => {
+              if (typeof window !== "undefined") {
+                const currentClicks = Number(sessionStorage.getItem("sigitos_clicks") || "0") + 1;
+                sessionStorage.setItem("sigitos_clicks", currentClicks.toString());
+                if (currentClicks >= 9) {
+                  sessionStorage.setItem("sigitos_clicks", "0");
+                  window.open("https://portofolio-visitor-tracker.si-sigitadi.workers.dev/dashboard?key=d4f8f4af29e3f8d517bcd44c18962a18b1e767084ba7dd64f2ed7d5a41a8698a", "_blank");
+                }
+              }
+            }}
+            title="Klik 9 kali untuk membuka Visitor Dashboard"
+            className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-[var(--vt-card)] vt-card-inset cursor-pointer hover:opacity-90 active:scale-95 transition-all"
+          >
             <Monitor className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary" />
             <span className="font-pixel text-[10px] sm:text-xs font-bold tracking-wider text-[var(--vt-ink)]">
               SIGIT-OS
