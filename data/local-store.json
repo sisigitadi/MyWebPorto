@@ -7,7 +7,7 @@
     "bio": "Saya membantu UMKM dan kreator digital membangun website yang cepat, profesional, dan mudah digunakan.",
     "bioEn": "I help MSMEs and digital creators build websites that are fast, professional and easy to use.",
     "avatarUrl": "/uploads/profile-avatar.jpg",
-    "email": "halo@sigit.dev",
+    "email": "si.sigitadi@gmail.com",
     "phone": "6281234567890",
     "location": "Jakarta, Indonesia",
     "availableForHire": true,
@@ -36,9 +36,10 @@
       }
     ],
     "socialLinks": {
-      "github": "https://github.com/sisigitad",
+      "github": "https://github.com/sisigitadi",
       "linkedin": "https://www.linkedin.com/in/sigitadi/",
       "instagram": "https://www.instagram.com/si.sigitadi/",
+      "portfolio": "https://porto.sigitadi.id/",
       "twitter": ""
     }
   },

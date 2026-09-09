@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import Link from "next/link";
-import { ArrowRight, Calendar, Folder, HardDrive, Terminal } from "lucide-react";
+import { ArrowRight, Calendar, Folder, HardDrive, Terminal, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n";
 import { gsap } from "gsap";
@@ -62,13 +62,22 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
           icon={<Folder className="h-4 w-4 text-amber-300" />}
           statusText={`Total records: ${projects.length} files found | Directory status: READ_ONLY`}
         >
-          {/* Retro Explorer Address Bar */}
+          {/* Retro Explorer Address Bar & Back to Desktop OS */}
           <div className="mb-6 p-2 rounded bg-muted/40 border border-border flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-[var(--vt-ink)] font-bold">Address:</span>
-              <div className="px-2 py-1 bg-background border border-border/80 rounded flex items-center gap-1 text-primary font-bold">
-                <HardDrive className="h-3.5 w-3.5" />
-                <span className="truncate">C:\Sigit\Portfolio\Projects\Catalog.exe</span>
+              <Link
+                href="/"
+                className="vt-btn vt-btn-chrome px-3 py-1 text-xs font-bold text-foreground inline-flex items-center gap-1.5 shrink-0"
+              >
+                <Monitor className="h-3.5 w-3.5 text-primary" />
+                <span>{language === "en" ? "← Back to Desktop OS" : "← Kembali ke Menu Desktop"}</span>
+              </Link>
+              <div className="hidden sm:flex items-center gap-2">
+                <span className="text-[var(--vt-ink)] font-bold">Address:</span>
+                <div className="px-2 py-1 bg-background border border-border/80 rounded flex items-center gap-1 text-primary font-bold">
+                  <HardDrive className="h-3.5 w-3.5" />
+                  <span className="truncate">C:\Sigit\Portfolio\Projects\Catalog.exe</span>
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2 text-[var(--vt-ink)] font-bold text-xs">

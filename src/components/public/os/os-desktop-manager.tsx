@@ -317,7 +317,7 @@ export function OSDesktopManager({
                   <ServicesSection services={services} profile={profile} />
                 )}
                 {activeApp === "proyek" && (
-                  <FeaturedProjectsSection projects={projects} />
+                  <FeaturedProjectsSection projects={projects} profile={profile} />
                 )}
                 {activeApp === "toko" && <ProductsSection products={products} />}
                 {activeApp === "testimoni" && (

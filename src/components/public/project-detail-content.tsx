@@ -2,7 +2,7 @@
 
 import React, { useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, Calendar, Mail, Terminal, HardDrive } from "lucide-react";
+import { ArrowLeft, ExternalLink, Calendar, Mail, Terminal, HardDrive, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useTranslation } from "@/lib/i18n";
@@ -98,22 +98,35 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
     <div ref={containerRef} className="py-8 md:py-14">
       <div className="max-w-5xl mx-auto px-3 sm:px-6 space-y-6">
         {/* Navigation Bar */}
-        <div className="flex items-center justify-between">
-          <Button
-            asChild
-            size="sm"
-            className="vt-btn h-8 px-3 font-mono text-xs font-semibold gap-1.5"
-          >
-            <Link href="/proyek">
-              <ArrowLeft className="h-3.5 w-3.5" />
-              <span>{t.detail_back_all}</span>
-            </Link>
-          </Button>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Button
+              asChild
+              size="sm"
+              className="vt-btn vt-btn-chrome h-8 px-3 font-mono text-xs font-bold gap-1.5 cursor-pointer"
+            >
+              <Link href="/">
+                <Monitor className="h-3.5 w-3.5 text-primary" />
+                <span>{language === "en" ? "← Back to Desktop OS" : "← Kembali ke Desktop OS"}</span>
+              </Link>
+            </Button>
 
-          <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
+            <Button
+              asChild
+              size="sm"
+              className="vt-btn vt-btn-chrome h-8 px-3 font-mono text-xs font-bold gap-1.5 cursor-pointer"
+            >
+              <Link href="/proyek">
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>{t.detail_back_all}</span>
+              </Link>
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[var(--vt-ink)]">
             <HardDrive className="h-3.5 w-3.5 text-primary" />
             <span className="hidden sm:inline">C:\Sigit\Projects\{project.slug}\</span>
-            <span className="text-emerald-500 font-bold">[OK]</span>
+            <span className="text-emerald-700 dark:text-emerald-400 font-bold">[OK]</span>
           </div>
         </div>
 
