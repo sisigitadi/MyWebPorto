@@ -94,12 +94,11 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
                 <div>
                   {/* Image Container with Hover Scale Physics */}
                   <div className={`relative w-full overflow-hidden bg-muted border-b border-border ${isWideCard ? "aspect-[21/9]" : "aspect-[16/10]"}`}>
-                    <Image
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
                       src={project.thumbnailUrl}
                       alt={title}
-                      fill
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 60vw, 800px"
-                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                      className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                     />
                     <div className="absolute top-4 right-4">
                       <Badge variant="secondary" className="text-[10px] uppercase tracking-wider font-semibold backdrop-blur-md bg-background/80 shadow-xs border border-border/50">

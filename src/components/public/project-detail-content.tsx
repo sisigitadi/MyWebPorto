@@ -139,13 +139,11 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
           ref={mediaRef}
           className="relative aspect-[16/9] md:aspect-[21/9] w-full rounded-2xl overflow-hidden border border-border bg-muted mb-12 shadow-xl"
         >
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src={project.thumbnailUrl}
             alt={title}
-            fill
-            priority
-            sizes="(max-width: 1200px) 100vw, 1100px"
-            className="object-cover"
+            className="w-full h-full object-cover"
           />
         </div>
 

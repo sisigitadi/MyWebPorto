@@ -86,12 +86,11 @@ export function ProductsSection({ products: propProducts }: ProductsSectionProps
               >
                 {/* Product Thumbnail with GSAP Hover Physics */}
                 <div className="relative w-full aspect-[16/10] overflow-hidden bg-muted border-b border-border">
-                  <Image
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
                     src={product.thumbnailUrl}
                     alt={title}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                   />
                   <div className="absolute top-4 right-4 z-10">
                     <Badge variant="secondary" className="text-xs font-mono font-semibold backdrop-blur-md bg-background/90 shadow-sm border border-border/80">

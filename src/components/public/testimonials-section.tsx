@@ -103,12 +103,11 @@ export function TestimonialsSection({ testimonials: propTestimonials }: Testimon
                 <div className="pt-8 mt-8 border-t border-border/50 flex items-center gap-4">
                   {testi.avatarUrl ? (
                     <div className="relative h-12 w-12 rounded-full overflow-hidden border border-border bg-muted shrink-0 shadow-sm">
-                      <Image
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
                         src={testi.avatarUrl}
                         alt={testi.clientName}
-                        fill
-                        sizes="48px"
-                        className="object-cover"
+                        className="w-full h-full object-cover"
                       />
                     </div>
                   ) : (
