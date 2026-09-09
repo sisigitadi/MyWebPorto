@@ -40,7 +40,7 @@ export function Header() {
         >
           <span className="h-2 w-2 rounded-full bg-accent group-hover:scale-125 transition-transform" />
           <span>
-            Karya<span className="font-light text-muted-foreground">ProfilKu</span>
+            My<span className="font-light text-muted-foreground">WebPorto</span>
           </span>
         </Link>
 

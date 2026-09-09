@@ -8,6 +8,13 @@ interface ProjectDetailPageProps {
   }>;
 }
 
+export const revalidate = 60;
+
+export async function generateStaticParams() {
+  const projects = await getProjects();
+  return projects.map((p) => ({ slug: p.slug }));
+}
+
 export async function generateMetadata({ params }: ProjectDetailPageProps) {
   const { slug } = await params;
   const projects = await getProjects();

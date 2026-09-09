@@ -5,7 +5,7 @@ import { AdminLayoutShell } from "@/components/admin/admin-layout-shell";
 import { getProfile } from "@/lib/actions";
 
 export const metadata: Metadata = {
-  title: "Admin Dashboard - KaryaProfilKu",
+  title: "Admin Dashboard - MyWebPorto",
   description: "Panel kendali portofolio dan profil karya digital.",
   robots: {
     index: false,

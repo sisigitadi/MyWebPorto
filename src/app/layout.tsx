@@ -14,7 +14,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "KaryaProfilKu - Portofolio & Personal Branding Profesional",
+  title: "MyWebPorto - Portofolio & Personal Branding Profesional",
   description:
     "Website profil pribadi elegan untuk menampilkan portofolio proyek, layanan keahlian, katalog produk, dan testimoni.",
 };

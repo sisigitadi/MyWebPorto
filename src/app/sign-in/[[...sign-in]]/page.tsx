@@ -4,8 +4,8 @@ import { ArrowLeft, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "Masuk Admin - KaryaProfilKu",
-  description: "Halaman autentikasi untuk pengelola KaryaProfilKu.",
+  title: "Masuk Admin - MyWebPorto",
+  description: "Halaman autentikasi untuk pengelola MyWebPorto.",
   robots: {
     index: false,
     follow: false,
@@ -35,7 +35,7 @@ export default function SignInPage() {
           </Button>
 
           <span className="text-xs font-semibold text-muted-foreground">
-            KaryaProfilKu
+            MyWebPorto
           </span>
         </div>
 

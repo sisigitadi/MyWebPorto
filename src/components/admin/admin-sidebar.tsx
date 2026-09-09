@@ -96,11 +96,11 @@ export function AdminSidebar({
           className="flex items-center gap-2 font-semibold text-foreground group"
         >
           <div className="h-8 w-8 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm shadow-none">
-            KP
+            MW
           </div>
           <div className="flex flex-col">
             <span className="text-sm font-semibold tracking-tight group-hover:text-primary transition-colors">
-              KaryaProfilKu
+              MyWebPorto
             </span>
             <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
               Admin Panel

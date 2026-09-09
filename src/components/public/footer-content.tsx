@@ -55,7 +55,7 @@ export function FooterContent({ profile }: { profile: ProfileData }) {
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-accent" />
               <span className="font-semibold text-foreground tracking-tight text-base">
-                Karya<span className="font-light text-muted-foreground">ProfilKu</span>
+                My<span className="font-light text-muted-foreground">WebPorto</span>
               </span>
             </div>
             <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
@@ -179,7 +179,7 @@ export function FooterContent({ profile }: { profile: ProfileData }) {
         </div>
 
         <div className="pt-8 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-          <p>© {currentYear} KaryaProfilKu. {t.footer_rights}</p>
+          <p>© {currentYear} MyWebPorto. {t.footer_rights}</p>
           <p className="text-muted-foreground/80">
             {language === "id" ? "Dibuat dengan Next.js 15 & Tailwind CSS" : "Built with Next.js 15 & Tailwind CSS"}
           </p>

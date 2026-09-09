@@ -101,7 +101,7 @@ export default async function AdminDashboardPage() {
         <div className="max-w-3xl space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border border-border bg-muted/40 text-foreground">
             <Sparkles className="h-3.5 w-3.5 text-primary" />
-            <span>Panel Administrasi KaryaProfilKu</span>
+            <span>Panel Administrasi MyWebPorto</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
             Selamat Datang, {displayName}

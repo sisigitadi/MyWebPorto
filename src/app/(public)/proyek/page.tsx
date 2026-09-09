@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: "Jelajahi seluruh karya, proyek aplikasi web, dan solusi digital yang telah saya kembangkan.",
 };
 
+export const revalidate = 60;
+
 export default async function ProjectsPage() {
   const projects = await getProjects();
   const publishedProjects = projects.filter((p) => p.published);

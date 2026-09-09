@@ -153,7 +153,7 @@ export async function getProjects() {
         summaryEn: summaryEn,
         description: p.description,
         descriptionEn: p.descriptionEn || null,
-        thumbnailUrl: p.imageUrl,
+        thumbnailUrl: p.imageUrl?.trim() || "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=800&auto=format&fit=crop",
         techStack: (p.techStacks as string[]) || [],
         demoUrl: p.demoUrl || undefined,
         repoUrl: p.repoUrl || undefined,
@@ -345,7 +345,7 @@ export async function getProducts() {
       description: p.description,
       descriptionEn: p.descriptionEn || null,
       priceFormatted: p.priceLabel || "Gratis / Diskusi",
-      thumbnailUrl: p.imageUrl,
+      thumbnailUrl: p.imageUrl?.trim() || "https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=600&auto=format&fit=crop",
       ctaUrl: "#kontak",
       published: p.published,
     }));
@@ -434,7 +434,7 @@ export async function getTestimonials() {
       clientRoleEn: t.clientRoleEn || null,
       content: t.content,
       contentEn: t.contentEn || null,
-      avatarUrl: t.avatarUrl || undefined,
+      avatarUrl: t.avatarUrl?.trim() || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop",
       rating: 5,
       published: t.published,
     }));

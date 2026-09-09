@@ -4,8 +4,8 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "Daftar - KaryaProfilKu",
-  description: "Halaman pendaftaran KaryaProfilKu.",
+  title: "Daftar - MyWebPorto",
+  description: "Halaman pendaftaran MyWebPorto.",
   robots: {
     index: false,
     follow: false,
@@ -30,7 +30,7 @@ export default function SignUpPage() {
           </Button>
 
           <span className="text-xs font-semibold text-muted-foreground">
-            KaryaProfilKu
+            MyWebPorto
           </span>
         </div>
 
