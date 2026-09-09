@@ -25,17 +25,7 @@ export function TestimonialsSection({ testimonials: propTestimonials }: Testimon
 
   useGSAP(
     () => {
-      gsap.from(".bento-testimonial-card", {
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: "top 80%",
-        },
-        y: 40,
-        opacity: 0,
-        stagger: 0.15,
-        duration: 0.85,
-        ease: "power3.out",
-      });
+      
     },
     { scope: containerRef }
   );

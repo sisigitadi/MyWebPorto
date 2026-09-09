@@ -27,17 +27,7 @@ export function ProductsSection({ products: propProducts }: ProductsSectionProps
 
   useGSAP(
     () => {
-      gsap.from(".bento-product-card", {
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: "top 80%",
-        },
-        y: 40,
-        opacity: 0,
-        stagger: 0.15,
-        duration: 0.85,
-        ease: "power3.out",
-      });
+      
     },
     { scope: containerRef }
   );

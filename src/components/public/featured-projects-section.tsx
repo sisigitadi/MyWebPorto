@@ -26,17 +26,7 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
 
   useGSAP(
     () => {
-      gsap.from(".bento-project-card", {
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top 80%",
-        },
-        opacity: 0,
-        y: 40,
-        stagger: 0.15,
-        duration: 0.8,
-        ease: "power3.out",
-      });
+      
     },
     { scope: sectionRef }
   );

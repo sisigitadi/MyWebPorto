@@ -44,3 +44,4 @@ next-env.d.ts
 # deploy artifact
 deploy_package/
 deploy_package.zip
+.aider*

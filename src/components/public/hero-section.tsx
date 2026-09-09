@@ -29,14 +29,12 @@ export function HeroSection({ profile }: HeroSectionProps) {
       const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
 
       tl.from(".hero-status", {
-        opacity: 0,
         y: -15,
         duration: 0.6,
       })
         .from(
           headlineRef.current,
           {
-            opacity: 0,
             y: 30,
             duration: 0.9,
           },
@@ -45,7 +43,6 @@ export function HeroSection({ profile }: HeroSectionProps) {
         .from(
           ".hero-desc",
           {
-            opacity: 0,
             y: 20,
             duration: 0.7,
           },
@@ -54,7 +51,6 @@ export function HeroSection({ profile }: HeroSectionProps) {
         .from(
           ctaRef.current,
           {
-            opacity: 0,
             y: 15,
             duration: 0.6,
           },
@@ -63,7 +59,6 @@ export function HeroSection({ profile }: HeroSectionProps) {
         .from(
           ".hero-stats-item",
           {
-            opacity: 0,
             y: 20,
             stagger: 0.1,
             duration: 0.6,
@@ -115,8 +110,7 @@ export function HeroSection({ profile }: HeroSectionProps) {
               <span>{profile.name}</span>
               <span className="inline-block relative w-16 h-10 sm:w-24 sm:h-14 md:w-28 md:h-16 rounded-full overflow-hidden border-2 border-primary/20 shadow-sm align-middle mt-1 sm:mt-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={profile.avatarUrl}
+                <img src={profile.avatarUrl} loading="eager" fetchPriority="high" decoding="sync"
                   alt={profile.name}
                   className="w-full h-full object-cover"
                 />
