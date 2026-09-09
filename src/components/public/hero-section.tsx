@@ -109,20 +109,22 @@ export function HeroSection({ profile }: HeroSectionProps) {
         <div className="max-w-5xl space-y-6">
           <h1
             ref={headlineRef}
-            className="text-4xl sm:text-6xl md:text-7xl font-semibold tracking-tighter text-foreground leading-[1.08]"
+            className="text-4xl sm:text-6xl md:text-7xl font-semibold tracking-tighter text-foreground leading-[1.1] flex flex-col gap-2 sm:gap-4"
           >
-            {profile.name}{" "}
-            <span className="inline-block relative w-16 h-9 sm:w-24 sm:h-12 md:w-28 md:h-14 rounded-full overflow-hidden align-middle border-2 border-primary/20 mx-1.5 shadow-sm">
-              <Image
-                src={profile.avatarUrl}
-                alt={profile.name}
-                fill
-                priority
-                sizes="120px"
-                className="object-cover"
-              />
-            </span>{" "}
-            <span className="text-muted-foreground font-normal block sm:inline">
+            <div className="flex items-center flex-wrap gap-x-4 gap-y-2">
+              <span>{profile.name}</span>
+              <span className="inline-block relative w-16 h-10 sm:w-24 sm:h-14 md:w-28 md:h-16 rounded-full overflow-hidden border-2 border-primary/20 shadow-sm align-middle mt-1 sm:mt-2">
+                <Image
+                  src={profile.avatarUrl}
+                  alt={profile.name}
+                  fill
+                  priority
+                  sizes="120px"
+                  className="object-cover"
+                />
+              </span>
+            </div>
+            <span className="text-muted-foreground font-normal block">
               {headline}
             </span>
           </h1>

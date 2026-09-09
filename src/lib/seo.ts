@@ -35,21 +35,12 @@ export async function generateDynamicMetadata(): Promise<Metadata> {
       title,
       description,
       siteName: `${profile.name} Portfolio`,
-      images: [
-        {
-          url: profile.avatarUrl,
-          width: 800,
-          height: 800,
-          alt: profile.name,
-        },
-      ],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [profile.avatarUrl],
-      creator: profile.socialLinks.twitter || "@developer",
+      creator: profile.socialLinks?.twitter ? `@${profile.socialLinks.twitter.split('/').pop()}` : "@developer",
     },
     robots: {
       index: true,
