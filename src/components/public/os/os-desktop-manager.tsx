@@ -51,37 +51,37 @@ interface AppItem {
 const APPS: AppItem[] = [
   {
     id: "profil",
-    icon: <User className="h-4 w-4 text-emerald-400" />,
+    icon: <User className="h-[18px] w-[18px] text-[#0044cc] dark:text-[#38bdf8] shrink-0" strokeWidth={2.2} />,
     number: 1,
   },
   {
     id: "layanan",
-    icon: <Briefcase className="h-4 w-4 text-amber-400" />,
+    icon: <Briefcase className="h-[18px] w-[18px] text-[#d97706] dark:text-[#fbbf24] shrink-0" strokeWidth={2.2} />,
     number: 2,
   },
   {
     id: "proyek",
-    icon: <FolderGit2 className="h-4 w-4 text-cyan-400" />,
+    icon: <FolderGit2 className="h-[18px] w-[18px] text-[#0891b2] dark:text-[#22d3ee] shrink-0" strokeWidth={2.2} />,
     number: 3,
   },
   {
     id: "toko",
-    icon: <Package className="h-4 w-4 text-pink-400" />,
+    icon: <Package className="h-[18px] w-[18px] text-[#c026d3] dark:text-[#e879f9] shrink-0" strokeWidth={2.2} />,
     number: 4,
   },
   {
     id: "testimoni",
-    icon: <MessageSquareQuote className="h-4 w-4 text-violet-400" />,
+    icon: <MessageSquareQuote className="h-[18px] w-[18px] text-[#7c3aed] dark:text-[#a78bfa] shrink-0" strokeWidth={2.2} />,
     number: 5,
   },
   {
     id: "kontak",
-    icon: <Mail className="h-4 w-4 text-rose-400" />,
+    icon: <Mail className="h-[18px] w-[18px] text-[#e11d48] dark:text-[#fb7185] shrink-0" strokeWidth={2.2} />,
     number: 6,
   },
   {
     id: "terminal",
-    icon: <Terminal className="h-4 w-4 text-emerald-300" />,
+    icon: <Terminal className="h-[18px] w-[18px] text-[#059669] dark:text-[#34d399] shrink-0" strokeWidth={2.2} />,
     number: 7,
   },
 ];
@@ -347,12 +347,8 @@ export function OSDesktopManager({
           <div
             className="fixed left-1.5 sm:left-3 bottom-9 sm:bottom-11 w-64 max-w-[calc(100vw-1rem)] vt-window bg-[var(--vt-chrome)] text-foreground text-xs shadow-2xl z-50 flex flex-row overflow-hidden animate-in fade-in-50 zoom-in-95 duration-100"
           >
-            {/* Left Blue Gradient Sidebar */}
-            <div className="w-8 bg-gradient-to-t from-[var(--vt-navy)] via-[var(--vt-blue)] to-[#7c5cff] text-white flex items-end justify-center pb-4 select-none shrink-0">
-              <span className="font-pixel text-xs tracking-widest -rotate-90 origin-bottom-center whitespace-nowrap text-[#37ff9b]">
-                SIGIT 98
-              </span>
-            </div>
+            {/* Left Blue Gradient Sidebar (Dikosongkan sesuai instruksi) */}
+            <div className="w-5 sm:w-6 bg-gradient-to-t from-[var(--vt-navy)] via-[var(--vt-blue)] to-[#7c5cff] select-none shrink-0" />
 
             {/* Menu Items List */}
             <div className="flex-1 p-1 space-y-0.5 font-mono overflow-y-auto max-h-[75vh]">

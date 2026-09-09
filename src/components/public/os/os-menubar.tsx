@@ -113,50 +113,50 @@ export function OSMenubar({ profileName }: OSMenubarProps) {
           </div>
         </div>
 
-        {/* Center: Social Media Links Bar */}
-        <div className="flex items-center gap-0.5 sm:gap-1.5 px-1 sm:px-1.5 py-0.5 bg-[var(--vt-paper)] vt-card-inset">
+        {/* Center: Social Media Links Bar (Spacious & Tactile) */}
+        <div className="flex items-center gap-1.5 sm:gap-2 px-1.5 sm:px-2.5 py-0.5 bg-[var(--vt-paper)] vt-card-inset">
           <a
             href="https://mail.google.com/mail/?view=cm&fs=1&to=si.sigitadi@gmail.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="vt-btn vt-btn-chrome px-1 sm:px-2 py-0.5 text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-1 hover:text-[#EA4335] transition-colors cursor-pointer"
+            className="vt-btn vt-btn-chrome px-1.5 sm:px-2.5 py-0.5 text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-1 sm:gap-1.5 hover:text-[#EA4335] transition-colors cursor-pointer"
             title="Gmail: si.sigitadi@gmail.com"
             aria-label="Gmail"
           >
-            <GmailIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
+            <GmailIcon className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden md:inline">Gmail</span>
           </a>
           <a
             href="https://www.linkedin.com/in/sigitadi/"
             target="_blank"
             rel="noopener noreferrer"
-            className="vt-btn vt-btn-chrome px-1 sm:px-2 py-0.5 text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-1 hover:text-[#0A66C2] transition-colors cursor-pointer"
+            className="vt-btn vt-btn-chrome px-1.5 sm:px-2.5 py-0.5 text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-1 sm:gap-1.5 hover:text-[#0A66C2] transition-colors cursor-pointer"
             title="LinkedIn: https://www.linkedin.com/in/sigitadi/"
             aria-label="LinkedIn"
           >
-            <LinkedinIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
+            <LinkedinIcon className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden md:inline">LinkedIn</span>
           </a>
           <a
             href="https://github.com/sisigitadi"
             target="_blank"
             rel="noopener noreferrer"
-            className="vt-btn vt-btn-chrome px-1 sm:px-2 py-0.5 text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
+            className="vt-btn vt-btn-chrome px-1.5 sm:px-2.5 py-0.5 text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-1 sm:gap-1.5 hover:text-primary transition-colors cursor-pointer"
             title="GitHub: https://github.com/sisigitadi"
             aria-label="GitHub"
           >
-            <GithubIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
+            <GithubIcon className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden md:inline">GitHub</span>
           </a>
           <a
             href="https://porto.sigitadi.id/"
             target="_blank"
             rel="noopener noreferrer"
-            className="vt-btn vt-btn-chrome px-1 sm:px-2 py-0.5 text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-1 hover:text-[#7c5cff] transition-colors cursor-pointer"
+            className="vt-btn vt-btn-chrome px-1.5 sm:px-2.5 py-0.5 text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-1 sm:gap-1.5 hover:text-[#7c5cff] transition-colors cursor-pointer"
             title="Portofolio: https://porto.sigitadi.id/"
             aria-label="Portofolio"
           >
-            <PortfolioIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
+            <PortfolioIcon className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden md:inline">Porto</span>
           </a>
         </div>
