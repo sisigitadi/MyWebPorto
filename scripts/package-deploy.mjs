@@ -52,28 +52,27 @@ if (fs.existsSync(publicSrc)) {
   copyDir(publicSrc, publicDest);
 }
 
-// 4. Copy data folder (local store yang persisten)
+// 4. Pastikan dan copy data folder (local store yang persisten)
 const dataSrc = path.resolve("data");
 const dataDest = path.join(targetDir, "data");
-if (fs.existsSync(dataSrc)) {
-  copyDir(dataSrc, dataDest);
+if (!fs.existsSync(dataSrc)) {
+  fs.mkdirSync(dataSrc, { recursive: true });
 }
+copyDir(dataSrc, dataDest);
 
 // 5. Copy ecosystem.config.cjs
 if (fs.existsSync("ecosystem.config.cjs")) {
   fs.copyFileSync("ecosystem.config.cjs", path.join(targetDir, "ecosystem.config.cjs"));
 }
 
-// 6. Copy .env.example as .env template if not present
-if (fs.existsSync(".env.example")) {
+// 6. Copy .env utama jika ada, atau fallback ke .env.example
+if (fs.existsSync(".env")) {
+  fs.copyFileSync(".env", path.join(targetDir, ".env"));
+} else if (fs.existsSync(".env.example")) {
   fs.copyFileSync(".env.example", path.join(targetDir, ".env"));
 }
 
 console.log("\n===================================================");
-console.log("[3/3] Selesai!");
+console.log("[3/3] Pengemasan Selesai!");
 console.log("===================================================");
-console.log("Direktori 'deploy_package' berhasil dibuat!");
-console.log("Karakteristik paket:");
-console.log("- Ukuran minimal & mandiri (semua dependencies produksi sudah include)");
-console.log("- Tidak butuh 'npm install' di server hosting");
-console.log("- Siap copy-paste ke VPS, Docker, cPanel Node.js Selector, atau Cloud Server.");
+console.log("Direktori 'deploy_package' siap digunakan untuk deploy ke server.");
