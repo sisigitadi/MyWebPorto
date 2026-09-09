@@ -19,6 +19,7 @@ import {
   Shield,
   Palette,
   RotateCcw,
+  Globe,
 } from "lucide-react";
 import { ProfileData, ServiceData, ProjectData, ProductData, TestimonialData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
@@ -92,7 +93,7 @@ export function OSDesktopManager({
   products,
   testimonials,
 }: OSDesktopManagerProps) {
-  const { t, language } = useTranslation();
+  const { t, language, setLanguage } = useTranslation();
   const { theme, setTheme } = useOSTheme();
   const [activeApp, setActiveApp] = useState<AppId>("profil");
   const [isMinimized, setIsMinimized] = useState(false);
@@ -213,9 +214,7 @@ export function OSDesktopManager({
 
   return (
     <div className="flex-1 w-full h-full flex flex-col overflow-hidden relative select-none">
-      {/* Main Desktop Space */}
-      <div className="flex-1 flex overflow-hidden p-2 sm:p-4 gap-3 relative">
-        {/* Left Side: Desktop Shortcut Icons (90s / 2000s OS Icons) */}
+      <div className="flex-1 flex overflow-hidden p-1 sm:p-2 md:p-4 gap-1.5 sm:gap-3 relative">
         <div className="hidden lg:flex flex-col gap-2 shrink-0 z-10 w-24 py-1">
           {APPS.map((app) => (
             <button
@@ -247,11 +246,11 @@ export function OSDesktopManager({
             } ${isMinimized ? "h-auto" : ""}`}
           >
             {/* 1. OS Titlebar */}
-            <div className="vt-titlebar select-none py-1.5 px-3 flex items-center justify-between">
-              <div className="flex items-center gap-2 min-w-0">
+            <div className="vt-titlebar select-none py-1 sm:py-1.5 px-2 sm:px-3 flex items-center justify-between">
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                 <span className="shrink-0">{currentApp.icon}</span>
-                <span className="font-mono text-xs font-bold text-white tracking-wide truncate">
-                  SigitOS_Viewer :: [{currentApp.number}/{APPS.length}] {getAppFilename(currentApp.id)} - {getAppLabel(currentApp.id)}
+                <span className="font-mono text-[10px] sm:text-xs font-bold text-white tracking-wide truncate">
+                  <span className="hidden sm:inline">SigitOS_Viewer :: </span>[{currentApp.number}/{APPS.length}] {getAppFilename(currentApp.id)}
                 </span>
               </div>
 
@@ -288,20 +287,22 @@ export function OSDesktopManager({
             </div>
 
             {/* 2. Window Top App Switcher Tabs (Click to open other section directly) */}
-            <div className="bg-muted/80 border-b-2 border-border p-1.5 flex items-center gap-1.5 overflow-x-auto vt-scrollbar shrink-0 select-none">
+            <div className="bg-muted/80 border-b-2 border-border p-1 sm:p-1.5 flex items-center gap-0.5 sm:gap-1.5 overflow-x-auto vt-scrollbar scroll-smooth snap-x snap-mandatory shrink-0 select-none">
               {APPS.map((app) => (
                 <button
                   key={app.id}
                   type="button"
                   onClick={() => switchApp(app.id)}
-                  className={`vt-taskbar-tab text-xs py-1 px-3 rounded-none flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer ${
+                  className={`vt-taskbar-tab text-[10px] sm:text-xs py-0.5 sm:py-1 px-1.5 sm:px-3 rounded-none flex items-center gap-1 sm:gap-1.5 transition-colors shrink-0 cursor-pointer snap-start ${
                     activeApp === app.id
                       ? "active bg-[var(--vt-paper)] text-[var(--vt-ink)] font-bold shadow-xs"
                       : "text-[var(--vt-ink)] font-semibold opacity-85 hover:opacity-100 hover:text-[var(--vt-blue)]"
                   }`}
                 >
-                  <span className="text-xs font-mono font-bold text-primary">[{app.number}]</span>
-                  <span>{getAppLabel(app.id)}</span>
+                  <span className="text-[10px] sm:text-xs font-mono font-bold text-primary">[{app.number}]</span>
+                  <span className={activeApp === app.id ? "inline sm:inline" : "hidden sm:inline"}>
+                    {getAppLabel(app.id)}
+                  </span>
                 </button>
               ))}
             </div>
@@ -310,7 +311,7 @@ export function OSDesktopManager({
             {!isMinimized && (
               <div
                 ref={scrollContainerRef}
-                className="flex-1 overflow-y-auto vt-scrollbar bg-[var(--vt-paper)] text-[var(--vt-ink)] p-3 sm:p-6"
+                className="flex-1 overflow-y-auto vt-scrollbar bg-[var(--vt-paper)] text-[var(--vt-ink)] p-2 sm:p-3 md:p-6"
               >
                 {activeApp === "profil" && <HeroSection profile={profile} />}
                 {activeApp === "layanan" && (
@@ -334,28 +335,28 @@ export function OSDesktopManager({
 
             {/* 4. In-Window Bottom Navigation & Statusbar (Previous / Next Buttons) */}
             {!isMinimized && (
-              <div className="vt-taskbar py-2 px-3 flex flex-wrap items-center justify-between gap-2 border-t-2 border-border text-xs font-mono shrink-0">
+              <div className="vt-taskbar py-1 sm:py-2 px-2 sm:px-3 flex items-center justify-between gap-1 sm:gap-2 border-t-2 border-border text-xs font-mono shrink-0">
                 {/* Previous Button */}
                 <button
                   type="button"
                   onClick={handlePrev}
-                  className="vt-btn vt-btn-chrome h-8 px-3 text-xs font-bold text-foreground flex items-center gap-1.5 cursor-pointer"
+                  className="vt-btn vt-btn-chrome h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs font-bold text-foreground flex items-center gap-1 cursor-pointer"
                   title={t.os_nav_prev_tooltip}
                 >
-                  <ChevronLeft className="h-4 w-4" />
-                  <span>{t.os_nav_prev}</span>
+                  <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">{t.os_nav_prev}</span>
                 </button>
 
                 {/* Section Counter & Keyboard Guide */}
-                <div className="flex items-center gap-3 text-xs text-[var(--vt-ink)] font-mono font-bold">
-                  <span className="hidden sm:inline-flex items-center gap-1">
+                <div className="flex items-center gap-1.5 sm:gap-3 text-[10px] sm:text-xs text-[var(--vt-ink)] font-mono font-bold">
+                  <span className="hidden md:inline-flex items-center gap-1">
                     <HardDrive className="h-3.5 w-3.5 text-primary" />
                     <span>C:\SIGIT\APP_{currentApp.number}.EXE</span>
                   </span>
-                  <span className="px-2.5 py-0.5 bg-muted rounded border border-border text-[var(--vt-ink)] font-bold">
-                    {t.os_nav_page} {currentApp.number} {t.os_nav_of} {APPS.length}
+                  <span className="px-2 sm:px-2.5 py-0.5 bg-muted rounded border border-border text-[var(--vt-ink)] font-bold">
+                    {currentApp.number} / {APPS.length}
                   </span>
-                  <span className="hidden md:inline text-[11px] text-[var(--vt-ink)] opacity-75 font-medium">
+                  <span className="hidden lg:inline text-[11px] text-[var(--vt-ink)] opacity-75 font-medium">
                     {t.os_nav_keys}
                   </span>
                 </div>
@@ -364,11 +365,12 @@ export function OSDesktopManager({
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="vt-btn vt-btn-pink h-8 px-4 text-xs font-bold text-white flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  className="vt-btn vt-btn-pink h-7 sm:h-8 px-2.5 sm:px-4 text-[10px] sm:text-xs font-bold text-white flex items-center gap-1 cursor-pointer shadow-sm"
                   title={t.os_nav_next_tooltip}
                 >
-                  <span>{t.os_nav_next}</span>
-                  <ChevronRight className="h-4 w-4" />
+                  <span className="hidden sm:inline">{t.os_nav_next}</span>
+                  <span className="sm:hidden">{language === "en" ? "Next" : "Lanjut"}</span>
+                  <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
               </div>
             )}
@@ -377,33 +379,33 @@ export function OSDesktopManager({
       </div>
 
       {/* Bottom Taskbar (Windows 95/98 Classic OS Taskbar) */}
-      <div className="vt-taskbar h-10 px-2 sm:px-3 flex items-center justify-between border-t-2 border-border select-none z-30 shrink-0">
+      <div className="vt-taskbar h-8 sm:h-10 px-1.5 sm:px-3 flex items-center justify-between border-t-2 border-border select-none z-30 shrink-0">
         {/* Left Side: Windows Start Button + Separator + Open Windows Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto vt-scrollbar py-1">
+        <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto vt-scrollbar py-0.5 sm:py-1">
           {/* 1. Classic Windows 95/98 Start Button */}
           <div ref={startRef} className="relative shrink-0">
             <button
               type="button"
               onClick={() => setStartOpen(!startOpen)}
-              className={`vt-btn px-2.5 sm:px-3 py-1 text-xs font-bold flex items-center gap-1.5 cursor-pointer select-none transition-all ${
+              className={`vt-btn px-1.5 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 cursor-pointer select-none transition-all ${
                 startOpen
                   ? "vt-btn-inset bg-[var(--vt-card)]"
                   : "vt-btn-chrome text-foreground"
               }`}
             >
-              <div className="grid grid-cols-2 gap-0.5 w-3.5 h-3.5 p-0.5 bg-black/20 rounded-xs">
+              <div className="grid grid-cols-2 gap-0.5 w-3 h-3 sm:w-3.5 sm:h-3.5 p-0.5 bg-black/20 rounded-xs">
                 <span className="bg-red-500 rounded-xs" />
                 <span className="bg-green-500 rounded-xs" />
                 <span className="bg-blue-500 rounded-xs" />
                 <span className="bg-yellow-400 rounded-xs" />
               </div>
-              <span className="font-pixel text-xs tracking-wide font-bold">{t.os_start_btn}</span>
+              <span className="font-pixel text-[10px] sm:text-xs tracking-wide font-bold">{t.os_start_btn}</span>
             </button>
 
             {/* Classic Windows 95 Start Menu Dropdown (Pops UPWARDS) */}
             {startOpen && (
               <div
-                className="absolute left-0 bottom-full mb-1.5 w-64 vt-window bg-[var(--vt-chrome)] text-foreground text-xs shadow-2xl z-50 flex flex-row overflow-hidden animate-in fade-in-50 zoom-in-95 duration-100"
+                className="absolute left-0 bottom-full mb-1.5 w-[calc(100vw-1rem)] sm:w-64 vt-window bg-[var(--vt-chrome)] text-foreground text-xs shadow-2xl z-50 flex flex-row overflow-hidden animate-in fade-in-50 zoom-in-95 duration-100"
               >
                 {/* Left Blue Gradient Sidebar */}
                 <div className="w-8 bg-gradient-to-t from-[var(--vt-navy)] via-[var(--vt-blue)] to-[#7c5cff] text-white flex items-end justify-center pb-4 select-none">
@@ -507,6 +509,24 @@ export function OSDesktopManager({
 
                   <div className="h-px bg-[#9a968e] my-1 shadow-[0_1px_0_#fff]" />
 
+                  {/* Language Switcher Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLanguage(language === "id" ? "en" : "id");
+                      setStartOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors text-left font-bold cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-3.5 w-3.5 text-sky-500" />
+                      <span>{language === "id" ? "Bahasa (ID)" : "Language (EN)"}</span>
+                    </div>
+                    <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded border border-border">
+                      {language.toUpperCase()}
+                    </span>
+                  </button>
+
                   {/* Theme Selector Submenu */}
                   <div className="relative">
                     <button
@@ -571,30 +591,59 @@ export function OSDesktopManager({
           </div>
 
           {/* Retro Taskbar Separator */}
-          <div className="h-6 w-[2px] bg-[#5a5750] shadow-[1px_0_0_#fff] mx-1 shrink-0" />
+          <div className="h-5 sm:h-6 w-[2px] bg-[#5a5750] shadow-[1px_0_0_#fff] mx-0.5 sm:mx-1 shrink-0" />
 
           {/* Open windows taskbar buttons */}
+          {/* Mobile: only show active app tab + compact nav arrows */}
+          {/* Desktop: show all app tabs */}
+          <div className="flex sm:hidden items-center gap-0.5">
+            <button
+              type="button"
+              onClick={handlePrev}
+              className="vt-btn vt-btn-chrome h-6 w-6 flex items-center justify-center cursor-pointer shrink-0"
+              aria-label="Previous"
+            >
+              <ChevronLeft className="h-3 w-3" />
+            </button>
+            <button
+              type="button"
+              onClick={() => switchApp(activeApp)}
+              className="vt-taskbar-tab active h-6 px-2 text-[10px] flex items-center gap-1 font-bold text-[var(--vt-blue)] shrink-0"
+            >
+              {currentApp.icon}
+              <span className="truncate max-w-[80px]">{getAppFilename(activeApp)}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleNext}
+              className="vt-btn vt-btn-chrome h-6 w-6 flex items-center justify-center cursor-pointer shrink-0"
+              aria-label="Next"
+            >
+              <ChevronRight className="h-3 w-3" />
+            </button>
+          </div>
+          {/* Desktop: full tabs */}
           {APPS.map((app) => (
             <button
               key={app.id}
               type="button"
               onClick={() => switchApp(app.id)}
-              className={`vt-taskbar-tab h-7 px-2.5 text-xs flex items-center gap-1.5 cursor-pointer shrink-0 ${
+              className={`hidden sm:flex vt-taskbar-tab h-7 px-2 text-[11px] items-center gap-1 cursor-pointer shrink-0 ${
                 activeApp === app.id
                   ? "active text-[var(--vt-blue)] font-bold shadow-xs"
                   : "text-foreground font-semibold opacity-90 hover:opacity-100"
               }`}
             >
               {app.icon}
-              <span className="truncate max-w-[90px] sm:max-w-none">{getAppFilename(app.id)}</span>
+              <span className="truncate max-w-[80px] lg:max-w-none">{getAppFilename(app.id)}</span>
             </button>
           ))}
         </div>
 
         {/* System Status on Bottom Right */}
-        <div className="hidden sm:flex items-center gap-2 text-xs font-mono font-bold shrink-0 pl-2">
-          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-emerald-700 dark:text-emerald-400">{t.os_status_online}</span>
+        <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs font-mono font-bold shrink-0 pl-1 sm:pl-2">
+          <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="hidden sm:inline text-emerald-700 dark:text-emerald-400">{t.os_status_online}</span>
         </div>
       </div>
     </div>

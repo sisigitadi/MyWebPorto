@@ -92,12 +92,12 @@ export function OSMenubar({ profileName }: OSMenubarProps) {
 
   return (
     <header className="sticky top-0 z-50 w-full bg-[var(--vt-chrome)] border-b-2 border-[#5a5750] shadow-[0_2px_8px_rgba(0,0,0,0.35)] select-none">
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 flex items-center justify-between h-10 gap-2">
+      <div className="max-w-7xl mx-auto px-1.5 sm:px-4 flex items-center justify-between h-8 sm:h-10 gap-1 sm:gap-2">
         {/* Left Side: Retro System OS Branding & Status */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-[var(--vt-card)] vt-card-inset">
-            <Monitor className="h-3.5 w-3.5 text-primary" />
-            <span className="font-pixel text-xs font-bold tracking-wider text-[var(--vt-ink)]">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-[var(--vt-card)] vt-card-inset">
+            <Monitor className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary" />
+            <span className="font-pixel text-[10px] sm:text-xs font-bold tracking-wider text-[var(--vt-ink)]">
               SIGIT-OS
             </span>
             <span className="hidden sm:inline font-mono text-[10px] font-bold text-[var(--vt-ink)] opacity-80">
@@ -115,82 +115,75 @@ export function OSMenubar({ profileName }: OSMenubarProps) {
           </div>
         </div>
 
-        {/* Center: Social Media Links Bar (Tactile OS Quick-Launch Icons) */}
-        <div className="flex items-center gap-1 sm:gap-1.5 px-1 sm:px-1.5 py-0.5 bg-[var(--vt-paper)] vt-card-inset">
-          {/* 1. Gmail */}
+        {/* Center: Social Media Links Bar */}
+        <div className="flex items-center gap-0.5 sm:gap-1.5 px-1 sm:px-1.5 py-0.5 bg-[var(--vt-paper)] vt-card-inset">
           <a
             href="https://mail.google.com/mail/?view=cm&fs=1&to=si.sigitadi@gmail.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="vt-btn vt-btn-chrome px-1.5 sm:px-2 py-0.5 text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-1 hover:text-[#EA4335] transition-colors cursor-pointer"
+            className="vt-btn vt-btn-chrome px-1 sm:px-2 py-0.5 text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-1 hover:text-[#EA4335] transition-colors cursor-pointer"
             title="Gmail: si.sigitadi@gmail.com"
             aria-label="Gmail"
           >
-            <GmailIcon className="h-3.5 w-3.5 shrink-0" />
+            <GmailIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
             <span className="hidden md:inline">Gmail</span>
           </a>
-
-          {/* 2. LinkedIn */}
           <a
             href="https://www.linkedin.com/in/sigitadi/"
             target="_blank"
             rel="noopener noreferrer"
-            className="vt-btn vt-btn-chrome px-1.5 sm:px-2 py-0.5 text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-1 hover:text-[#0A66C2] transition-colors cursor-pointer"
+            className="vt-btn vt-btn-chrome px-1 sm:px-2 py-0.5 text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-1 hover:text-[#0A66C2] transition-colors cursor-pointer"
             title="LinkedIn: https://www.linkedin.com/in/sigitadi/"
             aria-label="LinkedIn"
           >
-            <LinkedinIcon className="h-3.5 w-3.5 shrink-0" />
+            <LinkedinIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
             <span className="hidden md:inline">LinkedIn</span>
           </a>
-
-          {/* 3. GitHub */}
           <a
             href="https://github.com/sisigitadi"
             target="_blank"
             rel="noopener noreferrer"
-            className="vt-btn vt-btn-chrome px-1.5 sm:px-2 py-0.5 text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
+            className="vt-btn vt-btn-chrome px-1 sm:px-2 py-0.5 text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
             title="GitHub: https://github.com/sisigitadi"
             aria-label="GitHub"
           >
-            <GithubIcon className="h-3.5 w-3.5 shrink-0" />
+            <GithubIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
             <span className="hidden md:inline">GitHub</span>
           </a>
-
-          {/* 4. Portofolio */}
           <a
             href="https://porto.sigitadi.id/"
             target="_blank"
             rel="noopener noreferrer"
-            className="vt-btn vt-btn-chrome px-1.5 sm:px-2 py-0.5 text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-1 hover:text-[#7c5cff] transition-colors cursor-pointer"
+            className="vt-btn vt-btn-chrome px-1 sm:px-2 py-0.5 text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-1 hover:text-[#7c5cff] transition-colors cursor-pointer"
             title="Portofolio: https://porto.sigitadi.id/"
             aria-label="Portofolio"
           >
-            <PortfolioIcon className="h-3.5 w-3.5 shrink-0" />
+            <PortfolioIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
             <span className="hidden md:inline">Porto</span>
           </a>
         </div>
 
-        {/* Right Side: System Status, Language, Theme & Clock */}
-        <div className="flex items-center gap-1 sm:gap-1.5 font-mono text-xs shrink-0">
-          {/* Status Badge */}
+        {/* Right Side: Language, Theme & Clock */}
+        <div className="flex items-center gap-0.5 sm:gap-1.5 font-mono text-xs shrink-0">
+          {/* Status Badge - desktop only */}
           <div className="hidden xl:flex items-center gap-1 px-2 py-0.5 bg-[var(--vt-card)] vt-card-inset text-xs font-bold text-[var(--vt-ink)]">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--vt-crt)] animate-pulse" />
             <span className="font-bold text-[var(--vt-ink)]">v2.5 PRO</span>
           </div>
 
-          {/* Language Switcher Button */}
+          {/* Language Switcher */}
           <button
             type="button"
             onClick={() => setLanguage(language === "id" ? "en" : "id")}
-            className="vt-btn vt-btn-chrome px-1.5 sm:px-2 py-0.5 text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-1 cursor-pointer"
+            className="vt-btn vt-btn-chrome px-1 sm:px-2 py-0.5 text-[10px] sm:text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-0.5 sm:gap-1 cursor-pointer"
             title={t.os_lang_tooltip}
           >
-            <Globe className="h-3.5 w-3.5 text-primary" />
+            <Globe className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary" />
             <span>{language.toUpperCase()}</span>
           </button>
 
-          {/* Quick Theme Switcher Pill */}
-          <div className="relative">
+          {/* Theme Selector - hidden on mobile, shown on sm+ */}
+          <div className="hidden sm:block relative">
             <select
               value={theme}
               onChange={(e) => setTheme(e.target.value as OSTheme)}
@@ -204,15 +197,17 @@ export function OSMenubar({ profileName }: OSMenubarProps) {
             </select>
           </div>
 
-          {/* Digital Clock Box */}
-          <div className="vt-card-inset px-2 py-0.5 bg-[var(--vt-paper)] font-pixel text-xs tracking-wider text-[var(--vt-ink)] font-bold flex items-center gap-1 shadow-inner">
-            <Clock className="h-3.5 w-3.5 text-primary" />
-            <span>{timeStr}</span>
+          {/* Digital Clock */}
+          <div className="vt-card-inset px-1.5 sm:px-2 py-0.5 bg-[var(--vt-paper)] font-pixel text-[10px] sm:text-xs tracking-wider text-[var(--vt-ink)] font-bold flex items-center gap-0.5 sm:gap-1 shadow-inner">
+            <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary" />
+            {/* Mobile: HH:MM only, Desktop: HH:MM:SS */}
+            <span className="sm:hidden">{timeStr.slice(0, 5)}</span>
+            <span className="hidden sm:inline">{timeStr}</span>
           </div>
 
           {/* User Button / Admin link */}
           {isLoaded && isSignedIn ? (
-            <div className="flex items-center gap-1.5 ml-0.5">
+            <div className="flex items-center gap-1 ml-0.5">
               <Link
                 href="/admin"
                 className="hidden sm:inline-flex vt-btn vt-btn-chrome px-1.5 py-0.5 text-xs font-bold text-foreground"

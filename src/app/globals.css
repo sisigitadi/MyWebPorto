@@ -663,3 +663,17 @@ body {
 .vt-taskbar-tab:hover:not(.active) {
   background: var(--vt-edge-hi-2);
 }
+
+/* Mobile responsive enhancements for Retro OS */
+@media (max-width: 640px) {
+  .vt-taskbar-tab {
+    padding: 2px 6px;
+    font-size: 10px;
+    gap: 3px;
+  }
+
+  .vt-scrollbar::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+}
