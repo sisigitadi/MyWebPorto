@@ -113,6 +113,10 @@ export default function AdminProfilePage() {
 
       if (res.success) {
         setSavedSuccess(true);
+        const updated = await getProfile();
+        if (updated) {
+          setProfile(updated);
+        }
         setTimeout(() => {
           setSavedSuccess(false);
         }, 3500);

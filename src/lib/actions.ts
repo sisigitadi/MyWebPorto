@@ -17,6 +17,10 @@ import {
   DUMMY_SERVICES,
   DUMMY_PRODUCTS,
   DUMMY_TESTIMONIALS,
+  type ProjectData,
+  type ServiceData,
+  type ProductData,
+  type TestimonialData,
 } from "@/lib/dummy-data";
 import { translateText } from "@/lib/translate";
 
@@ -95,7 +99,13 @@ export async function updateProfile(data: unknown) {
     bioEn: bioEn || null,
   };
 
+  // Selalu perbarui memory fallback (dummy data) agar perubahan langsung terlihat
+  Object.assign(DUMMY_PROFILE, payload);
+
   if (!isDbConnected) {
+    revalidatePath("/");
+    revalidatePath("/admin");
+    revalidatePath("/admin/profile");
     return {
       success: true,
       message: "Profil diperbarui (mode offline preview).",
@@ -192,21 +202,74 @@ export async function saveProject(data: unknown) {
     descriptionEn: descriptionEn || null,
   };
 
+  // Selalu sinkronkan data ke memori DUMMY_PROJECTS
+  const summaryId = projectData.description.slice(0, 120) + (projectData.description.length > 120 ? "..." : "");
+  const summaryEn = projectData.descriptionEn
+    ? projectData.descriptionEn.slice(0, 120) + (projectData.descriptionEn.length > 120 ? "..." : "")
+    : null;
+
+  const targetId = id || `proj-${Date.now()}`;
+  const dummyItem: ProjectData = {
+    id: targetId,
+    title: projectData.title,
+    titleEn: projectData.titleEn,
+    slug: projectData.slug,
+    summary: summaryId,
+    summaryEn: summaryEn,
+    description: projectData.description,
+    descriptionEn: projectData.descriptionEn,
+    thumbnailUrl: projectData.imageUrl?.trim() || "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=800&auto=format&fit=crop",
+    techStack: projectData.techStacks || [],
+    demoUrl: projectData.demoUrl || null,
+    repoUrl: projectData.repoUrl || null,
+    featured: projectData.featured ?? false,
+    published: projectData.published ?? true,
+    createdAt: new Date().toISOString().split("T")[0],
+  };
+
+  const existingDummyIdx = DUMMY_PROJECTS.findIndex((p) => p.id === id);
+  if (existingDummyIdx >= 0) {
+    DUMMY_PROJECTS[existingDummyIdx] = {
+      ...DUMMY_PROJECTS[existingDummyIdx],
+      ...dummyItem,
+      id: DUMMY_PROJECTS[existingDummyIdx].id,
+    };
+  } else {
+    DUMMY_PROJECTS.unshift(dummyItem);
+  }
+
   if (!isDbConnected) {
+    revalidatePath("/");
+    revalidatePath("/proyek");
+    revalidatePath("/admin/projects");
     return { success: true, message: "Proyek berhasil disimpan (mode offline preview)." };
   }
 
   try {
     if (id) {
-      await db
-        .update(schema.projects)
-        .set({
+      const existing = await db.query.projects.findFirst({
+        where: eq(schema.projects.id, id),
+      });
+
+      if (existing) {
+        await db
+          .update(schema.projects)
+          .set({
+            ...projectData,
+            imageUrl: projectData.imageUrl,
+            techStacks: projectData.techStacks,
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.projects.id, id));
+      } else {
+        // Jika row belum ada di DB (misal dari dummy data), lakukan insert dengan ID ini
+        await db.insert(schema.projects).values({
+          id,
           ...projectData,
           imageUrl: projectData.imageUrl,
           techStacks: projectData.techStacks,
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.projects.id, id));
+        });
+      }
     } else {
       await db.insert(schema.projects).values({
         ...projectData,
@@ -226,7 +289,15 @@ export async function saveProject(data: unknown) {
 }
 
 export async function deleteProject(id: string) {
+  const dummyIdx = DUMMY_PROJECTS.findIndex((p) => p.id === id);
+  if (dummyIdx >= 0) {
+    DUMMY_PROJECTS.splice(dummyIdx, 1);
+  }
+
   if (!isDbConnected) {
+    revalidatePath("/");
+    revalidatePath("/proyek");
+    revalidatePath("/admin/projects");
     return { success: true, message: "Proyek berhasil dihapus (mode offline preview)." };
   }
   try {
@@ -290,16 +361,51 @@ export async function saveService(data: unknown) {
     descriptionEn: descriptionEn || null,
   };
 
+  const targetId = id || `serv-${Date.now()}`;
+  const dummyItem: ServiceData = {
+    id: targetId,
+    order: serviceData.order ?? 1,
+    title: serviceData.title,
+    titleEn: serviceData.titleEn,
+    description: serviceData.description,
+    descriptionEn: serviceData.descriptionEn,
+    published: serviceData.published ?? true,
+  };
+
+  const existingDummyIdx = DUMMY_SERVICES.findIndex((s) => s.id === id);
+  if (existingDummyIdx >= 0) {
+    DUMMY_SERVICES[existingDummyIdx] = {
+      ...DUMMY_SERVICES[existingDummyIdx],
+      ...dummyItem,
+      id: DUMMY_SERVICES[existingDummyIdx].id,
+    };
+  } else {
+    DUMMY_SERVICES.push(dummyItem);
+  }
+
   if (!isDbConnected) {
+    revalidatePath("/");
+    revalidatePath("/admin/services");
     return { success: true, message: "Layanan berhasil disimpan (mode offline)." };
   }
 
   try {
     if (id) {
-      await db
-        .update(schema.services)
-        .set({ ...serviceData, updatedAt: new Date() })
-        .where(eq(schema.services.id, id));
+      const existing = await db.query.services.findFirst({
+        where: eq(schema.services.id, id),
+      });
+
+      if (existing) {
+        await db
+          .update(schema.services)
+          .set({ ...serviceData, updatedAt: new Date() })
+          .where(eq(schema.services.id, id));
+      } else {
+        await db.insert(schema.services).values({
+          id,
+          ...serviceData,
+        });
+      }
     } else {
       await db.insert(schema.services).values(serviceData);
     }
@@ -314,7 +420,14 @@ export async function saveService(data: unknown) {
 }
 
 export async function deleteService(id: string) {
+  const dummyIdx = DUMMY_SERVICES.findIndex((s) => s.id === id);
+  if (dummyIdx >= 0) {
+    DUMMY_SERVICES.splice(dummyIdx, 1);
+  }
+
   if (!isDbConnected) {
+    revalidatePath("/");
+    revalidatePath("/admin/services");
     return { success: true, message: "Layanan dihapus (mode offline)." };
   }
   try {
@@ -379,16 +492,53 @@ export async function saveProduct(data: unknown) {
     descriptionEn: descriptionEn || null,
   };
 
+  const targetId = id || `prod-${Date.now()}`;
+  const dummyItem: ProductData = {
+    id: targetId,
+    title: productData.title,
+    titleEn: productData.titleEn,
+    description: productData.description,
+    descriptionEn: productData.descriptionEn,
+    priceFormatted: productData.priceLabel || "Gratis / Diskusi",
+    thumbnailUrl: productData.imageUrl?.trim() || "https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=600&auto=format&fit=crop",
+    ctaUrl: "#kontak",
+    published: productData.published ?? true,
+  };
+
+  const existingDummyIdx = DUMMY_PRODUCTS.findIndex((p) => p.id === id);
+  if (existingDummyIdx >= 0) {
+    DUMMY_PRODUCTS[existingDummyIdx] = {
+      ...DUMMY_PRODUCTS[existingDummyIdx],
+      ...dummyItem,
+      id: DUMMY_PRODUCTS[existingDummyIdx].id,
+    };
+  } else {
+    DUMMY_PRODUCTS.push(dummyItem);
+  }
+
   if (!isDbConnected) {
+    revalidatePath("/");
+    revalidatePath("/admin/products");
     return { success: true, message: "Produk berhasil disimpan (mode offline)." };
   }
 
   try {
     if (id) {
-      await db
-        .update(schema.products)
-        .set({ ...productData, updatedAt: new Date() })
-        .where(eq(schema.products.id, id));
+      const existing = await db.query.products.findFirst({
+        where: eq(schema.products.id, id),
+      });
+
+      if (existing) {
+        await db
+          .update(schema.products)
+          .set({ ...productData, updatedAt: new Date() })
+          .where(eq(schema.products.id, id));
+      } else {
+        await db.insert(schema.products).values({
+          id,
+          ...productData,
+        });
+      }
     } else {
       await db.insert(schema.products).values(productData);
     }
@@ -403,7 +553,14 @@ export async function saveProduct(data: unknown) {
 }
 
 export async function deleteProduct(id: string) {
+  const dummyIdx = DUMMY_PRODUCTS.findIndex((p) => p.id === id);
+  if (dummyIdx >= 0) {
+    DUMMY_PRODUCTS.splice(dummyIdx, 1);
+  }
+
   if (!isDbConnected) {
+    revalidatePath("/");
+    revalidatePath("/admin/products");
     return { success: true, message: "Produk dihapus (mode offline)." };
   }
   try {
@@ -468,16 +625,53 @@ export async function saveTestimonial(data: unknown) {
     clientRoleEn: clientRoleEn || null,
   };
 
+  const targetId = id || `testi-${Date.now()}`;
+  const dummyItem: TestimonialData = {
+    id: targetId,
+    clientName: testimonialData.clientName,
+    clientRole: testimonialData.clientRole || "Klien",
+    clientRoleEn: testimonialData.clientRoleEn || null,
+    content: testimonialData.content,
+    contentEn: testimonialData.contentEn || null,
+    avatarUrl: testimonialData.avatarUrl?.trim() || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop",
+    rating: 5,
+    published: testimonialData.published ?? true,
+  };
+
+  const existingDummyIdx = DUMMY_TESTIMONIALS.findIndex((t) => t.id === id);
+  if (existingDummyIdx >= 0) {
+    DUMMY_TESTIMONIALS[existingDummyIdx] = {
+      ...DUMMY_TESTIMONIALS[existingDummyIdx],
+      ...dummyItem,
+      id: DUMMY_TESTIMONIALS[existingDummyIdx].id,
+    };
+  } else {
+    DUMMY_TESTIMONIALS.push(dummyItem);
+  }
+
   if (!isDbConnected) {
+    revalidatePath("/");
+    revalidatePath("/admin/testimonials");
     return { success: true, message: "Testimoni berhasil disimpan (mode offline)." };
   }
 
   try {
     if (id) {
-      await db
-        .update(schema.testimonials)
-        .set({ ...testimonialData, updatedAt: new Date() })
-        .where(eq(schema.testimonials.id, id));
+      const existing = await db.query.testimonials.findFirst({
+        where: eq(schema.testimonials.id, id),
+      });
+
+      if (existing) {
+        await db
+          .update(schema.testimonials)
+          .set({ ...testimonialData, updatedAt: new Date() })
+          .where(eq(schema.testimonials.id, id));
+      } else {
+        await db.insert(schema.testimonials).values({
+          id,
+          ...testimonialData,
+        });
+      }
     } else {
       await db.insert(schema.testimonials).values(testimonialData);
     }
@@ -492,7 +686,14 @@ export async function saveTestimonial(data: unknown) {
 }
 
 export async function deleteTestimonial(id: string) {
+  const dummyIdx = DUMMY_TESTIMONIALS.findIndex((p) => p.id === id);
+  if (dummyIdx >= 0) {
+    DUMMY_TESTIMONIALS.splice(dummyIdx, 1);
+  }
+
   if (!isDbConnected) {
+    revalidatePath("/");
+    revalidatePath("/admin/testimonials");
     return { success: true, message: "Testimoni dihapus (mode offline)." };
   }
   try {
