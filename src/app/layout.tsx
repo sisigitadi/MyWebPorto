@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     images: ["/opengraph-image"],
   },
   verification: {
-    google: "google69895a9e48e2c21c",
+    google: "nO80bNSBPyrM7VQYvpPKCmgcQVBuJ_7Ydaxhfsk5Vbw",
     other: {
       "msvalidate.01": "bing-site-verification-code-placeholder",
     },
@@ -70,7 +70,7 @@ export default async function RootLayout({
       <html lang="id" suppressHydrationWarning>
         <head>
           <JsonLdSchema profile={profile} />
-          <meta name="google-site-verification" content="google69895a9e48e2c21c" />
+          <meta name="google-site-verification" content="nO80bNSBPyrM7VQYvpPKCmgcQVBuJ_7Ydaxhfsk5Vbw" />
           <meta name="msvalidate.01" content="bing-site-verification-code-placeholder" />
         </head>
         <body
