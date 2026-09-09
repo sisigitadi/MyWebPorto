@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
 import {
   User,
   Briefcase,
@@ -15,9 +16,14 @@ import {
   Minimize2,
   X,
   HardDrive,
+  Shield,
+  Palette,
+  RotateCcw,
+  Globe,
 } from "lucide-react";
 import { ProfileData, ServiceData, ProjectData, ProductData, TestimonialData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
+import { useOSTheme, OSTheme } from "./theme-context";
 import { HeroSection } from "@/components/public/hero-section";
 import { ServicesSection } from "@/components/public/services-section";
 import { FeaturedProjectsSection } from "@/components/public/featured-projects-section";
@@ -87,12 +93,21 @@ export function OSDesktopManager({
   products,
   testimonials,
 }: OSDesktopManagerProps) {
-  const { t, language } = useTranslation();
+  const { t, language, setLanguage } = useTranslation();
+  const { theme, setTheme } = useOSTheme();
   const [activeApp, setActiveApp] = useState<AppId>("profil");
   const [isMinimized, setIsMinimized] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
-  const [isStartPressed, setIsStartPressed] = useState(false);
+  const [startOpen, setStartOpen] = useState(false);
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const themes: { id: OSTheme; label: string; tag: string }[] = [
+    { id: "retro90s", label: "Classic 90s OS", tag: "DEFAULT" },
+    { id: "dark", label: "Cyber Dark OS", tag: "DARK" },
+    { id: "tokyo", label: "Tokyo Night Cyber", tag: "NEON" },
+    { id: "vscode", label: "VS Code Hacker", tag: "DEV" },
+  ];
 
   const getAppFilename = useCallback((id: AppId) => {
     switch (id) {
@@ -316,17 +331,152 @@ export function OSDesktopManager({
         </div>
       </div>
 
+      {/* Fixed Start Menu Popup (Placed at root level so it is NEVER clipped by taskbar) */}
+      {startOpen && (
+        <>
+          {/* Backdrop for outside click */}
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => {
+              setStartOpen(false);
+              setThemeMenuOpen(false);
+            }}
+          />
+
+          {/* Start Menu Window */}
+          <div
+            className="fixed left-1.5 sm:left-3 bottom-9 sm:bottom-11 w-64 max-w-[calc(100vw-1rem)] vt-window bg-[var(--vt-chrome)] text-foreground text-xs shadow-2xl z-50 flex flex-row overflow-hidden animate-in fade-in-50 zoom-in-95 duration-100"
+          >
+            {/* Left Blue Gradient Sidebar */}
+            <div className="w-8 bg-gradient-to-t from-[var(--vt-navy)] via-[var(--vt-blue)] to-[#7c5cff] text-white flex items-end justify-center pb-4 select-none shrink-0">
+              <span className="font-pixel text-xs tracking-widest -rotate-90 origin-bottom-center whitespace-nowrap text-[#37ff9b]">
+                SIGIT 98
+              </span>
+            </div>
+
+            {/* Menu Items List */}
+            <div className="flex-1 p-1 space-y-0.5 font-mono overflow-y-auto max-h-[75vh]">
+              <div className="px-2 py-1.5 bg-muted/60 mb-1 border-b border-border/60">
+                <p className="font-bold text-foreground truncate">{profile.name}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
+                  {t.os_start_title}
+                </p>
+              </div>
+
+              {APPS.map((app) => (
+                <button
+                  key={app.id}
+                  type="button"
+                  onClick={() => {
+                    switchApp(app.id);
+                    setStartOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors text-left cursor-pointer ${
+                    activeApp === app.id ? "bg-[var(--vt-blue)]/20 font-bold text-[var(--vt-blue)]" : ""
+                  }`}
+                >
+                  <span className="shrink-0">{app.icon}</span>
+                  <span className="font-bold">{getAppFilename(app.id)}</span>
+                </button>
+              ))}
+
+              <div className="h-px bg-[#9a968e] my-1 shadow-[0_1px_0_#fff]" />
+
+              {/* Language Switcher */}
+              <button
+                type="button"
+                onClick={() => {
+                  setLanguage(language === "id" ? "en" : "id");
+                  setStartOpen(false);
+                }}
+                className="w-full flex items-center justify-between px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors text-left font-bold cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <Globe className="h-3.5 w-3.5 text-sky-500" />
+                  <span>{language === "id" ? "Bahasa (ID)" : "Language (EN)"}</span>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded border border-border">
+                  {language.toUpperCase()}
+                </span>
+              </button>
+
+              {/* Theme Selector Submenu */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setThemeMenuOpen(!themeMenuOpen)}
+                  className="w-full flex items-center justify-between px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors text-left font-bold cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <Palette className="h-3.5 w-3.5 text-indigo-500" />
+                    <span>{t.os_start_theme}</span>
+                  </div>
+                  <ChevronRight className="h-3 w-3" />
+                </button>
+
+                {themeMenuOpen && (
+                  <div className="mt-1 pl-4 space-y-1 bg-muted/40 p-1.5 rounded-xs border border-border">
+                    {themes.map((th) => (
+                      <button
+                        key={th.id}
+                        type="button"
+                        onClick={() => {
+                          setTheme(th.id);
+                          setStartOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-2 py-1 text-[11px] rounded-xs font-bold cursor-pointer ${
+                          theme === th.id
+                            ? "bg-[var(--vt-blue)] text-white"
+                            : "hover:bg-muted text-foreground"
+                        }`}
+                      >
+                        <span>{th.label}</span>
+                        <span className="text-[9px] opacity-75">[{th.tag}]</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <Link
+                href="/admin"
+                onClick={() => setStartOpen(false)}
+                className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors font-bold"
+              >
+                <Shield className="h-3.5 w-3.5 text-foreground" />
+                <span>{t.os_start_admin}</span>
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sessionStorage.removeItem("sigitos_booted_session");
+                  window.location.reload();
+                }}
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-amber-600 hover:text-white rounded-xs transition-colors text-left cursor-pointer font-bold"
+              >
+                <RotateCcw className="h-3.5 w-3.5 text-amber-500 hover:text-white" />
+                <span>{t.os_start_reboot}</span>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Bottom Taskbar (Windows 95/98 Classic OS Taskbar) */}
-      <div className="vt-taskbar h-8 sm:h-10 px-1.5 sm:px-3 flex items-center justify-between border-t-2 border-border select-none z-30 shrink-0">
+      <div className="vt-taskbar h-8 sm:h-10 px-1 sm:px-3 flex items-center justify-between border-t-2 border-border select-none z-30 shrink-0">
         {/* Left Side: Windows Start Button + Separator + Open Windows Tabs */}
-        <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto vt-scrollbar py-0.5 sm:py-1">
-          {/* 1. Classic Windows 95/98 Start Button (Hanya efek ditekan saja saat diklik) */}
+        <div className="flex items-center gap-1 sm:gap-1.5 flex-1 min-w-0">
+          {/* 1. Classic Windows 95/98 Start Button */}
           <div className="relative shrink-0">
             <button
               type="button"
-              onClick={() => setIsStartPressed((prev) => !prev)}
-              className={`vt-btn px-1.5 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 cursor-pointer select-none transition-all active:vt-btn-inset ${
-                isStartPressed
+              onClick={() => {
+                setStartOpen(!startOpen);
+                setThemeMenuOpen(false);
+              }}
+              className={`vt-btn px-1.5 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-bold flex items-center gap-1 sm:gap-1.5 cursor-pointer select-none transition-all ${
+                startOpen
                   ? "vt-btn-inset bg-[var(--vt-card)] translate-y-0.5"
                   : "vt-btn-chrome text-foreground"
               }`}
@@ -345,22 +495,28 @@ export function OSDesktopManager({
           {/* Retro Taskbar Separator */}
           <div className="h-5 sm:h-6 w-[2px] bg-[#5a5750] shadow-[1px_0_0_#fff] mx-0.5 sm:mx-1 shrink-0" />
 
-          {/* Open windows taskbar buttons (All tabs directly accessible & scrollable on mobile & desktop) */}
-          {APPS.map((app) => (
-            <button
-              key={app.id}
-              type="button"
-              onClick={() => switchApp(app.id)}
-              className={`vt-taskbar-tab h-6 sm:h-7 px-1.5 sm:px-2.5 text-[10px] sm:text-[11px] flex items-center gap-1 cursor-pointer shrink-0 ${
-                activeApp === app.id
-                  ? "active text-[var(--vt-blue)] font-bold shadow-xs"
-                  : "text-foreground font-semibold opacity-90 hover:opacity-100"
-              }`}
-            >
-              {app.icon}
-              <span className="truncate max-w-[70px] sm:max-w-[85px] lg:max-w-none">{getAppFilename(app.id)}</span>
-            </button>
-          ))}
+          {/* Open windows taskbar buttons (Icon-only on mobile so ALL 7 items fit without overflow; Icon + Text on md+) */}
+          <div className="flex items-center gap-0.5 sm:gap-1.5">
+            {APPS.map((app) => (
+              <button
+                key={app.id}
+                type="button"
+                onClick={() => switchApp(app.id)}
+                title={getAppFilename(app.id)}
+                aria-label={getAppFilename(app.id)}
+                className={`vt-taskbar-tab h-6 sm:h-7 px-1.5 sm:px-2.5 text-[10px] sm:text-[11px] flex items-center justify-center gap-1 cursor-pointer shrink-0 transition-all ${
+                  activeApp === app.id
+                    ? "active text-[var(--vt-blue)] font-bold shadow-xs ring-1 ring-[var(--vt-blue)]/50"
+                    : "text-foreground font-semibold opacity-85 hover:opacity-100"
+                }`}
+              >
+                <span className="shrink-0">{app.icon}</span>
+                <span className="hidden md:inline truncate max-w-[85px] lg:max-w-none">
+                  {getAppFilename(app.id)}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* System Status on Bottom Right */}
