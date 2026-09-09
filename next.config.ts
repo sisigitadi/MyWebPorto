@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // Gunakan standalone hanya untuk build mandiri VPS/PM2, biarkan default untuk Vercel
+  output: process.env.VERCEL ? undefined : "standalone",
   images: {
     unoptimized: true,
     formats: ["image/avif", "image/webp"],

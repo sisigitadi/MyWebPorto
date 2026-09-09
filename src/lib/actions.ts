@@ -30,7 +30,11 @@ import { translateText } from "@/lib/translate";
 // ==========================================
 // PERSISTENT LOCAL FILE STORE (OFFLINE & BACKUP)
 // ==========================================
-const DATA_DIR = path.join(process.cwd(), "data");
+// Di Vercel serverless, direktori root bersifat read-only sehingga gunakan /tmp
+const isVercel = Boolean(process.env.VERCEL);
+const DATA_DIR = isVercel
+  ? path.join("/tmp", "my-web-porto-data")
+  : path.join(process.cwd(), "data");
 const DATA_FILE = path.join(DATA_DIR, "local-store.json");
 
 interface LocalStoreData {
@@ -57,7 +61,7 @@ function ensureStoreExists(): void {
       fs.writeFileSync(DATA_FILE, JSON.stringify(initialData, null, 2), "utf-8");
     }
   } catch (err) {
-    console.error("Gagal inisialisasi local store:", err);
+    console.warn("Inisialisasi local store dilewati (lingkungan read-only):", err);
   }
 }
 
@@ -69,7 +73,7 @@ function getLocalStore(): LocalStoreData | null {
       return JSON.parse(raw) as LocalStoreData;
     }
   } catch (err) {
-    console.error("Gagal membaca local store:", err);
+    console.warn("Gagal membaca local store:", err);
   }
   return null;
 }
@@ -87,7 +91,7 @@ function updateLocalStore<K extends keyof LocalStoreData>(key: K, data: LocalSto
     store[key] = data;
     fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2), "utf-8");
   } catch (err) {
-    console.error("Gagal menyimpan local store:", err);
+    console.warn("Gagal menulis ke local store:", err);
   }
 }
 
@@ -141,7 +145,7 @@ export async function getProfile(): Promise<ProfileData> {
       socialLinks: (res.socialLinks as typeof DUMMY_PROFILE.socialLinks) || baseProfile.socialLinks,
     };
   } catch (error) {
-    console.error("Database query getProfile gagal, menggunakan data lokal:", error);
+    console.warn("Database query getProfile gagal, menggunakan data lokal:", error);
     return baseProfile;
   }
 }
@@ -240,7 +244,7 @@ export async function getProjects(): Promise<ProjectData[]> {
       };
     });
   } catch (error) {
-    console.error("Database query getProjects gagal, menggunakan data lokal:", error);
+    console.warn("Database query getProjects gagal, menggunakan data lokal:", error);
     return baseProjects;
   }
 }
@@ -419,7 +423,7 @@ export async function getServices(): Promise<ServiceData[]> {
       published: s.published,
     }));
   } catch (error) {
-    console.error("Database query getServices gagal, menggunakan data lokal:", error);
+    console.warn("Database query getServices gagal, menggunakan data lokal:", error);
     return baseServices;
   }
 }
@@ -568,7 +572,7 @@ export async function getProducts(): Promise<ProductData[]> {
       published: p.published,
     }));
   } catch (error) {
-    console.error("Database query getProducts gagal, menggunakan data lokal:", error);
+    console.warn("Database query getProducts gagal, menggunakan data lokal:", error);
     return baseProducts;
   }
 }
@@ -719,7 +723,7 @@ export async function getTestimonials(): Promise<TestimonialData[]> {
       published: t.published,
     }));
   } catch (error) {
-    console.error("Database query getTestimonials gagal, menggunakan data lokal:", error);
+    console.warn("Database query getTestimonials gagal, menggunakan data lokal:", error);
     return baseTestimonials;
   }
 }
