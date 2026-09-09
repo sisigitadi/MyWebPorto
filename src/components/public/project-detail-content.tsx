@@ -2,13 +2,13 @@
 
 import React, { useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, Calendar, Mail } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, ExternalLink, Calendar, Mail, Terminal, HardDrive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useTranslation } from "@/lib/i18n";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
+import { OSWindow } from "@/components/public/os/os-window";
 
 function GithubIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -55,33 +55,26 @@ interface ProjectDetailContentProps {
 export function ProjectDetailContent({ project, profile }: ProjectDetailContentProps) {
   const { t, language } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
-  const mediaRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
 
-  const title = (language === "en" && project.titleEn) ? project.titleEn : project.title;
-  const summary = (language === "en" && project.summaryEn)
-    ? project.summaryEn
-    : (language === "en" && project.descriptionEn)
-    ? project.descriptionEn
-    : project.summary;
-  const description = (language === "en" && project.descriptionEn) ? project.descriptionEn : project.description;
-
-  const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    e.currentTarget.style.setProperty("--mouse-x", `${x}px`);
-    e.currentTarget.style.setProperty("--mouse-y", `${y}px`);
-  };
+  const title = language === "en" && project.titleEn ? project.titleEn : project.title;
+  const summary =
+    language === "en" && project.summaryEn
+      ? project.summaryEn
+      : language === "en" && project.descriptionEn
+      ? project.descriptionEn
+      : project.summary;
+  const description = language === "en" && project.descriptionEn ? project.descriptionEn : project.description;
 
   useGSAP(
     () => {
       const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
-
-      tl.from(".detail-back-btn", { y: -10, opacity: 0, duration: 0.5 })
-        .from(".detail-header", { y: 25, opacity: 0, filter: "blur(6px)", duration: 0.7 }, "-=0.3")
-        .from(mediaRef.current, { scale: 0.96, opacity: 0, filter: "blur(6px)", duration: 0.8 }, "-=0.4")
-        .from(contentRef.current, { y: 25, opacity: 0, filter: "blur(6px)", duration: 0.7 }, "-=0.4");
+      tl.from(".detail-content-section", {
+        y: 20,
+        opacity: 0,
+        filter: "blur(4px)",
+        duration: 0.6,
+        stagger: 0.1,
+      });
     },
     { scope: containerRef }
   );
@@ -92,147 +85,172 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
   );
   const encodedDiscussionMsg = encodeURIComponent(
     isEnglish
-      ? `Hello ${profile.name || "Admin"},\n\nI came across "${title}" on your portfolio and would like to explore collaboration or a similar project.`
-      : `Halo ${profile.name || "Admin"},\n\nSaya melihat proyek "${title}" di portofolio Anda dan tertarik mendiskusikan peluang kerja sama atau proyek serupa.`
+      ? `Hello ${profile.name || "Sigit"},\n\nI came across "${title}" on your portfolio and would like to explore collaboration or a similar project.`
+      : `Halo ${profile.name || "Sigit"},\n\nSaya melihat proyek "${title}" di portofolio Anda dan tertarik mendiskusikan peluang kerja sama atau proyek serupa.`
   );
   const emailDiscussionUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
-    profile.email
+    profile.email || "halo@sigit.dev"
   )}&su=${encodedDiscussionSubject}&body=${encodedDiscussionMsg}`;
 
-  const ctaDesc = t.detail_cta_box_desc.replace("{name}", profile.name || "Portfolio Owner");
+  const ctaDesc = t.detail_cta_box_desc.replace("{name}", profile.name || "Sigit");
 
   return (
-    <div ref={containerRef} className="py-20 md:py-32">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6">
-        {/* Back Link */}
-        <div className="mb-10 detail-back-btn">
-          <Button asChild variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground -ml-3 text-xs font-medium">
+    <div ref={containerRef} className="py-8 md:py-14">
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 space-y-6">
+        {/* Navigation Bar */}
+        <div className="flex items-center justify-between">
+          <Button
+            asChild
+            size="sm"
+            className="vt-btn h-8 px-3 font-mono text-xs font-semibold gap-1.5"
+          >
             <Link href="/proyek">
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-3.5 w-3.5" />
               <span>{t.detail_back_all}</span>
             </Link>
           </Button>
-        </div>
 
-        {/* Project Header - Wide & Breathable */}
-        <div className="detail-header space-y-5 mb-10">
-          <div className="flex flex-wrap items-center gap-3">
-            {project.featured && (
-              <Badge variant="secondary" className="font-medium text-xs shadow-sm">
-                {t.projects_featured_badge}
-              </Badge>
-            )}
-            <span className="text-xs text-muted-foreground inline-flex items-center gap-1.5">
-              <Calendar className="h-3.5 w-3.5" />
-              {new Date(project.createdAt).toLocaleDateString(t.date_locale || "id-ID", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </span>
+          <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
+            <HardDrive className="h-3.5 w-3.5 text-primary" />
+            <span className="hidden sm:inline">C:\Sigit\Projects\{project.slug}\</span>
+            <span className="text-emerald-500 font-bold">[OK]</span>
           </div>
-
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-foreground leading-[1.08] max-w-4xl">
-            {title}
-          </h1>
-
-          <p className="text-base sm:text-xl text-muted-foreground leading-relaxed max-w-3xl">
-            {summary}
-          </p>
         </div>
 
-        {/* Fixed Media Frame - Cinematic Display */}
-        <div
-          ref={mediaRef}
-          className="relative aspect-[16/9] md:aspect-[21/9] w-full rounded-2xl overflow-hidden border border-border bg-muted mb-12 shadow-xl"
+        {/* Main Project OS Window */}
+        <OSWindow
+          id={`project-${project.slug}`}
+          title={`Project_Viewer.exe :: [${project.slug.toUpperCase()}]`}
+          icon={<Terminal className="h-4 w-4 text-emerald-400" />}
+          statusText={`Record ID: ${project.id} | Author: ${profile.name || "Sigit"} | Published: YES`}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={project.thumbnailUrl}
-            alt={title}
-            className="w-full h-full object-cover"
-          />
-        </div>
+          <div className="detail-content-section space-y-6">
+            {/* Header / Meta */}
+            <div className="space-y-3 pb-4 border-b border-border/70">
+              <div className="flex flex-wrap items-center gap-2">
+                {project.featured && (
+                  <span className="bg-amber-400 text-black text-[10px] font-bold px-2 py-0.5 rounded font-mono uppercase">
+                    {t.projects_featured_badge}
+                  </span>
+                )}
+                <span className="text-xs font-mono text-muted-foreground inline-flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {new Date(project.createdAt).toLocaleDateString(t.date_locale || "id-ID", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </span>
+              </div>
 
-        {/* Meta Bar & Direct Action Links (Clean, unboxed) */}
-        <div
-          ref={contentRef}
-          className="space-y-12"
-        >
-          <div className="p-6 md:p-8 rounded-2xl border border-border bg-card/60 backdrop-blur-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-            <div className="space-y-2">
-              <span className="text-xs uppercase tracking-[0.2em] font-semibold text-primary block">
-                {t.detail_tech_title}
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {project.techStack.map((tech) => (
-                  <Badge
-                    key={tech}
-                    variant="outline"
-                    className="bg-background/80 text-foreground border-border font-normal text-xs py-1 px-3"
-                  >
-                    {tech}
-                  </Badge>
-                ))}
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold font-pixel tracking-tight text-foreground leading-tight">
+                {title}
+              </h1>
+
+              <p className="text-xs sm:text-sm font-mono text-muted-foreground leading-relaxed">
+                {summary}
+              </p>
+            </div>
+
+            {/* Media Frame */}
+            <div className="relative aspect-[16/9] md:aspect-[21/9] w-full rounded border-2 border-border overflow-hidden bg-black/60 shadow-inner">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={project.thumbnailUrl}
+                alt={title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/70 text-[10px] font-mono text-emerald-400 border border-emerald-500/40 rounded">
+                PREVIEW_MODE: HIGH_RES
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 shrink-0">
-              {project.demoUrl && (
-                <Button asChild size="default" className="gap-2 font-medium h-10 text-xs shadow-sm">
-                  <a href={project.demoUrl} target="_blank" rel="noreferrer">
-                    <span>{t.detail_cta_demo}</span>
-                    <ExternalLink className="h-4 w-4" />
+            {/* Action Bar & Tech Stack */}
+            <div className="p-4 rounded bg-muted/40 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1.5">
+                <span className="text-[10px] uppercase font-mono font-bold text-primary tracking-wider block">
+                  {t.detail_tech_title}
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {project.techStack.map((tech) => (
+                    <span
+                      key={tech}
+                      className="text-[11px] font-mono px-2 py-0.5 rounded bg-background border border-border text-foreground"
+                    >
+                      {tech}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                {project.demoUrl && (
+                  <Button
+                    asChild
+                    size="sm"
+                    className="vt-btn-pink h-9 px-4 text-xs font-mono font-bold uppercase gap-1.5"
+                  >
+                    <a href={project.demoUrl} target="_blank" rel="noreferrer">
+                      <span>{t.detail_cta_demo}</span>
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </Button>
+                )}
+
+                {project.repoUrl && (
+                  <Button
+                    asChild
+                    size="sm"
+                    className="vt-btn h-9 px-4 text-xs font-mono font-bold uppercase gap-1.5"
+                  >
+                    <a href={project.repoUrl} target="_blank" rel="noreferrer">
+                      <GithubIcon className="h-3.5 w-3.5" />
+                      <span>{t.detail_cta_repo}</span>
+                    </a>
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* In-Depth Narrative */}
+            <div className="space-y-4 pt-2">
+              <h2 className="text-lg sm:text-xl font-bold font-mono tracking-tight text-foreground border-b border-border/60 pb-2">
+                &gt; {t.detail_overview_title}
+              </h2>
+              <div className="text-muted-foreground font-mono leading-relaxed text-xs sm:text-sm space-y-3">
+                <p>{description}</p>
+                <p>{t.detail_overview_desc}</p>
+              </div>
+            </div>
+
+            <Separator className="my-6" />
+
+            {/* Retro CTA Box */}
+            <div className="vt-window p-6 text-center space-y-4 bg-muted/20">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-primary/10 border border-primary/30 text-primary text-xs font-mono">
+                <span>CONNECT_SIGIT_SYSTEM</span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-bold font-pixel tracking-tight text-foreground">
+                {t.detail_cta_box_title}
+              </h3>
+              <p className="text-xs sm:text-sm font-mono text-muted-foreground max-w-lg mx-auto">
+                {ctaDesc}
+              </p>
+              <div className="pt-2">
+                <Button
+                  asChild
+                  size="default"
+                  className="vt-btn-pink h-10 px-6 font-mono font-bold text-xs uppercase gap-2"
+                >
+                  <a href={emailDiscussionUrl} target="_blank" rel="noopener noreferrer">
+                    <Mail className="h-4 w-4" />
+                    <span>{t.detail_cta_gmail}</span>
                   </a>
                 </Button>
-              )}
-
-              {project.repoUrl && (
-                <Button asChild variant="outline" size="default" className="gap-2 font-medium h-10 text-xs border-border bg-card hover:bg-muted/40">
-                  <a href={project.repoUrl} target="_blank" rel="noreferrer">
-                    <GithubIcon className="h-4 w-4" />
-                    <span>{t.detail_cta_repo}</span>
-                  </a>
-                </Button>
-              )}
+              </div>
             </div>
           </div>
-
-          {/* Project In-Depth Narrative Description */}
-          <div className="space-y-6 max-w-3xl">
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground border-b border-border/60 pb-4">
-              {t.detail_overview_title}
-            </h2>
-            <div className="text-muted-foreground leading-relaxed text-base md:text-lg space-y-4 font-normal">
-              <p>{description}</p>
-              <p>{t.detail_overview_desc}</p>
-            </div>
-          </div>
-
-          <Separator className="my-14" />
-
-          {/* High-Contrast Conversion CTA Box */}
-          <div
-            onMouseMove={handleCardMouseMove}
-            className="spotlight-card relative overflow-hidden p-8 md:p-14 rounded-3xl border border-border bg-card/80 backdrop-blur-sm text-card-foreground text-center space-y-5 shadow-lg transition-all duration-300 hover:border-primary/30"
-          >
-            <h3 className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-foreground">
-              {t.detail_cta_box_title}
-            </h3>
-            <p className="text-sm md:text-base text-muted-foreground max-w-xl mx-auto leading-relaxed">
-              {ctaDesc}
-            </p>
-            <div className="pt-3">
-              <Button asChild size="lg" className="relative group overflow-hidden h-12 px-8 gap-2.5 font-medium text-sm shadow-md transition-all duration-300 hover:shadow-lg hover:shadow-primary/25 hover:scale-[1.02]">
-                <a href={emailDiscussionUrl} target="_blank" rel="noopener noreferrer">
-                  <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
-                  <Mail className="h-4 w-4 text-red-500 transition-transform duration-300 group-hover:scale-110" />
-                  <span>{t.detail_cta_gmail}</span>
-                </a>
-              </Button>
-            </div>
-          </div>
-        </div>
+        </OSWindow>
       </div>
     </div>
   );

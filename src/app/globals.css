@@ -1,76 +1,160 @@
+@import "https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Azeret+Mono:ital,wght@0,300..800;1,300..800&family=Space+Grotesk:wght@400;500;600;700&family=Unbounded:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap";
 @import "tailwindcss";
 @import "@clerk/ui/themes/shadcn.css";
 
+/* ========================================================
+   SIGIT-OS / RETRO-FUTURISTIC THEME TOKENS
+   ======================================================== */
+:root,
+[data-theme="retro90s"] {
+  --vt-desktop: #0a1631;
+  --vt-chrome: #cfcdc8;
+  --vt-paper: #f3f2ee;
+  --vt-card: #e9e7e2;
+  --vt-ink: #12121a;
+  --vt-ink-soft: #42424c;
+  --vt-ink-mute: #6a6a74;
+  --vt-blue: #3b2fd6;
+  --vt-violet: #7c5cff;
+  --vt-navy: #0a0a5e;
+  --vt-pink: #ff3e9a;
+  --vt-teal: #22c7a9;
+  --vt-crt: #37ff9b;
+  --vt-amber: #ffd400;
+  --vt-edge-hi: #ffffff;
+  --vt-edge-hi-2: #eceae4;
+  --vt-edge-lo: #5a5750;
+  --vt-edge-lo-2: #9a968e;
+  --vt-drop: rgba(0, 0, 0, 0.45);
+  --vt-drop-btn: rgba(0, 0, 0, 0.3);
+  --vt-drop-offset: 6px;
+  --vt-drop-offset-btn: 3px;
+  --vt-titlebar-bg: linear-gradient(90deg, #0a0a5e 0%, #3b2fd6 55%, #7c5cff 100%);
+  --vt-titlebar-ink: #ffffff;
+  --vt-font-chrome: "Silkscreen", monospace;
+  --vt-font-mono: "Azeret Mono", monospace;
+  --vt-font-display: "Unbounded", "Space Grotesk", sans-serif;
+}
+
+[data-theme="dark"] {
+  --vt-desktop: #08080d;
+  --vt-chrome: #23232b;
+  --vt-paper: #16161d;
+  --vt-card: #1d1d26;
+  --vt-ink: #ececf3;
+  --vt-ink-soft: #b9b9c7;
+  --vt-ink-mute: #7c7c8c;
+  --vt-blue: #7a86ff;
+  --vt-violet: #a48bff;
+  --vt-navy: #101040;
+  --vt-pink: #ff4da3;
+  --vt-teal: #2bd9b9;
+  --vt-crt: #37ff9b;
+  --vt-amber: #ffd400;
+  --vt-edge-hi: #3a3a46;
+  --vt-edge-hi-2: #2c2c36;
+  --vt-edge-lo: #000000;
+  --vt-edge-lo-2: #101016;
+  --vt-drop: rgba(0, 0, 0, 0.75);
+  --vt-drop-btn: rgba(0, 0, 0, 0.6);
+  --vt-titlebar-bg: linear-gradient(90deg, #14142e 0%, #2b2470 55%, #5a3fd6 100%);
+  --vt-titlebar-ink: #ffffff;
+}
+
+[data-theme="tokyo"] {
+  --vt-desktop: #121320;
+  --vt-chrome: #16161e;
+  --vt-paper: #1a1b26;
+  --vt-card: #20212f;
+  --vt-ink: #c0caf5;
+  --vt-ink-soft: #9aa5ce;
+  --vt-ink-mute: #565f89;
+  --vt-blue: #7aa2f7;
+  --vt-violet: #bb9af7;
+  --vt-navy: #24283b;
+  --vt-pink: #f7768e;
+  --vt-teal: #73daca;
+  --vt-crt: #9ece6a;
+  --vt-amber: #e0af68;
+  --vt-edge-hi: #2f334d;
+  --vt-edge-hi-2: #24283b;
+  --vt-edge-lo: #0b0c14;
+  --vt-edge-lo-2: #16161e;
+  --vt-drop: rgba(0, 0, 0, 0.65);
+  --vt-titlebar-bg: linear-gradient(90deg, #24283b 0%, #3d59a1 100%);
+  --vt-titlebar-ink: #c0caf5;
+}
+
+[data-theme="vscode"] {
+  --vt-desktop: #111111;
+  --vt-chrome: #252526;
+  --vt-paper: #1e1e1e;
+  --vt-card: #2a2a2b;
+  --vt-ink: #d4d4d4;
+  --vt-ink-soft: #a8a8a8;
+  --vt-ink-mute: #6e6e6e;
+  --vt-blue: #4fc1ff;
+  --vt-violet: #c586c0;
+  --vt-navy: #252526;
+  --vt-pink: #007acc;
+  --vt-teal: #4ec9b0;
+  --vt-crt: #6a9955;
+  --vt-amber: #dcdcaa;
+  --vt-edge-hi: #333333;
+  --vt-edge-hi-2: #2b2b2b;
+  --vt-edge-lo: #111111;
+  --vt-edge-lo-2: #1a1a1a;
+  --vt-drop: rgba(0, 0, 0, 0.45);
+  --vt-drop-btn: rgba(0, 0, 0, 0.3);
+  --vt-titlebar-bg: #3c3c3c;
+  --vt-titlebar-ink: #cccccc;
+}
+
 @layer base {
   :root {
-    /* Netral Monokrom dengan satu aksen biru tua sesuai PRD Bab 4 */
     --background: 0 0% 100%;
     --foreground: 222 47% 11%;
-
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-
-    /* Primary: HSL(222, 47%, 20%) */
     --primary: 222 47% 20%;
     --primary-foreground: 210 40% 98%;
-
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222 47% 11%;
-
-    /* Muted: HSL(215, 16%, 47%) for text */
     --muted: 210 40% 96.1%;
     --muted-foreground: 215 16% 47%;
-
-    /* Accent / Highlight: HSL(210, 100%, 50%) */
     --accent: 210 100% 50%;
     --accent-foreground: 210 40% 98%;
-
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-
-    /* Border: HSL(214, 32%, 91%) */
     --border: 214 32% 91%;
     --input: 214 32% 91%;
     --ring: 222 47% 20%;
-
-    /* Hover Border: HSL(222, 47%, 40%) */
     --border-hover: 222 47% 40%;
-
-    --radius: 0.375rem; /* rounded-md */
+    --radius: 0.375rem;
   }
 
   .dark {
     --background: 222 47% 7%;
     --foreground: 210 40% 98%;
-
     --card: 222 47% 9%;
     --card-foreground: 210 40% 98%;
-
     --popover: 222 47% 9%;
     --popover-foreground: 210 40% 98%;
-
     --primary: 210 40% 98%;
     --primary-foreground: 222 47% 11%;
-
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
-
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
-
     --accent: 210 100% 50%;
     --accent-foreground: 210 40% 98%;
-
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
-
     --border-hover: 215 20.2% 65.1%;
   }
 }
@@ -99,79 +183,353 @@
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-pixel: "Silkscreen", monospace;
+  --font-mono: "Azeret Mono", monospace;
+  --font-display: "Unbounded", "Space Grotesk", sans-serif;
 }
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 5rem;
+  scroll-padding-top: 4.5rem;
 }
 
 body {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-  font-family: var(--font-sans);
+  background-color: var(--vt-desktop);
+  color: var(--vt-ink);
+  font-family: var(--vt-font-mono), var(--font-mono), monospace;
   -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* Desktop wallpaper surface with subtle dot grid */
+.desktop-wallpaper {
+  background-color: var(--vt-desktop);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 /* ========================================================
-   DYNAMIC KEYFRAMES & MICRO-INTERACTIONS
+   RETRO OS WINDOW & BEVEL SYSTEM (VINTEC ARCHITECTURE)
    ======================================================== */
-@keyframes float-slow {
-  0%, 100% {
-    transform: translateY(0px) rotate(0deg) scale(1);
-  }
-  50% {
-    transform: translateY(-16px) rotate(3deg) scale(1.05);
-  }
+.vt-window {
+  background: var(--vt-chrome);
+  padding: 4px;
+  box-shadow:
+    inset 1px 1px 0 var(--vt-edge-hi),
+    inset -1px -1px 0 var(--vt-edge-lo),
+    inset 2px 2px 0 var(--vt-edge-hi-2),
+    inset -2px -2px 0 var(--vt-edge-lo-2),
+    var(--vt-drop-offset) var(--vt-drop-offset) 0 var(--vt-drop);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-@keyframes float-reverse {
-  0%, 100% {
-    transform: translateY(0px) rotate(0deg) scale(1);
-  }
-  50% {
-    transform: translateY(14px) rotate(-3deg) scale(0.97);
-  }
+.vt-raised {
+  background: var(--vt-chrome);
+  box-shadow:
+    inset 1px 1px 0 var(--vt-edge-hi),
+    inset -1px -1px 0 var(--vt-edge-lo),
+    inset 2px 2px 0 var(--vt-edge-hi-2),
+    inset -2px -2px 0 var(--vt-edge-lo-2);
 }
 
-@keyframes shine-sweep {
-  0% {
-    transform: translateX(-150%) skewX(-20deg);
-  }
-  100% {
-    transform: translateX(250%) skewX(-20deg);
-  }
+.vt-card-inset {
+  background: var(--vt-card);
+  box-shadow:
+    inset 1px 1px 0 var(--vt-edge-lo-2),
+    inset -1px -1px 0 var(--vt-edge-hi);
 }
 
-@keyframes pulse-soft {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.65;
-    transform: scale(0.98);
-  }
+.vt-paper-inset {
+  background: var(--vt-paper);
+  box-shadow:
+    inset 1px 1px 0 var(--vt-edge-lo-2),
+    inset -1px -1px 0 var(--vt-edge-hi);
 }
 
-.animate-float-slow {
-  animation: float-slow 9s ease-in-out infinite;
+.vt-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: var(--vt-titlebar-bg);
+  color: var(--vt-titlebar-ink);
+  font-family: var(--vt-font-chrome), monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  user-select: none;
 }
 
-.animate-float-reverse {
-  animation: float-reverse 12s ease-in-out infinite;
+.vt-titlebar-btn {
+  width: 18px;
+  height: 16px;
+  flex: none;
+  background: var(--vt-chrome);
+  box-shadow:
+    inset 1px 1px 0 var(--vt-edge-hi),
+    inset -1px -1px 0 var(--vt-edge-lo);
+  font-size: 9px;
+  font-weight: bold;
+  color: var(--vt-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.1s;
 }
 
-.animate-pulse-soft {
-  animation: pulse-soft 4s ease-in-out infinite;
+.vt-titlebar-btn:active {
+  box-shadow:
+    inset -1px -1px 0 var(--vt-edge-hi),
+    inset 1px 1px 0 var(--vt-edge-lo);
+  transform: translate(1px, 1px);
 }
 
-/* Dynamic Spotlight Effect on Bento Cards */
+/* ========================================================
+   TACTILE RETRO BUTTONS (3D PHYSICAL PRESS)
+   ======================================================== */
+.vt-btn {
+  cursor: pointer;
+  user-select: none;
+  border: 0;
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.vt-btn-chrome {
+  background: var(--vt-chrome);
+  color: var(--vt-ink);
+  box-shadow:
+    inset 1px 1px 0 var(--vt-edge-hi),
+    inset -1px -1px 0 var(--vt-edge-lo),
+    inset 2px 2px 0 var(--vt-edge-hi-2),
+    inset -2px -2px 0 var(--vt-edge-lo-2),
+    var(--vt-drop-offset-btn) var(--vt-drop-offset-btn) 0 var(--vt-drop-btn);
+}
+
+.vt-btn-chrome:hover {
+  transform: translate(-2px, -2px);
+  box-shadow:
+    inset 1px 1px 0 var(--vt-edge-hi),
+    inset -1px -1px 0 var(--vt-edge-lo),
+    inset 2px 2px 0 var(--vt-edge-hi-2),
+    inset -2px -2px 0 var(--vt-edge-lo-2),
+    5px 5px 0 var(--vt-drop-btn);
+}
+
+.vt-btn-chrome:active {
+  transform: translate(2px, 2px);
+  box-shadow:
+    inset -1px -1px 0 var(--vt-edge-hi),
+    inset 1px 1px 0 var(--vt-edge-lo);
+}
+
+.vt-btn-pink {
+  position: relative;
+  overflow: hidden;
+  background: var(--vt-pink);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow:
+    inset 1px 1px #ffffffaa,
+    inset -2px -2px #00000055,
+    4px 4px 0 rgba(0, 0, 0, 0.45);
+}
+
+.vt-btn-pink:hover {
+  transform: translate(-2px, -2px);
+  box-shadow:
+    inset 1px 1px #ffffffaa,
+    inset -2px -2px #00000055,
+    6px 6px 0 rgba(0, 0, 0, 0.45);
+}
+
+.vt-btn-pink:active {
+  transform: translate(2px, 2px);
+  box-shadow:
+    inset -1px -1px #ffffffaa,
+    inset 2px 2px #00000055;
+}
+
+.vt-btn-sweep::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 35%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: vt-sweep 2.8s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+@keyframes vt-sweep {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(350%); }
+}
+
+/* ========================================================
+   CRT MONITOR & TERMINAL SCREEN
+   ======================================================== */
+.vt-crt-panel {
+  position: relative;
+  background: #060809;
+  padding: 16px;
+  overflow: hidden;
+  box-shadow:
+    inset 2px 2px 0 #000000,
+    inset -1px -1px 0 #333333,
+    0 0 0 3px #5a5750;
+  color: var(--vt-crt);
+  font-family: var(--vt-font-mono), monospace;
+}
+
+/* CRT Scanlines Overlay */
+.vt-crt-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.28) 0px 1px,
+    transparent 1px 3px
+  );
+  animation: vt-flicker 6s steps(1) infinite;
+}
+
+/* CRT Light Beam Sweep */
+.vt-crt-panel::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -30%;
+  height: 30%;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(55, 255, 155, 0.08), transparent);
+  animation: vt-crt-sweep 4.5s linear infinite;
+}
+
+@keyframes vt-crt-sweep {
+  0% { top: -30%; }
+  100% { top: 120%; }
+}
+
+@keyframes vt-flicker {
+  0%, 100% { opacity: 1; }
+  7% { opacity: 0.88; }
+  8% { opacity: 1; }
+  43% { opacity: 0.92; }
+  44% { opacity: 1; }
+  71% { opacity: 0.85; }
+  72% { opacity: 1; }
+}
+
+.vt-crt-bar {
+  height: 8px;
+  background: #15181a;
+  box-shadow: inset 1px 1px 0 #000;
+  overflow: hidden;
+}
+
+.vt-crt-fill {
+  height: 100%;
+  background: var(--vt-crt);
+  box-shadow: 0 0 8px var(--vt-crt);
+  transition: width 1.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* ========================================================
+   ENDLESS RETRO MARQUEE TICKER
+   ======================================================== */
+.vt-marquee {
+  overflow: hidden;
+  background: #0a0c10;
+  padding: 8px 0;
+  box-shadow: inset 0 0 0 2px var(--vt-pink);
+}
+
+.vt-marquee-track {
+  display: flex;
+  width: max-content;
+  white-space: nowrap;
+  font-family: var(--vt-font-chrome), monospace;
+  font-size: 11px;
+  color: var(--vt-crt);
+  animation: vt-marquee 24s linear infinite;
+}
+
+.vt-marquee-rev {
+  animation-direction: reverse;
+  color: var(--vt-pink);
+  animation-duration: 28s;
+}
+
+@keyframes vt-marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* ========================================================
+   DESKTOP SHORTCUT ICONS
+   ======================================================== */
+.vt-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 80px;
+  padding: 6px 4px;
+  color: #ffffff;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.vt-icon-glyph {
+  width: 44px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--vt-amber);
+  color: #3a2a00;
+  box-shadow:
+    inset -2px -2px #a08600,
+    inset 2px 2px #fff8c0,
+    3px 3px 0 rgba(0, 0, 0, 0.45);
+  transition: transform 0.15s;
+}
+
+.vt-icon:hover .vt-icon-glyph {
+  transform: translate(-1px, -1px);
+}
+
+.vt-icon-label {
+  font-family: var(--vt-font-mono), monospace;
+  font-size: 10px;
+  text-align: center;
+  line-height: 1.2;
+  padding: 1px 4px;
+  text-shadow: 1px 1px 0 #000;
+}
+
+.vt-icon:hover .vt-icon-label {
+  background: var(--vt-blue);
+  outline: 1px dotted #ffffff;
+}
+
+/* Spotlight Card & Micro animations */
 .spotlight-card {
   position: relative;
   overflow: hidden;
-  transition: transform 0.35s cubic-bezier(0.2, 0, 0, 1), border-color 0.3s ease, box-shadow 0.35s ease;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .spotlight-card::before {
@@ -182,12 +540,12 @@ body {
   right: 0;
   bottom: 0;
   background: radial-gradient(
-    550px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    hsl(var(--accent) / 0.09),
-    transparent 45%
+    450px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(124, 92, 255, 0.14),
+    transparent 50%
   );
   opacity: 0;
-  transition: opacity 0.35s ease;
+  transition: opacity 0.3s ease;
   pointer-events: none;
   z-index: 1;
 }
@@ -195,10 +553,3 @@ body {
 .spotlight-card:hover::before {
   opacity: 1;
 }
-
-.spotlight-card:hover {
-  border-color: hsl(var(--border-hover) / 0.85);
-  transform: translateY(-4px);
-  box-shadow: 0 16px 36px -12px hsl(var(--foreground) / 0.08);
-}
-

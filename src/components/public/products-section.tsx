@@ -1,13 +1,11 @@
 "use client";
 
-import { useRef } from "react";
-import { ArrowRight, ArrowUpRight, ShoppingBag } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import React, { useRef } from "react";
+import { ArrowUpRight, Package, ShoppingCart } from "lucide-react";
 import { ProductData, DUMMY_PRODUCTS } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
-import { gsap } from "gsap";
+import { OSWindow } from "@/components/public/os/os-window";
+import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 
@@ -31,173 +29,100 @@ export function ProductsSection({ products: propProducts }: ProductsSectionProps
 
   useGSAP(
     () => {
-      // Header Animation
-      gsap.from(".products-eyebrow", {
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: "top 85%",
-          toggleActions: "play none none none",
-        },
-        opacity: 0,
-        y: 15,
-        duration: 0.6,
-        ease: "power3.out",
-        clearProps: "all",
-      });
-
-      gsap.from(".products-title", {
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: "top 82%",
-          toggleActions: "play none none none",
-        },
-        opacity: 0,
-        y: 30,
-        filter: "blur(6px)",
-        duration: 0.9,
-        ease: "power4.out",
-        clearProps: "all",
-      });
-
-      gsap.from(".products-subtitle", {
+      gsap.from(".sigit-product-card", {
         scrollTrigger: {
           trigger: containerRef.current,
           start: "top 80%",
           toggleActions: "play none none none",
         },
         opacity: 0,
-        y: 20,
-        duration: 0.8,
-        delay: 0.1,
-        ease: "power3.out",
-        clearProps: "all",
-      });
-
-      // Bento Product Cards Stagger
-      gsap.from(".bento-product-card", {
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: "top 78%",
-          toggleActions: "play none none none",
-        },
-        opacity: 0,
-        y: 45,
-        scale: 0.95,
+        y: 40,
         stagger: 0.12,
         duration: 0.85,
-        ease: "back.out(1.35)",
+        ease: "power3.out",
         clearProps: "all",
       });
     },
     { scope: containerRef }
   );
 
-  const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    e.currentTarget.style.setProperty("--mouse-x", `${x}px`);
-    e.currentTarget.style.setProperty("--mouse-y", `${y}px`);
-  };
-
   return (
     <section
       ref={containerRef}
       id="produk"
-      className="relative py-24 md:py-36 border-b border-border/60 scroll-mt-16 overflow-hidden"
+      className="relative py-12 md:py-20 scroll-mt-14"
     >
-      {/* Background Glow */}
-      <div className="absolute top-1/2 right-1/3 w-[500px] h-[300px] bg-primary/4 rounded-full blur-[110px] pointer-events-none -z-10 animate-float-slow" />
-
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
-          <div className="space-y-3">
-            <span className="products-eyebrow text-xs uppercase tracking-[0.2em] font-semibold text-primary inline-flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-              {t.products_eyebrow}
-            </span>
-            <h2 className="products-title text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-foreground">
-              {t.products_title}
-            </h2>
+      <div className="max-w-7xl mx-auto px-2 sm:px-4">
+        {/* Section Heading */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-crt)]">
+            <span className="h-2 w-2 rounded-full bg-[var(--vt-crt)] animate-pulse" />
+            <span>SOFTWARE_VAULT // PRODUK DIGITAL & TEMPLATE</span>
           </div>
-          <p className="products-subtitle text-sm md:text-base text-muted-foreground max-w-md leading-relaxed">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-white">
+            {t.products_title}
+          </h2>
+          <p className="text-xs sm:text-sm font-mono text-white/80 mt-1 max-w-2xl">
             {t.products_subtitle}
           </p>
         </div>
 
-        {/* Bento Products Grid (12-col dense) */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 grid-flow-dense">
-          {products.map((product, idx) => {
-            let colSpan = "md:col-span-6";
-            if (products.length === 1) {
-              colSpan = "md:col-span-12";
-            } else if (products.length === 3) {
-              colSpan = "md:col-span-4";
-            } else if (products.length % 2 !== 0 && idx === 0) {
-              colSpan = "md:col-span-12";
-            }
-
+        {/* Products Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {products.map((product, index) => {
             const title = (language === "en" && product.titleEn) ? product.titleEn : product.title;
             const description = (language === "en" && product.descriptionEn) ? product.descriptionEn : product.description;
-            const isExternal = Boolean(
-              product.ctaUrl &&
-                (product.ctaUrl.startsWith("http://") || product.ctaUrl.startsWith("https://"))
-            );
-            const targetUrl = product.ctaUrl?.trim() || "#kontak";
 
             return (
-              <Card
-                key={product.id}
-                onMouseMove={handleCardMouseMove}
-                className={`bento-product-card spotlight-card ${colSpan} overflow-hidden flex flex-col group border-border bg-card/75 backdrop-blur-xs hover:border-foreground/35 transition-all duration-300`}
-              >
-                {/* Product Thumbnail with Hover Physics */}
-                <div className="relative w-full aspect-[16/10] overflow-hidden bg-muted border-b border-border/60">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={product.thumbnailUrl}
-                    alt={title}
-                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-108"
-                  />
-                  <div className="absolute top-4 right-4 z-10">
-                    <Badge variant="secondary" className="text-xs font-mono font-semibold backdrop-blur-md bg-background/90 shadow-sm border border-border/80 group-hover:border-primary/50 group-hover:text-primary transition-colors">
-                      {product.priceFormatted}
-                    </Badge>
-                  </div>
-                </div>
+              <div key={product.id} className="sigit-product-card flex flex-col h-full">
+                <OSWindow
+                  title={`Product_Disk_0${index + 1}.zip`}
+                  icon={<Package className="h-3 w-3 text-[#ffd400]" />}
+                  statusText={`Release: Ready // Instant Delivery`}
+                  className="h-full flex-1"
+                  bodyClassName="flex flex-col justify-between h-full space-y-4"
+                >
+                  <div className="space-y-3">
+                    {/* Retro Software Box Thumbnail */}
+                    <div className="relative aspect-[16/10] overflow-hidden rounded-xs vt-card-inset bg-muted">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={product.thumbnailUrl}
+                        alt={title}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                      />
+                      {/* Price Badge */}
+                      <div className="absolute top-2 right-2 vt-btn vt-btn-pink px-2.5 py-1 text-[11px] font-pixel">
+                        {product.priceFormatted}
+                      </div>
+                    </div>
 
-                {/* Product Content */}
-                <CardContent className="p-6 md:p-8 flex flex-col justify-between flex-1 space-y-6">
-                  <div className="space-y-2.5">
-                    <h3 className="font-semibold text-lg md:text-xl text-foreground group-hover:text-primary transition-colors">
+                    <h3 className="text-base sm:text-lg font-bold font-mono text-foreground leading-snug">
                       {title}
                     </h3>
-                    <p className="text-xs md:text-sm text-muted-foreground leading-relaxed font-normal">
+
+                    <p className="text-xs sm:text-sm font-mono text-muted-foreground leading-relaxed">
                       {description}
                     </p>
                   </div>
 
-                  <div className="pt-2">
-                    <Button asChild size="default" className="w-full gap-2 text-xs font-medium h-10 shadow-sm group/btn relative overflow-hidden">
-                      <a
-                        href={targetUrl}
-                        target={isExternal ? "_blank" : undefined}
-                        rel={isExternal ? "noopener noreferrer" : undefined}
-                      >
-                        <span className="absolute inset-0 w-1/2 h-full bg-white/10 -skew-x-12 -translate-x-full group-hover/btn:animate-[shine-sweep_1.2s_ease-in-out]" />
-                        <ShoppingBag className="h-4 w-4 group-hover/btn:scale-110 transition-transform" />
-                        <span>{isExternal ? t.products_cta_get : t.products_cta_inquire}</span>
-                        {isExternal ? (
-                          <ArrowUpRight className="h-4 w-4 ml-auto group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
-                        ) : (
-                          <ArrowRight className="h-4 w-4 ml-auto group-hover/btn:translate-x-1 transition-transform" />
-                        )}
-                      </a>
-                    </Button>
+                  {/* Purchase / Download CTA */}
+                  <div className="pt-3 border-t border-border/80">
+                    <a
+                      href={product.ctaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="vt-btn vt-btn-chrome w-full py-2 px-3 text-xs font-bold font-mono text-foreground justify-between group"
+                    >
+                      <span className="inline-flex items-center gap-1.5">
+                        <ShoppingCart className="h-3.5 w-3.5 text-primary" />
+                        <span>{t.products_cta_get}</span>
+                      </span>
+                      <ArrowUpRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                    </a>
                   </div>
-                </CardContent>
-              </Card>
+                </OSWindow>
+              </div>
             );
           })}
         </div>

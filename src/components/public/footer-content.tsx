@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Mail, ArrowUp } from "lucide-react";
+import { Mail, ArrowUp, HardDrive, Terminal } from "lucide-react";
 import { ProfileData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
 
@@ -47,32 +47,50 @@ export function FooterContent({ profile }: { profile: ProfileData }) {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-border bg-background text-muted-foreground transition-colors">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 md:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+    <footer className="border-t-2 border-border bg-card text-foreground transition-colors font-mono">
+      {/* OS Status Strip */}
+      <div className="bg-muted/70 border-b border-border/80 px-4 py-1.5 flex flex-wrap items-center justify-between text-[11px] text-muted-foreground select-none">
+        <div className="flex items-center gap-3">
+          <span className="inline-flex items-center gap-1.5 text-primary font-bold">
+            <HardDrive className="h-3 w-3" />
+            <span>SIGIT_OS v3.2.0</span>
+          </span>
+          <span className="hidden sm:inline text-muted-foreground/60">|</span>
+          <span className="hidden sm:inline">RAM: 64MB OK</span>
+          <span className="hidden sm:inline text-muted-foreground/60">|</span>
+          <span className="hidden sm:inline">VRAM: 8MB PCI</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-emerald-500 font-bold">KERNEL: ACTIVE</span>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 md:py-14">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
           {/* Col 1: Bio / Brand */}
           <div className="md:col-span-2 space-y-3">
             <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-accent" />
-              <span className="font-semibold text-foreground tracking-tight text-base">
-                My<span className="font-light text-muted-foreground">WebPorto</span>
+              <span className="h-3 w-3 rounded-none bg-primary animate-pulse" />
+              <span className="font-pixel text-sm sm:text-base tracking-wider text-foreground">
+                SIGIT<span className="text-primary">.DEV</span>
               </span>
             </div>
-            <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
+            <p className="text-xs text-muted-foreground max-w-sm leading-relaxed font-mono">
               {language === "id"
-                ? `Personal branding & portofolio profesional karya ${profile.name} — ${profile.headline || "Web Developer & Content Creator"}.`
-                : `Personal branding & professional digital portfolio of ${profile.name} — ${profile.headline || "Web Developer & Content Creator"}.`}
+                ? `Personal branding & portofolio digital karya ${profile.name || "Sigit"} — ${profile.headline || "Web Developer & Systems Architect"}. Dibangun dengan standar performa dan keindahan estetika retro 90s.`
+                : `Personal branding & digital portfolio of ${profile.name || "Sigit"} — ${profile.headline || "Web Developer & Systems Architect"}. Crafted with speed and retro 90s desktop aesthetics.`}
             </p>
-            <div className="pt-2 flex items-center gap-3">
+            <div className="pt-2 flex items-center gap-2">
               {profile.socialLinks?.github && (
                 <a
                   href={profile.socialLinks.github}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-2 rounded-md hover:bg-accent/15 hover:text-foreground hover:scale-110 active:scale-95 transition-all duration-200"
+                  className="vt-btn p-1.5 text-foreground hover:text-primary transition-colors"
                   aria-label="GitHub"
                 >
-                  <GithubIcon className="h-4 w-4" />
+                  <GithubIcon className="h-3.5 w-3.5" />
                 </a>
               )}
               {profile.socialLinks?.linkedin && (
@@ -80,10 +98,10 @@ export function FooterContent({ profile }: { profile: ProfileData }) {
                   href={profile.socialLinks.linkedin}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-2 rounded-md hover:bg-accent/15 hover:text-foreground hover:scale-110 active:scale-95 transition-all duration-200"
+                  className="vt-btn p-1.5 text-foreground hover:text-primary transition-colors"
                   aria-label="LinkedIn"
                 >
-                  <LinkedinIcon className="h-4 w-4" />
+                  <LinkedinIcon className="h-3.5 w-3.5" />
                 </a>
               )}
               {profile.socialLinks?.instagram && (
@@ -91,10 +109,10 @@ export function FooterContent({ profile }: { profile: ProfileData }) {
                   href={profile.socialLinks.instagram}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-2 rounded-md hover:bg-accent/15 hover:text-foreground hover:scale-110 active:scale-95 transition-all duration-200"
+                  className="vt-btn p-1.5 text-foreground hover:text-primary transition-colors"
                   aria-label="Instagram"
                 >
-                  <InstagramIcon className="h-4 w-4" />
+                  <InstagramIcon className="h-3.5 w-3.5" />
                 </a>
               )}
               {profile.socialLinks?.twitter && (
@@ -102,19 +120,19 @@ export function FooterContent({ profile }: { profile: ProfileData }) {
                   href={profile.socialLinks.twitter}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-2 rounded-md hover:bg-accent/15 hover:text-foreground hover:scale-110 active:scale-95 transition-all duration-200"
+                  className="vt-btn p-1.5 text-foreground hover:text-primary transition-colors"
                   aria-label="Twitter"
                 >
-                  <TwitterIcon className="h-4 w-4" />
+                  <TwitterIcon className="h-3.5 w-3.5" />
                 </a>
               )}
               {profile.email && (
                 <a
                   href={`mailto:${profile.email}`}
-                  className="p-2 rounded-md hover:bg-accent/15 hover:text-foreground hover:scale-110 active:scale-95 transition-all duration-200"
+                  className="vt-btn p-1.5 text-foreground hover:text-primary transition-colors"
                   aria-label="Email"
                 >
-                  <Mail className="h-4 w-4" />
+                  <Mail className="h-3.5 w-3.5" />
                 </a>
               )}
             </div>
@@ -122,66 +140,67 @@ export function FooterContent({ profile }: { profile: ProfileData }) {
 
           {/* Col 2: Navigasi Cepat */}
           <div className="space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-[0.15em] text-foreground">
-              {t.footer_navigation}
+            <h4 className="text-xs font-bold uppercase tracking-wider text-primary font-mono">
+              {"//"} {t.footer_navigation}
             </h4>
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-1.5 text-xs font-mono">
               <li>
-                <Link href="/" className="hover:text-foreground transition-colors">
-                  {t.nav_home}
+                <Link href="/" className="text-muted-foreground hover:text-primary transition-colors">
+                  &gt; {t.nav_home}
                 </Link>
               </li>
               <li>
-                <Link href="/proyek" className="hover:text-foreground transition-colors">
-                  {t.nav_projects}
+                <Link href="/proyek" className="text-muted-foreground hover:text-primary transition-colors">
+                  &gt; {t.nav_projects}
                 </Link>
               </li>
               <li>
-                <Link href="/#layanan" className="hover:text-foreground transition-colors">
-                  {t.nav_services}
+                <Link href="/#layanan" className="text-muted-foreground hover:text-primary transition-colors">
+                  &gt; {t.nav_services}
                 </Link>
               </li>
               <li>
-                <Link href="/#produk" className="hover:text-foreground transition-colors">
-                  {t.nav_products}
+                <Link href="/#produk" className="text-muted-foreground hover:text-primary transition-colors">
+                  &gt; {t.nav_products}
                 </Link>
               </li>
               <li>
-                <Link href="/#testimoni" className="hover:text-foreground transition-colors">
-                  {t.nav_testimonials}
+                <Link href="/#testimoni" className="text-muted-foreground hover:text-primary transition-colors">
+                  &gt; {t.nav_testimonials}
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Col 3: Legal & Admin */}
+          {/* Col 3: System & Admin */}
           <div className="space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-[0.15em] text-foreground">
-              {t.footer_legal}
+            <h4 className="text-xs font-bold uppercase tracking-wider text-primary font-mono">
+              {"//"} {t.footer_legal}
             </h4>
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-1.5 text-xs font-mono">
               <li>
-                <Link href="/admin" className="hover:text-foreground transition-colors inline-flex items-center gap-1">
-                  {t.nav_admin_panel}
+                <Link href="/admin" className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
+                  <Terminal className="h-3 w-3 text-emerald-500" />
+                  <span>{t.nav_admin_panel}</span>
                 </Link>
               </li>
               <li>
                 <a
                   href="#top"
-                  className="hover:text-foreground transition-colors inline-flex items-center gap-1 pt-2 text-xs"
+                  className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1 pt-2 text-xs"
                 >
                   <ArrowUp className="h-3 w-3" />
-                  {t.footer_back_to_top}
+                  <span>{t.footer_back_to_top}</span>
                 </a>
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="pt-8 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-          <p>© {currentYear} MyWebPorto. {t.footer_rights}</p>
-          <p className="text-muted-foreground/80">
-            {language === "id" ? "Dibuat dengan Next.js 15 & Tailwind CSS" : "Built with Next.js 15 & Tailwind CSS"}
+        <div className="pt-6 border-t border-border/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] font-mono text-muted-foreground">
+          <p>© {currentYear} Sigit. {t.footer_rights}</p>
+          <p className="text-muted-foreground">
+            {language === "id" ? "SigitOS Retro Engine • Next.js 15 & Tailwind" : "SigitOS Retro Engine • Next.js 15 & Tailwind"}
           </p>
         </div>
       </div>

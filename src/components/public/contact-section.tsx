@@ -1,15 +1,14 @@
 "use client";
 
-import { useRef } from "react";
-import { Mail, MapPin, Send, ExternalLink } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import React, { useRef } from "react";
+import { Mail, MapPin, Send, ExternalLink, MessageSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ProfileData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
-import { gsap } from "gsap";
+import { OSWindow } from "@/components/public/os/os-window";
+import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 
@@ -24,34 +23,21 @@ interface ContactSectionProps {
 export function ContactSection({ profile }: ContactSectionProps) {
   const { t, language } = useTranslation();
   const containerRef = useRef<HTMLElement>(null);
-  const leftColRef = useRef<HTMLDivElement>(null);
-  const rightColRef = useRef<HTMLDivElement>(null);
 
   useGSAP(
     () => {
-      gsap.from(leftColRef.current, {
+      gsap.from(".sigit-contact-window", {
         scrollTrigger: {
           trigger: containerRef.current,
           start: "top 80%",
+          toggleActions: "play none none none",
         },
-        x: -40,
         opacity: 0,
-        filter: "blur(6px)",
-        duration: 0.9,
-        ease: "power4.out",
-      });
-
-      gsap.from(rightColRef.current, {
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: "top 80%",
-        },
-        x: 40,
-        opacity: 0,
-        filter: "blur(6px)",
-        duration: 0.9,
-        delay: 0.12,
-        ease: "power4.out",
+        y: 40,
+        stagger: 0.15,
+        duration: 0.85,
+        ease: "power3.out",
+        clearProps: "all",
       });
     },
     { scope: containerRef }
@@ -61,158 +47,170 @@ export function ContactSection({ profile }: ContactSectionProps) {
     profile.email
   )}`;
 
-  const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    e.currentTarget.style.setProperty("--mouse-x", `${x}px`);
-    e.currentTarget.style.setProperty("--mouse-y", `${y}px`);
-  };
-
   return (
     <section
       ref={containerRef}
       id="kontak"
-      className="py-24 md:py-36 scroll-mt-16 relative overflow-hidden"
+      className="relative py-12 md:py-20 scroll-mt-14"
     >
-      {/* Ambient background glow */}
-      <div className="absolute bottom-10 left-1/4 w-[500px] h-[300px] bg-primary/4 rounded-full blur-[110px] pointer-events-none -z-10 animate-float-slow" />
-      <div className="absolute top-20 right-10 w-[450px] h-[300px] bg-accent/6 rounded-full blur-[120px] pointer-events-none -z-10 animate-float-reverse" />
+      <div className="max-w-7xl mx-auto px-2 sm:px-4">
+        {/* Section Heading */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-crt)]">
+            <span className="h-2 w-2 rounded-full bg-[var(--vt-crt)] animate-pulse" />
+            <span>MAIL_DISPATCH // HUBUNGI & DISKUSI PROYEK</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-white">
+            {t.contact_title}
+          </h2>
+          <p className="text-xs sm:text-sm font-mono text-white/80 mt-1 max-w-2xl">
+            {t.contact_subtitle}
+          </p>
+        </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
-          {/* Col 1: Direct Contact Info */}
-          <div ref={leftColRef} className="lg:col-span-5 space-y-6">
-            <div className="space-y-3">
-              <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                {t.contact_eyebrow}
-              </span>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-foreground">
-                {t.contact_title}
-              </h2>
-            </div>
-            <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
-              {t.contact_subtitle}
-            </p>
-
-            <div className="space-y-4 pt-2">
-              <div
-                onMouseMove={handleCardMouseMove}
-                className="spotlight-card group flex items-center gap-4 text-sm text-foreground p-4 rounded-xl border border-border bg-card/60 backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:-translate-y-0.5 shadow-sm hover:shadow-md cursor-pointer"
-              >
-                <div className="p-3 rounded-lg border border-border bg-muted/40 shrink-0 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                  <Mail className="h-4 w-4 text-primary transition-transform duration-300 group-hover:scale-110" />
+        {/* Dual Window Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+          {/* Window 1: Contact Info Card */}
+          <div className="sigit-contact-window lg:col-span-5 flex flex-col">
+            <OSWindow
+              title="Contact_Card.vcf // Direct Channels"
+              icon={<Mail className="h-3 w-3 text-[#ffd400]" />}
+              statusText="Network: Connected // Ready to reply"
+              className="h-full flex-1"
+              bodyClassName="flex flex-col justify-between h-full space-y-6"
+            >
+              <div className="space-y-4">
+                <div className="vt-card-inset p-3 bg-card border-l-4 border-l-[var(--vt-blue)]">
+                  <h3 className="font-mono text-sm font-bold text-foreground">
+                    Saluran Komunikasi Langsung
+                  </h3>
+                  <p className="font-mono text-xs text-muted-foreground mt-1 leading-relaxed">
+                    Tertarik mengembangkan website bisnis, aplikasi custom, atau konsultasi UI/UX? Kirim pesan langsung ke email atau form berikut.
+                  </p>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs text-muted-foreground">{t.contact_email_label}</div>
+
+                {/* Email Box */}
+                <div className="vt-card-inset p-3 bg-[var(--vt-card)] space-y-1">
+                  <span className="font-pixel text-[10px] text-muted-foreground uppercase">
+                    {t.contact_email_label}:
+                  </span>
                   <a
                     href={gmailDirectUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-medium hover:underline text-foreground flex items-center gap-1.5 truncate"
+                    className="flex items-center gap-2 font-mono text-xs sm:text-sm font-bold text-[var(--vt-blue)] hover:underline"
                   >
+                    <Mail className="h-3.5 w-3.5" />
                     <span className="truncate">{profile.email}</span>
-                    <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                    <ExternalLink className="h-3 w-3" />
                   </a>
+                </div>
+
+                {/* Location Box */}
+                <div className="vt-card-inset p-3 bg-[var(--vt-card)] space-y-1">
+                  <span className="font-pixel text-[10px] text-muted-foreground uppercase">
+                    {t.contact_location_label}:
+                  </span>
+                  <p className="flex items-center gap-2 font-mono text-xs sm:text-sm font-bold text-foreground">
+                    <MapPin className="h-3.5 w-3.5 text-primary" />
+                    <span>{profile.location}</span>
+                  </p>
                 </div>
               </div>
 
-              {profile.location && (
-                <div
-                  onMouseMove={handleCardMouseMove}
-                  className="spotlight-card group flex items-center gap-4 text-sm text-foreground p-4 rounded-xl border border-border bg-card/60 backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:-translate-y-0.5 shadow-sm hover:shadow-md"
+              {/* Direct Gmail Action */}
+              <div className="pt-3 border-t border-border/80">
+                <a
+                  href={gmailDirectUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="vt-btn vt-btn-chrome w-full py-2 px-3 text-xs font-bold font-mono text-foreground justify-center"
                 >
-                  <div className="p-3 rounded-lg border border-border bg-muted/40 shrink-0 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                    <MapPin className="h-4 w-4 text-primary transition-transform duration-300 group-hover:scale-110" />
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">{t.contact_location_label}</div>
-                    <div className="font-medium">{profile.location}</div>
-                  </div>
-                </div>
-              )}
-            </div>
+                  <Mail className="h-3.5 w-3.5 text-rose-500 mr-1.5" />
+                  <span>{language === "id" ? "Buka di Gmail Langsung" : "Open in Gmail Direct"}</span>
+                </a>
+              </div>
+            </OSWindow>
           </div>
 
-          {/* Col 2: Interactive Contact Form Preview */}
-          <div ref={rightColRef} className="lg:col-span-7">
-            <Card
-              onMouseMove={handleCardMouseMove}
-              className="spotlight-card border-border bg-card/70 backdrop-blur-sm shadow-xl overflow-hidden transition-all duration-300 hover:border-primary/30"
+          {/* Window 2: Interactive Mailer Form */}
+          <div className="sigit-contact-window lg:col-span-7 flex flex-col">
+            <OSWindow
+              title="Sigit_Mailer.exe // Send Message"
+              icon={<MessageSquare className="h-3 w-3 text-[#37ff9b]" />}
+              statusText="Protocol: SMTP Direct Mail // Ready"
+              className="h-full flex-1"
+              bodyClassName="p-4 sm:p-6"
             >
-              <CardHeader className="p-6 md:p-8 border-b border-border/40">
-                <CardTitle className="text-xl font-semibold tracking-tight text-foreground">
-                  {t.contact_form_title}
-                </CardTitle>
-                <CardDescription className="text-xs md:text-sm text-muted-foreground">
-                  {language === "id"
-                    ? `Formulir ini akan mengarahkan pesan langsung ke inbox email ${profile.name}.`
-                    : `This form will direct your message straight to ${profile.name}'s email inbox.`}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-6 md:p-8">
-                <form
-                  action={`mailto:${profile.email}`}
-                  method="GET"
-                  className="space-y-5"
-                >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="sender-name" className="text-xs font-medium">{t.contact_name_label}</Label>
-                      <Input
-                        id="sender-name"
-                        name="name"
-                        placeholder={t.contact_name_placeholder}
-                        required
-                        className="bg-background/80 transition-colors focus-visible:ring-primary/40"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="sender-subject" className="text-xs font-medium">{t.contact_subject_label}</Label>
-                      <Input
-                        id="sender-subject"
-                        name="subject"
-                        placeholder={t.contact_subject_placeholder}
-                        required
-                        className="bg-background/80 transition-colors focus-visible:ring-primary/40"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="sender-body" className="text-xs font-medium">{t.contact_message_label}</Label>
-                    <Textarea
-                      id="sender-body"
-                      name="body"
-                      placeholder={t.contact_message_placeholder}
-                      rows={5}
+              <form
+                action={`mailto:${profile.email}`}
+                method="GET"
+                className="space-y-4 font-mono text-xs"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="sender-name" className="text-xs font-bold font-mono">
+                      {t.contact_name_label} *
+                    </Label>
+                    <Input
+                      id="sender-name"
+                      name="name"
+                      placeholder={t.contact_name_placeholder}
                       required
-                      className="bg-background/80 transition-colors focus-visible:ring-primary/40"
+                      className="vt-card-inset bg-background text-foreground text-xs font-mono h-9"
                     />
                   </div>
 
-                  <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                    <Button type="submit" className="relative group overflow-hidden flex-1 gap-2 font-medium h-11 text-xs transition-all duration-300 hover:shadow-lg hover:shadow-primary/20">
-                      <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
-                      <Send className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1" />
-                      <span>{t.contact_send_btn}</span>
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      asChild
-                      className="gap-2 font-medium h-11 text-xs border-border bg-card hover:bg-muted/40 transition-all duration-300 hover:scale-[1.02] hover:border-primary/40"
-                    >
-                      <a href={gmailDirectUrl} target="_blank" rel="noopener noreferrer">
-                        <Mail className="h-4 w-4 text-red-500 transition-transform group-hover:scale-110" />
-                        <span>{language === "id" ? "Buka di Gmail" : "Open in Gmail"}</span>
-                      </a>
-                    </Button>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="sender-subject" className="text-xs font-bold font-mono">
+                      {t.contact_subject_label} *
+                    </Label>
+                    <Input
+                      id="sender-subject"
+                      name="subject"
+                      placeholder={t.contact_subject_placeholder}
+                      required
+                      className="vt-card-inset bg-background text-foreground text-xs font-mono h-9"
+                    />
                   </div>
-                </form>
-              </CardContent>
-            </Card>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="sender-body" className="text-xs font-bold font-mono">
+                    {t.contact_message_label} *
+                  </Label>
+                  <Textarea
+                    id="sender-body"
+                    name="body"
+                    placeholder={t.contact_message_placeholder}
+                    rows={5}
+                    required
+                    className="vt-card-inset bg-background text-foreground text-xs font-mono leading-relaxed"
+                  />
+                </div>
+
+                {/* Submit button with sweep sheen effect */}
+                <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                  <button
+                    type="submit"
+                    className="vt-btn vt-btn-pink vt-btn-sweep flex-1 py-2.5 px-4 text-xs font-bold font-mono tracking-wider"
+                  >
+                    <Send className="h-3.5 w-3.5 mr-1.5" />
+                    <span>{t.contact_send_btn}</span>
+                  </button>
+
+                  <a
+                    href={gmailDirectUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="vt-btn vt-btn-chrome py-2.5 px-4 text-xs font-bold font-mono text-foreground justify-center"
+                  >
+                    <span>{language === "id" ? "Buka Gmail" : "Open Gmail"}</span>
+                    <ExternalLink className="h-3 w-3 ml-1" />
+                  </a>
+                </div>
+              </form>
+            </OSWindow>
           </div>
         </div>
       </div>

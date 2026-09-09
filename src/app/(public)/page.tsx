@@ -6,6 +6,7 @@ import {
   getTestimonials,
 } from "@/lib/actions";
 import { HeroSection } from "@/components/public/hero-section";
+import { OSMarquee } from "@/components/public/os/os-marquee";
 import { ServicesSection } from "@/components/public/services-section";
 import { FeaturedProjectsSection } from "@/components/public/featured-projects-section";
 import { ProductsSection } from "@/components/public/products-section";
@@ -28,22 +29,25 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col min-h-screen">
       <JsonLdSchema profile={profile} />
-      {/* 1. Hero & Profil Utama */}
+      {/* 1. Hero & Profil Utama (Sigit_Profile.exe + Monitor_CRT.sys) */}
       <HeroSection profile={profile} />
 
-      {/* 2. Layanan & Keahlian */}
+      {/* 2. Dual-Track Retro Pixel Marquee Ticker */}
+      <OSMarquee />
+
+      {/* 3. Layanan & Keahlian (Module Windows) */}
       <ServicesSection services={services} profile={profile} />
 
-      {/* 3. Proyek Unggulan Terpilih */}
+      {/* 4. Proyek Unggulan Terpilih (Project Explorer) */}
       <FeaturedProjectsSection projects={projects} />
 
-      {/* 4. Katalog Produk Digital */}
+      {/* 5. Katalog Produk Digital (Software Vault) */}
       <ProductsSection products={products} />
 
-      {/* 5. Testimoni Klien */}
+      {/* 6. Testimoni Klien (Feedback Logs) */}
       <TestimonialsSection testimonials={testimonials} />
 
-      {/* 6. Kontak & Diskusi */}
+      {/* 7. Kontak & Diskusi (Sigit_Mailer.exe) */}
       <ContactSection profile={profile} />
     </div>
   );

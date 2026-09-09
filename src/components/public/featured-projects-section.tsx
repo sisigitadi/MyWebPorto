@@ -2,12 +2,10 @@
 
 import React, { useRef } from "react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { ArrowRight, FolderGit2, ExternalLink } from "lucide-react";
 import { ProjectData, DUMMY_PROJECTS } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
+import { OSWindow } from "@/components/public/os/os-window";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -27,191 +25,144 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
 
   useGSAP(
     () => {
-      // Header Animation
-      gsap.from(".projects-eyebrow", {
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top 85%",
-          toggleActions: "play none none none",
-        },
-        opacity: 0,
-        y: 15,
-        duration: 0.6,
-        ease: "power3.out",
-        clearProps: "all",
-      });
-
-      gsap.from(".projects-title", {
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top 82%",
-          toggleActions: "play none none none",
-        },
-        opacity: 0,
-        y: 30,
-        filter: "blur(6px)",
-        duration: 0.9,
-        ease: "power4.out",
-        clearProps: "all",
-      });
-
-      gsap.from(".projects-view-all-btn", {
+      gsap.from(".sigit-project-card", {
         scrollTrigger: {
           trigger: sectionRef.current,
           start: "top 80%",
           toggleActions: "play none none none",
         },
         opacity: 0,
-        scale: 0.9,
-        duration: 0.7,
-        ease: "back.out(1.5)",
-        clearProps: "all",
-      });
-
-      // Bento Project Cards Stagger
-      gsap.from(".bento-project-card", {
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top 78%",
-          toggleActions: "play none none none",
-        },
-        opacity: 0,
-        y: 45,
-        scale: 0.96,
+        y: 40,
         stagger: 0.12,
         duration: 0.85,
-        ease: "back.out(1.3)",
+        ease: "power3.out",
         clearProps: "all",
       });
     },
     { scope: sectionRef }
   );
 
-  const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    e.currentTarget.style.setProperty("--mouse-x", `${x}px`);
-    e.currentTarget.style.setProperty("--mouse-y", `${y}px`);
-  };
-
   return (
     <section
       ref={sectionRef}
       id="proyek"
-      className="relative py-24 md:py-36 border-b border-border/60 scroll-mt-16 overflow-hidden"
+      className="relative py-12 md:py-20 scroll-mt-14"
     >
-      {/* Ambient background glow */}
-      <div className="absolute top-1/3 right-1/4 w-[480px] h-[300px] bg-accent/5 rounded-full blur-[120px] pointer-events-none -z-10 animate-float-reverse" />
-
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
-          <div className="space-y-3 max-w-xl">
-            <span className="projects-eyebrow text-xs uppercase tracking-[0.25em] font-semibold text-primary inline-flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-              {t.projects_eyebrow}
+      <div className="max-w-7xl mx-auto px-2 sm:px-4">
+        {/* Explorer Address Bar Banner */}
+        <div className="vt-raised p-2.5 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+          <div className="flex items-center gap-2 flex-1">
+            <span className="text-[10px] font-bold text-foreground font-pixel">DIRECTORY:</span>
+            <div className="vt-card-inset flex-1 px-2.5 py-1 bg-background text-foreground font-mono text-xs truncate">
+              C:\Sigit\Portfolio\Projects\Featured\
+            </div>
+            <span className="hidden sm:inline-flex px-2 py-1 vt-btn vt-btn-chrome text-[10px] font-bold">
+              [32 ITEMS]
             </span>
-            <h2 className="projects-title text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-foreground leading-[1.1]">
-              {t.projects_title}
-            </h2>
           </div>
-          <Button asChild variant="outline" size="sm" className="projects-view-all-btn h-10 px-5 gap-2 border-border bg-card hover:bg-muted/50 hover:border-foreground/30 text-xs font-medium self-start md:self-auto group transition-all">
-            <Link href="/proyek">
-              <span>{t.projects_view_all}</span>
-              <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </Button>
+
+          <Link
+            href="/proyek"
+            className="vt-btn vt-btn-chrome px-3 py-1 text-xs font-bold text-foreground shrink-0 self-end sm:self-auto"
+          >
+            <span>{t.projects_view_all}</span>
+            <ArrowRight className="h-3 w-3 ml-1" />
+          </Link>
         </div>
 
-        {/* Gapless Mathematically-Locked Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 grid-flow-dense">
-          {featuredProjects.map((project, idx) => {
-            const isHeroCard = idx === 0;
-            const isWideCard = idx === 2 && featuredProjects.length === 3;
-            const colSpan = isWideCard
-              ? "md:col-span-12"
-              : isHeroCard
-              ? "md:col-span-7"
-              : idx % 2 === 1
-              ? "md:col-span-5"
-              : "md:col-span-7";
+        {/* Section Heading */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-crt)]">
+            <span className="h-2 w-2 rounded-full bg-[var(--vt-crt)] animate-pulse" />
+            <span>PROJECT_SHOWCASE // KARYA DIGITAL TERPILIH</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-white">
+            {t.projects_title}
+          </h2>
+          <p className="text-xs sm:text-sm font-mono text-white/80 mt-1 max-w-2xl">
+            {t.projects_page_subtitle}
+          </p>
+        </div>
 
+        {/* Projects Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {featuredProjects.map((project, index) => {
             const title = (language === "en" && project.titleEn) ? project.titleEn : project.title;
             const summary = (language === "en" && project.summaryEn)
               ? project.summaryEn
-              : (language === "en" && project.descriptionEn)
-              ? project.descriptionEn
               : project.summary;
 
             return (
-              <Card
-                key={project.id}
-                onMouseMove={handleCardMouseMove}
-                className={`bento-project-card spotlight-card group relative overflow-hidden flex flex-col justify-between border-border bg-card/85 backdrop-blur-xs hover:border-foreground/35 transition-all duration-300 ${colSpan}`}
-              >
-                <div>
-                  {/* Image Container with Hover Scale Physics */}
-                  <div className={`relative w-full overflow-hidden bg-muted border-b border-border/60 ${isWideCard ? "aspect-[21/9]" : "aspect-[16/10]"}`}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={project.thumbnailUrl}
-                      alt={title}
-                      className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-108"
-                    />
-                    <div className="absolute top-4 right-4 z-10">
-                      <Badge variant="secondary" className="text-[10px] uppercase tracking-wider font-semibold backdrop-blur-md bg-background/85 shadow-sm border border-border/60 group-hover:border-primary/50 transition-colors">
-                        {t.projects_featured_badge}
-                      </Badge>
+              <div key={project.id} className="sigit-project-card flex flex-col h-full">
+                <OSWindow
+                  title={`Project_0${index + 1}.exe`}
+                  icon={<FolderGit2 className="h-3 w-3 text-[#ffd400]" />}
+                  statusText={`Slug: /proyek/${project.slug}`}
+                  className="h-full flex-1"
+                  bodyClassName="flex flex-col justify-between h-full space-y-4"
+                >
+                  <div className="space-y-3">
+                    {/* Thumbnail with retro sunken bevel */}
+                    <div className="relative aspect-[16/10] overflow-hidden rounded-xs vt-card-inset bg-muted">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={project.thumbnailUrl}
+                        alt={title}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                      />
+                      <span className="absolute top-2 right-2 font-pixel text-[9px] bg-[var(--vt-pink)] text-white px-1.5 py-0.5 shadow-md">
+                        FEATURED
+                      </span>
                     </div>
-                  </div>
 
-                  <CardContent className="p-6 md:p-8 space-y-3">
-                    <Link href={`/proyek/${project.slug}`}>
-                      <h3 className="font-semibold text-xl md:text-2xl text-foreground group-hover:text-primary transition-colors flex items-center justify-between gap-3">
-                        <span>{title}</span>
-                        <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-all -translate-x-1 group-hover:translate-x-0 text-primary shrink-0" />
-                      </h3>
-                    </Link>
+                    {/* Title */}
+                    <h3 className="text-base sm:text-lg font-bold font-mono text-foreground leading-snug">
+                      {title}
+                    </h3>
 
-                    <p className="text-sm md:text-base text-muted-foreground line-clamp-2 leading-relaxed font-normal">
+                    {/* Summary */}
+                    <p className="text-xs sm:text-sm font-mono text-muted-foreground leading-relaxed line-clamp-2">
                       {summary}
                     </p>
 
-                    {/* Tech stack badges with micro-lift */}
-                    <div className="flex flex-wrap gap-1.5 pt-3">
-                      {project.techStack.map((tech) => (
-                        <Badge
+                    {/* Tech Stack Chips */}
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {project.techStack.slice(0, 4).map((tech) => (
+                        <span
                           key={tech}
-                          variant="outline"
-                          className="text-xs font-normal py-0.5 px-2.5 bg-muted/40 text-muted-foreground border-border/60 hover:border-foreground/30 hover:bg-muted/70 hover:scale-105 active:scale-95 transition-all cursor-default"
+                          className="vt-card-inset px-2 py-0.5 font-mono text-[10px] text-foreground bg-[var(--vt-card)]"
                         >
                           {tech}
-                        </Badge>
+                        </span>
                       ))}
                     </div>
-                  </CardContent>
-                </div>
+                  </div>
 
-                {/* Card Footer Details */}
-                <div className="p-6 md:p-8 pt-0 mt-auto border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="font-mono text-[11px] opacity-75">
-                    {project.createdAt
-                      ? new Date(project.createdAt).toLocaleDateString(
-                          language === "en" ? "en-US" : "id-ID",
-                          { month: "short", year: "numeric" }
-                        )
-                      : ""}
-                  </span>
-                  <Link
-                    href={`/proyek/${project.slug}`}
-                    className="font-medium text-foreground hover:text-primary transition-colors inline-flex items-center gap-1.5 group/link"
-                  >
-                    <span>{t.projects_detail_btn}</span>
-                    <ArrowRight className="h-3.5 w-3.5 group-hover/link:translate-x-1.5 transition-transform duration-300" />
-                  </Link>
-                </div>
-              </Card>
+                  {/* Actions (Tactile Buttons) */}
+                  <div className="pt-3 border-t border-border/80 flex items-center gap-2">
+                    <Link
+                      href={`/proyek/${project.slug}`}
+                      className="flex-1 vt-btn vt-btn-chrome py-1.5 px-2.5 text-xs font-bold font-mono text-foreground justify-center"
+                    >
+                      <span>Detail</span>
+                      <ArrowRight className="h-3 w-3 ml-1" />
+                    </Link>
+
+                    {project.demoUrl && (
+                      <a
+                        href={project.demoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="vt-btn vt-btn-pink py-1.5 px-3 text-xs font-bold font-mono justify-center"
+                        title="Jalankan Demo Langsung"
+                      >
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        <span>RUN</span>
+                      </a>
+                    )}
+                  </div>
+                </OSWindow>
+              </div>
             );
           })}
         </div>
