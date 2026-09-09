@@ -6,7 +6,7 @@ import { ArrowRight, ArrowUpRight, ShoppingBag } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ProductData } from "@/lib/dummy-data";
+import { ProductData, DUMMY_PRODUCTS } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -23,7 +23,12 @@ interface ProductsSectionProps {
 export function ProductsSection({ products: propProducts }: ProductsSectionProps) {
   const { t, language } = useTranslation();
   const containerRef = useRef<HTMLElement>(null);
-  const products = propProducts.filter((p) => p.published);
+  const rawProducts =
+    propProducts && Array.isArray(propProducts) && propProducts.length > 0
+      ? propProducts
+      : DUMMY_PRODUCTS;
+  const published = rawProducts.filter((p) => p.published !== false);
+  const products = published.length > 0 ? published : DUMMY_PRODUCTS;
 
   useGSAP(
     () => {
@@ -31,54 +36,58 @@ export function ProductsSection({ products: propProducts }: ProductsSectionProps
       gsap.from(".products-eyebrow", {
         scrollTrigger: {
           trigger: containerRef.current,
-          start: "top 82%",
+          start: "top 85%",
+          toggleActions: "play none none none",
         },
         opacity: 0,
         y: 15,
         duration: 0.6,
         ease: "power3.out",
+        clearProps: "all",
       });
 
       gsap.from(".products-title", {
         scrollTrigger: {
           trigger: containerRef.current,
-          start: "top 80%",
+          start: "top 82%",
+          toggleActions: "play none none none",
         },
         opacity: 0,
         y: 30,
         filter: "blur(6px)",
         duration: 0.9,
         ease: "power4.out",
+        clearProps: "all",
       });
 
       gsap.from(".products-subtitle", {
         scrollTrigger: {
           trigger: containerRef.current,
-          start: "top 78%",
+          start: "top 80%",
+          toggleActions: "play none none none",
         },
         opacity: 0,
         y: 20,
         duration: 0.8,
         delay: 0.1,
         ease: "power3.out",
+        clearProps: "all",
       });
 
       // Bento Product Cards Stagger
-      const cards = gsap.utils.toArray<HTMLElement>(".bento-product-card");
-      cards.forEach((card, idx) => {
-        gsap.from(card, {
-          scrollTrigger: {
-            trigger: card,
-            start: "top 88%",
-          },
-          opacity: 0,
-          y: 45,
-          scale: 0.95,
-          rotation: idx % 2 === 0 ? -1 : 1,
-          duration: 0.85,
-          delay: (idx % 2) * 0.1,
-          ease: "back.out(1.35)",
-        });
+      gsap.from(".bento-product-card", {
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top 78%",
+          toggleActions: "play none none none",
+        },
+        opacity: 0,
+        y: 45,
+        scale: 0.95,
+        stagger: 0.12,
+        duration: 0.85,
+        ease: "back.out(1.35)",
+        clearProps: "all",
       });
     },
     { scope: containerRef }

@@ -4,7 +4,7 @@ import React, { useRef } from "react";
 import { ArrowRight, Mail } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ServiceData, ProfileData } from "@/lib/dummy-data";
+import { ServiceData, ProfileData, DUMMY_SERVICES } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -21,7 +21,14 @@ export function ServicesSection({ services: propServices, profile }: ServicesSec
   const { t, language } = useTranslation();
   const sectionRef = useRef<HTMLElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
-  const services = propServices.filter((s) => s.published);
+
+  // Resilient fallback to guarantee cards are always visible even if DB returns empty
+  const rawServices =
+    propServices && Array.isArray(propServices) && propServices.length > 0
+      ? propServices
+      : DUMMY_SERVICES;
+  const publishedServices = rawServices.filter((s) => s.published !== false);
+  const services = publishedServices.length > 0 ? publishedServices : DUMMY_SERVICES;
 
   useGSAP(
     () => {
@@ -29,54 +36,58 @@ export function ServicesSection({ services: propServices, profile }: ServicesSec
       gsap.from(".services-eyebrow", {
         scrollTrigger: {
           trigger: sectionRef.current,
-          start: "top 82%",
+          start: "top 85%",
+          toggleActions: "play none none none",
         },
         opacity: 0,
         y: 15,
         duration: 0.6,
         ease: "power3.out",
+        clearProps: "all",
       });
 
       gsap.from(".services-title", {
         scrollTrigger: {
           trigger: sectionRef.current,
-          start: "top 80%",
+          start: "top 82%",
+          toggleActions: "play none none none",
         },
         opacity: 0,
         y: 30,
         filter: "blur(6px)",
         duration: 0.9,
         ease: "power4.out",
+        clearProps: "all",
       });
 
       gsap.from(".services-subtitle", {
         scrollTrigger: {
           trigger: sectionRef.current,
-          start: "top 78%",
+          start: "top 80%",
+          toggleActions: "play none none none",
         },
         opacity: 0,
         y: 20,
         duration: 0.8,
         delay: 0.1,
         ease: "power3.out",
+        clearProps: "all",
       });
 
-      // Bento Cards Stagger with subtle rotational personality
-      const cards = gsap.utils.toArray<HTMLElement>(".bento-service-card");
-      cards.forEach((card, i) => {
-        gsap.from(card, {
-          scrollTrigger: {
-            trigger: card,
-            start: "top 88%",
-          },
-          opacity: 0,
-          y: 40,
-          rotation: i % 2 === 0 ? -1.2 : 1.2,
-          scale: 0.96,
-          duration: 0.8,
-          delay: (i % 3) * 0.1,
-          ease: "back.out(1.35)",
-        });
+      // Bento Cards Stagger - reliable section-level trigger with clearProps to prevent stuck opacity 0
+      gsap.from(".bento-service-card", {
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: "top 78%",
+          toggleActions: "play none none none",
+        },
+        opacity: 0,
+        y: 40,
+        scale: 0.96,
+        stagger: 0.12,
+        duration: 0.85,
+        ease: "back.out(1.35)",
+        clearProps: "all",
       });
     },
     { scope: sectionRef }

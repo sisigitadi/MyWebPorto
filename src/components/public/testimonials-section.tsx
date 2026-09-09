@@ -4,7 +4,7 @@ import { useRef } from "react";
 import Image from "next/image";
 import { Star, Quote } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { TestimonialData } from "@/lib/dummy-data";
+import { TestimonialData, DUMMY_TESTIMONIALS } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -21,7 +21,12 @@ interface TestimonialsSectionProps {
 export function TestimonialsSection({ testimonials: propTestimonials }: TestimonialsSectionProps) {
   const { t, language } = useTranslation();
   const containerRef = useRef<HTMLElement>(null);
-  const testimonials = propTestimonials.filter((t) => t.published);
+  const rawTestimonials =
+    propTestimonials && Array.isArray(propTestimonials) && propTestimonials.length > 0
+      ? propTestimonials
+      : DUMMY_TESTIMONIALS;
+  const published = rawTestimonials.filter((t) => t.published !== false);
+  const testimonials = published.length > 0 ? published : DUMMY_TESTIMONIALS;
 
   useGSAP(
     () => {
@@ -29,54 +34,58 @@ export function TestimonialsSection({ testimonials: propTestimonials }: Testimon
       gsap.from(".testi-eyebrow", {
         scrollTrigger: {
           trigger: containerRef.current,
-          start: "top 82%",
+          start: "top 85%",
+          toggleActions: "play none none none",
         },
         opacity: 0,
         y: 15,
         duration: 0.6,
         ease: "power3.out",
+        clearProps: "all",
       });
 
       gsap.from(".testi-title", {
         scrollTrigger: {
           trigger: containerRef.current,
-          start: "top 80%",
+          start: "top 82%",
+          toggleActions: "play none none none",
         },
         opacity: 0,
         y: 30,
         filter: "blur(6px)",
         duration: 0.9,
         ease: "power4.out",
+        clearProps: "all",
       });
 
       gsap.from(".testi-subtitle", {
         scrollTrigger: {
           trigger: containerRef.current,
-          start: "top 78%",
+          start: "top 80%",
+          toggleActions: "play none none none",
         },
         opacity: 0,
         y: 20,
         duration: 0.8,
         delay: 0.1,
         ease: "power3.out",
+        clearProps: "all",
       });
 
       // Bento Testimonials Cards Stagger
-      const cards = gsap.utils.toArray<HTMLElement>(".bento-testimonial-card");
-      cards.forEach((card, idx) => {
-        gsap.from(card, {
-          scrollTrigger: {
-            trigger: card,
-            start: "top 88%",
-          },
-          opacity: 0,
-          y: 45,
-          scale: 0.95,
-          rotation: idx % 2 === 0 ? -1.5 : 1.5,
-          duration: 0.85,
-          delay: (idx % 3) * 0.12,
-          ease: "back.out(1.3)",
-        });
+      gsap.from(".bento-testimonial-card", {
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top 78%",
+          toggleActions: "play none none none",
+        },
+        opacity: 0,
+        y: 45,
+        scale: 0.95,
+        stagger: 0.12,
+        duration: 0.85,
+        ease: "back.out(1.3)",
+        clearProps: "all",
       });
     },
     { scope: containerRef }

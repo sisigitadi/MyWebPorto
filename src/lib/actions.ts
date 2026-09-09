@@ -332,7 +332,7 @@ export async function getProjects(): Promise<ProjectData[]> {
         demoUrl: p.demoUrl || undefined,
         repoUrl: p.repoUrl || undefined,
         featured: p.featured,
-        published: p.published,
+        published: p.published ?? true,
         createdAt: p.createdAt ? p.createdAt.toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
       };
     });
@@ -573,7 +573,7 @@ export async function getServices(): Promise<ServiceData[]> {
       titleEn: s.titleEn || null,
       description: s.description,
       descriptionEn: s.descriptionEn || null,
-      published: s.published,
+      published: s.published ?? true,
     }));
   } catch (error) {
     console.warn("Database query getServices gagal, menggunakan data lokal:", error);
@@ -780,7 +780,7 @@ export async function getProducts(): Promise<ProductData[]> {
       priceFormatted: p.priceLabel || "Gratis / Diskusi",
       thumbnailUrl: p.imageUrl?.trim() || "https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=600&auto=format&fit=crop",
       ctaUrl: p.ctaUrl || "#kontak",
-      published: p.published,
+      published: p.published ?? true,
     }));
   } catch (error) {
     console.warn("Database query getProducts gagal, menggunakan data lokal:", error);
@@ -995,7 +995,7 @@ export async function getTestimonials(): Promise<TestimonialData[]> {
       contentEn: t.contentEn || null,
       avatarUrl: t.avatarUrl?.trim() || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop",
       rating: t.rating ?? 5,
-      published: t.published,
+      published: t.published ?? true,
     }));
   } catch (error) {
     console.warn("Database query getTestimonials gagal, menggunakan data lokal:", error);

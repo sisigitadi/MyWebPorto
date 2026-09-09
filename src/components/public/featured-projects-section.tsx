@@ -7,7 +7,7 @@ import { ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ProjectData } from "@/lib/dummy-data";
+import { ProjectData, DUMMY_PROJECTS } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -22,7 +22,9 @@ interface FeaturedProjectsSectionProps {
 export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionProps) {
   const { t, language } = useTranslation();
   const sectionRef = useRef<HTMLElement>(null);
-  const featuredProjects = projects.filter((p) => p.published && p.featured);
+  const rawProjects = projects && Array.isArray(projects) && projects.length > 0 ? projects : DUMMY_PROJECTS;
+  const filtered = rawProjects.filter((p) => p.published !== false && p.featured);
+  const featuredProjects = filtered.length > 0 ? filtered : rawProjects.slice(0, 3);
 
   useGSAP(
     () => {
@@ -30,53 +32,57 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
       gsap.from(".projects-eyebrow", {
         scrollTrigger: {
           trigger: sectionRef.current,
-          start: "top 82%",
+          start: "top 85%",
+          toggleActions: "play none none none",
         },
         opacity: 0,
         y: 15,
         duration: 0.6,
         ease: "power3.out",
+        clearProps: "all",
       });
 
       gsap.from(".projects-title", {
         scrollTrigger: {
           trigger: sectionRef.current,
-          start: "top 80%",
+          start: "top 82%",
+          toggleActions: "play none none none",
         },
         opacity: 0,
         y: 30,
         filter: "blur(6px)",
         duration: 0.9,
         ease: "power4.out",
+        clearProps: "all",
       });
 
       gsap.from(".projects-view-all-btn", {
         scrollTrigger: {
           trigger: sectionRef.current,
           start: "top 80%",
+          toggleActions: "play none none none",
         },
         opacity: 0,
         scale: 0.9,
         duration: 0.7,
         ease: "back.out(1.5)",
+        clearProps: "all",
       });
 
       // Bento Project Cards Stagger
-      const cards = gsap.utils.toArray<HTMLElement>(".bento-project-card");
-      cards.forEach((card, idx) => {
-        gsap.from(card, {
-          scrollTrigger: {
-            trigger: card,
-            start: "top 88%",
-          },
-          opacity: 0,
-          y: 45,
-          scale: 0.96,
-          rotation: idx % 2 === 0 ? -1 : 1,
-          duration: 0.85,
-          delay: (idx % 2) * 0.12,
-          ease: "back.out(1.3)",
-        });
+      gsap.from(".bento-project-card", {
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: "top 78%",
+          toggleActions: "play none none none",
+        },
+        opacity: 0,
+        y: 45,
+        scale: 0.96,
+        stagger: 0.12,
+        duration: 0.85,
+        ease: "back.out(1.3)",
+        clearProps: "all",
       });
     },
     { scope: sectionRef }
