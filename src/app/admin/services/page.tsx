@@ -171,11 +171,16 @@ export default function AdminServicesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Kelola Layanan & Keahlian
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Tawarkan keahlian spesialis Anda untuk menarik klien konsultasi atau pembuatan sistem.
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              Kelola Layanan & Keahlian
+            </h1>
+            <Badge variant="secondary" className="font-mono text-xs">
+              {services.length} Layanan
+            </Badge>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            Tawarkan keahlian spesialis Anda untuk menarik klien konsultasi atau pembuatan sistem. Layanan dengan status Aktif akan langsung tampil di beranda.
           </p>
         </div>
         <Button onClick={openCreateDialog} size="sm" className="gap-2 text-xs h-9">

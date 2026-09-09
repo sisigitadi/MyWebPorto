@@ -688,7 +688,9 @@ export async function saveService(data: unknown) {
     }
   }
 
+  revalidatePath("/");
   revalidatePath("/", "layout");
+  revalidatePath("/admin");
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/services");
   return { success: true, message: "Layanan berhasil disimpan!" };
@@ -728,7 +730,9 @@ export async function deleteService(id: string) {
     }
   }
 
+  revalidatePath("/");
   revalidatePath("/", "layout");
+  revalidatePath("/admin");
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/services");
   return { success: true, message: "Layanan berhasil dihapus!" };

@@ -13,7 +13,8 @@ import { TestimonialsSection } from "@/components/public/testimonials-section";
 import { ContactSection } from "@/components/public/contact-section";
 import { JsonLdSchema } from "@/components/public/json-ld";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function HomePage() {
   const [profile, services, projects, products, testimonials] = await Promise.all([

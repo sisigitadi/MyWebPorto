@@ -28,6 +28,9 @@ import {
   getTestimonials,
 } from "@/lib/actions";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function AdminDashboardPage() {
   const [user, profile, projects, services, products, testimonials] =
     await Promise.all([

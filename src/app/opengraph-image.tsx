@@ -44,36 +44,25 @@ export default async function Image() {
             boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
           }}
         >
-          {profile.avatarUrl ? (
-            <img
-              src={profile.avatarUrl}
-              alt={profile.name}
-              style={{
-                width: "200px",
-                height: "200px",
-                borderRadius: "100px",
-                objectFit: "cover",
-                marginBottom: "30px",
-                border: "4px solid #fff",
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: "200px",
-                height: "200px",
-                borderRadius: "100px",
-                background: "#334155",
-                marginBottom: "30px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "80px",
-              }}
-            >
-              {profile.name.charAt(0)}
-            </div>
-          )}
+          <div
+            style={{
+              width: "160px",
+              height: "160px",
+              borderRadius: "80px",
+              background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+              marginBottom: "28px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "72px",
+              fontWeight: 800,
+              color: "#ffffff",
+              border: "4px solid rgba(255, 255, 255, 0.2)",
+              boxShadow: "0 12px 24px rgba(59, 130, 246, 0.4)",
+            }}
+          >
+            {profile.name.charAt(0)}
+          </div>
           
           <h1
             style={{

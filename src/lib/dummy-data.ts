@@ -76,7 +76,7 @@ export interface TestimonialData {
   published: boolean;
 }
 
-export let DUMMY_PROFILE: ProfileData = {
+export const DUMMY_PROFILE: ProfileData = {
   id: "owner",
   name: "Dimas Prasetya",
   headline: "Web Developer & Content Creator",
@@ -111,7 +111,7 @@ export let DUMMY_PROFILE: ProfileData = {
   },
 };
 
-export let DUMMY_SERVICES: ServiceData[] = [
+export const DUMMY_SERVICES: ServiceData[] = [
   {
     id: "serv-1",
     order: 1,
@@ -147,7 +147,7 @@ export let DUMMY_SERVICES: ServiceData[] = [
   },
 ];
 
-export let DUMMY_PROJECTS: ProjectData[] = [
+export const DUMMY_PROJECTS: ProjectData[] = [
   {
     id: "proj-1",
     title: "Pojok Baca Digital",
@@ -216,7 +216,7 @@ export let DUMMY_PROJECTS: ProjectData[] = [
   },
 ];
 
-export let DUMMY_PRODUCTS: ProductData[] = [
+export const DUMMY_PRODUCTS: ProductData[] = [
   {
     id: "prod-1",
     title: "Template Portfolio Notion",
@@ -247,7 +247,7 @@ export let DUMMY_PRODUCTS: ProductData[] = [
   },
 ];
 
-export let DUMMY_TESTIMONIALS: TestimonialData[] = [
+export const DUMMY_TESTIMONIALS: TestimonialData[] = [
   {
     id: "testi-1",
     clientName: "Siti Rahma",

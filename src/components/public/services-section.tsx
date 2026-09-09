@@ -127,8 +127,16 @@ export function ServicesSection({ services: propServices, profile }: ServicesSec
           </p>
         </div>
 
-        {/* Gapless Mathematically Perfect 12-Column Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 grid-flow-dense">
+        {/* Equal balanced responsive grid for services */}
+        <div
+          className={`grid gap-6 ${
+            services.length === 1
+              ? "grid-cols-1 max-w-xl mx-auto"
+              : services.length === 2
+              ? "grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto"
+              : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+          }`}
+        >
           {services.map((service, index) => {
             const title = (language === "en" && service.titleEn) ? service.titleEn : service.title;
             const description = (language === "en" && service.descriptionEn) ? service.descriptionEn : service.description;
@@ -141,19 +149,11 @@ export function ServicesSection({ services: propServices, profile }: ServicesSec
             const encodedSubject = encodeURIComponent(subjectText);
             const mailtoUrl = `mailto:${profile.email}?subject=${encodedSubject}`;
 
-            const isFirst = index === 0;
-            const colSpan =
-              services.length === 3
-                ? isFirst
-                  ? "md:col-span-12 lg:col-span-6"
-                  : "md:col-span-6 lg:col-span-3"
-                : "md:col-span-6 lg:col-span-4";
-
             return (
               <Card
                 key={service.id}
                 onMouseMove={handleCardMouseMove}
-                className={`bento-service-card spotlight-card group relative flex flex-col justify-between border-border bg-card/80 backdrop-blur-xs hover:border-foreground/35 transition-all duration-300 ${colSpan}`}
+                className="bento-service-card spotlight-card group relative flex flex-col justify-between border-border bg-card/80 backdrop-blur-xs hover:border-foreground/35 transition-all duration-300 h-full"
               >
                 <div>
                   <CardHeader className="p-6 md:p-8">

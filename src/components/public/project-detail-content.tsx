@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useRef } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, Calendar, Mail } from "lucide-react";
 import { Badge } from "@/components/ui/badge";

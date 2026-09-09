@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef } from "react";
-import Image from "next/image";
 import { Star, Quote } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { TestimonialData, DUMMY_TESTIMONIALS } from "@/lib/dummy-data";
