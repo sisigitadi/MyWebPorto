@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import { revalidatePath } from "next/cache";
 import { asc, desc, eq } from "drizzle-orm";
+import { auth } from "@clerk/nextjs/server";
 import { db, isDbConnected } from "@/db";
 import * as schema from "@/db/schema";
 import {
@@ -26,6 +27,24 @@ import {
   type ProfileData,
 } from "@/lib/dummy-data";
 import { translateText } from "@/lib/translate";
+
+/**
+ * Verifikasi apakah request mutasi berasal dari Admin yang terotentikasi.
+ * Mencegah Broken Access Control (OWASP A01) pada Server Actions.
+ */
+export async function verifyAdmin(): Promise<void> {
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  if (publishableKey && !publishableKey.includes("xxxx")) {
+    const { userId } = await auth();
+    if (!userId) {
+      throw new Error("Akses ditolak: Anda harus login sebagai admin untuk melakukan tindakan ini.");
+    }
+    const adminClerkId = process.env.ADMIN_CLERK_ID;
+    if (adminClerkId && adminClerkId !== "user_xxxxxxxxxxxxxxxxx" && userId !== adminClerkId) {
+      throw new Error("Akses ditolak: Akun Anda bukan administrator website ini.");
+    }
+  }
+}
 
 // ==========================================
 // PERSISTENT LOCAL FILE STORE (OFFLINE & BACKUP)
@@ -173,6 +192,15 @@ export async function getProfile(): Promise<ProfileData> {
 }
 
 export async function updateProfile(data: unknown) {
+  try {
+    await verifyAdmin();
+  } catch (authErr: unknown) {
+    return {
+      success: false,
+      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+    };
+  }
+
   const parsed = ProfileSchema.safeParse(data);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validasi profil gagal" };
@@ -206,7 +234,6 @@ export async function updateProfile(data: unknown) {
       await db
         .insert(schema.profiles)
         .values({
-          id: "owner",
           ...payload,
           updatedAt: new Date(),
         })
@@ -262,6 +289,8 @@ export async function getProjects(): Promise<ProjectData[]> {
               slug: p.slug,
               title: p.title,
               titleEn: p.titleEn || null,
+              summary: p.summary,
+              summaryEn: p.summaryEn || null,
               description: p.description,
               descriptionEn: p.descriptionEn || null,
               imageUrl: p.thumbnailUrl,
@@ -280,10 +309,14 @@ export async function getProjects(): Promise<ProjectData[]> {
       return baseProjects;
     }
     return list.map((p) => {
-      const summaryId = p.description.slice(0, 120) + (p.description.length > 120 ? "..." : "");
-      const summaryEn = p.descriptionEn
-        ? p.descriptionEn.slice(0, 120) + (p.descriptionEn.length > 120 ? "..." : "")
-        : null;
+      const summaryId =
+        (p.summary && p.summary.trim()) ||
+        p.description.slice(0, 120) + (p.description.length > 120 ? "..." : "");
+      const summaryEn =
+        (p.summaryEn && p.summaryEn.trim()) ||
+        (p.descriptionEn
+          ? p.descriptionEn.slice(0, 120) + (p.descriptionEn.length > 120 ? "..." : "")
+          : null);
 
       return {
         id: p.id,
@@ -300,7 +333,7 @@ export async function getProjects(): Promise<ProjectData[]> {
         repoUrl: p.repoUrl || undefined,
         featured: p.featured,
         published: p.published,
-        createdAt: p.createdAt.toISOString().split("T")[0],
+        createdAt: p.createdAt ? p.createdAt.toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
       };
     });
   } catch (error) {
@@ -310,6 +343,15 @@ export async function getProjects(): Promise<ProjectData[]> {
 }
 
 export async function saveProject(data: unknown) {
+  try {
+    await verifyAdmin();
+  } catch (authErr: unknown) {
+    return {
+      success: false,
+      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+    };
+  }
+
   const parsed = ProjectSchema.safeParse(data);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validasi proyek gagal" };
@@ -403,6 +445,8 @@ export async function saveProject(data: unknown) {
             .update(schema.projects)
             .set({
               ...projectData,
+              summary: summaryId,
+              summaryEn: summaryEn,
               imageUrl: projectData.imageUrl,
               techStacks: projectData.techStacks,
               updatedAt: new Date(),
@@ -412,6 +456,8 @@ export async function saveProject(data: unknown) {
           await db.insert(schema.projects).values({
             id,
             ...projectData,
+            summary: summaryId,
+            summaryEn: summaryEn,
             imageUrl: projectData.imageUrl,
             techStacks: projectData.techStacks,
           });
@@ -419,6 +465,8 @@ export async function saveProject(data: unknown) {
       } else {
         await db.insert(schema.projects).values({
           ...projectData,
+          summary: summaryId,
+          summaryEn: summaryEn,
           imageUrl: projectData.imageUrl,
           techStacks: projectData.techStacks,
         });
@@ -446,6 +494,15 @@ export async function saveProject(data: unknown) {
 }
 
 export async function deleteProject(id: string) {
+  try {
+    await verifyAdmin();
+  } catch (authErr: unknown) {
+    return {
+      success: false,
+      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+    };
+  }
+
   const store = getLocalStore();
   if (store?.projects) {
     const updated = (store.projects as ProjectData[]).filter((p) => p.id !== id);
@@ -461,7 +518,12 @@ export async function deleteProject(id: string) {
     try {
       await db.delete(schema.projects).where(eq(schema.projects.id, id));
     } catch (error: unknown) {
-      console.warn("Sinkronisasi database deleteProject gagal:", error);
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error("Sinkronisasi database deleteProject gagal:", errMsg);
+      return {
+        success: false,
+        error: `Gagal menghapus proyek dari database: ${errMsg}`,
+      };
     }
   }
 
@@ -520,6 +582,15 @@ export async function getServices(): Promise<ServiceData[]> {
 }
 
 export async function saveService(data: unknown) {
+  try {
+    await verifyAdmin();
+  } catch (authErr: unknown) {
+    return {
+      success: false,
+      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+    };
+  }
+
   const parsed = ServiceSchema.safeParse(data);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validasi layanan gagal" };
@@ -624,6 +695,15 @@ export async function saveService(data: unknown) {
 }
 
 export async function deleteService(id: string) {
+  try {
+    await verifyAdmin();
+  } catch (authErr: unknown) {
+    return {
+      success: false,
+      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+    };
+  }
+
   const store = getLocalStore();
   if (store?.services) {
     const updated = (store.services as ServiceData[]).filter((s) => s.id !== id);
@@ -639,7 +719,12 @@ export async function deleteService(id: string) {
     try {
       await db.delete(schema.services).where(eq(schema.services.id, id));
     } catch (error: unknown) {
-      console.warn("Sinkronisasi database deleteService gagal:", error);
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error("Sinkronisasi database deleteService gagal:", errMsg);
+      return {
+        success: false,
+        error: `Gagal menghapus layanan dari database: ${errMsg}`,
+      };
     }
   }
 
@@ -675,6 +760,7 @@ export async function getProducts(): Promise<ProductData[]> {
               descriptionEn: pr.descriptionEn || null,
               imageUrl: pr.thumbnailUrl,
               priceLabel: pr.priceFormatted,
+              ctaUrl: pr.ctaUrl || null,
               published: pr.published,
               order: i + 1,
             })
@@ -693,7 +779,7 @@ export async function getProducts(): Promise<ProductData[]> {
       descriptionEn: p.descriptionEn || null,
       priceFormatted: p.priceLabel || "Gratis / Diskusi",
       thumbnailUrl: p.imageUrl?.trim() || "https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=600&auto=format&fit=crop",
-      ctaUrl: "#kontak",
+      ctaUrl: p.ctaUrl || "#kontak",
       published: p.published,
     }));
   } catch (error) {
@@ -703,6 +789,15 @@ export async function getProducts(): Promise<ProductData[]> {
 }
 
 export async function saveProduct(data: unknown) {
+  try {
+    await verifyAdmin();
+  } catch (authErr: unknown) {
+    return {
+      success: false,
+      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+    };
+  }
+
   const parsed = ProductSchema.safeParse(data);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validasi produk gagal" };
@@ -726,6 +821,7 @@ export async function saveProduct(data: unknown) {
     descriptionEn: descriptionEn || null,
   };
 
+  const ctaUrl = parsed.data.ctaUrl?.trim() || null;
   const targetId = id || `prod-${Date.now()}`;
   const dummyItem: ProductData = {
     id: targetId,
@@ -735,7 +831,7 @@ export async function saveProduct(data: unknown) {
     descriptionEn: productData.descriptionEn,
     priceFormatted: productData.priceLabel || "Gratis / Diskusi",
     thumbnailUrl: productData.imageUrl?.trim() || "https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=600&auto=format&fit=crop",
-    ctaUrl: "#kontak",
+    ctaUrl: ctaUrl || "#kontak",
     published: productData.published ?? true,
   };
 
@@ -767,6 +863,11 @@ export async function saveProduct(data: unknown) {
 
   if (isDbConnected) {
     try {
+      const dbProductData = {
+        ...productData,
+        ctaUrl,
+      };
+
       if (id) {
         const existing = await db.query.products.findFirst({
           where: eq(schema.products.id, id),
@@ -775,16 +876,16 @@ export async function saveProduct(data: unknown) {
         if (existing) {
           await db
             .update(schema.products)
-            .set({ ...productData, updatedAt: new Date() })
+            .set({ ...dbProductData, updatedAt: new Date() })
             .where(eq(schema.products.id, id));
         } else {
           await db.insert(schema.products).values({
             id,
-            ...productData,
+            ...dbProductData,
           });
         }
       } else {
-        await db.insert(schema.products).values(productData);
+        await db.insert(schema.products).values(dbProductData);
       }
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
@@ -809,6 +910,15 @@ export async function saveProduct(data: unknown) {
 }
 
 export async function deleteProduct(id: string) {
+  try {
+    await verifyAdmin();
+  } catch (authErr: unknown) {
+    return {
+      success: false,
+      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+    };
+  }
+
   const store = getLocalStore();
   if (store?.products) {
     const updated = (store.products as ProductData[]).filter((p) => p.id !== id);
@@ -824,7 +934,12 @@ export async function deleteProduct(id: string) {
     try {
       await db.delete(schema.products).where(eq(schema.products.id, id));
     } catch (error: unknown) {
-      console.warn("Sinkronisasi database deleteProduct gagal:", error);
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error("Sinkronisasi database deleteProduct gagal:", errMsg);
+      return {
+        success: false,
+        error: `Gagal menghapus produk dari database: ${errMsg}`,
+      };
     }
   }
 
@@ -860,6 +975,7 @@ export async function getTestimonials(): Promise<TestimonialData[]> {
               content: t.content,
               contentEn: t.contentEn || null,
               avatarUrl: t.avatarUrl || null,
+              rating: t.rating ?? 5,
               published: t.published,
               order: i + 1,
             })
@@ -878,7 +994,7 @@ export async function getTestimonials(): Promise<TestimonialData[]> {
       content: t.content,
       contentEn: t.contentEn || null,
       avatarUrl: t.avatarUrl?.trim() || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop",
-      rating: 5,
+      rating: t.rating ?? 5,
       published: t.published,
     }));
   } catch (error) {
@@ -888,6 +1004,15 @@ export async function getTestimonials(): Promise<TestimonialData[]> {
 }
 
 export async function saveTestimonial(data: unknown) {
+  try {
+    await verifyAdmin();
+  } catch (authErr: unknown) {
+    return {
+      success: false,
+      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+    };
+  }
+
   const parsed = TestimonialSchema.safeParse(data);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validasi testimoni gagal" };
@@ -905,8 +1030,10 @@ export async function saveTestimonial(data: unknown) {
   }
 
   const { id, ...rest } = parsed.data;
+  const rating = parsed.data.rating ?? 5;
   const testimonialData = {
     ...rest,
+    rating,
     contentEn: contentEn || null,
     clientRoleEn: clientRoleEn || null,
   };
@@ -920,7 +1047,7 @@ export async function saveTestimonial(data: unknown) {
     content: testimonialData.content,
     contentEn: testimonialData.contentEn || null,
     avatarUrl: testimonialData.avatarUrl?.trim() || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop",
-    rating: 5,
+    rating,
     published: testimonialData.published ?? true,
   };
 
@@ -994,6 +1121,15 @@ export async function saveTestimonial(data: unknown) {
 }
 
 export async function deleteTestimonial(id: string) {
+  try {
+    await verifyAdmin();
+  } catch (authErr: unknown) {
+    return {
+      success: false,
+      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+    };
+  }
+
   const store = getLocalStore();
   if (store?.testimonials) {
     const updated = (store.testimonials as TestimonialData[]).filter((p) => p.id !== id);
@@ -1009,7 +1145,12 @@ export async function deleteTestimonial(id: string) {
     try {
       await db.delete(schema.testimonials).where(eq(schema.testimonials.id, id));
     } catch (error: unknown) {
-      console.warn("Sinkronisasi database deleteTestimonial gagal:", error);
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error("Sinkronisasi database deleteTestimonial gagal:", errMsg);
+      return {
+        success: false,
+        error: `Gagal menghapus testimoni dari database: ${errMsg}`,
+      };
     }
   }
 

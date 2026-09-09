@@ -157,6 +157,7 @@ export default function AdminProductsPage() {
         descriptionEn: formDescriptionEn,
         imageUrl: formThumbnail,
         priceLabel: formPriceFormatted,
+        ctaUrl: formCtaUrl.trim() || undefined,
         published: formPublished,
       };
 

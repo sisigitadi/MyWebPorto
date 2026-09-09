@@ -69,7 +69,7 @@ export function FooterContent({ profile }: { profile: ProfileData }) {
                   href={profile.socialLinks.github}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-2 rounded-md hover:bg-accent/10 hover:text-foreground transition-colors"
+                  className="p-2 rounded-md hover:bg-accent/15 hover:text-foreground hover:scale-110 active:scale-95 transition-all duration-200"
                   aria-label="GitHub"
                 >
                   <GithubIcon className="h-4 w-4" />
@@ -80,7 +80,7 @@ export function FooterContent({ profile }: { profile: ProfileData }) {
                   href={profile.socialLinks.linkedin}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-2 rounded-md hover:bg-accent/10 hover:text-foreground transition-colors"
+                  className="p-2 rounded-md hover:bg-accent/15 hover:text-foreground hover:scale-110 active:scale-95 transition-all duration-200"
                   aria-label="LinkedIn"
                 >
                   <LinkedinIcon className="h-4 w-4" />
@@ -91,7 +91,7 @@ export function FooterContent({ profile }: { profile: ProfileData }) {
                   href={profile.socialLinks.instagram}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-2 rounded-md hover:bg-accent/10 hover:text-foreground transition-colors"
+                  className="p-2 rounded-md hover:bg-accent/15 hover:text-foreground hover:scale-110 active:scale-95 transition-all duration-200"
                   aria-label="Instagram"
                 >
                   <InstagramIcon className="h-4 w-4" />
@@ -102,7 +102,7 @@ export function FooterContent({ profile }: { profile: ProfileData }) {
                   href={profile.socialLinks.twitter}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-2 rounded-md hover:bg-accent/10 hover:text-foreground transition-colors"
+                  className="p-2 rounded-md hover:bg-accent/15 hover:text-foreground hover:scale-110 active:scale-95 transition-all duration-200"
                   aria-label="Twitter"
                 >
                   <TwitterIcon className="h-4 w-4" />
@@ -111,7 +111,7 @@ export function FooterContent({ profile }: { profile: ProfileData }) {
               {profile.email && (
                 <a
                   href={`mailto:${profile.email}`}
-                  className="p-2 rounded-md hover:bg-accent/10 hover:text-foreground transition-colors"
+                  className="p-2 rounded-md hover:bg-accent/15 hover:text-foreground hover:scale-110 active:scale-95 transition-all duration-200"
                   aria-label="Email"
                 >
                   <Mail className="h-4 w-4" />

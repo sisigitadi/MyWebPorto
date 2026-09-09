@@ -25,27 +25,91 @@ export function TestimonialsSection({ testimonials: propTestimonials }: Testimon
 
   useGSAP(
     () => {
-      
+      // Header Animation
+      gsap.from(".testi-eyebrow", {
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top 82%",
+        },
+        opacity: 0,
+        y: 15,
+        duration: 0.6,
+        ease: "power3.out",
+      });
+
+      gsap.from(".testi-title", {
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top 80%",
+        },
+        opacity: 0,
+        y: 30,
+        filter: "blur(6px)",
+        duration: 0.9,
+        ease: "power4.out",
+      });
+
+      gsap.from(".testi-subtitle", {
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top 78%",
+        },
+        opacity: 0,
+        y: 20,
+        duration: 0.8,
+        delay: 0.1,
+        ease: "power3.out",
+      });
+
+      // Bento Testimonials Cards Stagger
+      const cards = gsap.utils.toArray<HTMLElement>(".bento-testimonial-card");
+      cards.forEach((card, idx) => {
+        gsap.from(card, {
+          scrollTrigger: {
+            trigger: card,
+            start: "top 88%",
+          },
+          opacity: 0,
+          y: 45,
+          scale: 0.95,
+          rotation: idx % 2 === 0 ? -1.5 : 1.5,
+          duration: 0.85,
+          delay: (idx % 3) * 0.12,
+          ease: "back.out(1.3)",
+        });
+      });
     },
     { scope: containerRef }
   );
+
+  const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    e.currentTarget.style.setProperty("--mouse-x", `${x}px`);
+    e.currentTarget.style.setProperty("--mouse-y", `${y}px`);
+  };
 
   return (
     <section
       ref={containerRef}
       id="testimoni"
-      className="py-24 md:py-36 border-b border-border/60 scroll-mt-16 bg-muted/20"
+      className="relative py-24 md:py-36 border-b border-border/60 scroll-mt-16 bg-muted/15 overflow-hidden"
     >
+      {/* Background Glow */}
+      <div className="absolute top-1/3 left-1/4 w-[520px] h-[320px] bg-primary/4 rounded-full blur-[110px] pointer-events-none -z-10 animate-float-slow" />
+
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Section Header */}
         <div className="max-w-3xl mb-16 space-y-3">
-          <span className="text-xs uppercase tracking-[0.2em] font-semibold text-primary block">
+          <span className="testi-eyebrow text-xs uppercase tracking-[0.2em] font-semibold text-primary inline-flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
             {t.testi_eyebrow}
           </span>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-foreground">
+          <h2 className="testi-title text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-foreground">
             {t.testi_title}
           </h2>
-          <p className="text-sm md:text-base text-muted-foreground">
+          <p className="testi-subtitle text-sm md:text-base text-muted-foreground leading-relaxed">
             {t.testi_subtitle}
           </p>
         </div>
@@ -70,17 +134,18 @@ export function TestimonialsSection({ testimonials: propTestimonials }: Testimon
             return (
               <Card
                 key={testi.id}
-                className={`bento-testimonial-card ${colSpan} p-8 md:p-10 relative flex flex-col justify-between border-border bg-card/70 backdrop-blur-sm hover:border-foreground/30 hover:shadow-lg transition-all duration-300 group`}
+                onMouseMove={handleCardMouseMove}
+                className={`bento-testimonial-card spotlight-card ${colSpan} p-8 md:p-10 relative flex flex-col justify-between border-border bg-card/85 backdrop-blur-xs hover:border-foreground/35 transition-all duration-300 group`}
               >
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     {/* Rating stars */}
                     <div className="flex items-center gap-1 text-amber-500">
                       {Array.from({ length: testi.rating || 5 }).map((_, i) => (
-                        <Star key={i} className="h-4 w-4 fill-amber-500 text-amber-500" />
+                        <Star key={i} className="h-4 w-4 fill-amber-500 text-amber-500 transition-transform duration-200 group-hover:scale-110" />
                       ))}
                     </div>
-                    <Quote className="h-6 w-6 text-muted-foreground/30 group-hover:text-primary/40 transition-colors" />
+                    <Quote className="h-6 w-6 text-muted-foreground/30 group-hover:text-primary/70 group-hover:rotate-12 group-hover:scale-115 transition-all duration-300" />
                   </div>
 
                   {/* Quote content */}
@@ -92,25 +157,25 @@ export function TestimonialsSection({ testimonials: propTestimonials }: Testimon
                 {/* Author Info */}
                 <div className="pt-8 mt-8 border-t border-border/50 flex items-center gap-4">
                   {testi.avatarUrl ? (
-                    <div className="relative h-12 w-12 rounded-full overflow-hidden border border-border bg-muted shrink-0 shadow-sm">
+                    <div className="relative h-12 w-12 rounded-full overflow-hidden border border-border bg-muted shrink-0 shadow-sm group-hover:border-primary/50 transition-colors">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={testi.avatarUrl}
                         alt={testi.clientName}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     </div>
                   ) : (
-                    <div className="h-12 w-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-semibold text-sm text-primary shrink-0 shadow-sm">
+                    <div className="h-12 w-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-semibold text-sm text-primary shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                       {testi.clientName.charAt(0)}
                     </div>
                   )}
 
                   <div>
-                    <h4 className="text-sm font-semibold text-foreground leading-snug">
+                    <h4 className="text-sm font-semibold text-foreground leading-snug group-hover:text-primary transition-colors">
                       {testi.clientName}
                     </h4>
-                    <p className="text-xs text-muted-foreground leading-tight mt-0.5">
+                    <p className="text-xs text-muted-foreground leading-tight mt-0.5 font-normal">
                       {clientRole}
                     </p>
                   </div>

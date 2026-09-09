@@ -67,14 +67,22 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
     : project.summary;
   const description = (language === "en" && project.descriptionEn) ? project.descriptionEn : project.description;
 
+  const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    e.currentTarget.style.setProperty("--mouse-x", `${x}px`);
+    e.currentTarget.style.setProperty("--mouse-y", `${y}px`);
+  };
+
   useGSAP(
     () => {
       const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
 
       tl.from(".detail-back-btn", { y: -10, opacity: 0, duration: 0.5 })
-        .from(".detail-header", { y: 20, opacity: 0, duration: 0.7 }, "-=0.3")
-        .from(mediaRef.current, { scale: 0.96, opacity: 0, duration: 0.8 }, "-=0.4")
-        .from(contentRef.current, { y: 25, opacity: 0, duration: 0.7 }, "-=0.4");
+        .from(".detail-header", { y: 25, opacity: 0, filter: "blur(6px)", duration: 0.7 }, "-=0.3")
+        .from(mediaRef.current, { scale: 0.96, opacity: 0, filter: "blur(6px)", duration: 0.8 }, "-=0.4")
+        .from(contentRef.current, { y: 25, opacity: 0, filter: "blur(6px)", duration: 0.7 }, "-=0.4");
     },
     { scope: containerRef }
   );
@@ -205,7 +213,10 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
           <Separator className="my-14" />
 
           {/* High-Contrast Conversion CTA Box */}
-          <div className="p-8 md:p-14 rounded-3xl border border-border bg-card/80 backdrop-blur-sm text-card-foreground text-center space-y-5 shadow-lg">
+          <div
+            onMouseMove={handleCardMouseMove}
+            className="spotlight-card relative overflow-hidden p-8 md:p-14 rounded-3xl border border-border bg-card/80 backdrop-blur-sm text-card-foreground text-center space-y-5 shadow-lg transition-all duration-300 hover:border-primary/30"
+          >
             <h3 className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight text-foreground">
               {t.detail_cta_box_title}
             </h3>
@@ -213,9 +224,10 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
               {ctaDesc}
             </p>
             <div className="pt-3">
-              <Button asChild size="lg" className="h-12 px-8 gap-2.5 font-medium text-sm shadow-md">
+              <Button asChild size="lg" className="relative group overflow-hidden h-12 px-8 gap-2.5 font-medium text-sm shadow-md transition-all duration-300 hover:shadow-lg hover:shadow-primary/25 hover:scale-[1.02]">
                 <a href={emailDiscussionUrl} target="_blank" rel="noopener noreferrer">
-                  <Mail className="h-4 w-4 text-red-500" />
+                  <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
+                  <Mail className="h-4 w-4 text-red-500 transition-transform duration-300 group-hover:scale-110" />
                   <span>{t.detail_cta_gmail}</span>
                 </a>
               </Button>

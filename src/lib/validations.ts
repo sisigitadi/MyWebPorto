@@ -14,6 +14,21 @@ const imageOrUrlSchema = z
     }
   );
 
+const safeUrlSchema = z
+  .string()
+  .refine(
+    (val) =>
+      val === "" ||
+      val.startsWith("/") ||
+      val.startsWith("#") ||
+      val.startsWith("http://") ||
+      val.startsWith("https://") ||
+      val.startsWith("mailto:"),
+    {
+      message: "Format URL tidak valid (harus diawali http://, https://, /, #, atau mailto:)",
+    }
+  );
+
 export const ProfileSchema = z.object({
   name: z.string().min(2, "Nama minimal 2 karakter"),
   headline: z.string().min(2, "Headline minimal 2 karakter"),
@@ -24,7 +39,7 @@ export const ProfileSchema = z.object({
   email: z.string().email("Email tidak valid"),
   phone: z.string().optional().or(z.literal("")),
   location: z.string().optional().or(z.literal("")),
-  cvUrl: z.string().url("URL CV tidak valid").optional().or(z.literal("")),
+  cvUrl: safeUrlSchema.optional().or(z.literal("")),
   availableForHire: z.boolean().default(true),
   skills: z.array(z.string()).default([]),
   stats: z
@@ -38,10 +53,10 @@ export const ProfileSchema = z.object({
     .default([]),
   socialLinks: z
     .object({
-      github: z.string().url().optional().or(z.literal("")),
-      linkedin: z.string().url().optional().or(z.literal("")),
-      instagram: z.string().url().optional().or(z.literal("")),
-      twitter: z.string().url().optional().or(z.literal("")),
+      github: safeUrlSchema.optional().or(z.literal("")),
+      linkedin: safeUrlSchema.optional().or(z.literal("")),
+      instagram: safeUrlSchema.optional().or(z.literal("")),
+      twitter: safeUrlSchema.optional().or(z.literal("")),
     })
     .default({}),
 });
@@ -51,13 +66,15 @@ export const ProjectSchema = z.object({
   title: z.string().min(2, "Judul proyek minimal 2 karakter"),
   titleEn: z.string().optional().or(z.literal("")),
   slug: z.string().min(2, "Slug minimal 2 karakter"),
+  summary: z.string().optional().or(z.literal("")),
+  summaryEn: z.string().optional().or(z.literal("")),
   description: z.string().min(10, "Deskripsi minimal 10 karakter"),
   descriptionEn: z.string().optional().or(z.literal("")),
   imageUrl: imageOrUrlSchema.refine((val) => val.length > 0, {
     message: "URL gambar proyek wajib diisi",
   }),
-  demoUrl: z.string().url("URL Demo tidak valid").optional().or(z.literal("")),
-  repoUrl: z.string().url("URL Repo tidak valid").optional().or(z.literal("")),
+  demoUrl: safeUrlSchema.optional().or(z.literal("")),
+  repoUrl: safeUrlSchema.optional().or(z.literal("")),
   techStacks: z.array(z.string()).default([]),
   featured: z.boolean().default(false),
   published: z.boolean().default(true),
@@ -84,6 +101,7 @@ export const ProductSchema = z.object({
     message: "URL gambar produk wajib diisi",
   }),
   priceLabel: z.string().optional().or(z.literal("")),
+  ctaUrl: safeUrlSchema.optional().or(z.literal("")),
   published: z.boolean().default(true),
   order: z.number().int().default(0),
 });
@@ -96,6 +114,7 @@ export const TestimonialSchema = z.object({
   content: z.string().min(5, "Isi testimoni minimal 5 karakter"),
   contentEn: z.string().optional().or(z.literal("")),
   avatarUrl: imageOrUrlSchema.optional().or(z.literal("")),
+  rating: z.coerce.number().int().min(1).max(5).default(5),
   published: z.boolean().default(true),
   order: z.number().int().default(0),
 });

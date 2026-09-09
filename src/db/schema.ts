@@ -58,6 +58,8 @@ export const projects = pgTable(
     slug: text("slug").notNull().unique(),
     title: text("title").notNull(),
     titleEn: text("title_en"),
+    summary: text("summary"),
+    summaryEn: text("summary_en"),
     description: text("description").notNull(),
     descriptionEn: text("description_en"),
     imageUrl: text("image_url").notNull(),
@@ -119,6 +121,7 @@ export const products = pgTable(
     descriptionEn: text("description_en"),
     imageUrl: text("image_url").notNull(),
     priceLabel: text("price_label"),
+    ctaUrl: text("cta_url"),
     published: boolean("published").notNull().default(true),
     order: integer("order").notNull().default(0),
     updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -144,6 +147,7 @@ export const testimonials = pgTable(
     content: text("content").notNull(),
     contentEn: text("content_en"),
     avatarUrl: text("avatar_url"),
+    rating: integer("rating").notNull().default(5),
     published: boolean("published").notNull().default(true),
     order: integer("order").notNull().default(0),
     updatedAt: timestamp("updated_at", { withTimezone: true })

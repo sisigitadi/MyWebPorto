@@ -92,6 +92,8 @@ async function seed() {
         title: "Pojok Baca Digital",
         titleEn: "Digital Reading Corner",
         slug: "pojok-baca-digital",
+        summary: "Aplikasi web perpustakaan digital untuk komunitas, dilengkapi katalog buku online, peminjaman otomatis, dan laporan statistik.",
+        summaryEn: "Community digital library web application featuring online book catalogs, automated circulation, and statistical reports.",
         description: "Pojok Baca Digital dibangun untuk memfasilitasi kebutuhan taman bacaan masyarakat dalam mengelola sirkulasi peminjaman buku fisik dan e-book. Platform ini dilengkapi sistem autentikasi anggota, QR Code untuk scan cepat inventaris buku, dan dasbor analitik real-time.",
         descriptionEn: "Digital Reading Corner was built to streamline book circulation for community reading parks. Features member authentication, fast QR-code inventory scanning, and real-time analytical dashboards.",
         imageUrl: "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=800&auto=format&fit=crop",
@@ -106,6 +108,8 @@ async function seed() {
         title: "Mading Online Sekolah",
         titleEn: "Online School Wall Magazine",
         slug: "mading-online-sekolah",
+        summary: "Platform pengumuman dan majalah dinding digital untuk siswa dan guru di lingkungan sekolah menengah.",
+        summaryEn: "Digital wall magazine and announcements platform for high school students and teachers.",
         description: "Sebuah platform informasi kampus yang memungkinkan tim jurnalis siswa mempublikasikan artikel, liputan kegiatan sekolah, karya sastra, serta pengumuman penting akademik secara mandiri dengan alur persetujuan guru pembina.",
         descriptionEn: "A campus media platform enabling student journalists to publish articles, school event coverages, creative writing, and academic announcements with approval workflows.",
         imageUrl: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=800&auto=format&fit=crop",
@@ -120,6 +124,8 @@ async function seed() {
         title: "Sistem Kasir UMKM Sederhana",
         titleEn: "Simple POS for SMBs",
         slug: "sistem-kasir-umkm",
+        summary: "Point of Sale (POS) berbasis web ringan untuk pencatatan transaksi kasir warung kopi dan cetak struk bluetooth.",
+        summaryEn: "Lightweight web-based Point of Sale (POS) for coffee shops featuring daily transaction tracking and Bluetooth receipt printing.",
         description: "Solusi kasir web offline-first yang memudahkan barista dan pemilik kedai kopi mencatat transaksi harian, menghitung stok bahan baku secara otomatis, serta mencetak struk kasir melalui printer thermal.",
         descriptionEn: "Offline-first POS solution empowering coffee shop owners to record transactions, monitor inventory levels automatically, and print receipts via thermal printers.",
         imageUrl: "https://images.unsplash.com/photo-1556742049-0a67c5574f73?q=80&w=800&auto=format&fit=crop",
@@ -134,13 +140,17 @@ async function seed() {
     for (const p of projects) {
       await sql`
         INSERT INTO projects (
-          id, slug, title, title_en, description, description_en, image_url, demo_url, repo_url, tech_stacks, featured, published, "order", updated_at, created_at
+          id, slug, title, title_en, summary, summary_en, description, description_en, image_url, demo_url, repo_url, tech_stacks, featured, published, "order", updated_at, created_at
         ) VALUES (
-          ${p.id}, ${p.slug}, ${p.title}, ${p.titleEn}, ${p.description}, ${p.descriptionEn}, ${p.imageUrl}, ${p.demoUrl}, ${p.repoUrl}, ${p.techStacks}::jsonb, ${p.featured}, true, ${p.order}, NOW(), NOW()
+          ${p.id}, ${p.slug}, ${p.title}, ${p.titleEn}, ${p.summary}, ${p.summaryEn}, ${p.description}, ${p.descriptionEn}, ${p.imageUrl}, ${p.demoUrl}, ${p.repoUrl}, ${p.techStacks}::jsonb, ${p.featured}, true, ${p.order}, NOW(), NOW()
         )
         ON CONFLICT (id) DO UPDATE SET
           title = EXCLUDED.title,
+          title_en = EXCLUDED.title_en,
+          summary = EXCLUDED.summary,
+          summary_en = EXCLUDED.summary_en,
           description = EXCLUDED.description,
+          description_en = EXCLUDED.description_en,
           updated_at = NOW();
       `;
     }
@@ -156,6 +166,7 @@ async function seed() {
         descriptionEn: "Modular, ready-to-use template to curate a polished, professional portfolio in Notion within 15 minutes.",
         priceLabel: "Rp75.000",
         imageUrl: "https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=600&auto=format&fit=crop",
+        ctaUrl: "https://karyakarsa.com/dimasprasetya/template-notion-porto",
         order: 1,
       },
       {
@@ -166,6 +177,7 @@ async function seed() {
         descriptionEn: "Practical step-by-step beginner guide to launching a freelance career, from pricing negotiation to contracts.",
         priceLabel: "Rp49.000",
         imageUrl: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=600&auto=format&fit=crop",
+        ctaUrl: "#kontak",
         order: 2,
       },
     ];
@@ -173,13 +185,16 @@ async function seed() {
     for (const pr of products) {
       await sql`
         INSERT INTO products (
-          id, title, title_en, description, description_en, image_url, price_label, published, "order", updated_at, created_at
+          id, title, title_en, description, description_en, image_url, price_label, cta_url, published, "order", updated_at, created_at
         ) VALUES (
-          ${pr.id}, ${pr.title}, ${pr.titleEn}, ${pr.description}, ${pr.descriptionEn}, ${pr.imageUrl}, ${pr.priceLabel}, true, ${pr.order}, NOW(), NOW()
+          ${pr.id}, ${pr.title}, ${pr.titleEn}, ${pr.description}, ${pr.descriptionEn}, ${pr.imageUrl}, ${pr.priceLabel}, ${pr.ctaUrl}, true, ${pr.order}, NOW(), NOW()
         )
         ON CONFLICT (id) DO UPDATE SET
           title = EXCLUDED.title,
+          title_en = EXCLUDED.title_en,
           description = EXCLUDED.description,
+          description_en = EXCLUDED.description_en,
+          cta_url = EXCLUDED.cta_url,
           updated_at = NOW();
       `;
     }
@@ -195,6 +210,7 @@ async function seed() {
         content: "Website profil dan POS yang dibangun sangat membantu efisiensi operasional kami. Pelayanan ramah, responsif, dan pengerjaan tepat waktu.",
         contentEn: "The portfolio website and lightweight POS drastically improved our operational efficiency. Fast response, friendly communication, and timely delivery.",
         avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop",
+        rating: 5,
         order: 1,
       },
       {
@@ -205,6 +221,7 @@ async function seed() {
         content: "Aplikasi Pojok Baca Digital kami sekarang dipakai oleh ratusan anggota warga. Desainnya bersih dan sangat mudah dipahami oleh pengurus yang awam teknologi.",
         contentEn: "Our digital library platform is now used by hundreds of community members. Clean UI and effortlessly operated by non-tech coordinators.",
         avatarUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=300&auto=format&fit=crop",
+        rating: 5,
         order: 2,
       },
     ];
@@ -212,13 +229,15 @@ async function seed() {
     for (const t of testimonials) {
       await sql`
         INSERT INTO testimonials (
-          id, client_name, client_role, client_role_en, content, content_en, avatar_url, published, "order", updated_at, created_at
+          id, client_name, client_role, client_role_en, content, content_en, avatar_url, rating, published, "order", updated_at, created_at
         ) VALUES (
-          ${t.id}, ${t.clientName}, ${t.clientRole}, ${t.clientRoleEn}, ${t.content}, ${t.contentEn}, ${t.avatarUrl}, true, ${t.order}, NOW(), NOW()
+          ${t.id}, ${t.clientName}, ${t.clientRole}, ${t.clientRoleEn}, ${t.content}, ${t.contentEn}, ${t.avatarUrl}, ${t.rating}, true, ${t.order}, NOW(), NOW()
         )
         ON CONFLICT (id) DO UPDATE SET
           client_name = EXCLUDED.client_name,
           content = EXCLUDED.content,
+          content_en = EXCLUDED.content_en,
+          rating = EXCLUDED.rating,
           updated_at = NOW();
       `;
     }

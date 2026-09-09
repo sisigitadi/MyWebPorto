@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { verifyAdmin } from "./actions";
 
 /**
  * Upload an image file to Bunny CDN / Bunny Storage or local public storage
@@ -13,6 +14,9 @@ export async function uploadImageToBunny(formData: FormData): Promise<{
   error?: string;
 }> {
   try {
+    // Enforce admin verification before processing uploads
+    await verifyAdmin();
+
     const file = formData.get("file") as File | null;
     if (!file) {
       return { success: false, error: "Tidak ada file yang dipilih." };

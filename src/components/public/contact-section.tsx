@@ -34,10 +34,11 @@ export function ContactSection({ profile }: ContactSectionProps) {
           trigger: containerRef.current,
           start: "top 80%",
         },
-        x: -30,
+        x: -40,
         opacity: 0,
-        duration: 0.8,
-        ease: "power3.out",
+        filter: "blur(6px)",
+        duration: 0.9,
+        ease: "power4.out",
       });
 
       gsap.from(rightColRef.current, {
@@ -45,11 +46,12 @@ export function ContactSection({ profile }: ContactSectionProps) {
           trigger: containerRef.current,
           start: "top 80%",
         },
-        x: 30,
+        x: 40,
         opacity: 0,
-        duration: 0.8,
-        delay: 0.1,
-        ease: "power3.out",
+        filter: "blur(6px)",
+        duration: 0.9,
+        delay: 0.12,
+        ease: "power4.out",
       });
     },
     { scope: containerRef }
@@ -59,18 +61,31 @@ export function ContactSection({ profile }: ContactSectionProps) {
     profile.email
   )}`;
 
+  const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    e.currentTarget.style.setProperty("--mouse-x", `${x}px`);
+    e.currentTarget.style.setProperty("--mouse-y", `${y}px`);
+  };
+
   return (
     <section
       ref={containerRef}
       id="kontak"
       className="py-24 md:py-36 scroll-mt-16 relative overflow-hidden"
     >
+      {/* Ambient background glow */}
+      <div className="absolute bottom-10 left-1/4 w-[500px] h-[300px] bg-primary/4 rounded-full blur-[110px] pointer-events-none -z-10 animate-float-slow" />
+      <div className="absolute top-20 right-10 w-[450px] h-[300px] bg-accent/6 rounded-full blur-[120px] pointer-events-none -z-10 animate-float-reverse" />
+
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
-          {/* Col 1: Contact details */}
-          <div ref={leftColRef} className="lg:col-span-5 space-y-8">
+          {/* Col 1: Direct Contact Info */}
+          <div ref={leftColRef} className="lg:col-span-5 space-y-6">
             <div className="space-y-3">
-              <span className="text-xs uppercase tracking-[0.2em] font-semibold text-primary block">
+              <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                 {t.contact_eyebrow}
               </span>
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-foreground">
@@ -82,9 +97,12 @@ export function ContactSection({ profile }: ContactSectionProps) {
             </p>
 
             <div className="space-y-4 pt-2">
-              <div className="flex items-center gap-4 text-sm text-foreground p-4 rounded-xl border border-border bg-card/50 backdrop-blur-sm">
-                <div className="p-3 rounded-lg border border-border bg-muted/40 shrink-0">
-                  <Mail className="h-4 w-4 text-primary" />
+              <div
+                onMouseMove={handleCardMouseMove}
+                className="spotlight-card group flex items-center gap-4 text-sm text-foreground p-4 rounded-xl border border-border bg-card/60 backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:-translate-y-0.5 shadow-sm hover:shadow-md cursor-pointer"
+              >
+                <div className="p-3 rounded-lg border border-border bg-muted/40 shrink-0 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                  <Mail className="h-4 w-4 text-primary transition-transform duration-300 group-hover:scale-110" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-xs text-muted-foreground">{t.contact_email_label}</div>
@@ -95,15 +113,18 @@ export function ContactSection({ profile }: ContactSectionProps) {
                     className="font-medium hover:underline text-foreground flex items-center gap-1.5 truncate"
                   >
                     <span className="truncate">{profile.email}</span>
-                    <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />
+                    <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                   </a>
                 </div>
               </div>
 
               {profile.location && (
-                <div className="flex items-center gap-4 text-sm text-foreground p-4 rounded-xl border border-border bg-card/50 backdrop-blur-sm">
-                  <div className="p-3 rounded-lg border border-border bg-muted/40 shrink-0">
-                    <MapPin className="h-4 w-4 text-primary" />
+                <div
+                  onMouseMove={handleCardMouseMove}
+                  className="spotlight-card group flex items-center gap-4 text-sm text-foreground p-4 rounded-xl border border-border bg-card/60 backdrop-blur-sm transition-all duration-300 hover:border-primary/40 hover:-translate-y-0.5 shadow-sm hover:shadow-md"
+                >
+                  <div className="p-3 rounded-lg border border-border bg-muted/40 shrink-0 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                    <MapPin className="h-4 w-4 text-primary transition-transform duration-300 group-hover:scale-110" />
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">{t.contact_location_label}</div>
@@ -116,7 +137,10 @@ export function ContactSection({ profile }: ContactSectionProps) {
 
           {/* Col 2: Interactive Contact Form Preview */}
           <div ref={rightColRef} className="lg:col-span-7">
-            <Card className="border-border bg-card/70 backdrop-blur-sm shadow-xl overflow-hidden">
+            <Card
+              onMouseMove={handleCardMouseMove}
+              className="spotlight-card border-border bg-card/70 backdrop-blur-sm shadow-xl overflow-hidden transition-all duration-300 hover:border-primary/30"
+            >
               <CardHeader className="p-6 md:p-8 border-b border-border/40">
                 <CardTitle className="text-xl font-semibold tracking-tight text-foreground">
                   {t.contact_form_title}
@@ -141,7 +165,7 @@ export function ContactSection({ profile }: ContactSectionProps) {
                         name="name"
                         placeholder={t.contact_name_placeholder}
                         required
-                        className="bg-background/80"
+                        className="bg-background/80 transition-colors focus-visible:ring-primary/40"
                       />
                     </div>
                     <div className="space-y-2">
@@ -151,7 +175,7 @@ export function ContactSection({ profile }: ContactSectionProps) {
                         name="subject"
                         placeholder={t.contact_subject_placeholder}
                         required
-                        className="bg-background/80"
+                        className="bg-background/80 transition-colors focus-visible:ring-primary/40"
                       />
                     </div>
                   </div>
@@ -164,23 +188,24 @@ export function ContactSection({ profile }: ContactSectionProps) {
                       placeholder={t.contact_message_placeholder}
                       rows={5}
                       required
-                      className="bg-background/80"
+                      className="bg-background/80 transition-colors focus-visible:ring-primary/40"
                     />
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                    <Button type="submit" className="flex-1 gap-2 font-medium h-11 text-xs">
-                      <Send className="h-4 w-4" />
+                    <Button type="submit" className="relative group overflow-hidden flex-1 gap-2 font-medium h-11 text-xs transition-all duration-300 hover:shadow-lg hover:shadow-primary/20">
+                      <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
+                      <Send className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1" />
                       <span>{t.contact_send_btn}</span>
                     </Button>
                     <Button
                       type="button"
                       variant="outline"
                       asChild
-                      className="gap-2 font-medium h-11 text-xs border-border bg-card hover:bg-muted/40"
+                      className="gap-2 font-medium h-11 text-xs border-border bg-card hover:bg-muted/40 transition-all duration-300 hover:scale-[1.02] hover:border-primary/40"
                     >
                       <a href={gmailDirectUrl} target="_blank" rel="noopener noreferrer">
-                        <Mail className="h-4 w-4 text-red-500" />
+                        <Mail className="h-4 w-4 text-red-500 transition-transform group-hover:scale-110" />
                         <span>{language === "id" ? "Buka di Gmail" : "Open in Gmail"}</span>
                       </a>
                     </Button>

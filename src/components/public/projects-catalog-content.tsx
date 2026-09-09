@@ -40,24 +40,45 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
   const containerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
 
+  const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    e.currentTarget.style.setProperty("--mouse-x", `${x}px`);
+    e.currentTarget.style.setProperty("--mouse-y", `${y}px`);
+  };
+
   useGSAP(
     () => {
       // Animate header
       gsap.from(headerRef.current, {
-        y: 25,
+        y: 30,
         opacity: 0,
-        duration: 0.8,
-        ease: "power3.out",
+        filter: "blur(6px)",
+        duration: 0.9,
+        ease: "power4.out",
       });
 
-      // Animate project cards with stagger
-      
+      // Animate project cards with stagger & subtle random rotation
+      gsap.from(".catalog-project-card", {
+        y: 45,
+        opacity: 0,
+        filter: "blur(8px)",
+        rotation: () => (Math.random() - 0.5) * 1.6,
+        duration: 0.85,
+        stagger: 0.1,
+        ease: "power3.out",
+        clearProps: "transform,filter",
+      });
     },
     { scope: containerRef }
   );
 
   return (
-    <div ref={containerRef} className="py-24 md:py-36">
+    <div ref={containerRef} className="py-24 md:py-36 relative overflow-hidden">
+      {/* Background ambient orbs */}
+      <div className="absolute top-20 left-10 w-96 h-96 bg-primary/4 rounded-full blur-[100px] pointer-events-none -z-10 animate-float-slow" />
+      <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/5 rounded-full blur-[110px] pointer-events-none -z-10 animate-float-reverse" />
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Page Header - Clean, Wide, 1-2 Lines */}
         <div ref={headerRef} className="max-w-4xl mb-16 md:mb-20 space-y-4">
@@ -93,7 +114,8 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
               return (
                 <Card
                   key={project.id}
-                  className="catalog-project-card group flex flex-col overflow-hidden border-border bg-card/60 backdrop-blur-sm hover:border-foreground/30 hover:shadow-xl transition-all duration-300"
+                  onMouseMove={handleCardMouseMove}
+                  className="catalog-project-card spotlight-card group flex flex-col overflow-hidden border-border bg-card/60 backdrop-blur-sm hover:border-primary/40 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
                 >
                   <div>
                     {/* Fixed Media Frame with Hover Physics */}
@@ -102,7 +124,7 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
                       <img
                         src={project.thumbnailUrl}
                         alt={title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                        className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-700 ease-out"
                       />
                       {project.featured && (
                         <div className="absolute top-3.5 right-3.5 z-10">

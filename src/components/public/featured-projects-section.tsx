@@ -3,7 +3,7 @@
 import React, { useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ExternalLink } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,32 +26,95 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
 
   useGSAP(
     () => {
-      
+      // Header Animation
+      gsap.from(".projects-eyebrow", {
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: "top 82%",
+        },
+        opacity: 0,
+        y: 15,
+        duration: 0.6,
+        ease: "power3.out",
+      });
+
+      gsap.from(".projects-title", {
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: "top 80%",
+        },
+        opacity: 0,
+        y: 30,
+        filter: "blur(6px)",
+        duration: 0.9,
+        ease: "power4.out",
+      });
+
+      gsap.from(".projects-view-all-btn", {
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: "top 80%",
+        },
+        opacity: 0,
+        scale: 0.9,
+        duration: 0.7,
+        ease: "back.out(1.5)",
+      });
+
+      // Bento Project Cards Stagger
+      const cards = gsap.utils.toArray<HTMLElement>(".bento-project-card");
+      cards.forEach((card, idx) => {
+        gsap.from(card, {
+          scrollTrigger: {
+            trigger: card,
+            start: "top 88%",
+          },
+          opacity: 0,
+          y: 45,
+          scale: 0.96,
+          rotation: idx % 2 === 0 ? -1 : 1,
+          duration: 0.85,
+          delay: (idx % 2) * 0.12,
+          ease: "back.out(1.3)",
+        });
+      });
     },
     { scope: sectionRef }
   );
+
+  const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    e.currentTarget.style.setProperty("--mouse-x", `${x}px`);
+    e.currentTarget.style.setProperty("--mouse-y", `${y}px`);
+  };
 
   return (
     <section
       ref={sectionRef}
       id="proyek"
-      className="py-24 md:py-36 border-b border-border/60 scroll-mt-16 overflow-hidden"
+      className="relative py-24 md:py-36 border-b border-border/60 scroll-mt-16 overflow-hidden"
     >
+      {/* Ambient background glow */}
+      <div className="absolute top-1/3 right-1/4 w-[480px] h-[300px] bg-accent/5 rounded-full blur-[120px] pointer-events-none -z-10 animate-float-reverse" />
+
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
           <div className="space-y-3 max-w-xl">
-            <span className="text-xs uppercase tracking-[0.25em] font-semibold text-primary block">
+            <span className="projects-eyebrow text-xs uppercase tracking-[0.25em] font-semibold text-primary inline-flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
               {t.projects_eyebrow}
             </span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-foreground leading-[1.1]">
+            <h2 className="projects-title text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-foreground leading-[1.1]">
               {t.projects_title}
             </h2>
           </div>
-          <Button asChild variant="outline" size="sm" className="h-10 px-5 gap-2 border-border bg-card hover:bg-muted/40 text-xs font-medium self-start md:self-auto">
+          <Button asChild variant="outline" size="sm" className="projects-view-all-btn h-10 px-5 gap-2 border-border bg-card hover:bg-muted/50 hover:border-foreground/30 text-xs font-medium self-start md:self-auto group transition-all">
             <Link href="/proyek">
               <span>{t.projects_view_all}</span>
-              <ArrowRight className="h-3.5 w-3.5" />
+              <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
             </Link>
           </Button>
         </div>
@@ -79,19 +142,20 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
             return (
               <Card
                 key={project.id}
-                className={`bento-project-card group relative overflow-hidden flex flex-col justify-between border-border bg-card hover:border-foreground/30 transition-all duration-300 ${colSpan}`}
+                onMouseMove={handleCardMouseMove}
+                className={`bento-project-card spotlight-card group relative overflow-hidden flex flex-col justify-between border-border bg-card/85 backdrop-blur-xs hover:border-foreground/35 transition-all duration-300 ${colSpan}`}
               >
                 <div>
                   {/* Image Container with Hover Scale Physics */}
-                  <div className={`relative w-full overflow-hidden bg-muted border-b border-border ${isWideCard ? "aspect-[21/9]" : "aspect-[16/10]"}`}>
+                  <div className={`relative w-full overflow-hidden bg-muted border-b border-border/60 ${isWideCard ? "aspect-[21/9]" : "aspect-[16/10]"}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={project.thumbnailUrl}
                       alt={title}
-                      className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                      className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-108"
                     />
-                    <div className="absolute top-4 right-4">
-                      <Badge variant="secondary" className="text-[10px] uppercase tracking-wider font-semibold backdrop-blur-md bg-background/80 shadow-xs border border-border/50">
+                    <div className="absolute top-4 right-4 z-10">
+                      <Badge variant="secondary" className="text-[10px] uppercase tracking-wider font-semibold backdrop-blur-md bg-background/85 shadow-sm border border-border/60 group-hover:border-primary/50 transition-colors">
                         {t.projects_featured_badge}
                       </Badge>
                     </div>
@@ -101,21 +165,21 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
                     <Link href={`/proyek/${project.slug}`}>
                       <h3 className="font-semibold text-xl md:text-2xl text-foreground group-hover:text-primary transition-colors flex items-center justify-between gap-3">
                         <span>{title}</span>
-                        <ExternalLink className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground shrink-0" />
+                        <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-all -translate-x-1 group-hover:translate-x-0 text-primary shrink-0" />
                       </h3>
                     </Link>
 
-                    <p className="text-sm md:text-base text-muted-foreground line-clamp-2 leading-relaxed">
+                    <p className="text-sm md:text-base text-muted-foreground line-clamp-2 leading-relaxed font-normal">
                       {summary}
                     </p>
 
-                    {/* Tech stack badges */}
+                    {/* Tech stack badges with micro-lift */}
                     <div className="flex flex-wrap gap-1.5 pt-3">
                       {project.techStack.map((tech) => (
                         <Badge
                           key={tech}
                           variant="outline"
-                          className="text-xs font-normal py-0.5 px-2.5 bg-muted/30 text-muted-foreground border-border"
+                          className="text-xs font-normal py-0.5 px-2.5 bg-muted/40 text-muted-foreground border-border/60 hover:border-foreground/30 hover:bg-muted/70 hover:scale-105 active:scale-95 transition-all cursor-default"
                         >
                           {tech}
                         </Badge>
@@ -126,13 +190,20 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
 
                 {/* Card Footer Details */}
                 <div className="p-6 md:p-8 pt-0 mt-auto border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="font-mono text-[11px]">{project.createdAt}</span>
+                  <span className="font-mono text-[11px] opacity-75">
+                    {project.createdAt
+                      ? new Date(project.createdAt).toLocaleDateString(
+                          language === "en" ? "en-US" : "id-ID",
+                          { month: "short", year: "numeric" }
+                        )
+                      : ""}
+                  </span>
                   <Link
                     href={`/proyek/${project.slug}`}
                     className="font-medium text-foreground hover:text-primary transition-colors inline-flex items-center gap-1.5 group/link"
                   >
                     <span>{t.projects_detail_btn}</span>
-                    <ArrowRight className="h-3.5 w-3.5 group-hover/link:translate-x-1 transition-transform" />
+                    <ArrowRight className="h-3.5 w-3.5 group-hover/link:translate-x-1.5 transition-transform duration-300" />
                   </Link>
                 </div>
               </Card>
