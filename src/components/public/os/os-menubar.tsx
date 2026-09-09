@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Monitor,
   Shield,
-  Clock,
+  Calendar,
   Globe,
 } from "lucide-react";
 import { useUser, UserButton } from "@clerk/nextjs";
@@ -74,21 +74,19 @@ export function OSMenubar({ profileName }: OSMenubarProps) {
   const { isLoaded, isSignedIn } = useUser();
   const { theme, setTheme } = useOSTheme();
   const { t, language, setLanguage } = useTranslation();
-  const [timeStr, setTimeStr] = useState("00:00:00");
+  const [shortDate, setShortDate] = useState("");
+  const [fullDate, setFullDate] = useState("");
 
-  // Live Digital Clock
+  // Tanggal Bulan Tahun Hari Ini
   useEffect(() => {
-    const updateTime = () => {
+    const updateDate = () => {
       const now = new Date();
-      const h = String(now.getHours()).padStart(2, "0");
-      const m = String(now.getMinutes()).padStart(2, "0");
-      const s = String(now.getSeconds()).padStart(2, "0");
-      setTimeStr(`${h}:${m}:${s}`);
+      const locale = language === "en" ? "en-GB" : "id-ID";
+      setShortDate(now.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" }));
+      setFullDate(now.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" }));
     };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, []);
+    updateDate();
+  }, [language]);
 
   return (
     <header className="sticky top-0 z-50 w-full bg-[var(--vt-chrome)] border-b-2 border-[#5a5750] shadow-[0_2px_8px_rgba(0,0,0,0.35)] select-none">
@@ -197,12 +195,14 @@ export function OSMenubar({ profileName }: OSMenubarProps) {
             </select>
           </div>
 
-          {/* Digital Clock */}
-          <div className="vt-card-inset px-1.5 sm:px-2 py-0.5 bg-[var(--vt-paper)] font-pixel text-[10px] sm:text-xs tracking-wider text-[var(--vt-ink)] font-bold flex items-center gap-0.5 sm:gap-1 shadow-inner">
-            <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary" />
-            {/* Mobile: HH:MM only, Desktop: HH:MM:SS */}
-            <span className="sm:hidden">{timeStr.slice(0, 5)}</span>
-            <span className="hidden sm:inline">{timeStr}</span>
+          {/* Digital Date (Tanggal Bulan Tahun Hari Ini) */}
+          <div
+            className="vt-card-inset px-1.5 sm:px-2 py-0.5 bg-[var(--vt-paper)] font-pixel text-[10px] sm:text-xs tracking-wider text-[var(--vt-ink)] font-bold flex items-center gap-0.5 sm:gap-1 shadow-inner shrink-0"
+            title="Tanggal Hari Ini"
+          >
+            <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary" />
+            <span className="sm:hidden">{shortDate || "10 Sep 2026"}</span>
+            <span className="hidden sm:inline">{fullDate || "10 September 2026"}</span>
           </div>
 
           {/* User Button / Admin link */}
