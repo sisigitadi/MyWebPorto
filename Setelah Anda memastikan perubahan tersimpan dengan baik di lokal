@@ -1,0 +1,3 @@
+git add .
+git commit -m "fix: hapus edge runtime pada icon dan tambah state loading di admin"
+git push origin main

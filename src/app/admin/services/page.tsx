@@ -48,6 +48,7 @@ import { getServices, saveService, deleteService, translateFieldAction } from "@
 
 export default function AdminServicesPage() {
   const [services, setServices] = useState<ServiceData[]>(DUMMY_SERVICES);
+  const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<ServiceData | null>(null);
@@ -64,9 +65,13 @@ export default function AdminServicesPage() {
   const [formPublished, setFormPublished] = useState(true);
 
   const fetchServices = async () => {
-    const data = await getServices();
-    if (data) {
-      setServices(data);
+    try {
+      const data = await getServices();
+      if (data) {
+        setServices(data);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -193,7 +198,14 @@ export default function AdminServicesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {services.length === 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-32 text-center text-muted-foreground text-xs">
+                    <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2 text-primary" />
+                    <span>Memuat data layanan...</span>
+                  </TableCell>
+                </TableRow>
+              ) : services.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="h-32 text-center text-muted-foreground text-xs">
                     Belum ada layanan yang ditambahkan.

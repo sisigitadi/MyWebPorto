@@ -56,6 +56,7 @@ import {
 
 export default function AdminProjectsPage() {
   const [projects, setProjects] = useState<ProjectData[]>(DUMMY_PROJECTS);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
@@ -85,9 +86,13 @@ export default function AdminProjectsPage() {
   const [formPublished, setFormPublished] = useState(true);
 
   const fetchProjects = async () => {
-    const data = await getProjects();
-    if (data) {
-      setProjects(data);
+    try {
+      const data = await getProjects();
+      if (data) {
+        setProjects(data);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -273,7 +278,14 @@ export default function AdminProjectsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProjects.length === 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-32 text-center text-xs text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2 text-primary" />
+                    <span>Memuat data proyek...</span>
+                  </TableCell>
+                </TableRow>
+              ) : filteredProjects.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-32 text-center text-xs text-muted-foreground">
                     Tidak ada proyek yang cocok dengan kata kunci pencarian.

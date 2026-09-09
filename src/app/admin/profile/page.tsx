@@ -34,6 +34,7 @@ import { getProfile, updateProfile, translateFieldAction } from "@/lib/actions";
 
 export default function AdminProfilePage() {
   const [profile, setProfile] = useState<ProfileData>(DUMMY_PROFILE);
+  const [isLoading, setIsLoading] = useState(true);
   const [newSkill, setNewSkill] = useState("");
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -42,9 +43,13 @@ export default function AdminProfilePage() {
 
   useEffect(() => {
     async function loadData() {
-      const data = await getProfile();
-      if (data) {
-        setProfile(data);
+      try {
+        const data = await getProfile();
+        if (data) {
+          setProfile(data);
+        }
+      } finally {
+        setIsLoading(false);
       }
     }
     loadData();
@@ -151,13 +156,13 @@ export default function AdminProfilePage() {
               <span>{errorMessage}</span>
             </div>
           )}
-          <Button onClick={handleSave} disabled={isPending} size="sm" className="gap-2 text-xs h-9">
-            {isPending ? (
+          <Button onClick={handleSave} disabled={isPending || isLoading} size="sm" className="gap-2 text-xs h-9">
+            {isPending || isLoading ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
               <Save className="h-3.5 w-3.5" />
             )}
-            <span>{isPending ? "Menyimpan..." : "Simpan Perubahan"}</span>
+            <span>{isPending ? "Menyimpan..." : isLoading ? "Memuat..." : "Simpan Perubahan"}</span>
           </Button>
         </div>
       </div>

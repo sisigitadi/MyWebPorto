@@ -1,9 +1,6 @@
 import { ImageResponse } from "next/og";
 import { getProfile } from "@/lib/actions";
 
-// Route segment config
-export const runtime = "edge";
-
 // Image metadata
 export const size = {
   width: 32,
@@ -14,7 +11,7 @@ export const contentType = "image/png";
 // Image generation
 export default async function Icon() {
   const profile = await getProfile();
-  
+
   // Use initials for favicon if no avatar, or just a nice letter
   const initial = profile?.name ? profile.name.charAt(0).toUpperCase() : "M";
 
