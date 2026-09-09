@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import Link from "next/link";
 import {
   User,
   Briefcase,
@@ -16,7 +15,6 @@ import {
   Minimize2,
   X,
   HardDrive,
-  Shield,
   Palette,
   RotateCcw,
   Globe,
@@ -434,14 +432,6 @@ export function OSDesktopManager({
                 )}
               </div>
 
-              <Link
-                href="/admin"
-                onClick={() => setStartOpen(false)}
-                className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors font-bold"
-              >
-                <Shield className="h-3.5 w-3.5 text-foreground" />
-                <span>{t.os_start_admin}</span>
-              </Link>
 
               <button
                 type="button"

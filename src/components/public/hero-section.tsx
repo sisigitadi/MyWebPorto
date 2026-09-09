@@ -57,7 +57,6 @@ export function HeroSection({ profile }: HeroSectionProps) {
           <OSWindow
             title="Sigit_Profile.exe // Developer Details"
             icon={<User className="h-3.5 w-3.5 text-[#ffd400]" />}
-            statusText="Status: Available for hire & freelance development"
             className="h-full"
             bodyClassName="flex flex-col justify-between space-y-6 p-4 sm:p-6"
           >
