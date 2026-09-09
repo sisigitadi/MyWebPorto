@@ -13,6 +13,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://porto.sigitadi.id"),
   title: "MyWebPorto - Portofolio & Personal Branding Profesional",
   description:
     "Website profil pribadi elegan untuk menampilkan portofolio proyek, layanan keahlian, katalog produk, dan testimoni.",
