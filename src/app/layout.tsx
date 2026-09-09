@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     images: ["/opengraph-image"],
   },
   verification: {
-    google: "gsc-placeholder-verification-code",
+    google: "google69895a9e48e2c21c",
     other: {
       "msvalidate.01": "bing-site-verification-code-placeholder",
     },
@@ -70,8 +70,8 @@ export default async function RootLayout({
       <html lang="id" suppressHydrationWarning>
         <head>
           <JsonLdSchema profile={profile} />
-          <meta name="google-site-verification" content="gsc-verification-code-placeholder-to-update" />
-          <meta name="msvalidate.01" content="bing-verification-code-placeholder-to-update" />
+          <meta name="google-site-verification" content="google69895a9e48e2c21c" />
+          <meta name="msvalidate.01" content="bing-site-verification-code-placeholder" />
         </head>
         <body
           className={`${inter.variable} ${firaCode.variable} font-sans antialiased selection:bg-primary selection:text-primary-foreground`}
