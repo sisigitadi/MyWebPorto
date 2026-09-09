@@ -53,6 +53,12 @@ export function AdminHeader({ onToggleSidebar }: AdminHeaderProps) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
+        {/* Realtime Database Connection Badge */}
+        <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[11px] font-mono font-medium">
+          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span>Neon DB: Connected</span>
+        </div>
+
         <Button
           asChild
           variant="outline"

@@ -81,7 +81,7 @@ export function OSWindow({
 
       {/* Window Body */}
       {!isMinimized && (
-        <div className={`vt-paper-inset p-4 md:p-6 text-foreground ${bodyClassName}`}>
+        <div className={`vt-paper-inset p-4 md:p-6 text-[var(--vt-ink)] ${bodyClassName}`}>
           {children}
         </div>
       )}

@@ -85,7 +85,7 @@ export function HeroSection({ profile }: HeroSectionProps) {
                     />
                   </div>
                   <div>
-                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight font-display text-foreground leading-[1.05]">
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight font-display text-[var(--vt-ink)] leading-[1.05]">
                       {profile.name}
                     </h1>
                     <p className="text-sm sm:text-base font-mono font-medium text-[var(--vt-blue)] mt-1">
@@ -95,7 +95,7 @@ export function HeroSection({ profile }: HeroSectionProps) {
                 </div>
 
                 {/* Bio text */}
-                <div className="vt-card-inset p-3 bg-card text-foreground font-mono text-xs sm:text-sm leading-relaxed border-l-4 border-l-[var(--vt-blue)]">
+                <div className="vt-card-inset p-3 bg-card text-[var(--vt-ink)] font-mono text-xs sm:text-sm leading-relaxed border-l-4 border-l-[var(--vt-blue)]">
                   {bio}
                 </div>
               </div>
@@ -107,10 +107,10 @@ export function HeroSection({ profile }: HeroSectionProps) {
                     key={idx}
                     className="vt-card-inset p-2.5 bg-[var(--vt-card)]"
                   >
-                    <div className="text-xl sm:text-2xl font-black font-display text-foreground">
+                    <div className="text-xl sm:text-2xl font-black font-display text-[var(--vt-ink)]">
                       {stat.value}
                     </div>
-                    <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-tight mt-0.5">
+                    <div className="text-[10px] font-mono text-[var(--vt-ink-soft)] uppercase tracking-tight mt-0.5">
                       {getTranslatedStatLabel(stat.label)}
                     </div>
                   </div>
@@ -131,13 +131,13 @@ export function HeroSection({ profile }: HeroSectionProps) {
                   href="https://porto.sigitadi.id/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="vt-btn vt-btn-chrome px-4 py-2.5 text-xs font-bold font-mono text-foreground"
+                  className="vt-btn vt-btn-chrome px-4 py-2.5 text-xs font-bold font-mono text-[var(--vt-ink)]"
                 >
                   <ExternalLink className="h-3.5 w-3.5 text-primary mr-1" />
                   <span>{t.hero_cta_portfolio}</span>
                 </a>
 
-                <span className="text-xs font-mono text-muted-foreground ml-auto hidden sm:inline-flex items-center gap-1">
+                <span className="text-xs font-mono text-[var(--vt-ink-soft)] ml-auto hidden sm:inline-flex items-center gap-1">
                   <MapPin className="h-3 w-3 text-primary" />
                   <span>{profile.location}</span>
                 </span>

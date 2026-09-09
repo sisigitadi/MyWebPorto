@@ -55,14 +55,14 @@ export function ProductsSection({ products: propProducts }: ProductsSectionProps
       <div className="max-w-7xl mx-auto px-2 sm:px-4">
         {/* Section Heading */}
         <div className="mb-8">
-          <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-crt)]">
-            <span className="h-2 w-2 rounded-full bg-[var(--vt-crt)] animate-pulse" />
+          <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-blue)]">
+            <span className="h-2 w-2 rounded-full bg-[var(--vt-blue)] animate-pulse" />
             <span>SOFTWARE_VAULT // PRODUK DIGITAL & TEMPLATE</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-white">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
             {t.products_title}
           </h2>
-          <p className="text-xs sm:text-sm font-mono text-white/80 mt-1 max-w-2xl">
+          <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink-soft)] mt-1 max-w-2xl">
             {t.products_subtitle}
           </p>
         </div>
@@ -97,11 +97,11 @@ export function ProductsSection({ products: propProducts }: ProductsSectionProps
                       </div>
                     </div>
 
-                    <h3 className="text-base sm:text-lg font-bold font-mono text-foreground leading-snug">
+                    <h3 className="text-base sm:text-lg font-bold font-mono text-[var(--vt-ink)] leading-snug">
                       {title}
                     </h3>
 
-                    <p className="text-xs sm:text-sm font-mono text-muted-foreground leading-relaxed">
+                    <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink-soft)] leading-relaxed">
                       {description}
                     </p>
                   </div>

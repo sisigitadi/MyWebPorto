@@ -55,14 +55,14 @@ export function TestimonialsSection({ testimonials: propTestimonials }: Testimon
       <div className="max-w-7xl mx-auto px-2 sm:px-4">
         {/* Section Heading */}
         <div className="mb-8">
-          <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-crt)]">
-            <span className="h-2 w-2 rounded-full bg-[var(--vt-crt)] animate-pulse" />
+          <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-blue)]">
+            <span className="h-2 w-2 rounded-full bg-[var(--vt-blue)] animate-pulse" />
             <span>CLIENT_LOGS // ULASAN & TESTIMONI MITRA</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-white">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
             {t.testi_title}
           </h2>
-          <p className="text-xs sm:text-sm font-mono text-white/80 mt-1 max-w-2xl">
+          <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink-soft)] mt-1 max-w-2xl">
             {t.testi_subtitle}
           </p>
         </div>
@@ -100,7 +100,7 @@ export function TestimonialsSection({ testimonials: propTestimonials }: Testimon
                   </div>
 
                   {/* Testimonial Quote in Sunken Box */}
-                  <div className="vt-card-inset p-3 bg-card text-foreground font-mono text-xs sm:text-sm leading-relaxed italic border-l-4 border-l-[var(--vt-pink)]">
+                  <div className="vt-card-inset p-3 bg-card text-[var(--vt-ink)] font-mono text-xs sm:text-sm leading-relaxed italic border-l-4 border-l-[var(--vt-pink)]">
                     &ldquo;{content}&rdquo;
                   </div>
 
@@ -121,10 +121,10 @@ export function TestimonialsSection({ testimonials: propTestimonials }: Testimon
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-mono text-xs font-bold text-foreground truncate">
+                      <p className="font-mono text-xs font-bold text-[var(--vt-ink)] truncate">
                         {testi.clientName}
                       </p>
-                      <p className="font-mono text-[10px] text-muted-foreground truncate">
+                      <p className="font-mono text-[10px] text-[var(--vt-ink-soft)] truncate">
                         {role}
                       </p>
                     </div>

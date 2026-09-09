@@ -56,14 +56,14 @@ export function ContactSection({ profile }: ContactSectionProps) {
       <div className="max-w-7xl mx-auto px-2 sm:px-4">
         {/* Section Heading */}
         <div className="mb-8">
-          <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-crt)]">
-            <span className="h-2 w-2 rounded-full bg-[var(--vt-crt)] animate-pulse" />
+          <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-blue)]">
+            <span className="h-2 w-2 rounded-full bg-[var(--vt-blue)] animate-pulse" />
             <span>MAIL_DISPATCH // HUBUNGI & DISKUSI PROYEK</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-white">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
             {t.contact_title}
           </h2>
-          <p className="text-xs sm:text-sm font-mono text-white/80 mt-1 max-w-2xl">
+          <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink-soft)] mt-1 max-w-2xl">
             {t.contact_subtitle}
           </p>
         </div>
@@ -81,17 +81,17 @@ export function ContactSection({ profile }: ContactSectionProps) {
             >
               <div className="space-y-4">
                 <div className="vt-card-inset p-3 bg-card border-l-4 border-l-[var(--vt-blue)]">
-                  <h3 className="font-mono text-sm font-bold text-foreground">
+                  <h3 className="font-mono text-sm font-bold text-[var(--vt-ink)]">
                     Saluran Komunikasi Langsung
                   </h3>
-                  <p className="font-mono text-xs text-muted-foreground mt-1 leading-relaxed">
+                  <p className="font-mono text-xs text-[var(--vt-ink-soft)] mt-1 leading-relaxed">
                     Tertarik mengembangkan website bisnis, aplikasi custom, atau konsultasi UI/UX? Kirim pesan langsung ke email atau form berikut.
                   </p>
                 </div>
 
                 {/* Email Box */}
                 <div className="vt-card-inset p-3 bg-[var(--vt-card)] space-y-1">
-                  <span className="font-pixel text-[10px] text-muted-foreground uppercase">
+                  <span className="font-pixel text-[10px] text-[var(--vt-ink-mute)] uppercase">
                     {t.contact_email_label}:
                   </span>
                   <a
@@ -149,7 +149,7 @@ export function ContactSection({ profile }: ContactSectionProps) {
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="sender-name" className="text-xs font-bold font-mono">
+                    <Label htmlFor="sender-name" className="text-xs font-bold font-mono text-[var(--vt-ink)]">
                       {t.contact_name_label} *
                     </Label>
                     <Input
@@ -157,12 +157,12 @@ export function ContactSection({ profile }: ContactSectionProps) {
                       name="name"
                       placeholder={t.contact_name_placeholder}
                       required
-                      className="vt-card-inset bg-background text-foreground text-xs font-mono h-9"
+                      className="vt-card-inset bg-[var(--vt-paper)] text-[var(--vt-ink)] border border-[var(--vt-edge-lo-2)] text-xs font-mono h-9 placeholder:text-[var(--vt-ink-mute)]"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="sender-subject" className="text-xs font-bold font-mono">
+                    <Label htmlFor="sender-subject" className="text-xs font-bold font-mono text-[var(--vt-ink)]">
                       {t.contact_subject_label} *
                     </Label>
                     <Input
@@ -170,13 +170,13 @@ export function ContactSection({ profile }: ContactSectionProps) {
                       name="subject"
                       placeholder={t.contact_subject_placeholder}
                       required
-                      className="vt-card-inset bg-background text-foreground text-xs font-mono h-9"
+                      className="vt-card-inset bg-[var(--vt-paper)] text-[var(--vt-ink)] border border-[var(--vt-edge-lo-2)] text-xs font-mono h-9 placeholder:text-[var(--vt-ink-mute)]"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="sender-body" className="text-xs font-bold font-mono">
+                  <Label htmlFor="sender-body" className="text-xs font-bold font-mono text-[var(--vt-ink)]">
                     {t.contact_message_label} *
                   </Label>
                   <Textarea
@@ -185,7 +185,7 @@ export function ContactSection({ profile }: ContactSectionProps) {
                     placeholder={t.contact_message_placeholder}
                     rows={5}
                     required
-                    className="vt-card-inset bg-background text-foreground text-xs font-mono leading-relaxed"
+                    className="vt-card-inset bg-[var(--vt-paper)] text-[var(--vt-ink)] border border-[var(--vt-edge-lo-2)] text-xs font-mono leading-relaxed placeholder:text-[var(--vt-ink-mute)]"
                   />
                 </div>
 

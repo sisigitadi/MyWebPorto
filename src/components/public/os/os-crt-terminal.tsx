@@ -34,15 +34,24 @@ export function OSCrtTerminal({ ownerName }: OSCrtTerminalProps) {
     if (cmd === "help") {
       newLogs.push(
         "AVAILABLE COMMANDS:",
-        "  skills   - Tampilkan daftar keahlian teknologi",
-        "  projects - Buka katalog proyek unggulan",
-        "  contact  - Kirim pesan ke Sigit",
-        "  clear    - Bersihkan layar terminal",
-        "  about    - Ringkasan profil pengembang"
+        "  skills     - Tampilkan daftar keahlian teknologi",
+        "  projects   - Buka katalog proyek unggulan",
+        "  ai         - Showoff keahlian AI Agent & Sistem Otomasi",
+        "  contact    - Kirim pesan ke Sigit",
+        "  clear      - Bersihkan layar terminal",
+        "  about      - Ringkasan profil pengembang"
       );
     } else if (cmd === "skills") {
       newLogs.push(
         "STACK: Next.js 15, React 19, TypeScript, Tailwind CSS, PostgreSQL, Drizzle ORM, GSAP, Node.js"
+      );
+    } else if (cmd === "ai" || cmd === "automation") {
+      newLogs.push(
+        "AI & AUTOMATION CAPABILITIES:",
+        "  - Autonomous Agent Workflows (Google Gemini, OpenAI, Claude)",
+        "  - Automated Web Scraping & Data Pipeline ETL",
+        "  - Business Process Automation & Custom API Webhooks",
+        "  - High-reliability backend integration ready for production"
       );
     } else if (cmd === "projects") {
       newLogs.push("NAV: Menavigasikan ke #proyek...");

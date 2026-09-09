@@ -72,14 +72,14 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
 
         {/* Section Heading */}
         <div className="mb-8">
-          <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-crt)]">
-            <span className="h-2 w-2 rounded-full bg-[var(--vt-crt)] animate-pulse" />
+          <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-blue)]">
+            <span className="h-2 w-2 rounded-full bg-[var(--vt-blue)] animate-pulse" />
             <span>PROJECT_SHOWCASE // KARYA DIGITAL TERPILIH</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-white">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
             {t.projects_title}
           </h2>
-          <p className="text-xs sm:text-sm font-mono text-white/80 mt-1 max-w-2xl">
+          <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink-soft)] mt-1 max-w-2xl">
             {t.projects_page_subtitle}
           </p>
         </div>
@@ -116,12 +116,12 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-base sm:text-lg font-bold font-mono text-foreground leading-snug">
+                    <h3 className="text-base sm:text-lg font-bold font-mono text-[var(--vt-ink)] leading-snug">
                       {title}
                     </h3>
 
                     {/* Summary */}
-                    <p className="text-xs sm:text-sm font-mono text-muted-foreground leading-relaxed line-clamp-2">
+                    <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink-soft)] leading-relaxed line-clamp-2">
                       {summary}
                     </p>
 
@@ -130,7 +130,7 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
                       {project.techStack.slice(0, 4).map((tech) => (
                         <span
                           key={tech}
-                          className="vt-card-inset px-2 py-0.5 font-mono text-[10px] text-foreground bg-[var(--vt-card)]"
+                          className="vt-card-inset px-2 py-0.5 font-mono text-[10px] text-[var(--vt-ink)] bg-[var(--vt-card)]"
                         >
                           {tech}
                         </span>

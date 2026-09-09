@@ -14,6 +14,7 @@ import {
   Clock,
   ChevronRight,
   Globe,
+  RotateCcw,
 } from "lucide-react";
 import { useUser, UserButton } from "@clerk/nextjs";
 import { useOSTheme, OSTheme } from "./theme-context";
@@ -205,6 +206,18 @@ export function OSMenubar({ profileName }: OSMenubarProps) {
                       <Shield className="h-3.5 w-3.5 text-foreground" />
                       <span>Panel Admin</span>
                     </Link>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sessionStorage.removeItem("sigitos_booted_session");
+                        window.location.reload();
+                      }}
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-amber-600 hover:text-white rounded-xs transition-colors text-left cursor-pointer"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5 text-amber-500 hover:text-white" />
+                      <span>Restart SigitOS (Reboot BIOS)</span>
+                    </button>
                   </div>
                 </div>
               </div>
