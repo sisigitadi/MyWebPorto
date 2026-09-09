@@ -1,5 +1,7 @@
 "use server";
 
+import fs from "node:fs";
+import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { asc, desc, eq } from "drizzle-orm";
 import { db, isDbConnected } from "@/db";
@@ -21,8 +23,73 @@ import {
   type ServiceData,
   type ProductData,
   type TestimonialData,
+  type ProfileData,
 } from "@/lib/dummy-data";
 import { translateText } from "@/lib/translate";
+
+// ==========================================
+// PERSISTENT LOCAL FILE STORE (OFFLINE & BACKUP)
+// ==========================================
+const DATA_DIR = path.join(process.cwd(), "data");
+const DATA_FILE = path.join(DATA_DIR, "local-store.json");
+
+interface LocalStoreData {
+  profile: ProfileData;
+  projects: ProjectData[];
+  services: ServiceData[];
+  products: ProductData[];
+  testimonials: TestimonialData[];
+}
+
+function ensureStoreExists(): void {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    if (!fs.existsSync(DATA_FILE)) {
+      const initialData: LocalStoreData = {
+        profile: DUMMY_PROFILE,
+        projects: DUMMY_PROJECTS,
+        services: DUMMY_SERVICES,
+        products: DUMMY_PRODUCTS,
+        testimonials: DUMMY_TESTIMONIALS,
+      };
+      fs.writeFileSync(DATA_FILE, JSON.stringify(initialData, null, 2), "utf-8");
+    }
+  } catch (err) {
+    console.error("Gagal inisialisasi local store:", err);
+  }
+}
+
+function getLocalStore(): LocalStoreData | null {
+  try {
+    ensureStoreExists();
+    if (fs.existsSync(DATA_FILE)) {
+      const raw = fs.readFileSync(DATA_FILE, "utf-8");
+      return JSON.parse(raw) as LocalStoreData;
+    }
+  } catch (err) {
+    console.error("Gagal membaca local store:", err);
+  }
+  return null;
+}
+
+function updateLocalStore<K extends keyof LocalStoreData>(key: K, data: LocalStoreData[K]): void {
+  try {
+    ensureStoreExists();
+    const store = getLocalStore() || {
+      profile: DUMMY_PROFILE,
+      projects: DUMMY_PROJECTS,
+      services: DUMMY_SERVICES,
+      products: DUMMY_PRODUCTS,
+      testimonials: DUMMY_TESTIMONIALS,
+    };
+    store[key] = data;
+    fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2), "utf-8");
+  } catch (err) {
+    console.error("Gagal menyimpan local store:", err);
+  }
+}
 
 // ==========================================
 // TRANSLATE HELPER ACTION
@@ -48,31 +115,34 @@ export async function translateFieldAction(
 // ==========================================
 // PROFIL SERVER ACTIONS
 // ==========================================
-export async function getProfile() {
-  if (!isDbConnected) return DUMMY_PROFILE;
+export async function getProfile(): Promise<ProfileData> {
+  const store = getLocalStore();
+  const baseProfile = (store?.profile as ProfileData) || DUMMY_PROFILE;
+
+  if (!isDbConnected) return baseProfile;
   try {
     const res = await db.query.profiles.findFirst({
       where: eq(schema.profiles.id, "owner"),
     });
-    if (!res) return DUMMY_PROFILE;
+    if (!res) return baseProfile;
     return {
-      ...DUMMY_PROFILE,
+      ...baseProfile,
       ...res,
-      headlineEn: res.headlineEn || DUMMY_PROFILE.headlineEn,
-      bioEn: res.bioEn || DUMMY_PROFILE.bioEn,
-      avatarUrl: res.avatarUrl || DUMMY_PROFILE.avatarUrl,
-      phone: res.phone || DUMMY_PROFILE.phone,
-      location: res.location || DUMMY_PROFILE.location,
-      availableForHire: res.availableForHire ?? DUMMY_PROFILE.availableForHire,
-      skills: (res.skills as string[])?.length ? (res.skills as string[]) : DUMMY_PROFILE.skills,
+      headlineEn: res.headlineEn || baseProfile.headlineEn,
+      bioEn: res.bioEn || baseProfile.bioEn,
+      avatarUrl: res.avatarUrl || baseProfile.avatarUrl,
+      phone: res.phone || baseProfile.phone,
+      location: res.location || baseProfile.location,
+      availableForHire: res.availableForHire ?? baseProfile.availableForHire,
+      skills: (res.skills as string[])?.length ? (res.skills as string[]) : baseProfile.skills,
       stats: (res.stats as typeof DUMMY_PROFILE.stats)?.length
         ? (res.stats as typeof DUMMY_PROFILE.stats)
-        : DUMMY_PROFILE.stats,
-      socialLinks: (res.socialLinks as typeof DUMMY_PROFILE.socialLinks) || DUMMY_PROFILE.socialLinks,
+        : baseProfile.stats,
+      socialLinks: (res.socialLinks as typeof DUMMY_PROFILE.socialLinks) || baseProfile.socialLinks,
     };
   } catch (error) {
-    console.error("Error getProfile:", error);
-    return DUMMY_PROFILE;
+    console.error("Database query getProfile gagal, menggunakan data lokal:", error);
+    return baseProfile;
   }
 }
 
@@ -93,61 +163,58 @@ export async function updateProfile(data: unknown) {
     bioEn = await translateText(parsed.data.bio, "id", "en");
   }
 
-  const payload = {
+  const payload: ProfileData = {
+    ...DUMMY_PROFILE,
     ...parsed.data,
+    id: "owner",
     headlineEn: headlineEn || null,
     bioEn: bioEn || null,
   };
 
-  // Selalu perbarui memory fallback (dummy data) agar perubahan langsung terlihat
+  // Simpan secara persisten ke disk lokal dan memori
   Object.assign(DUMMY_PROFILE, payload);
+  updateLocalStore("profile", payload);
 
-  if (!isDbConnected) {
-    revalidatePath("/");
-    revalidatePath("/admin");
-    revalidatePath("/admin/profile");
-    return {
-      success: true,
-      message: "Profil diperbarui (mode offline preview).",
-    };
-  }
-
-  try {
-    await db
-      .insert(schema.profiles)
-      .values({
-        id: "owner",
-        ...payload,
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: schema.profiles.id,
-        set: {
+  if (isDbConnected) {
+    try {
+      await db
+        .insert(schema.profiles)
+        .values({
+          id: "owner",
           ...payload,
           updatedAt: new Date(),
-        },
-      });
-
-    revalidatePath("/");
-    revalidatePath("/admin");
-    revalidatePath("/admin/profile");
-    return { success: true, message: "Profil berhasil disimpan ke database!" };
-  } catch (error: unknown) {
-    console.error("Error updateProfile:", error);
-    return { success: false, error: error instanceof Error ? error.message : "Gagal memperbarui profil" };
+        })
+        .onConflictDoUpdate({
+          target: schema.profiles.id,
+          set: {
+            ...payload,
+            updatedAt: new Date(),
+          },
+        });
+    } catch (error: unknown) {
+      console.warn("Sinkronisasi database updateProfile gagal, tersimpan di lokal:", error);
+    }
   }
+
+  revalidatePath("/", "layout");
+  revalidatePath("/admin", "layout");
+  revalidatePath("/admin/profile");
+  return { success: true, message: "Profil berhasil disimpan!" };
 }
 
 // ==========================================
 // PROYEK SERVER ACTIONS
 // ==========================================
-export async function getProjects() {
-  if (!isDbConnected) return DUMMY_PROJECTS;
+export async function getProjects(): Promise<ProjectData[]> {
+  const store = getLocalStore();
+  const baseProjects = (store?.projects as ProjectData[]) || DUMMY_PROJECTS;
+
+  if (!isDbConnected) return baseProjects;
   try {
     const list = await db.query.projects.findMany({
       orderBy: [asc(schema.projects.order), desc(schema.projects.createdAt)],
     });
-    if (!list || list.length === 0) return DUMMY_PROJECTS;
+    if (!list || list.length === 0) return baseProjects;
     return list.map((p) => {
       const summaryId = p.description.slice(0, 120) + (p.description.length > 120 ? "..." : "");
       const summaryEn = p.descriptionEn
@@ -173,8 +240,8 @@ export async function getProjects() {
       };
     });
   } catch (error) {
-    console.error("Error getProjects:", error);
-    return DUMMY_PROJECTS;
+    console.error("Database query getProjects gagal, menggunakan data lokal:", error);
+    return baseProjects;
   }
 }
 
@@ -202,11 +269,18 @@ export async function saveProject(data: unknown) {
     descriptionEn: descriptionEn || null,
   };
 
-  // Selalu sinkronkan data ke memori DUMMY_PROJECTS
-  const summaryId = projectData.description.slice(0, 120) + (projectData.description.length > 120 ? "..." : "");
-  const summaryEn = projectData.descriptionEn
-    ? projectData.descriptionEn.slice(0, 120) + (projectData.descriptionEn.length > 120 ? "..." : "")
-    : null;
+  const rawData = data as Record<string, unknown>;
+  const customSummary = typeof rawData?.summary === "string" && rawData.summary.trim() ? rawData.summary.trim() : null;
+  const customSummaryEn = typeof rawData?.summaryEn === "string" && rawData.summaryEn.trim() ? rawData.summaryEn.trim() : null;
+
+  const summaryId =
+    customSummary ||
+    projectData.description.slice(0, 120) + (projectData.description.length > 120 ? "..." : "");
+  const summaryEn =
+    customSummaryEn ||
+    (projectData.descriptionEn
+      ? projectData.descriptionEn.slice(0, 120) + (projectData.descriptionEn.length > 120 ? "..." : "")
+      : null);
 
   const targetId = id || `proj-${Date.now()}`;
   const dummyItem: ProjectData = {
@@ -227,6 +301,21 @@ export async function saveProject(data: unknown) {
     createdAt: new Date().toISOString().split("T")[0],
   };
 
+  // Simpan secara persisten ke berkas lokal
+  const store = getLocalStore();
+  const currentList = (store?.projects as ProjectData[]) || [...DUMMY_PROJECTS];
+  const existingIdx = currentList.findIndex((p) => p.id === targetId || (id && p.id === id));
+  if (existingIdx >= 0) {
+    currentList[existingIdx] = {
+      ...currentList[existingIdx],
+      ...dummyItem,
+      id: currentList[existingIdx].id,
+    };
+  } else {
+    currentList.unshift(dummyItem);
+  }
+  updateLocalStore("projects", currentList);
+
   const existingDummyIdx = DUMMY_PROJECTS.findIndex((p) => p.id === id);
   if (existingDummyIdx >= 0) {
     DUMMY_PROJECTS[existingDummyIdx] = {
@@ -238,90 +327,88 @@ export async function saveProject(data: unknown) {
     DUMMY_PROJECTS.unshift(dummyItem);
   }
 
-  if (!isDbConnected) {
-    revalidatePath("/");
-    revalidatePath("/proyek");
-    revalidatePath("/admin/projects");
-    return { success: true, message: "Proyek berhasil disimpan (mode offline preview)." };
-  }
+  if (isDbConnected) {
+    try {
+      if (id) {
+        const existing = await db.query.projects.findFirst({
+          where: eq(schema.projects.id, id),
+        });
 
-  try {
-    if (id) {
-      const existing = await db.query.projects.findFirst({
-        where: eq(schema.projects.id, id),
-      });
-
-      if (existing) {
-        await db
-          .update(schema.projects)
-          .set({
+        if (existing) {
+          await db
+            .update(schema.projects)
+            .set({
+              ...projectData,
+              imageUrl: projectData.imageUrl,
+              techStacks: projectData.techStacks,
+              updatedAt: new Date(),
+            })
+            .where(eq(schema.projects.id, id));
+        } else {
+          await db.insert(schema.projects).values({
+            id,
             ...projectData,
             imageUrl: projectData.imageUrl,
             techStacks: projectData.techStacks,
-            updatedAt: new Date(),
-          })
-          .where(eq(schema.projects.id, id));
+          });
+        }
       } else {
-        // Jika row belum ada di DB (misal dari dummy data), lakukan insert dengan ID ini
         await db.insert(schema.projects).values({
-          id,
           ...projectData,
           imageUrl: projectData.imageUrl,
           techStacks: projectData.techStacks,
         });
       }
-    } else {
-      await db.insert(schema.projects).values({
-        ...projectData,
-        imageUrl: projectData.imageUrl,
-        techStacks: projectData.techStacks,
-      });
+    } catch (error: unknown) {
+      console.warn("Sinkronisasi database saveProject gagal, tersimpan di lokal:", error);
     }
-
-    revalidatePath("/");
-    revalidatePath("/proyek");
-    revalidatePath("/admin/projects");
-    return { success: true, message: "Proyek berhasil disimpan!" };
-  } catch (error: unknown) {
-    console.error("Error saveProject:", error);
-    return { success: false, error: error instanceof Error ? error.message : "Gagal menyimpan proyek" };
   }
+
+  revalidatePath("/", "layout");
+  revalidatePath("/proyek", "layout");
+  revalidatePath("/admin/projects");
+  return { success: true, message: "Proyek berhasil disimpan!" };
 }
 
 export async function deleteProject(id: string) {
+  const store = getLocalStore();
+  if (store?.projects) {
+    const updated = (store.projects as ProjectData[]).filter((p) => p.id !== id);
+    updateLocalStore("projects", updated);
+  }
+
   const dummyIdx = DUMMY_PROJECTS.findIndex((p) => p.id === id);
   if (dummyIdx >= 0) {
     DUMMY_PROJECTS.splice(dummyIdx, 1);
   }
 
-  if (!isDbConnected) {
-    revalidatePath("/");
-    revalidatePath("/proyek");
-    revalidatePath("/admin/projects");
-    return { success: true, message: "Proyek berhasil dihapus (mode offline preview)." };
+  if (isDbConnected) {
+    try {
+      await db.delete(schema.projects).where(eq(schema.projects.id, id));
+    } catch (error: unknown) {
+      console.warn("Sinkronisasi database deleteProject gagal:", error);
+    }
   }
-  try {
-    await db.delete(schema.projects).where(eq(schema.projects.id, id));
-    revalidatePath("/");
-    revalidatePath("/proyek");
-    revalidatePath("/admin/projects");
-    return { success: true, message: "Proyek berhasil dihapus!" };
-  } catch (error: unknown) {
-    console.error("Error deleteProject:", error);
-    return { success: false, error: error instanceof Error ? error.message : "Gagal menghapus proyek" };
-  }
+
+  revalidatePath("/", "layout");
+  revalidatePath("/proyek", "layout");
+  revalidatePath("/admin/projects");
+  return { success: true, message: "Proyek berhasil dihapus!" };
 }
 
 // ==========================================
 // LAYANAN SERVER ACTIONS
 // ==========================================
-export async function getServices() {
-  if (!isDbConnected) return DUMMY_SERVICES;
+export async function getServices(): Promise<ServiceData[]> {
+  const store = getLocalStore();
+  const baseServices = (store?.services as ServiceData[]) || DUMMY_SERVICES;
+
+  if (!isDbConnected) return baseServices;
   try {
     const list = await db.query.services.findMany({
       orderBy: [asc(schema.services.order)],
     });
-    if (!list || list.length === 0) return DUMMY_SERVICES;
+    if (!list || list.length === 0) return baseServices;
     return list.map((s) => ({
       id: s.id,
       order: s.order,
@@ -332,8 +419,8 @@ export async function getServices() {
       published: s.published,
     }));
   } catch (error) {
-    console.error("Error getServices:", error);
-    return DUMMY_SERVICES;
+    console.error("Database query getServices gagal, menggunakan data lokal:", error);
+    return baseServices;
   }
 }
 
@@ -372,6 +459,21 @@ export async function saveService(data: unknown) {
     published: serviceData.published ?? true,
   };
 
+  // Simpan ke disk lokal
+  const store = getLocalStore();
+  const currentList = (store?.services as ServiceData[]) || [...DUMMY_SERVICES];
+  const existingIdx = currentList.findIndex((s) => s.id === targetId || (id && s.id === id));
+  if (existingIdx >= 0) {
+    currentList[existingIdx] = {
+      ...currentList[existingIdx],
+      ...dummyItem,
+      id: currentList[existingIdx].id,
+    };
+  } else {
+    currentList.push(dummyItem);
+  }
+  updateLocalStore("services", currentList);
+
   const existingDummyIdx = DUMMY_SERVICES.findIndex((s) => s.id === id);
   if (existingDummyIdx >= 0) {
     DUMMY_SERVICES[existingDummyIdx] = {
@@ -383,74 +485,77 @@ export async function saveService(data: unknown) {
     DUMMY_SERVICES.push(dummyItem);
   }
 
-  if (!isDbConnected) {
-    revalidatePath("/");
-    revalidatePath("/admin/services");
-    return { success: true, message: "Layanan berhasil disimpan (mode offline)." };
-  }
-
-  try {
-    if (id) {
-      const existing = await db.query.services.findFirst({
-        where: eq(schema.services.id, id),
-      });
-
-      if (existing) {
-        await db
-          .update(schema.services)
-          .set({ ...serviceData, updatedAt: new Date() })
-          .where(eq(schema.services.id, id));
-      } else {
-        await db.insert(schema.services).values({
-          id,
-          ...serviceData,
+  if (isDbConnected) {
+    try {
+      if (id) {
+        const existing = await db.query.services.findFirst({
+          where: eq(schema.services.id, id),
         });
-      }
-    } else {
-      await db.insert(schema.services).values(serviceData);
-    }
 
-    revalidatePath("/");
-    revalidatePath("/admin/services");
-    return { success: true, message: "Layanan berhasil disimpan!" };
-  } catch (error: unknown) {
-    console.error("Error saveService:", error);
-    return { success: false, error: error instanceof Error ? error.message : "Gagal menyimpan layanan" };
+        if (existing) {
+          await db
+            .update(schema.services)
+            .set({ ...serviceData, updatedAt: new Date() })
+            .where(eq(schema.services.id, id));
+        } else {
+          await db.insert(schema.services).values({
+            id,
+            ...serviceData,
+          });
+        }
+      } else {
+        await db.insert(schema.services).values(serviceData);
+      }
+    } catch (error: unknown) {
+      console.warn("Sinkronisasi database saveService gagal, tersimpan di lokal:", error);
+    }
   }
+
+  revalidatePath("/", "layout");
+  revalidatePath("/admin", "layout");
+  revalidatePath("/admin/services");
+  return { success: true, message: "Layanan berhasil disimpan!" };
 }
 
 export async function deleteService(id: string) {
+  const store = getLocalStore();
+  if (store?.services) {
+    const updated = (store.services as ServiceData[]).filter((s) => s.id !== id);
+    updateLocalStore("services", updated);
+  }
+
   const dummyIdx = DUMMY_SERVICES.findIndex((s) => s.id === id);
   if (dummyIdx >= 0) {
     DUMMY_SERVICES.splice(dummyIdx, 1);
   }
 
-  if (!isDbConnected) {
-    revalidatePath("/");
-    revalidatePath("/admin/services");
-    return { success: true, message: "Layanan dihapus (mode offline)." };
+  if (isDbConnected) {
+    try {
+      await db.delete(schema.services).where(eq(schema.services.id, id));
+    } catch (error: unknown) {
+      console.warn("Sinkronisasi database deleteService gagal:", error);
+    }
   }
-  try {
-    await db.delete(schema.services).where(eq(schema.services.id, id));
-    revalidatePath("/");
-    revalidatePath("/admin/services");
-    return { success: true, message: "Layanan berhasil dihapus!" };
-  } catch (error: unknown) {
-    console.error("Error deleteService:", error);
-    return { success: false, error: error instanceof Error ? error.message : "Gagal menghapus layanan" };
-  }
+
+  revalidatePath("/", "layout");
+  revalidatePath("/admin", "layout");
+  revalidatePath("/admin/services");
+  return { success: true, message: "Layanan berhasil dihapus!" };
 }
 
 // ==========================================
 // PRODUK SERVER ACTIONS
 // ==========================================
-export async function getProducts() {
-  if (!isDbConnected) return DUMMY_PRODUCTS;
+export async function getProducts(): Promise<ProductData[]> {
+  const store = getLocalStore();
+  const baseProducts = (store?.products as ProductData[]) || DUMMY_PRODUCTS;
+
+  if (!isDbConnected) return baseProducts;
   try {
     const list = await db.query.products.findMany({
       orderBy: [asc(schema.products.order)],
     });
-    if (!list || list.length === 0) return DUMMY_PRODUCTS;
+    if (!list || list.length === 0) return baseProducts;
     return list.map((p) => ({
       id: p.id,
       title: p.title,
@@ -463,8 +568,8 @@ export async function getProducts() {
       published: p.published,
     }));
   } catch (error) {
-    console.error("Error getProducts:", error);
-    return DUMMY_PRODUCTS;
+    console.error("Database query getProducts gagal, menggunakan data lokal:", error);
+    return baseProducts;
   }
 }
 
@@ -505,6 +610,21 @@ export async function saveProduct(data: unknown) {
     published: productData.published ?? true,
   };
 
+  // Simpan ke disk lokal
+  const store = getLocalStore();
+  const currentList = (store?.products as ProductData[]) || [...DUMMY_PRODUCTS];
+  const existingIdx = currentList.findIndex((p) => p.id === targetId || (id && p.id === id));
+  if (existingIdx >= 0) {
+    currentList[existingIdx] = {
+      ...currentList[existingIdx],
+      ...dummyItem,
+      id: currentList[existingIdx].id,
+    };
+  } else {
+    currentList.push(dummyItem);
+  }
+  updateLocalStore("products", currentList);
+
   const existingDummyIdx = DUMMY_PRODUCTS.findIndex((p) => p.id === id);
   if (existingDummyIdx >= 0) {
     DUMMY_PRODUCTS[existingDummyIdx] = {
@@ -516,74 +636,77 @@ export async function saveProduct(data: unknown) {
     DUMMY_PRODUCTS.push(dummyItem);
   }
 
-  if (!isDbConnected) {
-    revalidatePath("/");
-    revalidatePath("/admin/products");
-    return { success: true, message: "Produk berhasil disimpan (mode offline)." };
-  }
-
-  try {
-    if (id) {
-      const existing = await db.query.products.findFirst({
-        where: eq(schema.products.id, id),
-      });
-
-      if (existing) {
-        await db
-          .update(schema.products)
-          .set({ ...productData, updatedAt: new Date() })
-          .where(eq(schema.products.id, id));
-      } else {
-        await db.insert(schema.products).values({
-          id,
-          ...productData,
+  if (isDbConnected) {
+    try {
+      if (id) {
+        const existing = await db.query.products.findFirst({
+          where: eq(schema.products.id, id),
         });
-      }
-    } else {
-      await db.insert(schema.products).values(productData);
-    }
 
-    revalidatePath("/");
-    revalidatePath("/admin/products");
-    return { success: true, message: "Produk berhasil disimpan!" };
-  } catch (error: unknown) {
-    console.error("Error saveProduct:", error);
-    return { success: false, error: error instanceof Error ? error.message : "Gagal menyimpan produk" };
+        if (existing) {
+          await db
+            .update(schema.products)
+            .set({ ...productData, updatedAt: new Date() })
+            .where(eq(schema.products.id, id));
+        } else {
+          await db.insert(schema.products).values({
+            id,
+            ...productData,
+          });
+        }
+      } else {
+        await db.insert(schema.products).values(productData);
+      }
+    } catch (error: unknown) {
+      console.warn("Sinkronisasi database saveProduct gagal, tersimpan di lokal:", error);
+    }
   }
+
+  revalidatePath("/", "layout");
+  revalidatePath("/admin", "layout");
+  revalidatePath("/admin/products");
+  return { success: true, message: "Produk berhasil disimpan!" };
 }
 
 export async function deleteProduct(id: string) {
+  const store = getLocalStore();
+  if (store?.products) {
+    const updated = (store.products as ProductData[]).filter((p) => p.id !== id);
+    updateLocalStore("products", updated);
+  }
+
   const dummyIdx = DUMMY_PRODUCTS.findIndex((p) => p.id === id);
   if (dummyIdx >= 0) {
     DUMMY_PRODUCTS.splice(dummyIdx, 1);
   }
 
-  if (!isDbConnected) {
-    revalidatePath("/");
-    revalidatePath("/admin/products");
-    return { success: true, message: "Produk dihapus (mode offline)." };
+  if (isDbConnected) {
+    try {
+      await db.delete(schema.products).where(eq(schema.products.id, id));
+    } catch (error: unknown) {
+      console.warn("Sinkronisasi database deleteProduct gagal:", error);
+    }
   }
-  try {
-    await db.delete(schema.products).where(eq(schema.products.id, id));
-    revalidatePath("/");
-    revalidatePath("/admin/products");
-    return { success: true, message: "Produk berhasil dihapus!" };
-  } catch (error: unknown) {
-    console.error("Error deleteProduct:", error);
-    return { success: false, error: error instanceof Error ? error.message : "Gagal menghapus produk" };
-  }
+
+  revalidatePath("/", "layout");
+  revalidatePath("/admin", "layout");
+  revalidatePath("/admin/products");
+  return { success: true, message: "Produk berhasil dihapus!" };
 }
 
 // ==========================================
 // TESTIMONI SERVER ACTIONS
 // ==========================================
-export async function getTestimonials() {
-  if (!isDbConnected) return DUMMY_TESTIMONIALS;
+export async function getTestimonials(): Promise<TestimonialData[]> {
+  const store = getLocalStore();
+  const baseTestimonials = (store?.testimonials as TestimonialData[]) || DUMMY_TESTIMONIALS;
+
+  if (!isDbConnected) return baseTestimonials;
   try {
     const list = await db.query.testimonials.findMany({
       orderBy: [asc(schema.testimonials.order)],
     });
-    if (!list || list.length === 0) return DUMMY_TESTIMONIALS;
+    if (!list || list.length === 0) return baseTestimonials;
     return list.map((t) => ({
       id: t.id,
       clientName: t.clientName,
@@ -596,8 +719,8 @@ export async function getTestimonials() {
       published: t.published,
     }));
   } catch (error) {
-    console.error("Error getTestimonials:", error);
-    return DUMMY_TESTIMONIALS;
+    console.error("Database query getTestimonials gagal, menggunakan data lokal:", error);
+    return baseTestimonials;
   }
 }
 
@@ -638,6 +761,21 @@ export async function saveTestimonial(data: unknown) {
     published: testimonialData.published ?? true,
   };
 
+  // Simpan ke disk lokal
+  const store = getLocalStore();
+  const currentList = (store?.testimonials as TestimonialData[]) || [...DUMMY_TESTIMONIALS];
+  const existingIdx = currentList.findIndex((t) => t.id === targetId || (id && t.id === id));
+  if (existingIdx >= 0) {
+    currentList[existingIdx] = {
+      ...currentList[existingIdx],
+      ...dummyItem,
+      id: currentList[existingIdx].id,
+    };
+  } else {
+    currentList.push(dummyItem);
+  }
+  updateLocalStore("testimonials", currentList);
+
   const existingDummyIdx = DUMMY_TESTIMONIALS.findIndex((t) => t.id === id);
   if (existingDummyIdx >= 0) {
     DUMMY_TESTIMONIALS[existingDummyIdx] = {
@@ -649,60 +787,60 @@ export async function saveTestimonial(data: unknown) {
     DUMMY_TESTIMONIALS.push(dummyItem);
   }
 
-  if (!isDbConnected) {
-    revalidatePath("/");
-    revalidatePath("/admin/testimonials");
-    return { success: true, message: "Testimoni berhasil disimpan (mode offline)." };
-  }
-
-  try {
-    if (id) {
-      const existing = await db.query.testimonials.findFirst({
-        where: eq(schema.testimonials.id, id),
-      });
-
-      if (existing) {
-        await db
-          .update(schema.testimonials)
-          .set({ ...testimonialData, updatedAt: new Date() })
-          .where(eq(schema.testimonials.id, id));
-      } else {
-        await db.insert(schema.testimonials).values({
-          id,
-          ...testimonialData,
+  if (isDbConnected) {
+    try {
+      if (id) {
+        const existing = await db.query.testimonials.findFirst({
+          where: eq(schema.testimonials.id, id),
         });
-      }
-    } else {
-      await db.insert(schema.testimonials).values(testimonialData);
-    }
 
-    revalidatePath("/");
-    revalidatePath("/admin/testimonials");
-    return { success: true, message: "Testimoni berhasil disimpan!" };
-  } catch (error: unknown) {
-    console.error("Error saveTestimonial:", error);
-    return { success: false, error: error instanceof Error ? error.message : "Gagal menyimpan testimoni" };
+        if (existing) {
+          await db
+            .update(schema.testimonials)
+            .set({ ...testimonialData, updatedAt: new Date() })
+            .where(eq(schema.testimonials.id, id));
+        } else {
+          await db.insert(schema.testimonials).values({
+            id,
+            ...testimonialData,
+          });
+        }
+      } else {
+        await db.insert(schema.testimonials).values(testimonialData);
+      }
+    } catch (error: unknown) {
+      console.warn("Sinkronisasi database saveTestimonial gagal, tersimpan di lokal:", error);
+    }
   }
+
+  revalidatePath("/", "layout");
+  revalidatePath("/admin", "layout");
+  revalidatePath("/admin/testimonials");
+  return { success: true, message: "Testimoni berhasil disimpan!" };
 }
 
 export async function deleteTestimonial(id: string) {
+  const store = getLocalStore();
+  if (store?.testimonials) {
+    const updated = (store.testimonials as TestimonialData[]).filter((p) => p.id !== id);
+    updateLocalStore("testimonials", updated);
+  }
+
   const dummyIdx = DUMMY_TESTIMONIALS.findIndex((p) => p.id === id);
   if (dummyIdx >= 0) {
     DUMMY_TESTIMONIALS.splice(dummyIdx, 1);
   }
 
-  if (!isDbConnected) {
-    revalidatePath("/");
-    revalidatePath("/admin/testimonials");
-    return { success: true, message: "Testimoni dihapus (mode offline)." };
+  if (isDbConnected) {
+    try {
+      await db.delete(schema.testimonials).where(eq(schema.testimonials.id, id));
+    } catch (error: unknown) {
+      console.warn("Sinkronisasi database deleteTestimonial gagal:", error);
+    }
   }
-  try {
-    await db.delete(schema.testimonials).where(eq(schema.testimonials.id, id));
-    revalidatePath("/");
-    revalidatePath("/admin/testimonials");
-    return { success: true, message: "Testimoni berhasil dihapus!" };
-  } catch (error: unknown) {
-    console.error("Error deleteTestimonial:", error);
-    return { success: false, error: error instanceof Error ? error.message : "Gagal menghapus testimoni" };
-  }
+
+  revalidatePath("/", "layout");
+  revalidatePath("/admin", "layout");
+  revalidatePath("/admin/testimonials");
+  return { success: true, message: "Testimoni berhasil dihapus!" };
 }

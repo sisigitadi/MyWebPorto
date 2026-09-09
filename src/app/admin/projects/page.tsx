@@ -181,37 +181,18 @@ export default function AdminProjectsPage() {
       .filter(Boolean);
 
     startTransition(async () => {
-      // Prioritaskan teks deskripsi yang diedit pengguna
-      let finalDescription = formDescription.trim();
-      if (!finalDescription) {
-        finalDescription = formSummary.trim();
-      } else if (
-        selectedProject &&
-        formSummary.trim() !== selectedProject.summary &&
-        formDescription.trim() === selectedProject.description
-      ) {
-        // Jika pengguna hanya mengedit kolom ringkasan deskripsi
-        finalDescription = formSummary.trim();
-      }
-
-      let finalDescriptionEn = formDescriptionEn.trim();
-      if (!finalDescriptionEn && formSummaryEn.trim()) {
-        finalDescriptionEn = formSummaryEn.trim();
-      } else if (
-        selectedProject &&
-        formSummaryEn.trim() !== (selectedProject.summaryEn || "") &&
-        formDescriptionEn.trim() === (selectedProject.descriptionEn || "")
-      ) {
-        finalDescriptionEn = formSummaryEn.trim();
-      }
+      const finalDescription = formDescription.trim() || formSummary.trim();
+      const finalDescriptionEn = formDescriptionEn.trim() || formSummaryEn.trim() || undefined;
 
       const payload = {
         id: isEditing && selectedProject ? selectedProject.id : undefined,
         title: formTitle,
         titleEn: formTitleEn || undefined,
         slug: formSlug || formTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        summary: formSummary.trim() || finalDescription.slice(0, 120),
+        summaryEn: formSummaryEn.trim() || (finalDescriptionEn ? finalDescriptionEn.slice(0, 120) : undefined),
         description: finalDescription,
-        descriptionEn: finalDescriptionEn || undefined,
+        descriptionEn: finalDescriptionEn,
         imageUrl: formThumbnail,
         demoUrl: formDemoUrl || undefined,
         repoUrl: formRepoUrl || undefined,

@@ -52,12 +52,19 @@ if (fs.existsSync(publicSrc)) {
   copyDir(publicSrc, publicDest);
 }
 
-// 4. Copy ecosystem.config.cjs
+// 4. Copy data folder (local store yang persisten)
+const dataSrc = path.resolve("data");
+const dataDest = path.join(targetDir, "data");
+if (fs.existsSync(dataSrc)) {
+  copyDir(dataSrc, dataDest);
+}
+
+// 5. Copy ecosystem.config.cjs
 if (fs.existsSync("ecosystem.config.cjs")) {
   fs.copyFileSync("ecosystem.config.cjs", path.join(targetDir, "ecosystem.config.cjs"));
 }
 
-// 5. Copy .env.example as .env template if not present
+// 6. Copy .env.example as .env template if not present
 if (fs.existsSync(".env.example")) {
   fs.copyFileSync(".env.example", path.join(targetDir, ".env"));
 }
