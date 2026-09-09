@@ -1,7 +1,7 @@
 "use server";
 
-import fs from "node:fs";
-import path from "node:path";
+import fs from "fs";
+import path from "path";
 import { revalidatePath } from "next/cache";
 import { asc, desc, eq } from "drizzle-orm";
 import { db, isDbConnected } from "@/db";
@@ -128,7 +128,29 @@ export async function getProfile(): Promise<ProfileData> {
     const res = await db.query.profiles.findFirst({
       where: eq(schema.profiles.id, "owner"),
     });
-    if (!res) return baseProfile;
+    if (!res) {
+      try {
+        await db.insert(schema.profiles).values({
+          id: "owner",
+          name: baseProfile.name,
+          headline: baseProfile.headline,
+          headlineEn: baseProfile.headlineEn || null,
+          bio: baseProfile.bio,
+          bioEn: baseProfile.bioEn || null,
+          avatarUrl: baseProfile.avatarUrl,
+          email: baseProfile.email,
+          phone: baseProfile.phone,
+          location: baseProfile.location,
+          availableForHire: baseProfile.availableForHire,
+          skills: baseProfile.skills,
+          stats: baseProfile.stats,
+          socialLinks: baseProfile.socialLinks,
+        }).onConflictDoNothing();
+      } catch (seedErr) {
+        console.warn("Auto-seed profil awal dilewati (tabel mungkin belum ada):", seedErr);
+      }
+      return baseProfile;
+    }
     return {
       ...baseProfile,
       ...res,
@@ -196,7 +218,18 @@ export async function updateProfile(data: unknown) {
           },
         });
     } catch (error: unknown) {
-      console.warn("Sinkronisasi database updateProfile gagal, tersimpan di lokal:", error);
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error("Sinkronisasi database updateProfile gagal:", errMsg);
+      if (errMsg.includes("does not exist") || errMsg.includes("relation")) {
+        return {
+          success: false,
+          error: "Tabel 'profiles' belum dibuat di Neon PostgreSQL. Harap jalankan 'npm run db:push' di terminal Anda terlebih dahulu.",
+        };
+      }
+      return {
+        success: false,
+        error: `Gagal menyimpan profil ke database Neon: ${errMsg}`,
+      };
     }
   }
 
@@ -218,7 +251,34 @@ export async function getProjects(): Promise<ProjectData[]> {
     const list = await db.query.projects.findMany({
       orderBy: [asc(schema.projects.order), desc(schema.projects.createdAt)],
     });
-    if (!list || list.length === 0) return baseProjects;
+    if (!list || list.length === 0) {
+      try {
+        for (let i = 0; i < DUMMY_PROJECTS.length; i++) {
+          const p = DUMMY_PROJECTS[i];
+          await db
+            .insert(schema.projects)
+            .values({
+              id: p.id,
+              slug: p.slug,
+              title: p.title,
+              titleEn: p.titleEn || null,
+              description: p.description,
+              descriptionEn: p.descriptionEn || null,
+              imageUrl: p.thumbnailUrl,
+              demoUrl: p.demoUrl || null,
+              repoUrl: p.repoUrl || null,
+              techStacks: p.techStack,
+              featured: p.featured,
+              published: p.published,
+              order: i + 1,
+            })
+            .onConflictDoNothing();
+        }
+      } catch (seedErr) {
+        console.warn("Auto-seed projects dilewati:", seedErr);
+      }
+      return baseProjects;
+    }
     return list.map((p) => {
       const summaryId = p.description.slice(0, 120) + (p.description.length > 120 ? "..." : "");
       const summaryEn = p.descriptionEn
@@ -364,7 +424,18 @@ export async function saveProject(data: unknown) {
         });
       }
     } catch (error: unknown) {
-      console.warn("Sinkronisasi database saveProject gagal, tersimpan di lokal:", error);
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error("Sinkronisasi database saveProject gagal:", errMsg);
+      if (errMsg.includes("does not exist") || errMsg.includes("relation")) {
+        return {
+          success: false,
+          error: "Tabel 'projects' belum ada di Neon PostgreSQL. Harap jalankan 'npm run db:push' di terminal Anda.",
+        };
+      }
+      return {
+        success: false,
+        error: `Gagal menyimpan proyek ke database Neon: ${errMsg}`,
+      };
     }
   }
 
@@ -412,7 +483,27 @@ export async function getServices(): Promise<ServiceData[]> {
     const list = await db.query.services.findMany({
       orderBy: [asc(schema.services.order)],
     });
-    if (!list || list.length === 0) return baseServices;
+    if (!list || list.length === 0) {
+      try {
+        for (const s of DUMMY_SERVICES) {
+          await db
+            .insert(schema.services)
+            .values({
+              id: s.id,
+              title: s.title,
+              titleEn: s.titleEn || null,
+              description: s.description,
+              descriptionEn: s.descriptionEn || null,
+              order: s.order,
+              published: s.published,
+            })
+            .onConflictDoNothing();
+        }
+      } catch (seedErr) {
+        console.warn("Auto-seed services dilewati:", seedErr);
+      }
+      return baseServices;
+    }
     return list.map((s) => ({
       id: s.id,
       order: s.order,
@@ -511,7 +602,18 @@ export async function saveService(data: unknown) {
         await db.insert(schema.services).values(serviceData);
       }
     } catch (error: unknown) {
-      console.warn("Sinkronisasi database saveService gagal, tersimpan di lokal:", error);
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error("Sinkronisasi database saveService gagal:", errMsg);
+      if (errMsg.includes("does not exist") || errMsg.includes("relation")) {
+        return {
+          success: false,
+          error: "Tabel 'services' belum ada di Neon PostgreSQL. Harap jalankan 'npm run db:push' di terminal Anda.",
+        };
+      }
+      return {
+        success: false,
+        error: `Gagal menyimpan layanan ke database Neon: ${errMsg}`,
+      };
     }
   }
 
@@ -559,7 +661,30 @@ export async function getProducts(): Promise<ProductData[]> {
     const list = await db.query.products.findMany({
       orderBy: [asc(schema.products.order)],
     });
-    if (!list || list.length === 0) return baseProducts;
+    if (!list || list.length === 0) {
+      try {
+        for (let i = 0; i < DUMMY_PRODUCTS.length; i++) {
+          const pr = DUMMY_PRODUCTS[i];
+          await db
+            .insert(schema.products)
+            .values({
+              id: pr.id,
+              title: pr.title,
+              titleEn: pr.titleEn || null,
+              description: pr.description,
+              descriptionEn: pr.descriptionEn || null,
+              imageUrl: pr.thumbnailUrl,
+              priceLabel: pr.priceFormatted,
+              published: pr.published,
+              order: i + 1,
+            })
+            .onConflictDoNothing();
+        }
+      } catch (seedErr) {
+        console.warn("Auto-seed products dilewati:", seedErr);
+      }
+      return baseProducts;
+    }
     return list.map((p) => ({
       id: p.id,
       title: p.title,
@@ -662,7 +787,18 @@ export async function saveProduct(data: unknown) {
         await db.insert(schema.products).values(productData);
       }
     } catch (error: unknown) {
-      console.warn("Sinkronisasi database saveProduct gagal, tersimpan di lokal:", error);
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error("Sinkronisasi database saveProduct gagal:", errMsg);
+      if (errMsg.includes("does not exist") || errMsg.includes("relation")) {
+        return {
+          success: false,
+          error: "Tabel 'products' belum ada di Neon PostgreSQL. Harap jalankan 'npm run db:push' di terminal Anda.",
+        };
+      }
+      return {
+        success: false,
+        error: `Gagal menyimpan produk ke database Neon: ${errMsg}`,
+      };
     }
   }
 
@@ -710,7 +846,30 @@ export async function getTestimonials(): Promise<TestimonialData[]> {
     const list = await db.query.testimonials.findMany({
       orderBy: [asc(schema.testimonials.order)],
     });
-    if (!list || list.length === 0) return baseTestimonials;
+    if (!list || list.length === 0) {
+      try {
+        for (let i = 0; i < DUMMY_TESTIMONIALS.length; i++) {
+          const t = DUMMY_TESTIMONIALS[i];
+          await db
+            .insert(schema.testimonials)
+            .values({
+              id: t.id,
+              clientName: t.clientName,
+              clientRole: t.clientRole,
+              clientRoleEn: t.clientRoleEn || null,
+              content: t.content,
+              contentEn: t.contentEn || null,
+              avatarUrl: t.avatarUrl || null,
+              published: t.published,
+              order: i + 1,
+            })
+            .onConflictDoNothing();
+        }
+      } catch (seedErr) {
+        console.warn("Auto-seed testimonials dilewati:", seedErr);
+      }
+      return baseTestimonials;
+    }
     return list.map((t) => ({
       id: t.id,
       clientName: t.clientName,
@@ -813,7 +972,18 @@ export async function saveTestimonial(data: unknown) {
         await db.insert(schema.testimonials).values(testimonialData);
       }
     } catch (error: unknown) {
-      console.warn("Sinkronisasi database saveTestimonial gagal, tersimpan di lokal:", error);
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error("Sinkronisasi database saveTestimonial gagal:", errMsg);
+      if (errMsg.includes("does not exist") || errMsg.includes("relation")) {
+        return {
+          success: false,
+          error: "Tabel 'testimonials' belum ada di Neon PostgreSQL. Harap jalankan 'npm run db:push' di terminal Anda.",
+        };
+      }
+      return {
+        success: false,
+        error: `Gagal menyimpan testimoni ke database Neon: ${errMsg}`,
+      };
     }
   }
 

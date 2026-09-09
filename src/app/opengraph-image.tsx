@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { getProfile } from "@/lib/actions";
 
 // Route segment config
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 // Image metadata
 export const alt = "MyWebPorto Open Graph Image";

@@ -11,7 +11,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "node --loader ts-node/esm src/db/seed.ts",
+    "db:seed": "node scripts/seed.mjs",
     "package": "node scripts/package-deploy.mjs"
   },
   "dependencies": {
