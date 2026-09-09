@@ -1,0 +1,12 @@
+.git
+node_modules
+.next
+*.log
+.env.local
+.env*.local
+README.md
+PRD_*.md
+*.png
+*.jpg
+Dockerfile*
+docker-compose*
