@@ -105,12 +105,11 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
                   <div>
                     {/* Fixed Media Frame with Hover Physics */}
                     <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted border-b border-border">
-                      <Image
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
                         src={project.thumbnailUrl}
                         alt={title}
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                       />
                       {project.featured && (
                         <div className="absolute top-3.5 right-3.5 z-10">

@@ -114,13 +114,11 @@ export function HeroSection({ profile }: HeroSectionProps) {
             <div className="flex items-center flex-wrap gap-x-4 gap-y-2">
               <span>{profile.name}</span>
               <span className="inline-block relative w-16 h-10 sm:w-24 sm:h-14 md:w-28 md:h-16 rounded-full overflow-hidden border-2 border-primary/20 shadow-sm align-middle mt-1 sm:mt-2">
-                <Image
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={profile.avatarUrl}
                   alt={profile.name}
-                  fill
-                  priority
-                  sizes="120px"
-                  className="object-cover"
+                  className="w-full h-full object-cover"
                 />
               </span>
             </div>
