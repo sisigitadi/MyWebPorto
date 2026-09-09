@@ -624,7 +624,7 @@ export default function AdminProjectsPage() {
                 </Label>
                 <Input
                   id="repoUrl"
-                  placeholder="https://github.com/dimas/repo"
+                  placeholder="https://github.com/sisigitadi/repo"
                   value={formRepoUrl}
                   onChange={(e) => setFormRepoUrl(e.target.value)}
                   className="text-xs"

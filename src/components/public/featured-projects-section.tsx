@@ -74,7 +74,7 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-blue)]">
             <span className="h-2 w-2 rounded-full bg-[var(--vt-blue)] animate-pulse" />
-            <span>PROJECT_SHOWCASE // KARYA DIGITAL TERPILIH</span>
+            <span>{t.projects_badge}</span>
           </div>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
             {t.projects_title}

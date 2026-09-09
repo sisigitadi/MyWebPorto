@@ -18,6 +18,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<OSTheme>("retro90s");
 
   useEffect(() => {
+    document.documentElement.classList.remove("dark");
     const saved = localStorage.getItem("sigit-os-theme") as OSTheme | null;
     if (saved && ["retro90s", "dark", "tokyo", "vscode"].includes(saved)) {
       setThemeState(saved);
@@ -31,6 +32,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setThemeState(newTheme);
     localStorage.setItem("sigit-os-theme", newTheme);
     document.documentElement.setAttribute("data-theme", newTheme);
+    document.documentElement.classList.remove("dark");
   };
 
   return (

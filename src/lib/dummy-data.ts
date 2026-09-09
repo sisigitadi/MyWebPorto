@@ -165,7 +165,7 @@ export const DUMMY_PROJECTS: ProjectData[] = [
       "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=800&auto=format&fit=crop",
     techStack: ["Next.js", "PostgreSQL", "Tailwind CSS", "Drizzle ORM"],
     demoUrl: "https://demo.pojokbaca.example.com",
-    repoUrl: "https://github.com/dimasprasetya/pojok-baca-digital",
+    repoUrl: "https://github.com/sisigitadi/pojok-baca-digital",
     featured: true,
     published: true,
     createdAt: "2024-02-15",
@@ -187,7 +187,7 @@ export const DUMMY_PROJECTS: ProjectData[] = [
       "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=800&auto=format&fit=crop",
     techStack: ["Laravel", "MySQL", "Bootstrap", "Alpine.js"],
     demoUrl: "https://mading.sekolah.example.com",
-    repoUrl: "https://github.com/dimasprasetya/mading-online-sekolah",
+    repoUrl: "https://github.com/sisigitadi/mading-online-sekolah",
     featured: true,
     published: true,
     createdAt: "2023-11-20",
@@ -209,7 +209,7 @@ export const DUMMY_PROJECTS: ProjectData[] = [
       "https://images.unsplash.com/photo-1556742049-0a67c5574f73?q=80&w=800&auto=format&fit=crop",
     techStack: ["React", "TypeScript", "Tailwind CSS", "IndexedDB"],
     demoUrl: "https://pos-umkm.example.com",
-    repoUrl: "https://github.com/dimasprasetya/pos-umkm",
+    repoUrl: "https://github.com/sisigitadi/pos-umkm",
     featured: true,
     published: true,
     createdAt: "2023-08-10",
@@ -228,7 +228,7 @@ export const DUMMY_PRODUCTS: ProductData[] = [
     priceFormatted: "Rp75.000",
     thumbnailUrl:
       "https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=600&auto=format&fit=crop",
-    ctaUrl: "https://karyakarsa.com/dimasprasetya/template-notion-porto",
+    ctaUrl: "https://karyakarsa.com/sigitadi/template-notion-porto",
     published: true,
   },
   {
@@ -242,7 +242,7 @@ export const DUMMY_PRODUCTS: ProductData[] = [
     priceFormatted: "Rp49.000",
     thumbnailUrl:
       "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=600&auto=format&fit=crop",
-    ctaUrl: "https://karyakarsa.com/dimasprasetya/ebook-freelance-pemula",
+    ctaUrl: "https://karyakarsa.com/sigitadi/ebook-freelance-pemula",
     published: true,
   },
 ];
@@ -254,9 +254,9 @@ export const DUMMY_TESTIMONIALS: TestimonialData[] = [
     clientRole: "Kepala Desa Digital, Komunitas Desa Cerdas",
     clientRoleEn: "Head of Digital Village, Smart Village Community",
     content:
-      "Website desa kami jadi jauh lebih rapi, modern, dan sangat mudah dikelola oleh perangkat desa kami yang masih awam teknologi. Kerja sama dengan Mas Dimas sangat memuaskan!",
+      "Website desa kami jadi jauh lebih rapi, modern, dan sangat mudah dikelola oleh perangkat desa kami yang masih awam teknologi. Kerja sama dengan Mas Sigit sangat memuaskan!",
     contentEn:
-      "Our village website is now exceptionally clean, modern, and effortless for our local staff to manage. Collaborating with Dimas was an absolute pleasure!",
+      "Our village website is now exceptionally clean, modern, and effortless for our local staff to manage. Collaborating with Sigit was an absolute pleasure!",
     rating: 5,
     avatarUrl:
       "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop",
@@ -268,9 +268,9 @@ export const DUMMY_TESTIMONIALS: TestimonialData[] = [
     clientRole: "Founder Kedai Seduh Sore",
     clientRoleEn: "Founder of Kedai Seduh Sore",
     content:
-      "Sistem kasir dan landing page yang dibuatkan Mas Dimas berhasil meningkatkan efisiensi kedai kami secara signifikan. Pembukuan jadi transparan dan pelanggan terkesan dengan menu digitalnya.",
+      "Sistem kasir dan landing page yang dibuatkan Mas Sigit berhasil meningkatkan efisiensi kedai kami secara signifikan. Pembukuan jadi transparan dan pelanggan terkesan dengan menu digitalnya.",
     contentEn:
-      "The POS system and landing page developed by Dimas significantly elevated our coffee shop's efficiency. Bookkeeping is transparent and customers love the digital menu.",
+      "The POS system and landing page developed by Sigit significantly elevated our coffee shop's efficiency. Bookkeeping is transparent and customers love the digital menu.",
     rating: 5,
     avatarUrl:
       "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=300&auto=format&fit=crop",

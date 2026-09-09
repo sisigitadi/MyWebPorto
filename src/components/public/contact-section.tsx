@@ -82,10 +82,10 @@ export function ContactSection({ profile }: ContactSectionProps) {
               <div className="space-y-4">
                 <div className="vt-card-inset p-3 bg-card border-l-4 border-l-[var(--vt-blue)]">
                   <h3 className="font-mono text-sm font-bold text-[var(--vt-ink)]">
-                    Saluran Komunikasi Langsung
+                    {t.contact_direct_channels_title}
                   </h3>
                   <p className="font-mono text-xs text-[var(--vt-ink-soft)] mt-1 leading-relaxed">
-                    Tertarik mengembangkan website bisnis, aplikasi custom, atau konsultasi UI/UX? Kirim pesan langsung ke email atau form berikut.
+                    {t.contact_direct_channels_desc}
                   </p>
                 </div>
 
@@ -127,7 +127,7 @@ export function ContactSection({ profile }: ContactSectionProps) {
                   className="vt-btn vt-btn-chrome w-full py-2 px-3 text-xs font-bold font-mono text-foreground justify-center"
                 >
                   <Mail className="h-3.5 w-3.5 text-rose-500 mr-1.5" />
-                  <span>{language === "id" ? "Buka di Gmail Langsung" : "Open in Gmail Direct"}</span>
+                  <span>{t.contact_open_gmail}</span>
                 </a>
               </div>
             </OSWindow>

@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useTranslation } from "@/lib/i18n";
 
 export function OSBootLoader() {
+  const { language } = useTranslation();
   const [bootVisible, setBootVisible] = useState(false);
   const [isFading, setIsFading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -218,14 +220,16 @@ export function OSBootLoader() {
 
         <div className="flex items-center justify-between text-[11px] text-[#37ff9b]/70">
           <p className="hidden sm:block">
-            Tekan <kbd className="px-1.5 py-0.5 bg-zinc-800 text-white border border-zinc-600 rounded text-[10px]">ESC</kbd> untuk langsung masuk
+            {language === "en" ? "Press " : "Tekan "}
+            <kbd className="px-1.5 py-0.5 bg-zinc-800 text-white border border-zinc-600 rounded text-[10px]">ESC</kbd>
+            {language === "en" ? " to enter immediately" : " untuk langsung masuk"}
           </p>
           <button
             type="button"
             onClick={handleComplete}
             className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-white border border-[#37ff9b]/60 text-xs font-mono tracking-wider transition-colors ml-auto cursor-pointer"
           >
-            [ Lewati Boot &gt;&gt; ]
+            [ {language === "en" ? "Skip Boot >>" : "Lewati Boot >>"} ]
           </button>
         </div>
       </div>

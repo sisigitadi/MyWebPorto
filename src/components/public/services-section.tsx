@@ -58,7 +58,7 @@ export function ServicesSection({ services: propServices, profile }: ServicesSec
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-blue)]">
             <span className="h-2 w-2 rounded-full bg-[var(--vt-blue)] animate-pulse" />
-            <span>SERVICES_DIRECTORY // KEAHLIAN TEKNIS</span>
+            <span>{t.services_badge}</span>
           </div>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
             {t.services_title}

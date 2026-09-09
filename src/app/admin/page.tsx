@@ -256,6 +256,7 @@ export default async function AdminDashboardPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20">
                 {(profile.avatarUrl || user?.imageUrl) ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     src={profile.avatarUrl || user?.imageUrl}
                     alt={displayName}

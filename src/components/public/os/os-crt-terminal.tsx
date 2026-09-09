@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Terminal as TerminalIcon, Play, RotateCcw } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 interface OSCrtTerminalProps {
   ownerName: string;
 }
 
 export function OSCrtTerminal({ ownerName }: OSCrtTerminalProps) {
+  const { t, language } = useTranslation();
   const [logs, setLogs] = useState<string[]>([
     "BIOS-ROM v4.19 (C) 1998-2026 SIGIT CORP.",
     "CPU: AMD 64-Bit Core @ 4.80GHz | RAM: 32768MB OK",
@@ -33,13 +35,13 @@ export function OSCrtTerminal({ ownerName }: OSCrtTerminalProps) {
 
     if (cmd === "help") {
       newLogs.push(
-        "AVAILABLE COMMANDS:",
-        "  skills     - Tampilkan daftar keahlian teknologi",
-        "  projects   - Buka katalog proyek unggulan",
-        "  ai         - Showoff keahlian AI Agent & Sistem Otomasi",
-        "  contact    - Kirim pesan ke Sigit",
-        "  clear      - Bersihkan layar terminal",
-        "  about      - Ringkasan profil pengembang"
+        language === "en" ? "AVAILABLE COMMANDS:" : "DAFTAR PERINTAH TERSEDIA:",
+        `  skills     - ${t.terminal_help_skills}`,
+        `  projects   - ${t.terminal_help_projects}`,
+        `  ai         - ${t.terminal_help_ai}`,
+        `  contact    - ${t.terminal_help_contact}`,
+        `  clear      - ${t.terminal_help_clear}`,
+        `  about      - ${t.terminal_help_about}`
       );
     } else if (cmd === "skills") {
       newLogs.push(
@@ -54,23 +56,29 @@ export function OSCrtTerminal({ ownerName }: OSCrtTerminalProps) {
         "  - High-reliability backend integration ready for production"
       );
     } else if (cmd === "projects") {
-      newLogs.push("NAV: Menavigasikan ke #proyek...");
+      newLogs.push(language === "en" ? "NAV: Navigating to projects..." : "NAV: Menavigasikan ke #proyek...");
       const el = document.getElementById("proyek");
       el?.scrollIntoView({ behavior: "smooth" });
     } else if (cmd === "contact") {
-      newLogs.push("NAV: Menavigasikan ke #kontak...");
+      newLogs.push(language === "en" ? "NAV: Navigating to contact..." : "NAV: Menavigasikan ke #kontak...");
       const el = document.getElementById("kontak");
       el?.scrollIntoView({ behavior: "smooth" });
     } else if (cmd === "clear") {
-      setLogs([`Console cleared by ${ownerName}. Ketik 'help' untuk daftar perintah.`]);
+      setLogs([
+        language === "en"
+          ? `Console cleared by ${ownerName}. Type 'help' for available commands.`
+          : `Console dibersihkan oleh ${ownerName}. Ketik 'help' untuk daftar perintah.`
+      ]);
       setCommandInput("");
       return;
     } else if (cmd === "about") {
       newLogs.push(
-        `${ownerName} adalah Web Developer & Systems Architect yang berfokus pada kecepatan, estetika, dan keandalan sistem.`
+        t.terminal_about_text.replace("{name}", ownerName)
       );
     } else {
-      newLogs.push(`Command not recognized: '${cmd}'. Ketik 'help' untuk panduan.`);
+      newLogs.push(
+        t.terminal_unknown_cmd.replace("{cmd}", cmd)
+      );
     }
 
     setLogs(newLogs);
@@ -81,7 +89,9 @@ export function OSCrtTerminal({ ownerName }: OSCrtTerminalProps) {
     setLogs([
       "SYSTEM REBOOTED...",
       "INIT: SigitOS Kernel v2.5 loaded successfully.",
-      "READY: Ketik 'help' untuk melihat daftar perintah.",
+      language === "en"
+        ? "READY: Type 'help' to view available commands."
+        : "READY: Ketik 'help' untuk melihat daftar perintah.",
     ]);
   };
 

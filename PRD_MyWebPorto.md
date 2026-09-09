@@ -318,8 +318,8 @@ flowchart TD
 
 Contoh data dummy:
 
-- **Nama Pemilik:** Dimas Prasetya
-- **Headline:** Web Developer & Content Creator
+- **Nama Pemilik:** Sigit
+- **Headline:** Web Developer & Systems Architect
 - **Bio Singkat:** “Saya membantu UMKM dan kreator digital membangun website yang cepat, profesional, dan mudah digunakan.”
 
 - **Proyek 1:**
@@ -327,7 +327,7 @@ Contoh data dummy:
   - Deskripsi: “Aplikasi web perpustakaan digital untuk komunitas, dilengkapi katalog buku, peminjaman, dan laporan statistik.”
   - Teknologi: `Next.js`, `PostgreSQL`, `Tailwind CSS`
   - Tautan Demo: `https://demo.pojokbaca.example.com`
-  - Tautan Repo: `https://github.com/dimasprasetya/pojok-baca-digital`
+  - Tautan Repo: `https://github.com/sisigitadi/pojok-baca-digital`
 
 - **Proyek 2:**
   - Judul: **Mading Online Sekolah**
@@ -343,7 +343,7 @@ Contoh data dummy:
   - **E-book Belajar Freelance** — Label harga: `Rp49.000` — “Panduan memulai karier freelance untuk pemula.”
 
 - **Testimoni:**
-  - “Website desa kami jadi jauh lebih rapi dan mudah dikelola. Kerja sama dengan Mas Dimas sangat menyenangkan!”
+  - “Website desa kami jadi jauh lebih rapi dan mudah dikelola. Kerja sama dengan Mas Sigit sangat menyenangkan!”
   - Nama: **Siti Rahma**, Kepala Desa Digital, Komunitas Desa Cerdas.
 
 ---

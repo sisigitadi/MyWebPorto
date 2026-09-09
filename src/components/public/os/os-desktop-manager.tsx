@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   User,
   Briefcase,
@@ -17,6 +17,7 @@ import {
   HardDrive,
 } from "lucide-react";
 import { ProfileData, ServiceData, ProjectData, ProductData, TestimonialData } from "@/lib/dummy-data";
+import { useTranslation } from "@/lib/i18n";
 import { HeroSection } from "@/components/public/hero-section";
 import { ServicesSection } from "@/components/public/services-section";
 import { FeaturedProjectsSection } from "@/components/public/featured-projects-section";
@@ -37,8 +38,6 @@ type AppId = "profil" | "layanan" | "proyek" | "toko" | "testimoni" | "kontak" |
 
 interface AppItem {
   id: AppId;
-  label: string;
-  filename: string;
   icon: React.ReactNode;
   number: number;
 }
@@ -46,50 +45,36 @@ interface AppItem {
 const APPS: AppItem[] = [
   {
     id: "profil",
-    label: "Profil",
-    filename: "Profil.exe",
     icon: <User className="h-4 w-4 text-emerald-400" />,
     number: 1,
   },
   {
     id: "layanan",
-    label: "Layanan",
-    filename: "Layanan.exe",
     icon: <Briefcase className="h-4 w-4 text-amber-400" />,
     number: 2,
   },
   {
     id: "proyek",
-    label: "Proyek",
-    filename: "Proyek.exe",
     icon: <FolderGit2 className="h-4 w-4 text-cyan-400" />,
     number: 3,
   },
   {
     id: "toko",
-    label: "Toko Digital",
-    filename: "Toko.zip",
     icon: <Package className="h-4 w-4 text-pink-400" />,
     number: 4,
   },
   {
     id: "testimoni",
-    label: "Testimoni",
-    filename: "Testimoni.txt",
     icon: <MessageSquareQuote className="h-4 w-4 text-violet-400" />,
     number: 5,
   },
   {
     id: "kontak",
-    label: "Kontak",
-    filename: "Kontak.exe",
     icon: <Mail className="h-4 w-4 text-rose-400" />,
     number: 6,
   },
   {
     id: "terminal",
-    label: "Terminal AI",
-    filename: "Terminal.bat",
     icon: <Terminal className="h-4 w-4 text-emerald-300" />,
     number: 7,
   },
@@ -102,10 +87,37 @@ export function OSDesktopManager({
   products,
   testimonials,
 }: OSDesktopManagerProps) {
+  const { t, language } = useTranslation();
   const [activeApp, setActiveApp] = useState<AppId>("profil");
   const [isMinimized, setIsMinimized] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const getAppLabel = useCallback((id: AppId) => {
+    switch (id) {
+      case "profil": return t.app_profile;
+      case "layanan": return t.app_services;
+      case "proyek": return t.app_projects;
+      case "toko": return t.app_store;
+      case "testimoni": return t.app_testimonials;
+      case "kontak": return t.app_contact;
+      case "terminal": return t.app_terminal;
+      default: return id;
+    }
+  }, [t]);
+
+  const getAppFilename = useCallback((id: AppId) => {
+    switch (id) {
+      case "profil": return language === "en" ? "Profile.exe" : "Profil.exe";
+      case "layanan": return language === "en" ? "Services.exe" : "Layanan.exe";
+      case "proyek": return language === "en" ? "Projects.exe" : "Proyek.exe";
+      case "toko": return language === "en" ? "Store.zip" : "Toko.zip";
+      case "testimoni": return language === "en" ? "Reviews.txt" : "Testimoni.txt";
+      case "kontak": return language === "en" ? "Contact.exe" : "Kontak.exe";
+      case "terminal": return "Terminal.bat";
+      default: return `${id}.exe`;
+    }
+  }, [language]);
 
   const currentIndex = APPS.findIndex((a) => a.id === activeApp);
   const currentApp = APPS[currentIndex] || APPS[0];
@@ -193,7 +205,7 @@ export function OSDesktopManager({
                 )}
               </div>
               <span className="vt-icon-label font-mono text-[10px] text-white tracking-wider">
-                {app.filename}
+                {getAppFilename(app.id)}
               </span>
             </button>
           ))}
@@ -211,7 +223,7 @@ export function OSDesktopManager({
               <div className="flex items-center gap-2 min-w-0">
                 <span className="shrink-0">{currentApp.icon}</span>
                 <span className="font-mono text-xs font-bold text-white tracking-wide truncate">
-                  SigitOS_Viewer :: [{currentApp.number}/{APPS.length}] {currentApp.filename}
+                  SigitOS_Viewer :: [{currentApp.number}/{APPS.length}] {getAppFilename(currentApp.id)} - {getAppLabel(currentApp.id)}
                 </span>
               </div>
 
@@ -261,7 +273,7 @@ export function OSDesktopManager({
                   }`}
                 >
                   <span className="text-[10px] font-mono text-primary">[{app.number}]</span>
-                  <span>{app.label}</span>
+                  <span>{getAppLabel(app.id)}</span>
                 </button>
               ))}
             </div>
@@ -300,10 +312,10 @@ export function OSDesktopManager({
                   type="button"
                   onClick={handlePrev}
                   className="vt-btn vt-btn-chrome h-8 px-3 text-xs font-bold text-foreground flex items-center gap-1.5 cursor-pointer"
-                  title="Tekan Panah Kiri (←)"
+                  title={t.os_nav_prev_tooltip}
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  <span>&lt; Sebelumnya</span>
+                  <span>{t.os_nav_prev}</span>
                 </button>
 
                 {/* Section Counter & Keyboard Guide */}
@@ -313,10 +325,10 @@ export function OSDesktopManager({
                     <span>C:\SIGIT\APP_{currentApp.number}.EXE</span>
                   </span>
                   <span className="px-2 py-0.5 bg-muted rounded border border-border text-foreground font-bold">
-                    Halaman {currentApp.number} dari {APPS.length}
+                    {t.os_nav_page} {currentApp.number} {t.os_nav_of} {APPS.length}
                   </span>
                   <span className="hidden md:inline text-[10px] text-muted-foreground/70">
-                    [Gunakan Tombol &larr; / &rarr;]
+                    {t.os_nav_keys}
                   </span>
                 </div>
 
@@ -325,9 +337,9 @@ export function OSDesktopManager({
                   type="button"
                   onClick={handleNext}
                   className="vt-btn vt-btn-pink h-8 px-4 text-xs font-bold text-white flex items-center gap-1.5 cursor-pointer shadow-sm"
-                  title="Tekan Panah Kanan (→)"
+                  title={t.os_nav_next_tooltip}
                 >
-                  <span>Selanjutnya &gt;</span>
+                  <span>{t.os_nav_next}</span>
                   <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
@@ -352,7 +364,7 @@ export function OSDesktopManager({
               }`}
             >
               {app.icon}
-              <span className="truncate max-w-[90px] sm:max-w-none">{app.filename}</span>
+              <span className="truncate max-w-[90px] sm:max-w-none">{getAppFilename(app.id)}</span>
             </button>
           ))}
         </div>
@@ -360,7 +372,7 @@ export function OSDesktopManager({
         {/* System Status on Bottom Right */}
         <div className="hidden sm:flex items-center gap-2 text-[11px] font-mono text-muted-foreground shrink-0 pl-2">
           <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-emerald-700 dark:text-emerald-400 font-bold">ONLINE</span>
+          <span className="text-emerald-700 dark:text-emerald-400 font-bold">{t.os_status_online}</span>
         </div>
       </div>
     </div>

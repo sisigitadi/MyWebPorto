@@ -463,7 +463,7 @@ export default function AdminProductsPage() {
                 </Label>
                 <Input
                   id="ctaUrl"
-                  placeholder="https://lynk.id/dimas/..."
+                  placeholder="https://lynk.id/sigit/..."
                   value={formCtaUrl}
                   onChange={(e) => setFormCtaUrl(e.target.value)}
                   className="text-xs"
