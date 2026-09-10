@@ -2,7 +2,7 @@
 
 import React, { useRef } from "react";
 import Link from "next/link";
-import { ArrowRight, ExternalLink, MapPin, User } from "lucide-react";
+import { ArrowRight, ExternalLink, MapPin, User, Mail } from "lucide-react";
 import { ProfileData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
 import { OSWindow } from "@/components/public/os/os-window";
@@ -69,7 +69,7 @@ export function HeroSection({ profile }: HeroSectionProps) {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#34d399] opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-[#10b981]"></span>
                   </span>
-                  <span className="tracking-wide">SYSTEM ONLINE // {t.hero_available_badge}</span>
+                  <span className="tracking-wide">SYSTEM ONLINE // REMOTE WORK READY // {t.hero_available_badge}</span>
                 </div>
               )}
 
@@ -126,6 +126,18 @@ export function HeroSection({ profile }: HeroSectionProps) {
                 <span>{t.hero_cta_portfolio}</span>
                 <ExternalLink className="h-3.5 w-3.5 ml-1 inline" />
               </a>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById("kontak");
+                  el?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="vt-btn vt-btn-chrome px-4 sm:px-6 py-2 sm:py-2.5 text-xs font-bold uppercase tracking-wider font-mono text-center flex-1 sm:flex-initial flex items-center justify-center gap-1.5"
+              >
+                <Mail className="h-3.5 w-3.5 text-primary" />
+                <span>{t.hero_cta_contact}</span>
+              </button>
 
               <span className="text-[11px] sm:text-xs font-mono font-bold text-[var(--vt-ink)] w-full sm:w-auto sm:ml-auto flex items-center justify-center sm:justify-start gap-1 pt-1 sm:pt-0">
                 <MapPin className="h-3.5 w-3.5 text-primary" />

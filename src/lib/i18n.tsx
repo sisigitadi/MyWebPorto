@@ -5,6 +5,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 export type Language = "id" | "en";
 
 export interface Translations {
+  hero_cta_contact: string;
   // Navigation & Header
   nav_home: string;
   nav_projects: string;
@@ -213,6 +214,7 @@ const translations: Record<Language, Translations> = {
     hero_verified_badge: "Diverifikasi Profesional",
     hero_cta_projects: "Lihat Proyek",
     hero_cta_portfolio: "Portofolio",
+    hero_cta_contact: "Kontak",
     hero_skills_label: "Keahlian Utama",
     hero_contact_heading: "Hubungi Saya",
     hero_window_title: "Sigit_Profile.exe // Detail Pengembang",
@@ -379,6 +381,7 @@ const translations: Record<Language, Translations> = {
     hero_verified_badge: "Professionally Verified",
     hero_cta_projects: "View Projects",
     hero_cta_portfolio: "Portfolio",
+    hero_cta_contact: "Contact",
     hero_skills_label: "Core Skills",
     hero_contact_heading: "Contact Me",
     hero_window_title: "Sigit_Profile.exe // Developer Details",
