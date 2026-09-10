@@ -11,9 +11,10 @@ import { useGSAP } from "@gsap/react";
 
 interface HeroSectionProps {
   profile: ProfileData;
+  onOpenContact?: () => void;
 }
 
-export function HeroSection({ profile }: HeroSectionProps) {
+export function HeroSection({ profile, onOpenContact }: HeroSectionProps) {
   const { t, language } = useTranslation();
   const heroRef = useRef<HTMLElement>(null);
 
@@ -130,10 +131,14 @@ export function HeroSection({ profile }: HeroSectionProps) {
               <button
                 type="button"
                 onClick={() => {
-                  const el = document.getElementById("kontak");
-                  el?.scrollIntoView({ behavior: "smooth" });
+                  if (onOpenContact) {
+                    onOpenContact();
+                  } else {
+                    const el = document.getElementById("kontak");
+                    el?.scrollIntoView({ behavior: "smooth" });
+                  }
                 }}
-                className="vt-btn vt-btn-chrome px-4 sm:px-6 py-2 sm:py-2.5 text-xs font-bold uppercase tracking-wider font-mono text-center flex-1 sm:flex-initial flex items-center justify-center gap-1.5"
+                className="vt-btn vt-btn-chrome px-4 sm:px-6 py-2 sm:py-2.5 text-xs font-bold uppercase tracking-wider font-mono text-center flex-1 sm:flex-initial flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Mail className="h-3.5 w-3.5 text-primary" />
                 <span>{t.hero_cta_contact}</span>
