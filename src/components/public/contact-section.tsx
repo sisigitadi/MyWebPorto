@@ -1,14 +1,13 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { Send, Bot, Sparkles, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
+import { Send, CheckCircle2, AlertCircle, RefreshCw, Mail, MessageSquare, MapPin, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ProfileData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
 import { OSWindow } from "@/components/public/os/os-window";
-import { queryAIEngine, AIMessage } from "@/lib/ai-engine";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -24,22 +23,6 @@ interface ContactSectionProps {
 export function ContactSection({ profile }: ContactSectionProps) {
   const { t, language } = useTranslation();
   const containerRef = useRef<HTMLElement>(null);
-
-  // --- State for AI Bot Window ---
-  const [chatMessages, setChatMessages] = useState<AIMessage[]>([
-    {
-      id: "init-1",
-      sender: "bot",
-      text:
-        language === "en"
-          ? `Hello! I am Sigit_Bot.ai (Neural Engine v2.6). Feel free to ask anything about ${profile.name}, development services, tech stack, or project collaborations!`
-          : `Halo! Saya Sigit_Bot.ai (Neural Engine v2.6). Tanyakan apa saja tentang ${profile.name}, keahlian teknis, layanan website/otomasi, atau penawaran kerja sama!`,
-      timestamp: "09:00",
-    },
-  ]);
-  const [chatInput, setChatInput] = useState("");
-  const [isBotThinking, setIsBotThinking] = useState(false);
-  const chatScrollRef = useRef<HTMLDivElement>(null);
 
   // --- State for Formspree Mailer ---
   const [formData, setFormData] = useState({
@@ -70,58 +53,14 @@ export function ContactSection({ profile }: ContactSectionProps) {
     { scope: containerRef }
   );
 
-  // Handle AI Bot Query
-  const handleSendChat = (textToSend?: string) => {
-    const text = (textToSend || chatInput).trim();
-    if (!text) return;
-
-    const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const userMsg: AIMessage = {
-      id: `user-${Date.now()}`,
-      sender: "user",
-      text,
-      timestamp: timeStr,
-    };
-
-    setChatMessages((prev) => [...prev, userMsg]);
-    if (!textToSend) setChatInput("");
-    setIsBotThinking(true);
-
-    setTimeout(() => {
-      chatScrollRef.current?.scrollTo({
-        top: chatScrollRef.current.scrollHeight,
-        behavior: "smooth",
-      });
-    }, 50);
-
-    setTimeout(() => {
-      const response = queryAIEngine(text, language);
-      const botMsg: AIMessage = {
-        id: `bot-${Date.now()}`,
-        sender: "bot",
-        text: response.text,
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      };
-      setChatMessages((prev) => [...prev, botMsg]);
-      setIsBotThinking(false);
-
-      setTimeout(() => {
-        chatScrollRef.current?.scrollTo({
-          top: chatScrollRef.current.scrollHeight,
-          behavior: "smooth",
-        });
-      }, 50);
-    }, 320);
-  };
-
   // Handle Formspree AJAX Submission
   const handleMailerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitStatus("loading");
     setStatusMessage(
       language === "en"
-        ? "TRANSMITTING VIA FORMSPREE PROTOCOL..."
-        : "MENGIRIMKAN DATA MELALUI FORMSPREE PROTOCOL..."
+        ? "TRANSMITTING VIA GATEWAY PROTOCOL..."
+        : "MENGIRIMKAN DATA MELALUI PROTOKOL GATEWAY..."
     );
 
     try {
@@ -143,34 +82,27 @@ export function ContactSection({ profile }: ContactSectionProps) {
         setSubmitStatus("success");
         setStatusMessage(
           language === "en"
-            ? "MESSAGE DISPATCHED! Formspree confirmed delivery to Sigit Adi."
-            : "PESAN TERKIRIM! Gateway Formspree mengonfirmasi pesan telah diteruskan ke Sigit Adi."
+            ? "MESSAGE DISPATCHED! Message successfully delivered to Sigit Adi."
+            : "PESAN TERKIRIM! Pesan berhasil diteruskan ke Sigit Adi."
         );
         setFormData({ name: "", email: "", subject: "", message: "" });
       } else {
         setSubmitStatus("error");
         setStatusMessage(
           language === "en"
-            ? "FAILED: Unable to dispatch packet. Please check your connection or contact directly."
-            : "GAGAL: Gagal mengirimkan pesan melalui Formspree. Silakan hubungi langsung via email."
+            ? "FAILED: Unable to dispatch message. Please check your connection or contact directly."
+            : "GAGAL: Gagal mengirimkan pesan. Silakan hubungi langsung via kontak yang tersedia."
         );
       }
     } catch {
       setSubmitStatus("error");
       setStatusMessage(
         language === "en"
-          ? "NETWORK ERROR: Could not reach Formspree endpoint."
-          : "NETWORK ERROR: Tidak dapat terhubung ke endpoint Formspree."
+          ? "NETWORK ERROR: Could not reach mail server."
+          : "NETWORK ERROR: Tidak dapat terhubung ke server pesan."
       );
     }
   };
-
-  const quickBotPrompts = [
-    language === "en" ? "Who is Sigit Adi?" : "Siapa Sigit Adi?",
-    language === "en" ? "Tech stack & skills" : "Keahlian & teknologi",
-    language === "en" ? "Services & hire" : "Layanan & pembuatan web",
-    language === "en" ? "Direct contact channels" : "Kontak langsung",
-  ];
 
   return (
     <section
@@ -183,7 +115,7 @@ export function ContactSection({ profile }: ContactSectionProps) {
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-1.5 font-pixel text-xs text-[var(--vt-blue)]">
             <span className="h-2 w-2 rounded-full bg-[var(--vt-blue)] animate-pulse" />
-            <span>COMMUNICATION_CENTER // AI ASSISTANT & DIRECT DISPATCH</span>
+            <span>COMMUNICATION_CENTER // DIRECT DISPATCH & INBOX</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
             {t.contact_title}
@@ -193,114 +125,77 @@ export function ContactSection({ profile }: ContactSectionProps) {
           </p>
         </div>
 
-        {/* Dual Window Grid */}
+        {/* Dual Window Grid: Info & Mailer Form */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-          {/* Window 1: Interactive AI Bot (Sigit_Bot.ai) */}
-          <div className="sigit-contact-window lg:col-span-6 flex flex-col">
+          {/* Window 1: Direct Channels & Information */}
+          <div className="sigit-contact-window lg:col-span-5 flex flex-col">
             <OSWindow
-              title="Sigit_Bot.ai // Neural Assistant"
-              icon={<Bot className="h-3.5 w-3.5 text-[#38bdf8]" />}
-              statusText="Model: SigitOS NLP v2.6 // In-Browser Inference"
+              title="Channels_Info.txt // Direct Contact"
+              icon={<Mail className="h-3.5 w-3.5 text-[#38bdf8]" />}
+              statusText="Status: Available for Work & Projects"
               className="h-full flex-1"
-              bodyClassName="flex flex-col h-full p-3 sm:p-4 space-y-3"
+              bodyClassName="p-4 sm:p-5 flex flex-col justify-between space-y-4"
             >
-              {/* AI Badge header */}
-              <div className="flex items-center justify-between px-2 py-1.5 vt-card-inset bg-[var(--vt-card)] text-[11px] font-mono border-l-3 border-l-primary">
-                <div className="flex items-center gap-1.5 text-[var(--vt-ink)] font-bold">
-                  <Sparkles className="h-3 w-3 text-amber-500" />
-                  <span>MACHINE LEARNING ENGINE</span>
+              <div className="space-y-4 font-mono text-xs text-[var(--vt-ink)]">
+                <div>
+                  <h3 className="font-bold text-sm text-[var(--vt-ink)] mb-1 flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-primary" />
+                    <span>{t.contact_direct_channels_title}</span>
+                  </h3>
+                  <p className="text-muted-foreground leading-relaxed text-xs">
+                    {t.contact_direct_channels_desc}
+                  </p>
                 </div>
-                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
-                  ONLINE [0ms LATENCY]
-                </span>
-              </div>
 
-              {/* Chat Message Stream */}
-              <div
-                ref={chatScrollRef}
-                className="flex-1 h-64 sm:h-80 overflow-y-auto space-y-2.5 p-2 vt-card-inset bg-[var(--vt-paper)] scrollbar-thin text-xs font-mono"
-              >
-                {chatMessages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex flex-col ${
-                      msg.sender === "user" ? "items-end" : "items-start"
-                    }`}
-                  >
-                    <div className="flex items-center gap-1 text-[10px] text-[var(--vt-ink-mute)] font-bold mb-0.5">
-                      <span>{msg.sender === "user" ? "You" : "Sigit_Bot.ai"}</span>
-                      <span>•</span>
-                      <span>{msg.timestamp}</span>
+                <div className="space-y-3 pt-2">
+                  <div className="p-3 vt-card-inset bg-[var(--vt-card)] rounded border border-[var(--vt-edge-lo-2)]">
+                    <div className="text-[10px] text-muted-foreground uppercase font-bold flex items-center gap-1.5 mb-1">
+                      <Mail className="h-3 w-3 text-primary" />
+                      <span>{t.contact_email_label}</span>
                     </div>
-                    <div
-                      className={`max-w-[90%] p-2.5 rounded-xs leading-relaxed ${
-                        msg.sender === "user"
-                          ? "bg-[var(--vt-navy)] text-white font-mono shadow-sm"
-                          : "bg-card border border-[var(--vt-edge-lo-2)] text-[var(--vt-ink)] shadow-xs"
-                      }`}
+                    <a
+                      href={`mailto:${profile.email}`}
+                      className="font-bold text-primary hover:underline break-all"
                     >
-                      <p className="whitespace-pre-wrap">{msg.text}</p>
+                      {profile.email}
+                    </a>
+                  </div>
+
+                  {profile.location && (
+                    <div className="p-3 vt-card-inset bg-[var(--vt-card)] rounded border border-[var(--vt-edge-lo-2)]">
+                      <div className="text-[10px] text-muted-foreground uppercase font-bold flex items-center gap-1.5 mb-1">
+                        <MapPin className="h-3 w-3 text-primary" />
+                        <span>{t.contact_location_label}</span>
+                      </div>
+                      <span className="font-bold">{profile.location}</span>
                     </div>
-                  </div>
-                ))}
-                {isBotThinking && (
-                  <div className="flex items-center gap-1.5 text-[11px] font-mono text-[var(--vt-blue)] italic">
-                    <span className="animate-spin">⟳</span>
-                    <span>Sigit_Bot.ai inferencing neural weights...</span>
-                  </div>
-                )}
+                  )}
+                </div>
+
+                <div className="p-3 bg-muted/40 rounded border border-dashed border-border text-[11px] leading-relaxed">
+                  <span className="font-bold text-primary block mb-1">
+                    {language === "en" ? "💡 Looking for AI Assistant?" : "💡 Mencari AI Assistant?"}
+                  </span>
+                  <span>
+                    {language === "en"
+                      ? "Sigit_Bot is now fully integrated into Terminal.bat! Open Terminal from the taskbar or Start menu to chat with Sigit_Bot."
+                      : "Sigit_Bot kini telah dipindahkan dan terintegrasi penuh ke Terminal.bat! Buka Terminal dari taskbar atau Start menu untuk berinteraksi langsung."}
+                  </span>
+                </div>
               </div>
 
-              {/* Quick Prompts */}
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {quickBotPrompts.map((q) => (
-                  <button
-                    key={q}
-                    type="button"
-                    onClick={() => handleSendChat(q)}
-                    className="px-2 py-0.5 text-[10px] font-mono font-bold vt-card-inset bg-muted text-[var(--vt-ink)] hover:bg-primary/20 transition-colors cursor-pointer"
-                  >
-                    {q}
-                  </button>
-                ))}
+              <div className="pt-2 text-[11px] text-muted-foreground font-mono flex items-center gap-1">
+                <span>Direct response SLA: under 24 hours</span>
               </div>
-
-              {/* Chat Input form */}
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSendChat();
-                }}
-                className="flex items-center gap-2 pt-1"
-              >
-                <Input
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  placeholder={
-                    language === "en"
-                      ? "Ask the AI bot anything about Sigit..."
-                      : "Tanyakan apa saja kepada AI bot seputar Sigit..."
-                  }
-                  className="flex-1 vt-card-inset bg-[var(--vt-paper)] text-[var(--vt-ink)] border border-[var(--vt-edge-lo-2)] text-xs font-mono h-8.5"
-                />
-                <button
-                  type="submit"
-                  disabled={isBotThinking || !chatInput.trim()}
-                  className="vt-btn vt-btn-pink h-8.5 px-3 text-xs font-mono font-bold flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                >
-                  <Send className="h-3 w-3" />
-                  <span>KIRIM</span>
-                </button>
-              </form>
             </OSWindow>
           </div>
 
-          {/* Window 2: Direct Mailer Form (Formspree Integrated) */}
-          <div className="sigit-contact-window lg:col-span-6 flex flex-col">
+          {/* Window 2: Direct Mailer Form */}
+          <div className="sigit-contact-window lg:col-span-7 flex flex-col">
             <OSWindow
               title="Sigit_Mailer.exe // Send Message"
               icon={<Send className="h-3.5 w-3.5 text-[#37ff9b]" />}
-              statusText="Gateway: Formspree API // mkgknrqk"
+              statusText="Gateway: Direct Dispatch Protocol"
               className="h-full flex-1"
               bodyClassName="p-4 sm:p-5 flex flex-col justify-between"
             >
@@ -390,7 +285,7 @@ export function ContactSection({ profile }: ContactSectionProps) {
                   />
                 </div>
 
-                {/* Submit button only (hapus teks "buka di email" completely) */}
+                {/* Submit button */}
                 <div className="pt-2">
                   <button
                     type="submit"

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Terminal as TerminalIcon, Play, RotateCcw, Cpu, Sparkles } from "lucide-react";
+import { Terminal as TerminalIcon, Play, RotateCcw, Cpu, Sparkles, Bot, CornerDownLeft } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { queryAIEngine } from "@/lib/ai-engine";
 
@@ -15,10 +15,13 @@ export function OSCrtTerminal({ ownerName }: OSCrtTerminalProps) {
     "BIOS-ROM v4.51 (C) 1998-2026 SIGIT CORP.",
     "CPU: AMD Ryzen 64-Bit System Architecture | RAM: 65536KB OK",
     "INIT: Loading SigitOS Machine Learning Subsystem [ONLINE]",
+    "SYSTEM: Sigit_Bot.ai Neural Assistant v2.6 initialized.",
     "NEURAL: Client-side NLP & Intent Vector Engine loaded (TF-IDF)",
     "STACK: Next.js 15.5 + React 19 + TypeScript + Neon PostgreSQL",
     `AUTH: Developer session verified for '${ownerName}'`,
-    "STATUS: Ready. Tanyakan apa saja atau ketik perintah bebas!",
+    language === "en"
+      ? "STATUS: Sigit_Bot is ready! Type 'help' for commands, or chat naturally with Sigit_Bot."
+      : "STATUS: Sigit_Bot siap! Ketik 'help' untuk daftar perintah, atau tanyakan apa saja seputar Sigit Adi.",
   ]);
   const [commandInput, setCommandInput] = useState("");
   const [isInferencing, setIsInferencing] = useState(false);
@@ -38,8 +41,8 @@ export function OSCrtTerminal({ ownerName }: OSCrtTerminalProps) {
     if (cmd === "clear" || cmd === "cls") {
       setLogs([
         language === "en"
-          ? `Console cleared. SigitOS ML Engine online. Type or ask anything.`
-          : `Console dibersihkan. Machine Learning Engine aktif. Silakan ketik perintah atau pertanyaan.`
+          ? `Console cleared. Sigit_Bot Neural Engine online. Type or ask anything.`
+          : `Console dibersihkan. Sigit_Bot Neural Engine aktif. Silakan ketik perintah atau pertanyaan.`
       ]);
       setCommandInput("");
       return;
@@ -47,15 +50,15 @@ export function OSCrtTerminal({ ownerName }: OSCrtTerminalProps) {
 
     if (cmd === "help") {
       newLogs.push(
-        language === "en" ? "SYSTEM COMMANDS & ML QUERIES:" : "PERINTAH SISTEM & QUERY ML:",
+        language === "en" ? "SYSTEM COMMANDS & SIGIT_BOT QUERIES:" : "PERINTAH SISTEM & QUERY SIGIT_BOT:",
         "  skills     - Tampilkan daftar teknologi & keahlian teknis",
         "  projects   - Lompat ke katalog proyek pilihan",
         "  services   - Lihat layanan pengembangan web & otomasi",
         "  contact    - Hubungi langsung via email & form mailer",
         "  ai         - Spesifikasi engine machine learning in-browser",
         "  clear      - Bersihkan riwayat tampilan terminal",
-        "  reboot     - Reset dan restart kernel terminal",
-        "  * ATAU ketik bebas pertanyaan (cth: 'siapa sigit', 'buat web apa saja', 'biaya hire', dll)"
+        "  reboot     - Reset dan restart kernel terminal & Sigit_Bot",
+        "  * ATAU ketik bebas pertanyaan langsung ke Sigit_Bot (cth: 'siapa sigit', 'buat web apa saja', 'biaya hire', dll)"
       );
       setLogs(newLogs);
       setCommandInput("");
@@ -85,17 +88,17 @@ export function OSCrtTerminal({ ownerName }: OSCrtTerminalProps) {
       return;
     }
 
-    // Machine Learning / NLP Inference execution
+    // Machine Learning / NLP Inference execution via Sigit_Bot
     setIsInferencing(true);
-    newLogs.push("AI: [Neural Engine inferencing query...]");
+    newLogs.push("SIGIT_BOT: [Inferencing neural weights...]");
     setLogs(newLogs);
 
     setTimeout(() => {
       const result = queryAIEngine(raw, language);
       const outputLines = result.text.split("\n");
       setLogs((prev) => [
-        ...prev.filter((l) => !l.includes("[Neural Engine inferencing")),
-        `[ML Confidence: ${(result.confidence * 100).toFixed(0)}% | Intent: ${result.intent}]`,
+        ...prev.filter((l) => !l.includes("[Inferencing neural weights")),
+        `[Sigit_Bot.ai | Confidence: ${(result.confidence * 100).toFixed(0)}% | Intent: ${result.intent}]`,
         ...outputLines,
       ]);
       setIsInferencing(false);
@@ -113,7 +116,7 @@ export function OSCrtTerminal({ ownerName }: OSCrtTerminalProps) {
     setLogs([
       "SYSTEM REBOOTED...",
       "INIT: SigitOS Kernel v2.6 loaded successfully.",
-      "NEURAL: Machine Learning Vector Engine online.",
+      "SIGIT_BOT: Neural Engine v2.6 online.",
       language === "en"
         ? "READY: Type 'help' or ask any natural question about Sigit Adi."
         : "READY: Ketik 'help' atau tanyakan apa saja seputar Sigit Adi & MyWebPorto.",
@@ -135,16 +138,20 @@ export function OSCrtTerminal({ ownerName }: OSCrtTerminalProps) {
       <div className="flex items-center justify-between border-b border-[#37ff9b]/30 pb-2 mb-3 text-[11px] font-mono">
         <div className="flex items-center gap-2">
           <TerminalIcon className="h-3.5 w-3.5 text-[#37ff9b]" />
-          <span className="font-bold tracking-wider text-[#37ff9b] flex items-center gap-1.5">
-            CRT TERMINAL MONITOR // ML ENGINE v2.6
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 bg-emerald-950/80 text-[9px] text-emerald-400 border border-emerald-500/40 rounded-xs">
+          <span className="font-bold tracking-wider text-[#37ff9b] flex items-center gap-1.5 flex-wrap">
+            <span>CRT TERMINAL // SIGIT_BOT.AI MONITOR</span>
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-950/90 text-[9px] text-emerald-400 border border-emerald-500/40 rounded-xs">
+              <Bot className="h-2.5 w-2.5 text-sky-400" />
+              SIGIT_BOT ONLINE
+            </span>
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-emerald-950/80 text-[9px] text-emerald-400 border border-emerald-500/40 rounded-xs">
               <Sparkles className="h-2.5 w-2.5 text-amber-300" />
               NEURAL READY
             </span>
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-[10px] text-[#37ff9b]/70 font-pixel">9600 BAUD</span>
+          <span className="text-[10px] text-[#37ff9b]/70 font-pixel hidden sm:inline">9600 BAUD</span>
           <button
             type="button"
             onClick={handleResetLogs}
@@ -163,7 +170,7 @@ export function OSCrtTerminal({ ownerName }: OSCrtTerminalProps) {
           <div className="flex justify-between mb-0.5">
             <span className="flex items-center gap-1">
               <Cpu className="h-2.5 w-2.5 text-[#37ff9b]" />
-              ML INFERENCE
+              SIGIT_BOT NLP
             </span>
             <span>{isInferencing ? "100%" : "3%"}</span>
           </div>
@@ -197,7 +204,7 @@ export function OSCrtTerminal({ ownerName }: OSCrtTerminalProps) {
 
       {/* Quick Prompt Suggestion Chips */}
       <div className="flex flex-wrap items-center gap-1.5 mb-2.5 pt-1 text-[10px] font-mono">
-        <span className="text-[#37ff9b]/70 select-none text-[9px] uppercase">Quick Query:</span>
+        <span className="text-[#37ff9b]/70 select-none text-[9px] uppercase">Ask Sigit_Bot:</span>
         {suggestions.map((s) => (
           <button
             key={s}
@@ -218,11 +225,11 @@ export function OSCrtTerminal({ ownerName }: OSCrtTerminalProps) {
             className={`flex items-start gap-1.5 ${
               log.startsWith(">")
                 ? "text-white font-bold"
-                : log.includes("[ML Confidence")
+                : log.includes("[Sigit_Bot.ai")
                 ? "text-amber-300 font-semibold"
                 : log.includes("[OK]") || log.includes("[ONLINE]")
                 ? "text-[#37ff9b]"
-                : log.includes("AUTH") || log.includes("NEURAL")
+                : log.includes("AUTH") || log.includes("NEURAL") || log.includes("SIGIT_BOT")
                 ? "text-[#ffd400]"
                 : "text-[#37ff9b]/90"
             }`}
@@ -236,8 +243,9 @@ export function OSCrtTerminal({ ownerName }: OSCrtTerminalProps) {
 
       {/* Interactive Command Prompt */}
       <form onSubmit={handleCommandSubmit} className="mt-3 flex items-center gap-2">
-        <span className="text-[#37ff9b] font-bold select-none font-mono shrink-0">
-          sigitos-ml:~#
+        <span className="text-[#37ff9b] font-bold select-none font-mono shrink-0 flex items-center gap-1">
+          <Bot className="h-3 w-3 text-sky-400" />
+          <span>sigit_bot:~#</span>
         </span>
         <input
           type="text"
@@ -245,8 +253,8 @@ export function OSCrtTerminal({ ownerName }: OSCrtTerminalProps) {
           onChange={(e) => setCommandInput(e.target.value)}
           placeholder={
             language === "en"
-              ? "Ask anything (e.g., 'who is sigit?', 'tech stack', 'services', 'projects')..."
-              : "Tanyakan apa saja (cth: 'siapa sigit?', 'keahlian', 'layanan', 'proyek')..."
+              ? "Ask Sigit_Bot anything or run command ('help', 'skills', 'proyek')..."
+              : "Tanyakan apa saja ke Sigit_Bot atau jalankan perintah ('help', 'skills', 'proyek')..."
           }
           className="flex-1 bg-transparent border-0 outline-none text-[#37ff9b] font-mono text-xs placeholder:text-[#37ff9b]/40 focus:ring-0 p-0"
         />
@@ -254,8 +262,8 @@ export function OSCrtTerminal({ ownerName }: OSCrtTerminalProps) {
           type="submit"
           className="vt-btn vt-btn-chrome px-3 py-1 text-[10px] font-mono font-bold flex items-center gap-1 cursor-pointer"
         >
-          <Play className="h-2.5 w-2.5 text-primary" />
-          <span>RUN</span>
+          <CornerDownLeft className="h-2.5 w-2.5 text-primary" />
+          <span>ENTER</span>
         </button>
       </form>
     </div>

@@ -304,7 +304,7 @@ const translations: Record<Language, Translations> = {
     contact_message_label: "Isi Pesan",
     contact_message_placeholder:
       "Ceritakan kebutuhan proyek atau pertanyaan Anda di sini...",
-    contact_send_btn: "Buka di Email / Kirim Pesan",
+    contact_send_btn: "Kirim Pesan",
 
     // Terminal CRT
     terminal_title: "CRT TERMINAL MONITOR // TTY-1",
@@ -470,7 +470,7 @@ const translations: Record<Language, Translations> = {
     contact_message_label: "Message Content",
     contact_message_placeholder:
       "Describe your project requirements or inquiries here...",
-    contact_send_btn: "Open in Email / Send Message",
+    contact_send_btn: "Send Message",
 
     // Terminal CRT
     terminal_title: "CRT TERMINAL MONITOR // TTY-1",

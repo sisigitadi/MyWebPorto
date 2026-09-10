@@ -13,7 +13,8 @@ Website profil pribadi dan portofolio profesional elegan berbasis Next.js 15, di
    - **Proyek Unggulan**: Showcase portofolio unggulan dengan gambar beresolusi tinggi, tag tech stack, dan link detail.
    - **Katalog Produk**: Etalase produk digital/fisik dengan label harga dan tombol tanya produk (tanpa checkout otomatis).
    - **Testimoni Klien**: Ulasan dan rekomendasi dari klien/mitra kerja.
-   - **Kontak & Media Sosial**: Form/link komunikasi langsung dengan pemilik website.
+   - **Kontak & Media Sosial**: Form/link komunikasi langsung dengan pemilik website (tanpa teks debug/eksternal).
+   - **Terminal Interaktif (`Terminal.bat` / `OSCrtTerminal`)**: Konsol CRT interaktif yang mengintegrasikan AI Assistant (`Sigit_Bot.ai`) dengan fitur perintah cepat dan neural logs.
 2. **Daftar Proyek (`/proyek`)**:
    - Grid seluruh portofolio proyek yang dipublikasikan dengan badge teknologi dan link ke detail proyek.
 3. **Detail Proyek (`/proyek/[slug]`)**:
