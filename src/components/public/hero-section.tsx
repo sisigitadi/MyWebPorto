@@ -38,9 +38,9 @@ export function HeroSection({ profile, onOpenContact }: HeroSectionProps) {
   const getTranslatedStatLabel = (label: string) => {
     if (language === "id") return label;
     const map: Record<string, string> = {
-      "Tahun Pengalaman": "Years",
-      "Proyek Selesai": "Projects",
-      "Kepuasan Klien": "Rating",
+      "Tahun Pengalaman": "Years of Experience",
+      "Proyek Selesai": "Projects Completed",
+      "Kepuasan Klien": "Client Rating",
       "Mitra Kolaborasi": "Partners",
     };
     return map[label] || label;
