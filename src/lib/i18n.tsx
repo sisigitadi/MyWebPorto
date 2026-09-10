@@ -210,7 +210,7 @@ const translations: Record<Language, Translations> = {
     boot_skip_hint: "Tekan ESC untuk langsung masuk",
 
     // Hero Section
-    hero_available_badge: "Tersedia untuk proyek freelance & konsultasi",
+    hero_available_badge: "Full-time // Freelance // Konsultasi Proyek",
     hero_verified_badge: "Diverifikasi Profesional",
     hero_cta_projects: "Lihat Proyek",
     hero_cta_portfolio: "Portofolio",
@@ -377,7 +377,7 @@ const translations: Record<Language, Translations> = {
     boot_skip_hint: "Press ESC to enter immediately",
 
     // Hero Section
-    hero_available_badge: "Available for freelance & consulting projects",
+    hero_available_badge: "Full-time // Freelance // Project Consulting",
     hero_verified_badge: "Professionally Verified",
     hero_cta_projects: "View Projects",
     hero_cta_portfolio: "Portfolio",

@@ -161,17 +161,6 @@ export function OSMenubar({ profileName }: OSMenubarProps) {
             <GithubIcon className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden md:inline">GitHub</span>
           </a>
-          <a
-            href="https://porto.sigitadi.id/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="vt-btn vt-btn-chrome px-1.5 sm:px-2.5 py-0.5 text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-1 sm:gap-1.5 hover:text-[#7c5cff] transition-colors cursor-pointer"
-            title="Portofolio: https://porto.sigitadi.id/"
-            aria-label="Portofolio"
-          >
-            <PortfolioIcon className="h-3.5 w-3.5 shrink-0" />
-            <span className="hidden md:inline">Porto</span>
-          </a>
         </div>
 
         {/* Right Side: Language, Theme & Clock */}
