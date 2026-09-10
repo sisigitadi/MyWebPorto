@@ -70,7 +70,7 @@ export function HeroSection({ profile, onOpenContact }: HeroSectionProps) {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#34d399] opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-[#10b981]"></span>
                   </span>
-                  <span className="tracking-wide">SYSTEM ONLINE // REMOTE WORK READY // {t.hero_available_badge}</span>
+                  <span className="tracking-wide">SYSTEM ONLINE // REMOTE - ONSITE // {t.hero_available_badge}</span>
                 </div>
               )}
 
@@ -83,40 +83,40 @@ export function HeroSection({ profile, onOpenContact }: HeroSectionProps) {
                     className="w-full h-full object-cover rounded-xs vt-card-inset"
                   />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight font-display text-[var(--vt-ink)] leading-[1.1] sm:leading-[1.05] truncate sm:whitespace-normal">
+                <div>
+                  <h1 className="text-xl sm:text-3xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
                     {profile.name}
                   </h1>
-                  <p className="text-xs sm:text-base font-mono font-bold text-[var(--vt-blue)] mt-0.5 sm:mt-1 truncate">
-                    &lt;{headline} /&gt;
+                  <p className="text-xs sm:text-sm font-mono text-primary font-bold mt-0.5">
+                    {headline}
                   </p>
                 </div>
               </div>
 
-              {/* Bio text */}
-              <div className="vt-card-inset p-3 sm:p-4 bg-card text-[var(--vt-ink)] font-mono text-xs sm:text-sm leading-relaxed border-l-4 border-l-[var(--vt-blue)] font-medium">
+              {/* Bio / Description */}
+              <p className="text-xs sm:text-sm text-[var(--vt-ink)] leading-relaxed font-sans mb-5">
                 {bio}
+              </p>
+
+              {/* Stats Grid inside Profile */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mb-2">
+                {profile.stats.map((stat, idx) => (
+                  <div
+                    key={idx}
+                    className="vt-card-inset p-2.5 sm:p-3 rounded-xs bg-[var(--vt-chrome)] border border-[#5a5750]"
+                  >
+                    <div className="text-base sm:text-xl font-extrabold font-mono text-[var(--vt-ink)]">
+                      {stat.value}
+                    </div>
+                    <div className="text-[10px] sm:text-xs font-mono text-muted-foreground uppercase tracking-wider mt-0.5">
+                      {getTranslatedStatLabel(stat.label)}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
-            {/* Stats Counters (Beveled Inset Grid) */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
-              {profile.stats.map((stat, idx) => (
-                <div
-                  key={idx}
-                  className="vt-card-inset p-2 sm:p-3 bg-[var(--vt-card)]"
-                >
-                  <div className="text-xl sm:text-3xl font-black font-display text-[var(--vt-ink)]">
-                    {stat.value}
-                  </div>
-                  <div className="text-[10px] sm:text-xs font-mono font-bold text-[var(--vt-ink)] uppercase tracking-tight sm:tracking-wide mt-1">
-                    {getTranslatedStatLabel(stat.label)}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Action Buttons (Tactile 3D Buttons) */}
+            {/* CTA & Location Footer */}
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-2">
               <a
                 href="https://porto.sigitadi.id/"
@@ -134,8 +134,8 @@ export function HeroSection({ profile, onOpenContact }: HeroSectionProps) {
                   if (onOpenContact) {
                     onOpenContact();
                   } else {
-                    const el = document.getElementById("kontak");
-                    el?.scrollIntoView({ behavior: "smooth" });
+                    const event = new CustomEvent("switch-os-app", { detail: "kontak" });
+                    window.dispatchEvent(event);
                   }
                 }}
                 className="vt-btn vt-btn-chrome px-4 sm:px-6 py-2 sm:py-2.5 text-xs font-bold uppercase tracking-wider font-mono text-center flex-1 sm:flex-initial flex items-center justify-center gap-1.5 cursor-pointer"

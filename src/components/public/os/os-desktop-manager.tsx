@@ -181,7 +181,16 @@ export function OSDesktopManager({
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    const handleSwitchAppEvent = (e: CustomEvent<AppId>) => {
+      if (e.detail) {
+        switchApp(e.detail);
+      }
+    };
+    window.addEventListener("switch-os-app", handleSwitchAppEvent as EventListener);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("switch-os-app", handleSwitchAppEvent as EventListener);
+    };
   }, [handleNext, handlePrev, switchApp]);
 
   return (
