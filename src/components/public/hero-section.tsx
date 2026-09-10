@@ -70,7 +70,7 @@ export function HeroSection({ profile, onOpenContact }: HeroSectionProps) {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#34d399] opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-[#10b981]"></span>
                   </span>
-                  <span className="tracking-wide">SYSTEM ONLINE // REMOTE - ONSITE // {t.hero_available_badge}</span>
+                  <span className="tracking-wide">System Online // Remote - Onsite // Full Time - Freelance - Project</span>
                 </div>
               )}
 
