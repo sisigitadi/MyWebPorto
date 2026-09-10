@@ -84,8 +84,8 @@ export function OSCrtTerminal({ ownerName }: OSCrtTerminalProps) {
     }
 
     if (cmd === "reboot") {
-      handleResetLogs();
-      setCommandInput("");
+      sessionStorage.removeItem("sigitos_booted_session");
+      window.location.reload();
       return;
     }
 
