@@ -38,9 +38,9 @@ export function HeroSection({ profile, onOpenContact }: HeroSectionProps) {
   const getTranslatedStatLabel = (label: string) => {
     if (language === "id") return label;
     const map: Record<string, string> = {
-      "Tahun Pengalaman": "Years Experience",
-      "Proyek Selesai": "Projects Completed",
-      "Kepuasan Klien": "Client Rating",
+      "Tahun Pengalaman": "Years",
+      "Proyek Selesai": "Projects",
+      "Kepuasan Klien": "Rating",
       "Mitra Kolaborasi": "Partners",
     };
     return map[label] || label;
@@ -59,7 +59,7 @@ export function HeroSection({ profile, onOpenContact }: HeroSectionProps) {
             title="Sigit_Profile.exe // Developer Details"
             icon={<User className="h-3.5 w-3.5 text-[#ffd400]" />}
             className="h-full"
-            bodyClassName="flex flex-col justify-between space-y-6 p-4 sm:p-6"
+            bodyClassName="flex flex-col justify-between space-y-4 sm:space-y-6 p-4 sm:p-6"
           >
             {/* Header inside window */}
             <div>
@@ -75,7 +75,7 @@ export function HeroSection({ profile, onOpenContact }: HeroSectionProps) {
               )}
 
               {/* Name & Beveled Photo Badge */}
-              <div className="flex flex-row items-center gap-3 sm:gap-5 mb-4">
+              <div className="flex flex-row items-center gap-3 sm:gap-5 mb-3 sm:mb-4">
                 <div className="relative w-16 h-16 sm:w-24 sm:h-24 rounded-xs vt-raised p-1 shrink-0 bg-[var(--vt-chrome)] shadow-md">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={profile.avatarUrl} loading="eager" fetchPriority="high" decoding="sync"
@@ -94,21 +94,21 @@ export function HeroSection({ profile, onOpenContact }: HeroSectionProps) {
               </div>
 
               {/* Bio / Description */}
-              <p className="text-xs sm:text-sm text-[var(--vt-ink)] leading-relaxed font-sans mb-5">
+              <p className="text-xs sm:text-sm text-[var(--vt-ink)] leading-relaxed font-sans mb-4 sm:mb-5">
                 {bio}
               </p>
 
-              {/* Stats Grid inside Profile */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mb-2">
+              {/* Stats Grid inside Profile - Single Line */}
+              <div className="grid grid-cols-4 gap-1.5 sm:gap-2 mb-2">
                 {profile.stats.map((stat, idx) => (
                   <div
                     key={idx}
-                    className="vt-card-inset p-2.5 sm:p-3 rounded-xs bg-[var(--vt-chrome)] border border-[#5a5750]"
+                    className="vt-card-inset px-1.5 py-2 rounded-xs bg-[var(--vt-chrome)] border border-[#5a5750] text-center"
                   >
-                    <div className="text-base sm:text-xl font-extrabold font-mono text-[var(--vt-ink)]">
+                    <div className="text-xs sm:text-base font-extrabold font-mono text-[var(--vt-ink)] truncate">
                       {stat.value}
                     </div>
-                    <div className="text-[10px] sm:text-xs font-mono text-muted-foreground uppercase tracking-wider mt-0.5">
+                    <div className="text-[8px] sm:text-[10px] font-mono text-muted-foreground uppercase tracking-wider truncate mt-0.5">
                       {getTranslatedStatLabel(stat.label)}
                     </div>
                   </div>
