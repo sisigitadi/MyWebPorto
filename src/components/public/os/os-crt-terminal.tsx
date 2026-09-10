@@ -85,6 +85,7 @@ export function OSCrtTerminal({ ownerName }: OSCrtTerminalProps) {
 
     if (cmd === "reboot") {
       handleResetLogs();
+      setCommandInput("");
       return;
     }
 
