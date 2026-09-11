@@ -160,6 +160,37 @@ export const testimonials = pgTable(
   (table) => [index("testimonials_published_idx").on(table.published)]
 );
 
+export const articles = pgTable(
+  "articles",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    slug: text("slug").notNull().unique(),
+    title: text("title").notNull(),
+    titleEn: text("title_en"),
+    summary: text("summary"),
+    summaryEn: text("summary_en"),
+    content: text("content").notNull(),
+    contentEn: text("content_en"),
+    imageUrl: text("image_url"),
+    tags: jsonb("tags").$type<string[]>().notNull().default([]),
+    featured: boolean("featured").notNull().default(false),
+    published: boolean("published").notNull().default(true),
+    order: integer("order").notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("articles_slug_idx").on(table.slug),
+    index("articles_published_idx").on(table.published),
+  ]
+);
+
 export type Profile = typeof profiles.$inferSelect;
 export type NewProfile = typeof profiles.$inferInsert;
 
@@ -174,3 +205,6 @@ export type NewProduct = typeof products.$inferInsert;
 
 export type Testimonial = typeof testimonials.$inferSelect;
 export type NewTestimonial = typeof testimonials.$inferInsert;
+
+export type Article = typeof articles.$inferSelect;
+export type NewArticle = typeof articles.$inferInsert;

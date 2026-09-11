@@ -9,6 +9,7 @@ import {
   Briefcase,
   Package,
   MessageSquareQuote,
+  FileText,
   ExternalLink,
   LogOut,
   Sparkles,
@@ -56,6 +57,11 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     title: "Kelola Testimoni",
     href: "/admin/testimonials",
     icon: MessageSquareQuote,
+  },
+  {
+    title: "Kelola Artikel",
+    href: "/admin/articles",
+    icon: FileText,
   },
 ];
 

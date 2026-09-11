@@ -119,8 +119,25 @@ export const TestimonialSchema = z.object({
   order: z.number().int().default(0),
 });
 
+export const ArticleSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().min(2, "Judul artikel minimal 2 karakter"),
+  titleEn: z.string().optional().or(z.literal("")),
+  slug: z.string().min(2, "Slug minimal 2 karakter"),
+  summary: z.string().optional().or(z.literal("")),
+  summaryEn: z.string().optional().or(z.literal("")),
+  content: z.string().min(10, "Isi artikel minimal 10 karakter"),
+  contentEn: z.string().optional().or(z.literal("")),
+  imageUrl: imageOrUrlSchema.optional().or(z.literal("")),
+  tags: z.array(z.string()).default([]),
+  featured: z.boolean().default(false),
+  published: z.boolean().default(true),
+  order: z.number().int().default(0),
+});
+
 export type ProfileFormValues = z.infer<typeof ProfileSchema>;
 export type ProjectFormValues = z.infer<typeof ProjectSchema>;
 export type ServiceFormValues = z.infer<typeof ServiceSchema>;
 export type ProductFormValues = z.infer<typeof ProductSchema>;
 export type TestimonialFormValues = z.infer<typeof TestimonialSchema>;
+export type ArticleFormValues = z.infer<typeof ArticleSchema>;

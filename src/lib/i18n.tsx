@@ -12,6 +12,7 @@ export interface Translations {
   nav_services: string;
   nav_products: string;
   nav_testimonials: string;
+  nav_articles: string;
   nav_contact: string;
   nav_admin_panel: string;
   nav_contact_me: string;
@@ -24,6 +25,7 @@ export interface Translations {
   os_start_projects: string;
   os_start_store: string;
   os_start_testimonials: string;
+  os_start_articles: string;
   os_start_contact: string;
   os_start_theme: string;
   os_start_admin: string;
@@ -37,6 +39,7 @@ export interface Translations {
   app_projects: string;
   app_store: string;
   app_testimonials: string;
+  app_articles: string;
   app_contact: string;
   app_terminal: string;
   os_nav_prev: string;
@@ -121,6 +124,28 @@ export interface Translations {
   testi_subtitle: string;
   testi_verified: string;
 
+  // Articles Section
+  articles_eyebrow: string;
+  articles_badge: string;
+  articles_title: string;
+  articles_subtitle: string;
+  articles_read_more: string;
+  articles_read_time: string;
+  articles_empty: string;
+  articles_view_all: string;
+  articles_back: string;
+  article_detail_back_desktop: string;
+  article_detail_back_articles: string;
+  article_detail_share: string;
+  article_detail_copied: string;
+  article_detail_copy_link: string;
+  article_detail_read_time_suffix: string;
+  article_detail_author_label: string;
+  article_detail_discuss_title: string;
+  article_detail_discuss_desc: string;
+  article_detail_discuss_cta: string;
+  article_detail_related_title: string;
+
   // Contact Section
   contact_eyebrow: string;
   contact_title: string;
@@ -168,6 +193,7 @@ const translations: Record<Language, Translations> = {
     nav_services: "Layanan",
     nav_products: "Produk",
     nav_testimonials: "Testimoni",
+    nav_articles: "Artikel",
     nav_contact: "Kontak",
     nav_admin_panel: "Panel Admin",
     nav_contact_me: "Hubungi Saya",
@@ -180,6 +206,7 @@ const translations: Record<Language, Translations> = {
     os_start_projects: "Portofolio Proyek",
     os_start_store: "Software Store",
     os_start_testimonials: "Log Ulasan Klien",
+    os_start_articles: "Artikel & Catatan",
     os_start_contact: "Kirim Pesan (Mailer)",
     os_start_theme: "Ganti Tema OS",
     os_start_admin: "Panel Admin",
@@ -193,6 +220,7 @@ const translations: Record<Language, Translations> = {
     app_projects: "Proyek",
     app_store: "Toko Digital",
     app_testimonials: "Testimoni",
+    app_articles: "Artikel",
     app_contact: "Kontak",
     app_terminal: "Terminal AI",
     os_nav_prev: "< Sebelumnya",
@@ -285,6 +313,28 @@ const translations: Record<Language, Translations> = {
       "Kepuasan kolaborasi nyata dari berbagai proyek pengembangan website dan solusi digital.",
     testi_verified: "Klien Terverifikasi",
 
+    // Articles Section
+    articles_eyebrow: "PUBLIKASI & ARSIP // CATATAN TEKNIS",
+    articles_badge: "KUMPULAN ARTIKEL",
+    articles_title: "Catatan Teknis & Wawasan Pengembangan Web",
+    articles_subtitle: "Eksplorasi mendalam seputar arsitektur sistem web, optimasi performa, tips karier freelance, dan implementasi UI retro.",
+    articles_read_more: "Buka Dokumen [Enter]",
+    articles_read_time: "mnt baca",
+    articles_empty: "Belum ada artikel yang dipublikasikan.",
+    articles_view_all: "Lihat Semua Artikel",
+    articles_back: "Kembali ke Desktop",
+    article_detail_back_desktop: "← Kembali ke Desktop OS",
+    article_detail_back_articles: "← Daftar Artikel",
+    article_detail_share: "Bagikan Tulisan",
+    article_detail_copied: "Tautan berhasil disalin!",
+    article_detail_copy_link: "Salin Tautan",
+    article_detail_read_time_suffix: "menit baca",
+    article_detail_author_label: "DITULIS OLEH",
+    article_detail_discuss_title: "Tertarik Mendiskusikan Topik Ini?",
+    article_detail_discuss_desc: "Kirimkan pesan atau pertanyaan seputar topik ini langsung ke surel saya.",
+    article_detail_discuss_cta: "Diskusikan via Email",
+    article_detail_related_title: "Artikel Terkait Lainnya",
+
     // Contact Section
     contact_eyebrow: "Hubungi Saya",
     contact_title: "Mari Berdiskusi & Berkolaborasi",
@@ -335,6 +385,7 @@ const translations: Record<Language, Translations> = {
     nav_services: "Services",
     nav_products: "Products",
     nav_testimonials: "Testimonials",
+    nav_articles: "Articles",
     nav_contact: "Contact",
     nav_admin_panel: "Admin Panel",
     nav_contact_me: "Contact Me",
@@ -347,6 +398,7 @@ const translations: Record<Language, Translations> = {
     os_start_projects: "Project Portfolio",
     os_start_store: "Software Store",
     os_start_testimonials: "Client Review Logs",
+    os_start_articles: "Articles & Notes",
     os_start_contact: "Send Message (Mailer)",
     os_start_theme: "Change OS Theme",
     os_start_admin: "Admin Panel",
@@ -360,6 +412,7 @@ const translations: Record<Language, Translations> = {
     app_projects: "Projects",
     app_store: "Digital Store",
     app_testimonials: "Testimonials",
+    app_articles: "Articles",
     app_contact: "Contact",
     app_terminal: "AI Terminal",
     os_nav_prev: "< Previous",
@@ -451,6 +504,28 @@ const translations: Record<Language, Translations> = {
     testi_subtitle:
       "Real collaborative satisfaction across various web development and digital transformation initiatives.",
     testi_verified: "Verified Client",
+
+    // Articles Section
+    articles_eyebrow: "PUBLICATIONS & ARCHIVES // TECHNICAL WRITING",
+    articles_badge: "ARTICLE LOG",
+    articles_title: "Technical Writing & Web Development Insights",
+    articles_subtitle: "In-depth explorations into web systems architecture, performance optimization, freelance tips, and retro UI design.",
+    articles_read_more: "Open Document [Enter]",
+    articles_read_time: "min read",
+    articles_empty: "No articles published yet.",
+    articles_view_all: "View All Articles",
+    articles_back: "Back to Desktop",
+    article_detail_back_desktop: "← Back to Desktop OS",
+    article_detail_back_articles: "← All Articles",
+    article_detail_share: "Share Article",
+    article_detail_copied: "Link copied to clipboard!",
+    article_detail_copy_link: "Copy Link",
+    article_detail_read_time_suffix: "min read",
+    article_detail_author_label: "WRITTEN BY",
+    article_detail_discuss_title: "Interested in Discussing This Topic?",
+    article_detail_discuss_desc: "Send a message or question about this topic directly to my inbox.",
+    article_detail_discuss_cta: "Discuss via Email",
+    article_detail_related_title: "More Related Articles",
 
     // Contact Section
     contact_eyebrow: "Contact Me",

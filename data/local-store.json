@@ -187,5 +187,55 @@
       "avatarUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=300&auto=format&fit=crop",
       "published": true
     }
+  ],
+  "articles": [
+    {
+      "id": "art-1",
+      "slug": "arsitektur-retro-os-nextjs-15",
+      "title": "Membangun Antarmuka Retro OS Interaktif dengan Next.js 15 & GSAP",
+      "titleEn": "Building an Interactive Retro OS Interface with Next.js 15 & GSAP",
+      "summary": "Bagaimana merancang arsitektur windowing system klasik era 90-an yang tetap berkinerja tinggi, responsif di mobile, dan ramah SEO.",
+      "summaryEn": "How to architect a 90s classic windowing system that remains high-performance, mobile-responsive, and SEO friendly.",
+      "content": "Antarmuka bergaya sistem operasi retro (vintage desktop) memberikan pengalaman bernostalgia sekaligus pembeda visual yang kuat di tengah homogenitas desain web modern. Namun, tantangan terbesarnya adalah menjaga performa, aksesibilitas, dan keramahan SEO.\n\n### 1. Struktur State Terpusat\nAlih-alih membuat DOM yang saling tumpang tindih secara liar, kita memanfaatkan state terpusat di Next.js Client Component. Setiap window bertindak sebagai state machine dengan riwayat z-index dan koordinat layar.\n\n### 2. Animasi Ringan dengan GSAP\nEfek CRT scanline, window snap, dan transisi desktop diatur menggunakan GSAP Context agar aman dari memory leak dan mudah di-cleanup saat komponen di-unmount.\n\n### 3. Progressive Enhancement untuk SEO\nHalaman seperti portofolio dan detail artikel tetap memiliki URL mandiri dengan tag HTML semantik dan JSON-LD terstruktur, sehingga bot pencari Google tetap dapat mengindeks konten tanpa terhalang JavaScript retro.",
+      "contentEn": "Retro OS-style interfaces offer nostalgic appeal and powerful visual differentiation amid modern web design uniformity. However, the core challenge is preserving performance, accessibility, and SEO integrity.\n\n### 1. Centralized State Architecture\nRather than haphazard DOM layering, we manage active windows via centralized state within Next.js Client Components. Each window acts as a discrete state machine tracking z-index hierarchy and viewport constraints.\n\n### 2. Lightweight GSAP Animations\nCRT scanline flickers, window snapping, and desktop transitions are orchestrated via GSAP Context to avoid memory leaks and ensure tidy unmounting.\n\n### 3. Progressive Enhancement for Search Engines\nStandalone routes for projects and articles preserve full semantic HTML and structured JSON-LD schemas, ensuring search crawlers index content frictionlessly.",
+      "imageUrl": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=800&auto=format&fit=crop",
+      "tags": ["Next.js", "GSAP", "Architecture", "Retro UI"],
+      "featured": true,
+      "published": true,
+      "order": 1,
+      "createdAt": "2026-03-01T08:00:00.000Z"
+    },
+    {
+      "id": "art-2",
+      "slug": "optimasi-server-actions-drizzle-orm",
+      "title": "Strategi Dual-Persistence: Drizzle ORM + Local Store Fallback di Serverless",
+      "titleEn": "Dual-Persistence Strategy: Drizzle ORM + Local Store Fallback in Serverless",
+      "summary": "Mengamankan persistensi data portofolio pribadi agar tetap online dan dapat diedit baik ketika terkoneksi database cloud maupun mode lokal.",
+      "summaryEn": "Securing personal portfolio data persistence with seamless cloud database connectivity and local storage fallback.",
+      "content": "Di platform hosting modern seperti Vercel, cold-start atau limitasi koneksi database relasional sering menjadi hambatan bagi situs personal. Salah satu arsitektur tangguh adalah menerapkan Dual-Persistence Layer.\n\n### Mengapa Perlu Fallback?\nKetika kredensial database belum diset atau terjadi network partition pada Neon PostgreSQL, aplikasi tidak boleh menampilkan error 500 fatal kepada pengunjung publik.\n\n### Pola Server Action Bertingkat\n1. Cek ketersediaan pool koneksi Drizzle.\n2. Jika aktif, lakukan query SQL berindeks.\n3. Jika gagal atau tidak terkonfigurasi, alihkan secara mulus ke serialized JSON store lokal.\n\nDengan pola ini, pengunjung selalu mendapatkan response cepat dalam hitungan milidetik tanpa downtime.",
+      "contentEn": "On modern serverless platforms like Vercel, cold starts and relational database connection caps often pose hurdles for personal portfolios. A dual-persistence layer provides unmatched reliability.\n\n### Why Fallbacks Matter\nWhen cloud credentials are intentionally omitted in preview environments or database outages occur, public visitors should never see a fatal 500 page.\n\n### Tiered Server Action Pattern\n1. Probe Drizzle connection pool readiness.\n2. If healthy, execute indexed relational queries.\n3. If unreachable or unconfigured, seamlessly failover to a serialized local store.\n\nThis guarantee delivers sub-millisecond response times with zero public-facing downtime.",
+      "imageUrl": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=800&auto=format&fit=crop",
+      "tags": ["Drizzle ORM", "PostgreSQL", "Next.js", "Backend"],
+      "featured": true,
+      "published": true,
+      "order": 2,
+      "createdAt": "2026-03-05T10:30:00.000Z"
+    },
+    {
+      "id": "art-3",
+      "slug": "tips-freelance-developer-pemula",
+      "title": "5 Pelajaran Penting Memulai Karier Freelance Web Developer",
+      "titleEn": "5 Crucial Lessons for Starting a Web Developer Freelance Career",
+      "summary": "Menemukan klien pertama, menentukan pricing yang sehat, dan menyusun kontrak kerja transparan tanpa terjebak banting harga.",
+      "summaryEn": "Finding your first client, establishing healthy pricing models, and structuring transparent contracts without price wars.",
+      "content": "Memulai freelance bukan hanya soal menulis kode, melainkan tentang komunikasi bisnis dan penyelesaian masalah bagi klien.\n\n### 1. Portofolio Nyata Mengalahkan CV Berlembar-lembar\nKlien UMKM atau startup lebih peduli pada apakah Anda bisa menyelesaikan masalah mereka daripada sertifikat teori. Tunjukkan studi kasus nyata.\n\n### 2. Hindari Berkompetisi di Harga Murah\nBanting harga hanya akan menarik klien yang menuntut berlebihan dengan budget minim. Tawarkan paket solusi yang jelas dengan batasan revisi terukur.\n\n### 3. Gunakan Kontrak Tertulis dan DP 50%\nJangan pernah memulai penulisan baris kode pertama sebelum DP diterima dan cakupan pekerjaan (Scope of Work) disepakati secara tertulis.",
+      "contentEn": "Embarking on freelancing is far more than writing code—it is about business communication and solving high-value problems for clients.\n\n### 1. Real Case Studies Beat Lengthy Resumes\nClients care about tangible outcomes rather than theoretical certificates. Showcase measurable problem-solving examples.\n\n### 2. Never Compete in the Race to the Bottom\nUnderpricing inevitably attracts demanding clients with meager budgets. Offer transparent packages with explicit revision scopes.\n\n### 3. Require Written Agreements and 50% Deposits\nNever write the first line of production code before receiving a deposit and an agreed-upon Scope of Work.",
+      "imageUrl": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=800&auto=format&fit=crop",
+      "tags": ["Career", "Freelance", "Tips", "Business"],
+      "featured": false,
+      "published": true,
+      "order": 3,
+      "createdAt": "2026-03-08T14:15:00.000Z"
+    }
   ]
 }

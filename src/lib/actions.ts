@@ -13,6 +13,7 @@ import {
   ServiceSchema,
   ProductSchema,
   TestimonialSchema,
+  ArticleSchema,
 } from "@/lib/validations";
 import {
   DUMMY_PROFILE,
@@ -20,10 +21,12 @@ import {
   DUMMY_SERVICES,
   DUMMY_PRODUCTS,
   DUMMY_TESTIMONIALS,
+  DUMMY_ARTICLES,
   type ProjectData,
   type ServiceData,
   type ProductData,
   type TestimonialData,
+  type ArticleData,
   type ProfileData,
 } from "@/lib/dummy-data";
 import { translateText } from "@/lib/translate";
@@ -62,6 +65,7 @@ interface LocalStoreData {
   services: ServiceData[];
   products: ProductData[];
   testimonials: TestimonialData[];
+  articles: ArticleData[];
 }
 
 function ensureStoreExists(): void {
@@ -76,6 +80,7 @@ function ensureStoreExists(): void {
         services: DUMMY_SERVICES,
         products: DUMMY_PRODUCTS,
         testimonials: DUMMY_TESTIMONIALS,
+        articles: DUMMY_ARTICLES,
       };
       fs.writeFileSync(DATA_FILE, JSON.stringify(initialData, null, 2), "utf-8");
     }
@@ -106,6 +111,7 @@ function updateLocalStore<K extends keyof LocalStoreData>(key: K, data: LocalSto
       services: DUMMY_SERVICES,
       products: DUMMY_PRODUCTS,
       testimonials: DUMMY_TESTIMONIALS,
+      articles: DUMMY_ARTICLES,
     };
     store[key] = data;
     fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2), "utf-8");
@@ -1162,4 +1168,264 @@ export async function deleteTestimonial(id: string) {
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/testimonials");
   return { success: true, message: "Testimoni berhasil dihapus!" };
+}
+
+// ==========================================
+// ARTIKEL SERVER ACTIONS
+// ==========================================
+export async function getArticles(): Promise<ArticleData[]> {
+  const store = getLocalStore();
+  const baseArticles = (store?.articles as ArticleData[]) || DUMMY_ARTICLES;
+
+  if (!isDbConnected) return baseArticles;
+  try {
+    const list = await db.query.articles.findMany({
+      orderBy: [asc(schema.articles.order), desc(schema.articles.createdAt)],
+    });
+    if (!list || list.length === 0) {
+      try {
+        for (let i = 0; i < DUMMY_ARTICLES.length; i++) {
+          const a = DUMMY_ARTICLES[i];
+          await db
+            .insert(schema.articles)
+            .values({
+              id: a.id,
+              slug: a.slug,
+              title: a.title,
+              titleEn: a.titleEn || null,
+              summary: a.summary || null,
+              summaryEn: a.summaryEn || null,
+              content: a.content,
+              contentEn: a.contentEn || null,
+              imageUrl: a.imageUrl || null,
+              tags: a.tags,
+              featured: a.featured,
+              published: a.published,
+              order: a.order ?? i + 1,
+            })
+            .onConflictDoNothing();
+        }
+      } catch (seedErr) {
+        console.warn("Auto-seed articles dilewati:", seedErr);
+      }
+      return baseArticles;
+    }
+
+    return list.map((a) => ({
+      id: a.id,
+      slug: a.slug,
+      title: a.title,
+      titleEn: a.titleEn || null,
+      summary: a.summary || null,
+      summaryEn: a.summaryEn || null,
+      content: a.content,
+      contentEn: a.contentEn || null,
+      imageUrl: a.imageUrl || null,
+      tags: (Array.isArray(a.tags) ? a.tags : []) as string[],
+      featured: a.featured,
+      published: a.published,
+      order: a.order,
+      createdAt: a.createdAt ? a.createdAt.toISOString() : new Date().toISOString(),
+      updatedAt: a.updatedAt ? a.updatedAt.toISOString() : undefined,
+    }));
+  } catch (error) {
+    console.warn("Neon DB query getArticles gagal, beralih ke local-store/dummy:", error);
+    return baseArticles;
+  }
+}
+
+export async function getArticleBySlug(slug: string): Promise<ArticleData | null> {
+  if (!slug) return null;
+  const articles = await getArticles();
+  const found = articles.find((a) => a.slug === slug);
+  return found || null;
+}
+
+export async function saveArticle(data: unknown) {
+  try {
+    await verifyAdmin();
+  } catch (authErr: unknown) {
+    return {
+      success: false,
+      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+    };
+  }
+
+  const parseResult = ArticleSchema.safeParse(data);
+  if (!parseResult.success) {
+    return {
+      success: false,
+      error: parseResult.error.issues.map((e) => e.message).join(", "),
+    };
+  }
+
+  const {
+    id,
+    slug,
+    title,
+    titleEn,
+    summary,
+    summaryEn,
+    content,
+    contentEn,
+    imageUrl,
+    tags,
+    featured,
+    published,
+    order,
+  } = parseResult.data;
+
+  // Auto-translate English fields if omitted
+  let resolvedTitleEn = titleEn?.trim();
+  let resolvedSummaryEn = summaryEn?.trim();
+  let resolvedContentEn = contentEn?.trim();
+
+  try {
+    if (!resolvedTitleEn && title) {
+      resolvedTitleEn = await translateText(title, "en");
+    }
+    if (!resolvedSummaryEn && summary) {
+      resolvedSummaryEn = await translateText(summary, "en");
+    }
+    if (!resolvedContentEn && content) {
+      resolvedContentEn = await translateText(content, "en");
+    }
+  } catch (tErr) {
+    console.warn("Auto-translate article gagal, gunakan original:", tErr);
+  }
+
+  const articleId = id || crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  const articleRecord: ArticleData = {
+    id: articleId,
+    slug: slug.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-"),
+    title,
+    titleEn: resolvedTitleEn || null,
+    summary: summary || null,
+    summaryEn: resolvedSummaryEn || null,
+    content,
+    contentEn: resolvedContentEn || null,
+    imageUrl: imageUrl || null,
+    tags: tags || [],
+    featured: Boolean(featured),
+    published: Boolean(published),
+    order: Number(order) || 0,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  // 1. Simpan ke local store
+  const store = getLocalStore();
+  const currentArticles = (store?.articles as ArticleData[]) || [...DUMMY_ARTICLES];
+  const existingIdx = currentArticles.findIndex((a) => a.id === articleId);
+
+  if (existingIdx >= 0) {
+    articleRecord.createdAt = currentArticles[existingIdx].createdAt || now;
+    currentArticles[existingIdx] = articleRecord;
+  } else {
+    currentArticles.push(articleRecord);
+  }
+  updateLocalStore("articles", currentArticles);
+
+  // 2. Simpan ke Neon PostgreSQL jika terhubung
+  if (isDbConnected) {
+    try {
+      await db
+        .insert(schema.articles)
+        .values({
+          id: articleRecord.id,
+          slug: articleRecord.slug,
+          title: articleRecord.title,
+          titleEn: articleRecord.titleEn,
+          summary: articleRecord.summary,
+          summaryEn: articleRecord.summaryEn,
+          content: articleRecord.content,
+          contentEn: articleRecord.contentEn,
+          imageUrl: articleRecord.imageUrl,
+          tags: articleRecord.tags,
+          featured: articleRecord.featured,
+          published: articleRecord.published,
+          order: articleRecord.order,
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: schema.articles.id,
+          set: {
+            slug: articleRecord.slug,
+            title: articleRecord.title,
+            titleEn: articleRecord.titleEn,
+            summary: articleRecord.summary,
+            summaryEn: articleRecord.summaryEn,
+            content: articleRecord.content,
+            contentEn: articleRecord.contentEn,
+            imageUrl: articleRecord.imageUrl,
+            tags: articleRecord.tags,
+            featured: articleRecord.featured,
+            published: articleRecord.published,
+            order: articleRecord.order,
+            updatedAt: new Date(),
+          },
+        });
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error("Sinkronisasi database saveArticle gagal:", errMsg);
+      if (errMsg.includes("does not exist") || errMsg.includes("relation")) {
+        return {
+          success: false,
+          error: "Tabel 'articles' belum ada di Neon PostgreSQL. Harap jalankan 'npm run db:push' di terminal Anda.",
+        };
+      }
+      return {
+        success: false,
+        error: `Gagal menyimpan artikel ke database Neon: ${errMsg}`,
+      };
+    }
+  }
+
+  revalidatePath("/", "layout");
+  revalidatePath("/admin", "layout");
+  revalidatePath("/admin/articles");
+  revalidatePath(`/artikel/${articleRecord.slug}`);
+  return { success: true, message: "Artikel berhasil disimpan!", article: articleRecord };
+}
+
+export async function deleteArticle(id: string) {
+  try {
+    await verifyAdmin();
+  } catch (authErr: unknown) {
+    return {
+      success: false,
+      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+    };
+  }
+
+  const store = getLocalStore();
+  if (store?.articles) {
+    const updated = (store.articles as ArticleData[]).filter((a) => a.id !== id);
+    updateLocalStore("articles", updated);
+  }
+
+  const dummyIdx = DUMMY_ARTICLES.findIndex((a) => a.id === id);
+  if (dummyIdx >= 0) {
+    DUMMY_ARTICLES.splice(dummyIdx, 1);
+  }
+
+  if (isDbConnected) {
+    try {
+      await db.delete(schema.articles).where(eq(schema.articles.id, id));
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error("Sinkronisasi database deleteArticle gagal:", errMsg);
+      return {
+        success: false,
+        error: `Gagal menghapus artikel dari database: ${errMsg}`,
+      };
+    }
+  }
+
+  revalidatePath("/", "layout");
+  revalidatePath("/admin", "layout");
+  revalidatePath("/admin/articles");
+  return { success: true, message: "Artikel berhasil dihapus!" };
 }

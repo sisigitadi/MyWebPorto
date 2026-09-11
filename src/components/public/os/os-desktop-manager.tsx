@@ -18,8 +18,9 @@ import {
   Palette,
   RotateCcw,
   Globe,
+  FileText,
 } from "lucide-react";
-import { ProfileData, ServiceData, ProjectData, ProductData, TestimonialData } from "@/lib/dummy-data";
+import { ProfileData, ServiceData, ProjectData, ProductData, TestimonialData, ArticleData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
 import { useOSTheme, OSTheme } from "./theme-context";
 import { HeroSection } from "@/components/public/hero-section";
@@ -27,6 +28,7 @@ import { ServicesSection } from "@/components/public/services-section";
 import { FeaturedProjectsSection } from "@/components/public/featured-projects-section";
 import { ProductsSection } from "@/components/public/products-section";
 import { TestimonialsSection } from "@/components/public/testimonials-section";
+import { ArticlesSection } from "@/components/public/articles-section";
 import { ContactSection } from "@/components/public/contact-section";
 import { OSCrtTerminal } from "@/components/public/os/os-crt-terminal";
 
@@ -36,9 +38,10 @@ interface OSDesktopManagerProps {
   projects: ProjectData[];
   products: ProductData[];
   testimonials: TestimonialData[];
+  articles: ArticleData[];
 }
 
-type AppId = "profil" | "layanan" | "proyek" | "toko" | "testimoni" | "kontak" | "terminal";
+type AppId = "profil" | "layanan" | "proyek" | "toko" | "testimoni" | "artikel" | "kontak" | "terminal";
 
 interface AppItem {
   id: AppId;
@@ -73,14 +76,19 @@ const APPS: AppItem[] = [
     number: 5,
   },
   {
+    id: "artikel",
+    icon: <FileText className="h-[18px] w-[18px] text-[#ea580c] dark:text-[#fb923c] shrink-0" strokeWidth={2.2} />,
+    number: 6,
+  },
+  {
     id: "kontak",
     icon: <Mail className="h-[18px] w-[18px] text-[#e11d48] dark:text-[#fb7185] shrink-0" strokeWidth={2.2} />,
-    number: 6,
+    number: 7,
   },
   {
     id: "terminal",
     icon: <Terminal className="h-[18px] w-[18px] text-[#059669] dark:text-[#34d399] shrink-0" strokeWidth={2.2} />,
-    number: 7,
+    number: 8,
   },
 ];
 
@@ -90,6 +98,7 @@ export function OSDesktopManager({
   projects,
   products,
   testimonials,
+  articles,
 }: OSDesktopManagerProps) {
   const { t, language, setLanguage } = useTranslation();
   const { theme, setTheme } = useOSTheme();
@@ -114,6 +123,7 @@ export function OSDesktopManager({
       case "proyek": return language === "en" ? "Projects.exe" : "Proyek.exe";
       case "toko": return language === "en" ? "Store.zip" : "Toko.zip";
       case "testimoni": return language === "en" ? "Reviews.txt" : "Testimoni.txt";
+      case "artikel": return language === "en" ? "Articles.doc" : "Artikel.doc";
       case "kontak": return language === "en" ? "Contact.exe" : "Kontak.exe";
       case "terminal": return "Terminal.bat";
       default: return `${id}.exe`;
@@ -283,6 +293,9 @@ export function OSDesktopManager({
                 {activeApp === "toko" && <ProductsSection products={products} />}
                 {activeApp === "testimoni" && (
                   <TestimonialsSection testimonials={testimonials} />
+                )}
+                {activeApp === "artikel" && (
+                  <ArticlesSection articles={articles} />
                 )}
                 {activeApp === "kontak" && <ContactSection profile={profile} />}
                 {activeApp === "terminal" && (

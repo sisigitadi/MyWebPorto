@@ -19,17 +19,20 @@ Website profil pribadi dan portofolio profesional elegan berbasis Next.js 15, di
    - Grid seluruh portofolio proyek yang dipublikasikan dengan badge teknologi dan link ke detail proyek.
 3. **Detail Proyek (`/proyek/[slug]`)**:
    - Penjelasan komprehensif proyek, preview gambar, live demo link, repositori GitHub, dan CTA diskusi proyek serupa.
-4. **SEO & Metadata Dinamis**:
-   - Open Graph tags, Twitter Card, `sitemap.xml`, `robots.txt`, dan JSON-LD Schema.
+4. **Detail Artikel & Wawasan (`/artikel/[slug]`)**:
+   - Halaman artikel teknis dengan navigasi retro document, estimasi waktu baca, format paragraf terstruktur, tombol share URL, dan card profil penulis.
+5. **SEO & Metadata Dinamis**:
+   - Open Graph tags, Twitter Card, `sitemap.xml`, `robots.txt`, BlogPosting & Person JSON-LD Schema.
 
 ### 🔐 Panel Admin Sederhana (`/admin`)
 1. **Autentikasi Clerk**:
    - Proteksi rute admin via Clerk Middleware dan validasi `ADMIN_CLERK_ID`.
 2. **Dashboard Ringkasan**:
-   - Menampilkan total proyek, layanan, produk, dan testimoni.
+   - Menampilkan total proyek, layanan, produk, testimoni, dan artikel teknis.
 3. **Manajemen Konten (CRUD)**:
    - **Kelola Profil (`/admin/profile`)**: Update nama, headline, bio, avatar, email, WhatsApp, lokasi, link CV, dan akun medsos.
    - **Kelola Proyek (`/admin/projects`)**: Tambah, edit, hapus, atur urutan, toggle featured & published status.
+   - **Kelola Artikel (`/admin/articles`)**: Tambah, edit, hapus artikel teknis, input konten dwi-bahasa (ID/EN) otomatis, cover image, tag system, dan toggle publish/featured.
    - **Kelola Layanan (`/admin/services`)**: Tambah, edit, hapus, atur urutan dan published status.
    - **Kelola Produk (`/admin/products`)**: Tambah, edit, hapus produk, atur harga display dan gambar.
    - **Kelola Testimoni (`/admin/testimonials`)**: Tambah, edit, hapus testimoni klien beserta peran/organisasi.

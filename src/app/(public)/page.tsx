@@ -4,6 +4,7 @@ import {
   getProjects,
   getProducts,
   getTestimonials,
+  getArticles,
 } from "@/lib/actions";
 import { OSDesktopManager } from "@/components/public/os/os-desktop-manager";
 import { JsonLdSchema } from "@/components/public/json-ld";
@@ -12,12 +13,13 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function HomePage() {
-  const [profile, services, projects, products, testimonials] = await Promise.all([
+  const [profile, services, projects, products, testimonials, articles] = await Promise.all([
     getProfile(),
     getServices(),
     getProjects(),
     getProducts(),
     getTestimonials(),
+    getArticles(),
   ]);
 
   return (
@@ -30,6 +32,7 @@ export default async function HomePage() {
         projects={projects}
         products={products}
         testimonials={testimonials}
+        articles={articles}
       />
     </div>
   );

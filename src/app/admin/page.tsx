@@ -10,6 +10,7 @@ import {
   Settings,
   Sparkles,
   Layers,
+  FileText,
 } from "lucide-react";
 import {
   Card,
@@ -26,13 +27,14 @@ import {
   getServices,
   getProducts,
   getTestimonials,
+  getArticles,
 } from "@/lib/actions";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminDashboardPage() {
-  const [user, profile, projects, services, products, testimonials] =
+  const [user, profile, projects, services, products, testimonials, articles] =
     await Promise.all([
       currentUser(),
       getProfile(),
@@ -40,6 +42,7 @@ export default async function AdminDashboardPage() {
       getServices(),
       getProducts(),
       getTestimonials(),
+      getArticles(),
     ]);
 
   const displayName =
@@ -55,6 +58,7 @@ export default async function AdminDashboardPage() {
   const publishedServices = services.filter((s) => s.published).length;
   const publishedProducts = products.filter((p) => p.published).length;
   const publishedTestimonials = testimonials.filter((t) => t.published).length;
+  const publishedArticles = articles.filter((a) => a.published).length;
 
   const stats = [
     {
@@ -92,6 +96,15 @@ export default async function AdminDashboardPage() {
       href: "/admin/testimonials",
       icon: MessageSquareQuote,
       action: "Kelola Testimoni",
+    },
+    {
+      title: "Artikel & Tulisan",
+      total: articles.length,
+      published: publishedArticles,
+      description: "Catatan teknis & wawasan",
+      href: "/admin/articles",
+      icon: FileText,
+      action: "Kelola Artikel",
     },
   ];
 

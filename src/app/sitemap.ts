@@ -1,9 +1,9 @@
 import { MetadataRoute } from "next";
-import { getProjects } from "@/lib/actions";
+import { getProjects, getArticles } from "@/lib/actions";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const projects = await getProjects();
+  const [projects, articles] = await Promise.all([getProjects(), getArticles()]);
 
   const staticRoutes = ["", "/proyek"].map((route) => ({
     url: `${baseUrl}${route}`,
@@ -21,5 +21,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }));
 
-  return [...staticRoutes, ...projectRoutes];
+  const articleRoutes = articles
+    .filter((a) => a.published)
+    .map((a) => ({
+      url: `${baseUrl}/artikel/${a.slug}`,
+      lastModified: new Date(a.updatedAt || a.createdAt),
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    }));
+
+  return [...staticRoutes, ...projectRoutes, ...articleRoutes];
 }

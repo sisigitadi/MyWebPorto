@@ -54,6 +54,7 @@ export function OSCrtTerminal({ ownerName }: OSCrtTerminalProps) {
         "  skills     - Tampilkan daftar teknologi & keahlian teknis",
         "  projects   - Lompat ke katalog proyek pilihan",
         "  services   - Lihat layanan pengembangan web & otomasi",
+        "  articles   - Buka dokumen & catatan teknis (Artikel.doc)",
         "  contact    - Hubungi langsung via email & form mailer",
         "  ai         - Spesifikasi engine machine learning in-browser",
         "  clear      - Bersihkan riwayat tampilan terminal",
@@ -69,6 +70,16 @@ export function OSCrtTerminal({ ownerName }: OSCrtTerminalProps) {
       newLogs.push(language === "en" ? "NAV: Navigating to Projects window..." : "NAV: Membuka jendela Proyek...");
       const el = document.getElementById("proyek");
       el?.scrollIntoView({ behavior: "smooth" });
+      setLogs(newLogs);
+      setCommandInput("");
+      return;
+    }
+
+    if (cmd === "articles" || cmd === "artikel") {
+      newLogs.push(language === "en" ? "NAV: Opening Articles & Notes (Artikel.doc)..." : "NAV: Membuka jendela Artikel & Catatan Teknis...");
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("switch-os-app", { detail: "artikel" }));
+      }
       setLogs(newLogs);
       setCommandInput("");
       return;
