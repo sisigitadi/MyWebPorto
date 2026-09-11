@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, useRef, useTransition } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { uploadImageToBunny } from "@/lib/bunny-upload";
+import { uploadImageLocal } from "@/lib/local-upload";
 
 interface ImageUploadProps {
   value: string;
   onChange: (url: string) => void;
   label?: string;
+  className?: string;
 }
 
-export function ImageUpload({ value, onChange, label = "Upload Gambar ke Bunny CDN" }: ImageUploadProps) {
+export function ImageUpload({ value, onChange, label = "Unggah Gambar (Lokal)", className = "" }: ImageUploadProps) {
   const [isUploading, startTransition] = useTransition();
   const [uploadError, setUploadError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -24,7 +26,7 @@ export function ImageUpload({ value, onChange, label = "Upload Gambar ke Bunny C
     formData.append("file", file);
 
     startTransition(async () => {
-      const res = await uploadImageToBunny(formData);
+      const res = await uploadImageLocal(formData);
       if (res.success && res.url) {
         onChange(res.url);
       } else {
@@ -37,15 +39,25 @@ export function ImageUpload({ value, onChange, label = "Upload Gambar ke Bunny C
   };
 
   return (
-    <div className="space-y-1.5">
+    <div className={`space-y-3 ${className}`}>
+      {value && (
+        <div className="relative h-32 w-full max-w-sm rounded-md overflow-hidden border border-border">
+          <Image
+            src={value}
+            alt="Uploaded Preview"
+            fill
+            className="object-contain bg-muted/30"
+          />
+        </div>
+      )}
       <div className="flex items-center gap-2">
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/png, image/jpeg, image/webp, image/svg+xml"
+          accept="image/png, image/jpeg, image/webp, image/svg+xml, image/gif, image/avif, image/bmp"
           onChange={handleFileChange}
           className="hidden"
-          id={`bunny-upload-${label.replace(/\s+/g, "-").toLowerCase()}`}
+          id={`local-upload-${label.replace(/\s+/g, "-").toLowerCase()}`}
         />
         <Button
           type="button"
@@ -53,10 +65,10 @@ export function ImageUpload({ value, onChange, label = "Upload Gambar ke Bunny C
           size="sm"
           disabled={isUploading}
           onClick={() => fileInputRef.current?.click()}
-          className="text-xs h-8 gap-1.5 text-muted-foreground hover:text-foreground"
+          className="text-xs h-9 gap-1.5 text-muted-foreground hover:text-foreground"
         >
           <svg
-            className="w-3.5 h-3.5"
+            className="w-4 h-4"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -70,11 +82,6 @@ export function ImageUpload({ value, onChange, label = "Upload Gambar ke Bunny C
           </svg>
           {isUploading ? "Mengunggah..." : label}
         </Button>
-        {value && (
-          <span className="text-[11px] text-muted-foreground truncate max-w-[200px]" title={value}>
-            {value.slice(-25)}
-          </span>
-        )}
       </div>
       {uploadError && (
         <p className="text-[11px] text-destructive">{uploadError}</p>

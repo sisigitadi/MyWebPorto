@@ -45,7 +45,7 @@ const KNOWLEDGE_BASE = {
     "Automated Web Scraping & Data Pipeline Engine",
   ],
   contact: {
-    email: "sigitadi22@gmail.com",
+    email: "x@sigitadi.id",
     github: "https://github.com/sisigitadi",
     linkedin: "https://linkedin.com/in/sigitadi",
     portfolio: "https://porto.sigitadi.id",

@@ -85,7 +85,7 @@ export function ArticleDetailContent({
       : `Halo ${profile.name || "Sigit"},\n\nSaya baru saja membaca artikel "${title}" dan tertarik untuk berdiskusi/bertanya lebih lanjut.`
   );
   const emailDiscussionUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
-    profile.email || "halo@sigit.dev"
+    profile.email || "x@sigitadi.id"
   )}&su=${encodedDiscussionSubject}&body=${encodedDiscussionMsg}`;
 
   // Helper to render formatted article paragraphs or headers

@@ -28,7 +28,7 @@ async function seed() {
         'Saya membantu UMKM dan kreator digital membangun website yang cepat, profesional, dan mudah digunakan.',
         'I help SMBs and digital creators build fast, professional, and intuitive websites.',
         'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=600&auto=format&fit=crop',
-        'halo@sigit.dev',
+        'x@sigitadi.id',
         '6281234567890',
         'Indonesia',
         true,

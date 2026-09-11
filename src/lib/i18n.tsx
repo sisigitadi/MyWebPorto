@@ -339,12 +339,12 @@ const translations: Record<Language, Translations> = {
     contact_eyebrow: "Hubungi Saya",
     contact_title: "Mari Berdiskusi & Berkolaborasi",
     contact_subtitle:
-      "Punya ide proyek, kebutuhan pembuatan website bisnis, atau ingin berkonsultasi mengenai solusi digital? Hubungi saya langsung melalui Gmail/Email di bawah ini.",
+      "Punya ide proyek, kebutuhan pembuatan website bisnis, atau ingin berkonsultasi mengenai solusi digital? Hubungi saya langsung melalui formulir atau email di bawah ini.",
     contact_direct_channels_title: "Saluran Komunikasi Langsung",
     contact_direct_channels_desc:
       "Tertarik mengembangkan website bisnis, aplikasi custom, atau konsultasi UI/UX? Kirim pesan langsung ke email atau form berikut.",
-    contact_open_gmail: "Buka di Gmail Langsung",
-    contact_email_label: "Email Utama (Gmail)",
+    contact_open_gmail: "Buka di Email Langsung",
+    contact_email_label: "Email Utama",
     contact_location_label: "Domisili",
     contact_form_title: "Kirim Pesan Langsung",
     contact_form_desc:
@@ -531,12 +531,12 @@ const translations: Record<Language, Translations> = {
     contact_eyebrow: "Contact Me",
     contact_title: "Let's Connect & Collaborate",
     contact_subtitle:
-      "Have a project idea, business website needs, or want to consult on digital solutions? Reach out directly via Gmail/Email below.",
+      "Have a project idea, business website needs, or want to consult on digital solutions? Reach out directly via email or the form below.",
     contact_direct_channels_title: "Direct Communication Channels",
     contact_direct_channels_desc:
       "Interested in developing a business website, custom app, or UI/UX consultation? Send a direct message via email or the form below.",
-    contact_open_gmail: "Open in Gmail Direct",
-    contact_email_label: "Primary Email (Gmail)",
+    contact_open_gmail: "Open in Email Client",
+    contact_email_label: "Primary Email",
     contact_location_label: "Location",
     contact_form_title: "Send a Direct Message",
     contact_form_desc:

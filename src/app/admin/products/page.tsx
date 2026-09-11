@@ -472,21 +472,11 @@ export default function AdminProductsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="thumb" className="text-xs font-medium">
-                URL Cover Gambar Produk *
-              </Label>
-              <Input
-                id="thumb"
-                required
-                placeholder="https://images.unsplash.com/..."
-                value={formThumbnail}
-                onChange={(e) => setFormThumbnail(e.target.value)}
-                className="text-xs"
-              />
+              <Label className="text-xs font-medium block mb-2">Gambar Produk</Label>
               <ImageUpload
                 value={formThumbnail}
                 onChange={(url) => setFormThumbnail(url)}
-                label="Unggah Cover ke CDN"
+                label="Unggah Cover"
               />
             </div>
 

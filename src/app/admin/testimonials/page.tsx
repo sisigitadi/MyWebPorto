@@ -558,7 +558,7 @@ export default function AdminTestimonialsPage() {
             <ImageUpload
               value={avatarUrl}
               onChange={(url) => setAvatarUrl(url)}
-              label="Unggah Avatar Klien ke CDN"
+              label="Unggah Avatar Klien"
             />
 
             <div className="pt-3 border-t border-border flex items-center justify-between">

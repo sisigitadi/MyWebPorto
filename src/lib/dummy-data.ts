@@ -103,7 +103,7 @@ export const DUMMY_PROFILE: ProfileData = {
   bio: "Membangun sistem web, antarmuka interaktif berperforma tinggi, dan solusi digital yang cepat, aman, dan memukau.",
   bioEn: "Building high-performance web systems, interactive interfaces, and robust digital solutions.",
   avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=600&auto=format&fit=crop",
-  email: "si.sigitadi@gmail.com",
+  email: "x@sigitadi.id",
   phone: "6281234567890",
   location: "Indonesia",
   availableForHire: true,

@@ -89,14 +89,14 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
     const prevProject = featuredProjects[(currentIndex - 1 + featuredProjects.length) % featuredProjects.length];
     const nextProject = featuredProjects[(currentIndex + 1) % featuredProjects.length];
 
-    const contactEmail = profile?.email || "si.sigitadi@gmail.com";
+    const contactEmail = profile?.email || "x@sigitadi.id";
     const encodedDiscussionSubject = encodeURIComponent(
       language === "en" ? `Project Inquiry: ${title}` : `Diskusi Proyek: ${title}`
     );
     const encodedDiscussionBody = encodeURIComponent(
       language === "en"
-        ? `Hello Sigit,\n\nI saw your project "${title}" and would like to discuss building something similar.`
-        : `Halo Sigit,\n\nSaya melihat proyek "${title}" di portofolio Anda dan ingin mendiskusikan peluang kerja sama atau proyek serupa.`
+        ? `Hello Sigit Adi,\n\nI saw your project "${title}" and would like to discuss building something similar.`
+        : `Halo Sigit Adi,\n\nSaya melihat proyek "${title}" di portofolio Anda dan ingin mendiskusikan peluang kerja sama atau proyek serupa.`
     );
     const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
       contactEmail
@@ -117,12 +117,6 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
               <span>{language === "en" ? "← Back to Projects Grid" : "← Kembali ke Daftar Proyek"}</span>
             </button>
 
-            {/* Address Path */}
-            <div className="hidden sm:flex items-center gap-2 text-xs font-mono font-bold text-[var(--vt-ink)]">
-              <HardDrive className="h-3.5 w-3.5 text-primary" />
-              <span>C:\Sigit\Projects\{selectedProject.slug}\</span>
-              <span className="text-emerald-700 dark:text-emerald-400 font-bold">[ONLINE]</span>
-            </div>
 
             {/* Prev / Next Project Switcher */}
             <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
@@ -152,9 +146,9 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
 
           {/* Main In-Window Project Viewer */}
           <OSWindow
-            title={`Project_Viewer.exe :: [${selectedProject.slug.toUpperCase()}]`}
+            title="Project_Viewer.exe"
             icon={<FolderGit2 className="h-4 w-4 text-cyan-400" />}
-            statusText={`Slug: /proyek/${selectedProject.slug} // Author: Sigit // Status: VERIFIED`}
+            statusText="Author: Sigit Adi // Status: VERIFIED"
           >
             <div className="space-y-6">
               {/* Header Title & Date */}
@@ -221,18 +215,9 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
                   className="vt-btn vt-btn-chrome px-4 py-2 text-xs font-bold font-mono flex items-center gap-1.5"
                 >
                   <Mail className="h-4 w-4 text-rose-500" />
-                  <span>DISKUSIKAN VIA GMAIL</span>
+                  <span>DISKUSIKAN VIA EMAIL</span>
                 </a>
 
-                <Link
-                  href={`/proyek/${selectedProject.slug}`}
-                  target="_blank"
-                  className="vt-btn vt-btn-chrome px-3 py-2 text-xs font-bold font-mono flex items-center gap-1 text-[var(--vt-ink)] ml-auto"
-                  title="Buka halaman publik terpisah"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Halaman Penuh</span>
-                </Link>
               </div>
 
               {/* Tech Stack Chips */}
@@ -304,13 +289,6 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
             </span>
           </div>
 
-          <Link
-            href="/proyek"
-            className="vt-btn vt-btn-chrome px-3.5 py-1.5 text-xs font-bold text-foreground shrink-0 self-end sm:self-auto"
-          >
-            <span>{t.projects_view_all}</span>
-            <ArrowRight className="h-3.5 w-3.5 ml-1" />
-          </Link>
         </div>
 
         {/* Section Heading */}
@@ -340,7 +318,6 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
                 <OSWindow
                   title={`Project_0${index + 1}.exe`}
                   icon={<FolderGit2 className="h-3 w-3 text-[#ffd400]" />}
-                  statusText={`Slug: /proyek/${project.slug}`}
                   className="h-full flex-1"
                   bodyClassName="flex flex-col justify-between h-full space-y-4"
                 >

@@ -89,7 +89,7 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
       : `Halo ${profile.name || "Sigit"},\n\nSaya melihat proyek "${title}" di portofolio Anda dan tertarik mendiskusikan peluang kerja sama atau proyek serupa.`
   );
   const emailDiscussionUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
-    profile.email || "halo@sigit.dev"
+    profile.email || "x@sigitadi.id"
   )}&su=${encodedDiscussionSubject}&body=${encodedDiscussionMsg}`;
 
   const ctaDesc = t.detail_cta_box_desc.replace("{name}", profile.name || "Sigit");

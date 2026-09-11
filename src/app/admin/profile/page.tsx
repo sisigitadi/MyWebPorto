@@ -505,21 +505,11 @@ export default function AdminProfilePage() {
                   />
                 </div>
                 <div className="space-y-2 text-left">
-                  <Label htmlFor="avatarUrl" className="text-xs font-medium">
-                    URL Gambar Avatar
-                  </Label>
-                  <Input
-                    id="avatarUrl"
-                    value={profile.avatarUrl}
-                    onChange={(e) =>
-                      setProfile({ ...profile, avatarUrl: e.target.value })
-                    }
-                    className="text-xs"
-                  />
+                  <Label className="text-xs font-medium block mb-2">Gambar Avatar</Label>
                   <ImageUpload
                     value={profile.avatarUrl}
                     onChange={(url) => setProfile({ ...profile, avatarUrl: url })}
-                    label="Unggah Avatar ke CDN"
+                    label="Unggah Avatar"
                   />
                 </div>
               </CardContent>

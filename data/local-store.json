@@ -7,7 +7,7 @@
     "bio": "Saya membantu UMKM dan kreator digital membangun website yang cepat, profesional, dan mudah digunakan.",
     "bioEn": "I help MSMEs and digital creators build websites that are fast, professional and easy to use.",
     "avatarUrl": "/uploads/profile-avatar.jpg",
-    "email": "si.sigitadi@gmail.com",
+    "email": "x@sigitadi.id",
     "phone": "6281234567890",
     "location": "Jakarta, Indonesia",
     "availableForHire": true,
@@ -140,30 +140,7 @@
       "published": true
     }
   ],
-  "products": [
-    {
-      "id": "prod-1",
-      "title": "Template Portfolio Notion",
-      "titleEn": "Notion Portfolio Template",
-      "description": "Template siap pakai dan modular untuk menyusun portofolio profesional di Notion hanya dalam 15 menit.",
-      "descriptionEn": "Modular, ready-to-use template to curate a polished, professional portfolio in Notion within 15 minutes.",
-      "priceFormatted": "Rp75.000",
-      "thumbnailUrl": "https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=600&auto=format&fit=crop",
-      "ctaUrl": "https://karyakarsa.com/sigitadi/template-notion-porto",
-      "published": true
-    },
-    {
-      "id": "prod-2",
-      "title": "E-book Belajar Freelance",
-      "titleEn": "Freelance Mastery E-book",
-      "description": "Panduan praktis langkah demi langkah memulai karier freelance untuk pemula, mulai dari negosiasi tarif hingga kontrak kerja.",
-      "descriptionEn": "Practical step-by-step beginner guide to launching a freelance career, from pricing negotiation to contracts.",
-      "priceFormatted": "Rp49.000",
-      "thumbnailUrl": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=600&auto=format&fit=crop",
-      "ctaUrl": "https://karyakarsa.com/sigitadi/ebook-freelance-pemula",
-      "published": true
-    }
-  ],
+  "products": [],
   "testimonials": [
     {
       "id": "testi-1",
@@ -199,7 +176,12 @@
       "content": "Antarmuka bergaya sistem operasi retro (vintage desktop) memberikan pengalaman bernostalgia sekaligus pembeda visual yang kuat di tengah homogenitas desain web modern. Namun, tantangan terbesarnya adalah menjaga performa, aksesibilitas, dan keramahan SEO.\n\n### 1. Struktur State Terpusat\nAlih-alih membuat DOM yang saling tumpang tindih secara liar, kita memanfaatkan state terpusat di Next.js Client Component. Setiap window bertindak sebagai state machine dengan riwayat z-index dan koordinat layar.\n\n### 2. Animasi Ringan dengan GSAP\nEfek CRT scanline, window snap, dan transisi desktop diatur menggunakan GSAP Context agar aman dari memory leak dan mudah di-cleanup saat komponen di-unmount.\n\n### 3. Progressive Enhancement untuk SEO\nHalaman seperti portofolio dan detail artikel tetap memiliki URL mandiri dengan tag HTML semantik dan JSON-LD terstruktur, sehingga bot pencari Google tetap dapat mengindeks konten tanpa terhalang JavaScript retro.",
       "contentEn": "Retro OS-style interfaces offer nostalgic appeal and powerful visual differentiation amid modern web design uniformity. However, the core challenge is preserving performance, accessibility, and SEO integrity.\n\n### 1. Centralized State Architecture\nRather than haphazard DOM layering, we manage active windows via centralized state within Next.js Client Components. Each window acts as a discrete state machine tracking z-index hierarchy and viewport constraints.\n\n### 2. Lightweight GSAP Animations\nCRT scanline flickers, window snapping, and desktop transitions are orchestrated via GSAP Context to avoid memory leaks and ensure tidy unmounting.\n\n### 3. Progressive Enhancement for Search Engines\nStandalone routes for projects and articles preserve full semantic HTML and structured JSON-LD schemas, ensuring search crawlers index content frictionlessly.",
       "imageUrl": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=800&auto=format&fit=crop",
-      "tags": ["Next.js", "GSAP", "Architecture", "Retro UI"],
+      "tags": [
+        "Next.js",
+        "GSAP",
+        "Architecture",
+        "Retro UI"
+      ],
       "featured": true,
       "published": true,
       "order": 1,
@@ -215,7 +197,12 @@
       "content": "Di platform hosting modern seperti Vercel, cold-start atau limitasi koneksi database relasional sering menjadi hambatan bagi situs personal. Salah satu arsitektur tangguh adalah menerapkan Dual-Persistence Layer.\n\n### Mengapa Perlu Fallback?\nKetika kredensial database belum diset atau terjadi network partition pada Neon PostgreSQL, aplikasi tidak boleh menampilkan error 500 fatal kepada pengunjung publik.\n\n### Pola Server Action Bertingkat\n1. Cek ketersediaan pool koneksi Drizzle.\n2. Jika aktif, lakukan query SQL berindeks.\n3. Jika gagal atau tidak terkonfigurasi, alihkan secara mulus ke serialized JSON store lokal.\n\nDengan pola ini, pengunjung selalu mendapatkan response cepat dalam hitungan milidetik tanpa downtime.",
       "contentEn": "On modern serverless platforms like Vercel, cold starts and relational database connection caps often pose hurdles for personal portfolios. A dual-persistence layer provides unmatched reliability.\n\n### Why Fallbacks Matter\nWhen cloud credentials are intentionally omitted in preview environments or database outages occur, public visitors should never see a fatal 500 page.\n\n### Tiered Server Action Pattern\n1. Probe Drizzle connection pool readiness.\n2. If healthy, execute indexed relational queries.\n3. If unreachable or unconfigured, seamlessly failover to a serialized local store.\n\nThis guarantee delivers sub-millisecond response times with zero public-facing downtime.",
       "imageUrl": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=800&auto=format&fit=crop",
-      "tags": ["Drizzle ORM", "PostgreSQL", "Next.js", "Backend"],
+      "tags": [
+        "Drizzle ORM",
+        "PostgreSQL",
+        "Next.js",
+        "Backend"
+      ],
       "featured": true,
       "published": true,
       "order": 2,
@@ -231,7 +218,12 @@
       "content": "Memulai freelance bukan hanya soal menulis kode, melainkan tentang komunikasi bisnis dan penyelesaian masalah bagi klien.\n\n### 1. Portofolio Nyata Mengalahkan CV Berlembar-lembar\nKlien UMKM atau startup lebih peduli pada apakah Anda bisa menyelesaikan masalah mereka daripada sertifikat teori. Tunjukkan studi kasus nyata.\n\n### 2. Hindari Berkompetisi di Harga Murah\nBanting harga hanya akan menarik klien yang menuntut berlebihan dengan budget minim. Tawarkan paket solusi yang jelas dengan batasan revisi terukur.\n\n### 3. Gunakan Kontrak Tertulis dan DP 50%\nJangan pernah memulai penulisan baris kode pertama sebelum DP diterima dan cakupan pekerjaan (Scope of Work) disepakati secara tertulis.",
       "contentEn": "Embarking on freelancing is far more than writing code—it is about business communication and solving high-value problems for clients.\n\n### 1. Real Case Studies Beat Lengthy Resumes\nClients care about tangible outcomes rather than theoretical certificates. Showcase measurable problem-solving examples.\n\n### 2. Never Compete in the Race to the Bottom\nUnderpricing inevitably attracts demanding clients with meager budgets. Offer transparent packages with explicit revision scopes.\n\n### 3. Require Written Agreements and 50% Deposits\nNever write the first line of production code before receiving a deposit and an agreed-upon Scope of Work.",
       "imageUrl": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=800&auto=format&fit=crop",
-      "tags": ["Career", "Freelance", "Tips", "Business"],
+      "tags": [
+        "Career",
+        "Freelance",
+        "Tips",
+        "Business"
+      ],
       "featured": false,
       "published": true,
       "order": 3,

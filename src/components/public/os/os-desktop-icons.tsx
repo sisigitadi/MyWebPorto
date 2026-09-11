@@ -56,11 +56,18 @@ export function OSDesktopIcons() {
           key={item.id}
           href={item.href}
           onClick={(e) => {
-            if (item.appId && typeof window !== "undefined") {
+            if (item.href && item.href.startsWith("#") && typeof window !== "undefined") {
               e.preventDefault();
-              window.dispatchEvent(
-                new CustomEvent("switch-os-app", { detail: item.appId })
-              );
+              const el = document.querySelector(item.href);
+              if (el) {
+                el.scrollIntoView({ behavior: "smooth" });
+                window.history.pushState(null, "", item.href);
+              }
+              if (item.appId) {
+                window.dispatchEvent(
+                  new CustomEvent("switch-os-app", { detail: item.appId })
+                );
+              }
             }
           }}
           className="vt-icon group focus:outline-none"

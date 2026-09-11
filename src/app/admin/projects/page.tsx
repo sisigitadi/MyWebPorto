@@ -586,21 +586,11 @@ export default function AdminProjectsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="thumbnail" className="text-xs font-medium">
-                URL Gambar Pratinjau / Cover *
-              </Label>
-              <Input
-                id="thumbnail"
-                required
-                placeholder="https://images.unsplash.com/..."
-                value={formThumbnail}
-                onChange={(e) => setFormThumbnail(e.target.value)}
-                className="text-xs"
-              />
+              <Label className="text-xs font-medium block mb-2">Gambar Pratinjau / Cover</Label>
               <ImageUpload
                 value={formThumbnail}
                 onChange={(url) => setFormThumbnail(url)}
-                label="Unggah Cover ke Bunny CDN"
+                label="Unggah Cover"
               />
             </div>
 
