@@ -17,25 +17,10 @@ interface OSMenubarProps {
 }
 
 // Authentic Social Media Icons
-function GmailIcon({ className = "h-3.5 w-3.5" }: { className?: string }) {
+function MediumIcon({ className = "h-3.5 w-3.5" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none">
-      <path
-        d="M2 6.5C2 5.39543 2.89543 4.5 4 4.5H6.5L12 9L17.5 4.5H20C21.1046 4.5 22 5.39543 22 6.5V7L12 14.5L2 7V6.5Z"
-        fill="#EA4335"
-      />
-      <path
-        d="M2 7.5L7.5 11.5V19.5H4C2.89543 19.5 2 18.6046 2 17.5V7.5Z"
-        fill="#4285F4"
-      />
-      <path
-        d="M22 7.5L16.5 11.5V19.5H20C21.1046 19.5 22 18.6046 22 17.5V7.5Z"
-        fill="#34A853"
-      />
-      <path
-        d="M7.5 19.5H16.5V11.5L12 15L7.5 11.5V19.5Z"
-        fill="#FBBC04"
-      />
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+      <path d="M13.54 12a6.8 6.8 0 0 1-6.77 6.82A6.8 6.8 0 0 1 0 12a6.8 6.8 0 0 1 6.77-6.82A6.8 6.8 0 0 1 13.54 12zM20.96 12c0 3.54-1.51 6.42-3.38 6.42-1.87 0-3.39-2.88-3.39-6.42s1.52-6.42 3.39-6.42 3.38 2.88 3.38 6.42M24 12c0 3.17-.53 5.75-1.19 5.75-.66 0-1.19-2.58-1.19-5.75s.53-5.75 1.19-5.75C23.47 6.25 24 8.83 24 12z" />
     </svg>
   );
 }
@@ -129,15 +114,15 @@ export function OSMenubar({ profileName }: OSMenubarProps) {
         {/* Center: Social Media Links Bar (Spacious & Tactile) */}
         <div className="flex items-center gap-1.5 sm:gap-2 px-1.5 sm:px-2.5 py-0.5 bg-[var(--vt-paper)] vt-card-inset">
           <a
-            href="https://mail.google.com/mail/?view=cm&fs=1&to=si.sigitadi@gmail.com"
+            href="https://medium.com/@si.sigitadi"
             target="_blank"
             rel="noopener noreferrer"
-            className="vt-btn vt-btn-chrome px-1.5 sm:px-2.5 py-0.5 text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-1 sm:gap-1.5 hover:text-[#EA4335] transition-colors cursor-pointer"
-            title="Gmail: si.sigitadi@gmail.com"
-            aria-label="Gmail"
+            className="vt-btn vt-btn-chrome px-1.5 sm:px-2.5 py-0.5 text-[11px] font-bold text-[var(--vt-ink)] flex items-center gap-1 sm:gap-1.5 hover:text-black dark:hover:text-white transition-colors cursor-pointer"
+            title="Medium: https://medium.com/@si.sigitadi"
+            aria-label="Medium"
           >
-            <GmailIcon className="h-3.5 w-3.5 shrink-0" />
-            <span className="hidden md:inline">Gmail</span>
+            <MediumIcon className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden md:inline">Medium</span>
           </a>
           <a
             href="https://www.linkedin.com/in/sigitadi/"
