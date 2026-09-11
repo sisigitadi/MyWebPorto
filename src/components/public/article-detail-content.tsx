@@ -16,7 +16,6 @@ import {
   User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { useTranslation } from "@/lib/i18n";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -322,33 +321,6 @@ export function ArticleDetailContent({
                   <span>{t.article_detail_discuss_cta}</span>
                 </a>
               </Button>
-            </div>
-
-            <Separator className="my-6" />
-
-            {/* Retro Discussion Box */}
-            <div className="vt-window p-6 text-center space-y-4 bg-muted/20">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-primary/10 border border-primary/30 text-primary text-xs font-mono">
-                <span>TERMINAL_FEEDBACK // ARTICLE_DOC</span>
-              </div>
-              <h3 className="text-xl sm:text-2xl font-bold font-pixel tracking-tight text-foreground">
-                {t.article_detail_discuss_title}
-              </h3>
-              <p className="text-xs sm:text-sm font-mono text-muted-foreground max-w-lg mx-auto">
-                {t.article_detail_discuss_desc}
-              </p>
-              <div className="pt-2">
-                <Button
-                  asChild
-                  size="default"
-                  className="vt-btn-pink h-10 px-6 font-mono font-bold text-xs uppercase gap-2"
-                >
-                  <a href={emailDiscussionUrl} target="_blank" rel="noopener noreferrer">
-                    <Mail className="h-4 w-4" />
-                    <span>{t.article_detail_discuss_cta}</span>
-                  </a>
-                </Button>
-              </div>
             </div>
 
             {/* Related Articles (if any) */}
