@@ -3,7 +3,7 @@ import { getProfile } from "@/lib/actions";
 
 export async function generateDynamicMetadata(): Promise<Metadata> {
   const profile = await getProfile();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev";
 
   const title = `${profile.name} — ${profile.headline}`;
   const description = profile.bio;
@@ -24,10 +24,16 @@ export async function generateDynamicMetadata(): Promise<Metadata> {
       "React",
       "TypeScript",
       "Jasa Pembuatan Website",
-      ...profile.skills,
+      "Software Engineer Jakarta",
+      "AI Developer Indonesia",
+      ...(profile.skills || []),
     ],
     authors: [{ name: profile.name, url: appUrl }],
     creator: profile.name,
+    publisher: profile.name,
+    alternates: {
+      canonical: appUrl,
+    },
     openGraph: {
       type: "website",
       locale: "id_ID",
@@ -35,12 +41,21 @@ export async function generateDynamicMetadata(): Promise<Metadata> {
       title,
       description,
       siteName: `${profile.name} Portfolio`,
+      images: [
+        {
+          url: "/opengraph-image",
+          width: 1200,
+          height: 630,
+          alt: `${profile.name} - Web Developer & Tech Creator`,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      creator: profile.socialLinks?.twitter ? `@${profile.socialLinks.twitter.split('/').pop()}` : "@developer",
+      creator: profile.socialLinks?.twitter ? `@${profile.socialLinks.twitter.split("/").pop()}` : "@developer",
+      images: ["/opengraph-image"],
     },
     robots: {
       index: true,
@@ -52,9 +67,6 @@ export async function generateDynamicMetadata(): Promise<Metadata> {
         "max-image-preview": "large",
         "max-snippet": -1,
       },
-    },
-    alternates: {
-      canonical: appUrl,
     },
   };
 }

@@ -18,20 +18,37 @@ const firaCode = Fira_Code({
   display: "swap",
 });
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev";
+const googleVerification = process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION || "nO80bNSBPyrM7VQYvpPKCmgcQVBuJ_7Ydaxhfsk5Vbw";
+const bingVerification = process.env.NEXT_PUBLIC_BING_VERIFICATION || "e5b871c984924b179571fcfdca565780";
+
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev"),
+  metadataBase: new URL(appUrl),
   title: {
     default: "Sigit Adi Pranoto — Senior Web Developer & Tech Creator",
     template: "%s | Sigit Web Porto",
   },
   description: "Portofolio profesional Sigit Adi Pranoto menampilkan karya pengembangan web modern, sistem berbasis AI, arsitektur cloud, dan solusi full-stack.",
-  keywords: ["Sigit Adi Pranoto", "Web Developer Indonesia", "Full Stack Engineer", "React Next.js", "AI Developer", "Portofolio Digital"],
-  authors: [{ name: "Sigit Adi Pranoto" }],
+  keywords: [
+    "Sigit Adi Pranoto",
+    "Web Developer Indonesia",
+    "Full Stack Engineer",
+    "Jasa Pembuatan Website",
+    "React Next.js Developer",
+    "AI Developer Indonesia",
+    "Portofolio Digital",
+    "Software Engineer Portfolio",
+  ],
+  authors: [{ name: "Sigit Adi Pranoto", url: appUrl }],
   creator: "Sigit Adi Pranoto",
+  publisher: "Sigit Adi Pranoto",
+  alternates: {
+    canonical: appUrl,
+  },
   openGraph: {
     type: "website",
     locale: "id_ID",
-    url: "https://sigitadi.dev",
+    url: appUrl,
     title: "Sigit Adi Pranoto — Senior Web Developer & Tech Creator",
     description: "Jelajahi portofolio interaktif SigitOS dengan sistem modern, karya unggulan, dan integrasi kecerdasan buatan.",
     siteName: "Sigit Web Porto",
@@ -51,9 +68,9 @@ export const metadata: Metadata = {
     images: ["/opengraph-image"],
   },
   verification: {
-    google: "nO80bNSBPyrM7VQYvpPKCmgcQVBuJ_7Ydaxhfsk5Vbw",
+    google: googleVerification,
     other: {
-      "msvalidate.01": "bing-site-verification-code-placeholder",
+      "msvalidate.01": bingVerification,
     },
   },
 };
@@ -70,8 +87,6 @@ export default async function RootLayout({
       <html lang="id" suppressHydrationWarning>
         <head>
           <JsonLdSchema profile={profile} />
-          <meta name="google-site-verification" content="nO80bNSBPyrM7VQYvpPKCmgcQVBuJ_7Ydaxhfsk5Vbw" />
-          <meta name="msvalidate.01" content="bing-site-verification-code-placeholder" />
         </head>
         <body
           className={`${inter.variable} ${firaCode.variable} font-sans antialiased selection:bg-primary selection:text-primary-foreground`}

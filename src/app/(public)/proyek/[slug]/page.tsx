@@ -17,6 +17,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: ProjectDetailPageProps) {
   const { slug } = await params;
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev";
   const projects = await getProjects();
   const project = projects.find((p) => p.slug === slug);
 
@@ -26,32 +27,45 @@ export async function generateMetadata({ params }: ProjectDetailPageProps) {
     };
   }
 
-  return {
-    title: `${project.title} - Portofolio`,
-    description: project.summary,
-    openGraph: {
-      title: `${project.title} - Portofolio`,
-      description: project.summary,
-      images: [
+  const title = `${project.title} - Portofolio & Studi Kasus`;
+  const description = project.summary;
+  const url = `${baseUrl}/proyek/${slug}`;
+  const images = project.thumbnailUrl
+    ? [
         {
           url: project.thumbnailUrl,
           width: 1200,
           height: 630,
           alt: project.title,
         },
-      ],
+      ]
+    : [`${baseUrl}/opengraph-image`];
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: url,
+    },
+    openGraph: {
+      title,
+      description,
+      url,
+      images,
+      type: "website",
     },
     twitter: {
       card: "summary_large_image",
-      title: project.title,
-      description: project.summary,
-      images: [project.thumbnailUrl],
+      title,
+      description,
+      images: project.thumbnailUrl ? [project.thumbnailUrl] : [`${baseUrl}/opengraph-image`],
     },
   };
 }
 
 export default async function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const { slug } = await params;
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev";
   const [projects, profile] = await Promise.all([getProjects(), getProfile()]);
   const project = projects.find((p) => p.slug === slug && p.published);
 
@@ -59,5 +73,67 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
     notFound();
   }
 
-  return <ProjectDetailContent project={project} profile={profile} />;
+  const pageUrl = `${baseUrl}/proyek/${project.slug}`;
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Beranda",
+        item: baseUrl,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Proyek",
+        item: `${baseUrl}/proyek`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: project.title,
+        item: pageUrl,
+      },
+    ],
+  };
+
+  const softwareAppSchema = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: project.title,
+    headline: project.title,
+    description: project.summary,
+    image: project.thumbnailUrl,
+    url: pageUrl,
+    applicationCategory: "WebApplication",
+    operatingSystem: "Web Browser, Cross-Platform",
+    author: {
+      "@type": "Person",
+      name: profile.name,
+      url: baseUrl,
+    },
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+    },
+    softwareRequirements: project.techStack?.join(", "),
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppSchema) }}
+      />
+      <ProjectDetailContent project={project} profile={profile} />
+    </>
+  );
 }

@@ -17,6 +17,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: ArticleDetailPageProps) {
   const { slug } = await params;
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev";
   const articles = await getArticles();
   const article = articles.find((a) => a.slug === slug);
 
@@ -26,8 +27,9 @@ export async function generateMetadata({ params }: ArticleDetailPageProps) {
     };
   }
 
-  const title = article.title;
-  const description = article.summary;
+  const title = `${article.title} - Artikel & Wawasan Teknologi`;
+  const description = article.summary || article.content.slice(0, 160);
+  const url = `${baseUrl}/artikel/${slug}`;
   const images = article.imageUrl
     ? [
         {
@@ -37,30 +39,37 @@ export async function generateMetadata({ params }: ArticleDetailPageProps) {
           alt: title,
         },
       ]
-    : [];
+    : [`${baseUrl}/opengraph-image`];
 
   return {
-    title: `${title} - Artikel & Wawasan`,
+    title,
     description,
+    alternates: {
+      canonical: url,
+    },
     openGraph: {
-      title: `${title} - Artikel & Wawasan`,
+      title,
       description,
+      url,
       images,
       type: "article",
       publishedTime: new Date(article.createdAt).toISOString(),
+      modifiedTime: new Date(article.updatedAt || article.createdAt).toISOString(),
+      authors: ["Sigit Adi Pranoto"],
       tags: article.tags || [],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: article.imageUrl ? [article.imageUrl] : [],
+      images: article.imageUrl ? [article.imageUrl] : [`${baseUrl}/opengraph-image`],
     },
   };
 }
 
 export default async function ArticleDetailPage({ params }: ArticleDetailPageProps) {
   const { slug } = await params;
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev";
   const [articles, profile] = await Promise.all([getArticles(), getProfile()]);
   const article = articles.find((a) => a.slug === slug && a.published);
 
@@ -68,28 +77,70 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
     notFound();
   }
 
+  const pageUrl = `${baseUrl}/artikel/${article.slug}`;
   const relatedArticles = articles.filter((a) => a.id !== article.id && a.published);
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Beranda",
+        item: baseUrl,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Artikel",
+        item: `${baseUrl}/artikel`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: article.title,
+        item: pageUrl,
+      },
+    ],
+  };
+
+  const blogPostingSchema = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: article.title,
+    description: article.summary,
+    image: article.imageUrl || `${baseUrl}/opengraph-image`,
+    url: pageUrl,
+    datePublished: new Date(article.createdAt).toISOString(),
+    dateModified: new Date(article.updatedAt || article.createdAt).toISOString(),
+    inLanguage: "id-ID",
+    author: {
+      "@type": "Person",
+      name: profile.name || "Sigit Adi Pranoto",
+      url: baseUrl,
+    },
+    publisher: {
+      "@type": "Person",
+      name: profile.name || "Sigit Adi Pranoto",
+      url: baseUrl,
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": pageUrl,
+    },
+    keywords: (article.tags || []).join(", "),
+  };
 
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "BlogPosting",
-            headline: article.title,
-            description: article.summary,
-            image: article.imageUrl || undefined,
-            datePublished: new Date(article.createdAt).toISOString(),
-            dateModified: new Date(article.updatedAt || article.createdAt).toISOString(),
-            author: {
-              "@type": "Person",
-              name: profile.name || "Sigit Wasis Subekti",
-            },
-            keywords: (article.tags || []).join(", "),
-          }),
-        }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogPostingSchema) }}
       />
       <div className="h-full w-full overflow-y-auto vt-scrollbar">
         <ArticleDetailContent

@@ -1,0 +1,33 @@
+# Sigit Adi Pranoto — Senior Web Developer & Tech Creator
+
+> Portofolio profesional, arsitektur sistem modern, aplikasi web full-stack, dan integrasi kecerdasan buatan (AI/LLM).
+
+- **Website Resmi**: https://sigitadi.dev
+- **Profesi**: Senior Web Developer / Full Stack Engineer & Cloud Architect
+- **Lokasi**: Jakarta, Indonesia
+- **Email**: sigitadipranoto.it@gmail.com
+- **GitHub**: https://github.com/sisigitadi
+- **LinkedIn**: https://www.linkedin.com/in/sigitadi/
+- **Medium**: https://medium.com/@si.sigitadi
+
+---
+
+## Keahlian Utama (Core Technologies & Stack)
+- **Frontend & UI**: Next.js (App Router), React, TypeScript, Tailwind CSS, GSAP Motion, Radix UI.
+- **Backend & Database**: Node.js, Express, PostgreSQL, Drizzle ORM, Supabase, Neon Tech, Redis.
+- **Cloud & DevOps**: Docker, Linux VPS, Nginx, CI/CD, Vercel, Bunny CDN, Cloudflare.
+- **AI & Integrations**: OpenAI API, Gemini API, AI Agents, Prompt Engineering, Structured LLM Outputs.
+
+---
+
+## Halaman Utama & Direktori Proyek
+- [Beranda & Terminal OS](https://sigitadi.dev/): Portofolio interaktif berbasis Single-Page Desktop OS (SigitOS).
+- [Katalog Proyek Lengkap](https://sigitadi.dev/proyek): Daftar lengkap studi kasus, implementasi kode sumber, dan demo aplikasi web.
+- [Artikel & Wawasan Teknologi](https://sigitadi.dev/artikel): Kumpulan tulisan teknis, panduan arsitektur software, dan analisis AI.
+
+---
+
+## Layanan & Kolaborasi (Services & SEM)
+1. **Jasa Pembuatan Website & Web App Modern**: Pengembangan sistem berbasis Next.js berkinerja tinggi dengan skor Core Web Vitals optimal.
+2. **Pengembangan Sistem Berbasis AI**: Integrasi LLM, chatbot cerdas, automasi data bisnis.
+3. **Optimasi & Konsultasi Cloud/DevOps**: Migrasi server, containerization Docker, konfigurasi CDN & keamanan web.
