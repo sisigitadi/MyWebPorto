@@ -111,11 +111,13 @@ Server Actions di `src/lib/actions.ts` menangani validasi admin, CRUD, auto-seed
 
 ## Environment Variables
 
-Buat file `.env.local` di root project.
+Buat file `.env.local` di root project (lihat `.env.example`):
 
 ```env
-# URL aplikasi
+# URL aplikasi — WAJIB https://sigitadi.id di Vercel prod (tanpa slash)
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL=x@sigitadi.id
+NEXT_PUBLIC_FORMSPREE_ENDPOINT=https://formspree.io/f/your-form-id
 
 # Clerk Authentication
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxxx
@@ -130,13 +132,18 @@ NEXT_PUBLIC_ADMIN_CLERK_ID=user_xxxxxxxxxxxxxxxxx
 # Neon PostgreSQL
 DATABASE_URL=postgresql://user:password@host/neondb?sslmode=require
 
-# Formspree contact form
-NEXT_PUBLIC_FORMSPREE_ENDPOINT=https://formspree.io/f/your-form-id
-NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL=x@sigitadi.id
+# Bunny CDN (opsional — upload masih lokal jika kosong)
+BUNNY_STORAGE_ZONE_NAME=nama-storage-zone
+BUNNY_STORAGE_API_KEY=xxxx-xxxx-xxxx
+BUNNY_CDN_HOSTNAME=namazone.b-cdn.net
 
-# Terjemahan ID -> EN (Google Translate / MyMemory)
-# Set "false" untuk mematikan tombol terjemahan di panel admin sepenuhnya.
+# IndexNow (jangan commit key asli)
+INDEXNOW_KEY=e5b871c984924b179571fcfdca565780
+
+# Translate opt-in
 ENABLE_EXTERNAL_TRANSLATE=true
+NEXT_PUBLIC_GOOGLE_VERIFICATION=nO80...
+NEXT_PUBLIC_BING_VERIFICATION=e5b87...
 ```
 
 ### Terjemahan dan Privasi

@@ -397,21 +397,22 @@ Kebutuhan aksesibilitas:
 - Gambar memakai alt text bermakna.
 - UI interaktif tidak boleh menghilangkan akses ke konten utama.
 
-## 9. Keamanan
+## 9. Keamanan (Hardening v2 — 2026-09-12)
 
-Kebutuhan:
+Kebutuhan (OWASP Top 10):
 
-- Admin memakai Clerk.
-- Rute `/admin/*` dilindungi middleware saat Clerk aktif.
-- Server Actions memvalidasi admin sebelum mutasi data.
-- Input divalidasi menggunakan Zod.
-- URL gambar/link hanya menerima pola aman yang diizinkan.
-- Secret harus berada di environment variables, bukan kode frontend.
-- Konten user tidak boleh dirender sebagai HTML mentah kecuali benar-benar diperlukan dan sudah disanitasi.
+- Admin: Clerk middleware + `verifyAdmin()` di semua Server Actions mutasi; non-admin 404 + `x-request-id`.
+- Header: HSTS 2 th, `nosniff`, `SAMEORIGIN`, `strict-origin-when-cross-origin`, `Permissions-Policy`, `COOP/CORP same-origin`, `Cache-Control no-store` untuk `/admin` & `/api`, `poweredByHeader false` (`next.config.ts`).
+- CSP v2: `default-src 'self'` tanpa `unsafe-eval`, `worker-src blob:` untuk Clerk, `object-src none`.
+- Validasi: Zod `safeUrlSchema` + max-length + slug regex `^[a-z0-9]+(-[a-z0-9]+)*$`; SVG blacklist, magic-bytes, ekstensi dari MIME, `bodySizeLimit 25MB`.
+- Upload: `public/uploads` 20MB max, Vercel FS warning, rekomendasi Bunny/R2/S3 untuk prod.
+- Rate-limit: `POST /api/indexnow` admin-only 5/60s/IP, 100 URLs, 10KB payload, host allowlist; `GET` 405.
+- Sanitise: `sanitizeError()` allowlist + `safeJsonLd()` escape `</script>`; secret di env, tidak di frontend.
+- Privasi: translate opt-in per field, `ENABLE_EXTERNAL_TRANSLATE=false` mematikan egress.
 
 Catatan:
 
-- Project saat ini memakai `dangerouslySetInnerHTML` untuk menyuntik JSON-LD. Ini dapat diterima selama payload berasal dari object yang di-serialize, bukan HTML bebas dari user.
+- `dangerouslySetInnerHTML` hanya untuk JSON-LD ter-serialize via `safeJsonLd()` — aman.
 
 ## 10. Performa
 
@@ -444,6 +445,8 @@ Prinsip konten:
 
 ```env
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL=x@sigitadi.id
+NEXT_PUBLIC_FORMSPREE_ENDPOINT=https://formspree.io/f/your-form-id
 
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxxx
 CLERK_SECRET_KEY=sk_test_xxxx
@@ -455,40 +458,43 @@ NEXT_PUBLIC_ADMIN_CLERK_ID=user_xxxxxxxxxxxxxxxxx
 
 DATABASE_URL=postgresql://user:password@host/neondb?sslmode=require
 
-NEXT_PUBLIC_FORMSPREE_ENDPOINT=https://formspree.io/f/your-form-id
-NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL=x@sigitadi.id
+# Bunny CDN (opsional — upload masih lokal jika kosong)
+BUNNY_STORAGE_ZONE_NAME=nama-storage-zone
+BUNNY_STORAGE_API_KEY=xxxx-xxxx-xxxx
+BUNNY_CDN_HOSTNAME=namazone.b-cdn.net
+
+# IndexNow (jangan commit key asli)
+INDEXNOW_KEY=e5b871c984924b179571fcfdca565780
+
+# Translate opt-in (false = matikan egress)
+ENABLE_EXTERNAL_TRANSLATE=true
+NEXT_PUBLIC_GOOGLE_VERIFICATION=nO80...
+NEXT_PUBLIC_BING_VERIFICATION=e5b87...
 ```
 
-## 13. Status Implementasi
+## 13. Status Implementasi (Final v2026-09-12)
 
 Status saat dokumen ini direvisi:
 
-- Setup Next.js, TypeScript, Tailwind, dan shadcn/ui: selesai.
-- Public pages: selesai.
-- SigitOS public interface: selesai.
-- Admin layout dan dashboard: selesai.
-- CRUD profil, proyek, layanan, produk, testimoni, artikel: selesai.
-- **Manajemen tautan sosial dinamis** (13 platform, conditional display): selesai.
-- **Editor chip** untuk tag artikel & tech stack proyek: selesai.
-- **Terminal AI** (perintah baru, history, data-driven): selesai.
+- Setup Next.js 15, TypeScript strict, Tailwind v4, shadcn/ui: selesai.
+- Public pages + SigitOS desktop + boot loader anti-flash: selesai.
+- Admin layout/dashboard + CRUD profil/proyek/layanan/produk/testimoni/artikel: selesai.
+- **Sosial dinamis** 13 platform (conditional display, DB-only merge fix): selesai.
+- **Chip editor** tag/tech stack + **Terminal AI** (history, Sigit_Bot NLP): selesai.
 - **OG preview dinamis** per route/slug via `next/og`: selesai.
-- Drizzle schema dan migrations: tersedia.
-- Neon integration: tersedia jika `DATABASE_URL` diset.
-- Local fallback store: tersedia.
-- Clerk middleware: tersedia.
-- Local image upload: tersedia.
-- SEO metadata, sitemap, robots, JSON-LD: tersedia.
-- AI engine lokal untuk terminal & Sigit_Bot: tersedia.
-- Rute detail produk `/toko/[slug]` dan slug produk: selesai.
-- Helper URL kontak (`contact-link.ts`) dan slug produk (`product-link.ts`): tersedia.
+- Drizzle schema + Neon + local-store fallback (`data/local-store.json` → dummy): tersedia.
+- Clerk middleware + `verifyAdmin()` + `x-request-id`: tersedia.
+- Upload `public/uploads` (magic-bytes, SVG block, 20MB, Vercel warning): tersedia.
+- SEO: metadata, sitemap (`sigitadi.id`), robots, JSON-LD 4 schema + BlogPosting/SoftwareApplication, ISR `revalidate 60`: tersedia.
+- Hardening v2: CSP tanpa `unsafe-eval`, COOP/CORP, Cache-Control no-store, max-length+slug regex, IndexNow admin-only, sanitise: tersedia.
+- UI fix: Start icon mobile 20px, proyek detail sticky nav + bottom back: selesai.
 
-## 14. Rekomendasi Lanjutan
+## 14. Rekomendasi Lanjutan (Post-Final)
 
-Prioritas teknis berikutnya:
+Prioritas berikutnya:
 
-- Migrasikan upload gambar produksi ke storage persisten.
-- Tambahkan test untuk Server Actions dan validasi Zod.
-- Tambahkan smoke test untuk rute publik utama.
-- Audit lagi penggunaan `dangerouslySetInnerHTML` agar hanya dipakai untuk structured data.
-- Rapikan strategi cache/revalidation antara halaman dynamic dan static.
-- Pastikan deployment production tidak bergantung pada local file store.
+- Storage persisten Bunny/R2/S3 untuk prod (sudah ada env `BUNNY_*`, tinggal wiring).
+- Test: Vitest unit (validations, actions) + Playwright E2E admin CRUD.
+- Monitoring: Sentry / Log Drains untuk `sanitizeError` + `x-request-id` tracing.
+- Batasi `images.remotePatterns` wildcard `**` ke allowlist (`images.unsplash.com`, `cdn.sigitadi.id`).
+- Cron revalidate sitemap harian + auto-ping IndexNow saat `saveProject/saveArticle` (saat ini manual via `/api/indexnow`).
