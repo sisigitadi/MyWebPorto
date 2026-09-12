@@ -2,9 +2,10 @@
 
 import React, { useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowUpRight, ExternalLink, Package, ShoppingCart } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ExternalLink, Package, ShoppingCart, Monitor } from "lucide-react";
 import type { ProductData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
+import { Button } from "@/components/ui/button";
 import { OSWindow } from "@/components/public/os/os-window";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -31,11 +32,35 @@ export function ProductDetailContent({ product }: ProductDetailContentProps) {
 
   return (
     <div ref={containerRef} className="min-h-full py-6 sm:py-10">
-      <div className="max-w-4xl mx-auto px-3 sm:px-6">
-        <Link href="/#produk" className="inline-flex items-center gap-1.5 mb-4 text-xs font-mono font-bold text-[var(--vt-ink)] hover:underline">
-          <ArrowLeft className="h-3.5 w-3.5" />
-          {language === "en" ? "BACK TO STORE.ZIP" : "KEMBALI KE STORE.ZIP"}
-        </Link>
+      <div className="max-w-4xl mx-auto px-3 sm:px-6 space-y-5">
+        {/* Navigation Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Button
+              asChild
+              size="sm"
+              className="vt-btn vt-btn-chrome h-8 px-3 font-mono text-xs font-bold gap-1.5 cursor-pointer"
+            >
+              <Link href="/">
+                <Monitor className="h-3.5 w-3.5 text-primary" />
+                <span className="hidden sm:inline">{language === "en" ? "Back to Desktop OS" : "Kembali ke Desktop OS"}</span>
+                <span className="sm:hidden">Desktop</span>
+              </Link>
+            </Button>
+
+            <Button
+              asChild
+              size="sm"
+              className="vt-btn vt-btn-chrome h-8 px-3 font-mono text-xs font-bold gap-1.5 cursor-pointer"
+            >
+              <Link href="/#produk">
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{language === "en" ? "Back to Store.zip" : "Kembali ke Store.zip"}</span>
+                <span className="sm:hidden">{language === "en" ? "Store" : "Toko"}</span>
+              </Link>
+            </Button>
+          </div>
+        </div>
 
         <OSWindow
           className="product-detail-panel"
