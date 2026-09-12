@@ -293,26 +293,32 @@ export async function getProfile(): Promise<ProfileData> {
       }
       return baseProfile;
     }
-    const dbSocialLinks = (res.socialLinks as typeof DUMMY_PROFILE.socialLinks) || {};
-    const mergedSocialLinks = { ...baseProfile.socialLinks, ...dbSocialLinks };
-    (Object.keys(mergedSocialLinks) as Array<keyof typeof mergedSocialLinks>).forEach((k) => {
-      if (!mergedSocialLinks[k]) delete mergedSocialLinks[k];
-    });
+    // DB adalah source of truth untuk socialLinks — jangan merge dengan dummy/base
+    // agar field yang sengaja dihapus (instagram/whatsapp) tidak muncul kembali
+    const rawSocialLinks = res.socialLinks as typeof DUMMY_PROFILE.socialLinks | null | undefined;
+    let cleanSocialLinks: typeof DUMMY_PROFILE.socialLinks = {};
+    if (rawSocialLinks && typeof rawSocialLinks === "object") {
+      cleanSocialLinks = { ...rawSocialLinks };
+      (Object.keys(cleanSocialLinks) as Array<keyof typeof cleanSocialLinks>).forEach((k) => {
+        if (!cleanSocialLinks[k]) delete cleanSocialLinks[k];
+      });
+    }
 
     return {
       ...baseProfile,
       ...res,
-      headlineEn: res.headlineEn || baseProfile.headlineEn,
-      bioEn: res.bioEn || baseProfile.bioEn,
-      avatarUrl: res.avatarUrl || baseProfile.avatarUrl,
-      phone: res.phone || baseProfile.phone,
-      location: res.location || baseProfile.location,
+      // Gunakan nullish check agar string kosong "" (sengaja dihapus) tidak fallback ke dummy
+      headlineEn: res.headlineEn?.trim() ? res.headlineEn : baseProfile.headlineEn,
+      bioEn: res.bioEn?.trim() ? res.bioEn : baseProfile.bioEn,
+      avatarUrl: res.avatarUrl?.trim() ? res.avatarUrl : baseProfile.avatarUrl,
+      phone: res.phone ?? baseProfile.phone,
+      location: res.location ?? baseProfile.location,
       availableForHire: res.availableForHire ?? baseProfile.availableForHire,
       skills: (res.skills as string[])?.length ? (res.skills as string[]) : baseProfile.skills,
       stats: (res.stats as typeof DUMMY_PROFILE.stats)?.length
         ? (res.stats as typeof DUMMY_PROFILE.stats)
         : baseProfile.stats,
-      socialLinks: mergedSocialLinks,
+      socialLinks: cleanSocialLinks,
     };
   } catch (error) {
     console.warn("Database query getProfile gagal, menggunakan data lokal:", error);

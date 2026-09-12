@@ -49,3 +49,5 @@ next-env.d.ts
 deploy_package/
 deploy_package.zip
 .aider*
+.freebuff/
+data/local-store.json
