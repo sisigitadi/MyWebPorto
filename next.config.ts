@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
     unoptimized: true,
     formats: ["image/avif", "image/webp"],
     // NOTE: wildcard ** memudahkan thumbnail eksternal, tapi long-term batasi ke host terpercaya
-    // Contoh hardening: ganti "**" dengan "images.unsplash.com", "cdn.sigitadi.dev", dll.
+    // Contoh hardening: ganti "**" dengan "images.unsplash.com", "cdn.sigitadi.id", dll.
     remotePatterns: [
       {
         protocol: "https",

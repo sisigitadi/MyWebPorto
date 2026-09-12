@@ -77,7 +77,7 @@ Header lengkap di `next.config.ts:25`:
 - **Baru:** `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: same-origin`
 - **Baru:** `Cache-Control: no-store` untuk `/admin/*` dan `/api/*` (cegah cache sensitif di CDN)
 - `poweredByHeader: false`, `compress: true`
-- `images.remotePatterns` — wildcard `**` masih aktif untuk kemudahan; **rekomendasi hardening:** batasi ke host tepercaya (`images.unsplash.com`, `cdn.sigitadi.dev`) saat prod stabil.
+- `images.remotePatterns` — wildcard `**` masih aktif untuk kemudahan; **rekomendasi hardening:** batasi ke host tepercaya (`images.unsplash.com`, `cdn.sigitadi.id`) saat prod stabil.
 - Secret tidak di-commit (`.env.example`).
 
 ### 3.4 OWASP A04 — Insecure Design (Rate Limiting)
