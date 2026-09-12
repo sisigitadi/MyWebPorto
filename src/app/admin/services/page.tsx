@@ -340,7 +340,7 @@ export default function AdminServicesPage() {
                 <div className="flex items-center justify-between bg-muted/40 p-2.5 rounded-md border border-border/60">
                   <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                     <Globe className="h-3.5 w-3.5 text-primary" />
-                    <span>Kosongkan jika ingin auto-translate saat simpan</span>
+                    <span>Kosongkan bila mode EN cukup memakai teks Indonesia</span>
                   </div>
                   <Button
                     type="button"

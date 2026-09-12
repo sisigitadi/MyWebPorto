@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { getArticles } from "@/lib/actions";
+import { safeJsonLd } from "@/lib/json-ld";
 import { OSWindow } from "@/components/public/os/os-window";
 import { Calendar, Clock, ArrowRight, Folder, Monitor, HardDrive } from "lucide-react";
 
@@ -73,11 +74,11 @@ export default async function ArticlesPage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbSchema) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(collectionSchema) }}
       />
       <div className="py-8 md:py-14 relative overflow-hidden h-full w-full overflow-y-auto vt-scrollbar">
         <div className="max-w-6xl mx-auto px-3 sm:px-6 space-y-6">

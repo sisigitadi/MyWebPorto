@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getProjects, getProfile } from "@/lib/actions";
+import { safeJsonLd } from "@/lib/json-ld";
 import { ProjectDetailContent } from "@/components/public/project-detail-content";
 
 interface ProjectDetailPageProps {
@@ -114,11 +115,11 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbSchema) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(softwareAppSchema) }}
       />
       <div className="h-full w-full overflow-y-auto vt-scrollbar">
         <ProjectDetailContent project={project} profile={profile} />

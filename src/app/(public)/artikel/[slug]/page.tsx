@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getArticles, getProfile } from "@/lib/actions";
+import { safeJsonLd } from "@/lib/json-ld";
 import { ArticleDetailContent } from "@/components/public/article-detail-content";
 
 interface ArticleDetailPageProps {
@@ -123,11 +124,11 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbSchema) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogPostingSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(blogPostingSchema) }}
       />
       <div className="h-full w-full overflow-y-auto vt-scrollbar">
         <ArticleDetailContent

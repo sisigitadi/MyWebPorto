@@ -425,7 +425,7 @@ export default function AdminProjectsPage() {
               {isEditing ? "Sunting Data Proyek" : "Tambah Proyek Portofolio Baru"}
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Isi formulir dalam Bahasa Indonesia atau Inggris. Sistem otomatis menerjemahkan ke EN bila dikosongkan.
+              Isi formulir dalam Bahasa Indonesia atau Inggris. Kolom English dibiarkan apa adanya saat disimpan — gunakan tombol Terjemahkan (ID → EN) bila ingin diisi otomatis.
             </DialogDescription>
           </DialogHeader>
 
@@ -583,7 +583,7 @@ export default function AdminProjectsPage() {
                 </div>
 
                 <p className="text-[11px] text-muted-foreground italic">
-                  * Catatan: Jika kolom di tab English ini dikosongkan, sistem akan otomatis menerjemahkan teks Indonesia ke Bahasa Inggris saat disimpan.
+                  * Catatan: Kolom di tab English ini dibiarkan apa adanya saat disimpan. Mode EN akan memakai teks Indonesia sebagai fallback. Tombol Terjemahkan mengirim teks ke layanan terjemahan pihak ketiga (Google Translate / MyMemory).
                 </p>
               </TabsContent>
             </Tabs>

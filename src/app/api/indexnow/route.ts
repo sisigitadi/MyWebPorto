@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProjects, getArticles } from "@/lib/actions";
+import { rateLimit, cleanupRateLimits } from "@/lib/rate-limit";
 
 const INDEXNOW_KEY = process.env.INDEXNOW_KEY || "e5b871c984924b179571fcfdca565780";
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev";
+
+// Limit: 10 requests per 60s per IP to prevent abuse of the IndexNow submission.
+const POST_LIMIT = 10;
+const POST_WINDOW_MS = 60_000;
+
+function clientIp(req: NextRequest): string {
+  const fwd = req.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0].trim();
+  return req.headers.get("x-real-ip") || "unknown";
+}
 
 /**
  * Submits URL list to IndexNow (Bing, Yandex, Seznam, Naver)
@@ -11,13 +22,39 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev";
  * If no body provided, gathers all published projects, articles, and main routes.
  */
 export async function POST(req: NextRequest) {
+  const ip = clientIp(req);
+  const rl = rateLimit(`indexnow:post:${ip}`, POST_LIMIT, POST_WINDOW_MS);
+  cleanupRateLimits();
+
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { success: false, error: "Terlalu banyak permintaan. Coba lagi nanti." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.resetInMs / 1000)) } }
+    );
+  }
+
   try {
     let urlsToSubmit: string[] = [];
 
     try {
       const body = await req.json();
       if (body && Array.isArray(body.urls) && body.urls.length > 0) {
-        urlsToSubmit = body.urls;
+        // Sanitize: only accept absolute http(s) URLs on our host.
+        const host = new URL(BASE_URL).host;
+        const rawUrls: unknown[] = body.urls;
+        urlsToSubmit = rawUrls
+          .filter((u): u is string => typeof u === "string")
+          .filter((u) => {
+            try {
+              const parsed = new URL(u);
+              return (
+                (parsed.protocol === "https:" || parsed.protocol === "http:") &&
+                parsed.host === host
+              );
+            } catch {
+              return false;
+            }
+          });
       }
     } catch {
       // Body not provided or invalid JSON, collect site urls dynamically
@@ -64,21 +101,21 @@ export async function POST(req: NextRequest) {
         ? "URLs successfully submitted to IndexNow (Bing & Search Engine Network)."
         : `IndexNow API returned status code ${response.status}`,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to ping IndexNow API",
+        error: "Failed to ping IndexNow API",
       },
       { status: 500 }
     );
   }
 }
 
+// GET is intentionally disabled: it previously exposed the IndexNow key publicly.
 export async function GET() {
-  return NextResponse.json({
-    status: "IndexNow Endpoint Ready",
-    key: INDEXNOW_KEY,
-    keyLocation: `${BASE_URL.replace(/\/$/, "")}/${INDEXNOW_KEY}.txt`,
-  });
+  return NextResponse.json(
+    { success: false, error: "Method not allowed." },
+    { status: 405 }
+  );
 }

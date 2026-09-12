@@ -29,8 +29,9 @@ import {
   type ArticleData,
   type ProfileData,
 } from "@/lib/dummy-data";
-import { translateText } from "@/lib/translate";
-import { getProductSlug } from "@/lib/product-link";
+import { translateText, isExternalTranslateEnabled } from "@/lib/translate";
+import { getProductSlug, slugifyProduct } from "@/lib/product-link";
+import { sanitizeError } from "@/lib/error-utils";
 
 /**
  * Verifikasi apakah request mutasi berasal dari Admin yang terotentikasi.
@@ -122,6 +123,83 @@ function updateLocalStore<K extends keyof LocalStoreData>(key: K, data: LocalSto
 }
 
 // ==========================================
+// SLUG UNIQUENESS GUARD
+// ==========================================
+// Slug adalah kunci URL publik (/proyek/[slug], /artikel/[slug], /toko/[slug]).
+// Dua entri dengan slug sama membuat salah satunya tidak bisa diakses sama sekali,
+// dan di mode database memicu unique-constraint violation yang membingungkan.
+type SlugEntity = "projects" | "articles" | "products";
+
+interface SlugCandidate {
+  id: string;
+  slug?: string | null;
+  title?: string;
+}
+
+function localSlugCandidates(entity: SlugEntity): SlugCandidate[] {
+  const store = getLocalStore();
+  if (entity === "projects") return (store?.projects as ProjectData[]) || DUMMY_PROJECTS;
+  if (entity === "articles") return (store?.articles as ArticleData[]) || DUMMY_ARTICLES;
+  return (store?.products as ProductData[]) || DUMMY_PRODUCTS;
+}
+
+async function dbSlugCandidates(entity: SlugEntity): Promise<SlugCandidate[]> {
+  if (entity === "projects") {
+    return db.select({ id: schema.projects.id, slug: schema.projects.slug }).from(schema.projects);
+  }
+  if (entity === "articles") {
+    return db.select({ id: schema.articles.id, slug: schema.articles.slug }).from(schema.articles);
+  }
+  return db
+    .select({ id: schema.products.id, slug: schema.products.slug, title: schema.products.title })
+    .from(schema.products);
+}
+
+/**
+ * Cek bentrok slug melawan local store DAN database (bila tersambung), karena
+ * keduanya bisa menjadi sumber data yang dilihat admin. Produk dibandingkan
+ * lewat slug efektifnya, sebab URL toko memakai slug turunan judul saat slug
+ * eksplisit kosong.
+ */
+async function findSlugConflict(
+  entity: SlugEntity,
+  candidateSlug: string,
+  ownId?: string
+): Promise<"local store" | "database" | null> {
+  const normalize = (value?: string | null) => (value || "").trim().toLowerCase();
+  const slugOf = (item: SlugCandidate) =>
+    entity === "products"
+      ? normalize(getProductSlug({ id: item.id, title: item.title || "", slug: item.slug }))
+      : normalize(item.slug);
+
+  const wanted = normalize(candidateSlug);
+  if (!wanted) return null;
+
+  const conflictLocally = localSlugCandidates(entity).some(
+    (item) => item.id !== ownId && slugOf(item) === wanted
+  );
+  if (conflictLocally) return "local store";
+
+  if (!isDbConnected) return null;
+
+  try {
+    const rows = await dbSlugCandidates(entity);
+    const conflictInDb = rows.some((item) => item.id !== ownId && slugOf(item) === wanted);
+    return conflictInDb ? "database" : null;
+  } catch (err) {
+    // Tabel mungkin belum dimigrasi — jangan blokir penyimpanan, biarkan alur
+    // sinkronisasi database yang melaporkan masalahnya.
+    console.warn(`Pengecekan keunikan slug ${entity} di database dilewati:`, err);
+    return null;
+  }
+}
+
+function slugConflictMessage(entity: SlugEntity, slug: string, source: string): string {
+  const path = entity === "projects" ? "proyek" : entity === "articles" ? "artikel" : "toko";
+  return `Slug "${slug}" sudah dipakai entri lain (terdeteksi di ${source}). Pilih slug lain agar URL /${path}/${slug} tidak saling menimpa.`;
+}
+
+// ==========================================
 // TRANSLATE HELPER ACTION
 // ==========================================
 export async function translateFieldAction(
@@ -135,7 +213,16 @@ export async function translateFieldAction(
     return {
       success: false,
       text,
-      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+      error: sanitizeError(authErr),
+    };
+  }
+
+  if (!isExternalTranslateEnabled()) {
+    return {
+      success: false,
+      text,
+      error:
+        "Terjemahan otomatis dinonaktifkan (ENABLE_EXTERNAL_TRANSLATE=false). Isi kolom English secara manual.",
     };
   }
 
@@ -144,10 +231,11 @@ export async function translateFieldAction(
     const translated = await translateText(text, from, to);
     return { success: true, text: translated };
   } catch (err) {
+    console.error("Auto-translate gagal:", err);
     return {
       success: false,
       text,
-      error: err instanceof Error ? err.message : "Gagal menerjemahkan teks",
+      error: "Gagal menerjemahkan teks. Periksa log server untuk detail teknis.",
     };
   }
 }
@@ -166,27 +254,51 @@ export async function getProfile(): Promise<ProfileData> {
     });
     if (!res) {
       try {
-        await db.insert(schema.profiles).values({
+        const cleanDefault = {
           id: "owner",
-          name: baseProfile.name,
-          headline: baseProfile.headline,
-          headlineEn: baseProfile.headlineEn || null,
-          bio: baseProfile.bio,
-          bioEn: baseProfile.bioEn || null,
-          avatarUrl: baseProfile.avatarUrl,
-          email: baseProfile.email,
-          phone: baseProfile.phone,
-          location: baseProfile.location,
-          availableForHire: baseProfile.availableForHire,
-          skills: baseProfile.skills,
-          stats: baseProfile.stats,
-          socialLinks: baseProfile.socialLinks,
-        }).onConflictDoNothing();
+          name: "Sigit",
+          headline: "Web Developer & Systems Architect",
+          headlineEn: "Web Developer & Systems Architect",
+          bio: "Membangun sistem web, antarmuka interaktif berperforma tinggi, dan solusi digital yang cepat, aman, dan memukau.",
+          bioEn: "Building high-performance web systems, interactive interfaces, and robust digital solutions.",
+          avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=600&auto=format&fit=crop",
+          email: "x@sigitadi.id",
+          phone: "6281234567890",
+          location: "Indonesia",
+          availableForHire: true,
+          skills: [
+            "Next.js 15",
+            "React 19",
+            "TypeScript",
+            "Tailwind CSS",
+            "Drizzle ORM",
+            "PostgreSQL",
+            "GSAP Animation",
+            "System Architecture",
+          ],
+          stats: [
+            { label: "Tahun Pengalaman", labelEn: "Years Experience", value: "4+" },
+            { label: "Proyek Selesai", labelEn: "Projects Done", value: "25+" },
+            { label: "Kepuasan Klien", labelEn: "Client Rating", value: "100%" },
+          ],
+          socialLinks: {
+            github: "https://github.com/sisigitadi",
+            linkedin: "https://www.linkedin.com/in/sigitadi/",
+            portfolio: "https://porto.sigitadi.id/",
+          },
+        };
+        await db.insert(schema.profiles).values(cleanDefault).onConflictDoNothing();
       } catch (seedErr) {
         console.warn("Auto-seed profil awal dilewati (tabel mungkin belum ada):", seedErr);
       }
       return baseProfile;
     }
+    const dbSocialLinks = (res.socialLinks as typeof DUMMY_PROFILE.socialLinks) || {};
+    const mergedSocialLinks = { ...baseProfile.socialLinks, ...dbSocialLinks };
+    (Object.keys(mergedSocialLinks) as Array<keyof typeof mergedSocialLinks>).forEach((k) => {
+      if (!mergedSocialLinks[k]) delete mergedSocialLinks[k];
+    });
+
     return {
       ...baseProfile,
       ...res,
@@ -200,7 +312,7 @@ export async function getProfile(): Promise<ProfileData> {
       stats: (res.stats as typeof DUMMY_PROFILE.stats)?.length
         ? (res.stats as typeof DUMMY_PROFILE.stats)
         : baseProfile.stats,
-      socialLinks: (res.socialLinks as typeof DUMMY_PROFILE.socialLinks) || baseProfile.socialLinks,
+      socialLinks: mergedSocialLinks,
     };
   } catch (error) {
     console.warn("Database query getProfile gagal, menggunakan data lokal:", error);
@@ -214,7 +326,7 @@ export async function updateProfile(data: unknown) {
   } catch (authErr: unknown) {
     return {
       success: false,
-      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+      error: sanitizeError(authErr),
     };
   }
 
@@ -223,16 +335,17 @@ export async function updateProfile(data: unknown) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validasi profil gagal" };
   }
 
-  // Auto-translate EN jika dibiarkan kosong
-  let headlineEn = parsed.data.headlineEn?.trim();
-  if (!headlineEn && parsed.data.headline) {
-    headlineEn = await translateText(parsed.data.headline, "id", "en");
-  }
+  // Field English dipakai apa adanya. Tidak ada terjemahan otomatis saat simpan:
+  // penerjemahan mengirim teks ke layanan pihak ketiga (lihat src/lib/translate.ts)
+  // dan hanya dijalankan bila admin menekan tombol "Terjemahkan (ID → EN)".
+  const headlineEn = parsed.data.headlineEn?.trim() || null;
+  const bioEn = parsed.data.bioEn?.trim() || null;
 
-  let bioEn = parsed.data.bioEn?.trim();
-  if (!bioEn && parsed.data.bio) {
-    bioEn = await translateText(parsed.data.bio, "id", "en");
-  }
+  // Bersihkan socialLinks: hapus field yang kosong/null agar tidak tersimpan di DB
+  const cleanSocialLinks = { ...parsed.data.socialLinks };
+  (Object.keys(cleanSocialLinks) as Array<keyof typeof cleanSocialLinks>).forEach((k) => {
+    if (!cleanSocialLinks[k]) delete cleanSocialLinks[k];
+  });
 
   const payload: ProfileData = {
     ...DUMMY_PROFILE,
@@ -240,10 +353,10 @@ export async function updateProfile(data: unknown) {
     id: "owner",
     headlineEn: headlineEn || null,
     bioEn: bioEn || null,
+    socialLinks: cleanSocialLinks,
   };
 
   // Simpan secara persisten ke disk lokal dan memori
-  Object.assign(DUMMY_PROFILE, payload);
   updateLocalStore("profile", payload);
 
   if (isDbConnected) {
@@ -272,7 +385,7 @@ export async function updateProfile(data: unknown) {
       }
       return {
         success: false,
-        error: `Gagal menyimpan profil ke database Neon: ${errMsg}`,
+        error: "Gagal menyimpan profil ke database. Periksa log server untuk detail teknis.",
       };
     }
   }
@@ -365,7 +478,7 @@ export async function saveProject(data: unknown) {
   } catch (authErr: unknown) {
     return {
       success: false,
-      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+      error: sanitizeError(authErr),
     };
   }
 
@@ -374,16 +487,19 @@ export async function saveProject(data: unknown) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validasi proyek gagal" };
   }
 
-  // Auto-translate EN jika kosong
-  let titleEn = parsed.data.titleEn?.trim();
-  if (!titleEn && parsed.data.title) {
-    titleEn = await translateText(parsed.data.title, "id", "en");
+  // Jaga keunikan slug sebelum menulis apa pun ke local store maupun database.
+  const projectSlugConflict = await findSlugConflict("projects", parsed.data.slug, parsed.data.id);
+  if (projectSlugConflict) {
+    return {
+      success: false,
+      error: slugConflictMessage("projects", parsed.data.slug, projectSlugConflict),
+    };
   }
 
-  let descriptionEn = parsed.data.descriptionEn?.trim();
-  if (!descriptionEn && parsed.data.description) {
-    descriptionEn = await translateText(parsed.data.description, "id", "en");
-  }
+  // Field English dipakai apa adanya (tanpa terjemahan otomatis). Penerjemahan
+  // hanya terjadi bila admin menekan tombol "Terjemahkan (ID → EN)".
+  const titleEn = parsed.data.titleEn?.trim() || null;
+  const descriptionEn = parsed.data.descriptionEn?.trim() || null;
 
   const { id, ...rest } = parsed.data;
   const projectData = {
@@ -499,7 +615,7 @@ export async function saveProject(data: unknown) {
       }
       return {
         success: false,
-        error: `Gagal menyimpan proyek ke database Neon: ${errMsg}`,
+        error: "Gagal menyimpan proyek ke database. Periksa log server untuk detail teknis.",
       };
     }
   }
@@ -516,7 +632,7 @@ export async function deleteProject(id: string) {
   } catch (authErr: unknown) {
     return {
       success: false,
-      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+      error: sanitizeError(authErr),
     };
   }
 
@@ -539,7 +655,7 @@ export async function deleteProject(id: string) {
       console.error("Sinkronisasi database deleteProject gagal:", errMsg);
       return {
         success: false,
-        error: `Gagal menghapus proyek dari database: ${errMsg}`,
+        error: "Gagal menghapus proyek dari database. Periksa log server untuk detail teknis.",
       };
     }
   }
@@ -604,7 +720,7 @@ export async function saveService(data: unknown) {
   } catch (authErr: unknown) {
     return {
       success: false,
-      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+      error: sanitizeError(authErr),
     };
   }
 
@@ -613,16 +729,10 @@ export async function saveService(data: unknown) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validasi layanan gagal" };
   }
 
-  // Auto-translate EN jika kosong
-  let titleEn = parsed.data.titleEn?.trim();
-  if (!titleEn && parsed.data.title) {
-    titleEn = await translateText(parsed.data.title, "id", "en");
-  }
-
-  let descriptionEn = parsed.data.descriptionEn?.trim();
-  if (!descriptionEn && parsed.data.description) {
-    descriptionEn = await translateText(parsed.data.description, "id", "en");
-  }
+  // Field English dipakai apa adanya (tanpa terjemahan otomatis). Penerjemahan
+  // hanya terjadi bila admin menekan tombol "Terjemahkan (ID → EN)".
+  const titleEn = parsed.data.titleEn?.trim() || null;
+  const descriptionEn = parsed.data.descriptionEn?.trim() || null;
 
   const { id, ...rest } = parsed.data;
   const serviceData = {
@@ -700,7 +810,7 @@ export async function saveService(data: unknown) {
       }
       return {
         success: false,
-        error: `Gagal menyimpan layanan ke database Neon: ${errMsg}`,
+        error: "Gagal menyimpan layanan ke database. Periksa log server untuk detail teknis.",
       };
     }
   }
@@ -719,7 +829,7 @@ export async function deleteService(id: string) {
   } catch (authErr: unknown) {
     return {
       success: false,
-      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+      error: sanitizeError(authErr),
     };
   }
 
@@ -742,7 +852,7 @@ export async function deleteService(id: string) {
       console.error("Sinkronisasi database deleteService gagal:", errMsg);
       return {
         success: false,
-        error: `Gagal menghapus layanan dari database: ${errMsg}`,
+        error: "Gagal menghapus layanan dari database. Periksa log server untuk detail teknis.",
       };
     }
   }
@@ -817,7 +927,7 @@ export async function saveProduct(data: unknown) {
   } catch (authErr: unknown) {
     return {
       success: false,
-      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+      error: sanitizeError(authErr),
     };
   }
 
@@ -826,16 +936,23 @@ export async function saveProduct(data: unknown) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validasi produk gagal" };
   }
 
-  // Auto-translate EN jika kosong
-  let titleEn = parsed.data.titleEn?.trim();
-  if (!titleEn && parsed.data.title) {
-    titleEn = await translateText(parsed.data.title, "id", "en");
+  // Produk boleh dibuat tanpa slug eksplisit; URL publik memakai slug turunan
+  // judul, jadi yang dijaga keunikannya adalah slug efektif itu.
+  const effectiveProductSlug = parsed.data.slug?.trim()
+    ? slugifyProduct(parsed.data.slug)
+    : slugifyProduct(parsed.data.title);
+  const productSlugConflict = await findSlugConflict("products", effectiveProductSlug, parsed.data.id);
+  if (productSlugConflict) {
+    return {
+      success: false,
+      error: slugConflictMessage("products", effectiveProductSlug, productSlugConflict),
+    };
   }
 
-  let descriptionEn = parsed.data.descriptionEn?.trim();
-  if (!descriptionEn && parsed.data.description) {
-    descriptionEn = await translateText(parsed.data.description, "id", "en");
-  }
+  // Field English dipakai apa adanya (tanpa terjemahan otomatis). Penerjemahan
+  // hanya terjadi bila admin menekan tombol "Terjemahkan (ID → EN)".
+  const titleEn = parsed.data.titleEn?.trim() || null;
+  const descriptionEn = parsed.data.descriptionEn?.trim() || null;
 
   const { id, ...rest } = parsed.data;
   const productData = {
@@ -923,7 +1040,7 @@ export async function saveProduct(data: unknown) {
       }
       return {
         success: false,
-        error: `Gagal menyimpan produk ke database Neon: ${errMsg}`,
+        error: "Gagal menyimpan produk ke database. Periksa log server untuk detail teknis.",
       };
     }
   }
@@ -944,7 +1061,7 @@ export async function deleteProduct(id: string) {
   } catch (authErr: unknown) {
     return {
       success: false,
-      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+      error: sanitizeError(authErr),
     };
   }
 
@@ -968,7 +1085,7 @@ export async function deleteProduct(id: string) {
       console.error("Sinkronisasi database deleteProduct gagal:", errMsg);
       return {
         success: false,
-        error: `Gagal menghapus produk dari database: ${errMsg}`,
+        error: "Gagal menghapus produk dari database. Periksa log server untuk detail teknis.",
       };
     }
   }
@@ -1042,7 +1159,7 @@ export async function saveTestimonial(data: unknown) {
   } catch (authErr: unknown) {
     return {
       success: false,
-      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+      error: sanitizeError(authErr),
     };
   }
 
@@ -1051,16 +1168,10 @@ export async function saveTestimonial(data: unknown) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validasi testimoni gagal" };
   }
 
-  // Auto-translate EN jika kosong
-  let contentEn = parsed.data.contentEn?.trim();
-  if (!contentEn && parsed.data.content) {
-    contentEn = await translateText(parsed.data.content, "id", "en");
-  }
-
-  let clientRoleEn = parsed.data.clientRoleEn?.trim();
-  if (!clientRoleEn && parsed.data.clientRole) {
-    clientRoleEn = await translateText(parsed.data.clientRole, "id", "en");
-  }
+  // Field English dipakai apa adanya (tanpa terjemahan otomatis). Penerjemahan
+  // hanya terjadi bila admin menekan tombol "Terjemahkan (ID → EN)".
+  const contentEn = parsed.data.contentEn?.trim() || null;
+  const clientRoleEn = parsed.data.clientRoleEn?.trim() || null;
 
   const { id, ...rest } = parsed.data;
   const rating = parsed.data.rating ?? 5;
@@ -1142,7 +1253,7 @@ export async function saveTestimonial(data: unknown) {
       }
       return {
         success: false,
-        error: `Gagal menyimpan testimoni ke database Neon: ${errMsg}`,
+        error: "Gagal menyimpan testimoni ke database. Periksa log server untuk detail teknis.",
       };
     }
   }
@@ -1159,7 +1270,7 @@ export async function deleteTestimonial(id: string) {
   } catch (authErr: unknown) {
     return {
       success: false,
-      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+      error: sanitizeError(authErr),
     };
   }
 
@@ -1182,7 +1293,7 @@ export async function deleteTestimonial(id: string) {
       console.error("Sinkronisasi database deleteTestimonial gagal:", errMsg);
       return {
         success: false,
-        error: `Gagal menghapus testimoni dari database: ${errMsg}`,
+        error: "Gagal menghapus testimoni dari database. Periksa log server untuk detail teknis.",
       };
     }
   }
@@ -1278,7 +1389,7 @@ export async function saveArticle(data: unknown) {
   } catch (authErr: unknown) {
     return {
       success: false,
-      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+      error: sanitizeError(authErr),
     };
   }
 
@@ -1287,6 +1398,19 @@ export async function saveArticle(data: unknown) {
     return {
       success: false,
       error: parseResult.error.issues.map((e) => e.message).join(", "),
+    };
+  }
+
+  // Jaga keunikan slug sebelum menulis apa pun ke local store maupun database.
+  const articleSlugConflict = await findSlugConflict(
+    "articles",
+    parseResult.data.slug,
+    parseResult.data.id
+  );
+  if (articleSlugConflict) {
+    return {
+      success: false,
+      error: slugConflictMessage("articles", parseResult.data.slug, articleSlugConflict),
     };
   }
 
@@ -1306,24 +1430,12 @@ export async function saveArticle(data: unknown) {
     order,
   } = parseResult.data;
 
-  // Auto-translate English fields if omitted
-  let resolvedTitleEn = titleEn?.trim();
-  let resolvedSummaryEn = summaryEn?.trim();
-  let resolvedContentEn = contentEn?.trim();
-
-  try {
-    if (!resolvedTitleEn && title) {
-      resolvedTitleEn = await translateText(title, "en");
-    }
-    if (!resolvedSummaryEn && summary) {
-      resolvedSummaryEn = await translateText(summary, "en");
-    }
-    if (!resolvedContentEn && content) {
-      resolvedContentEn = await translateText(content, "en");
-    }
-  } catch (tErr) {
-    console.warn("Auto-translate article gagal, gunakan original:", tErr);
-  }
+  // Field English dipakai apa adanya. Sebelumnya di sini ada pemanggilan otomatis
+  // ke penyedia terjemahan pihak ketiga — dihapus, karena menyimpan artikel tidak
+  // boleh berarti mengirim seluruh isinya ke layanan eksternal tanpa persetujuan.
+  const resolvedTitleEn = titleEn?.trim() || null;
+  const resolvedSummaryEn = summaryEn?.trim() || null;
+  const resolvedContentEn = contentEn?.trim() || null;
 
   const articleId = id || crypto.randomUUID();
   const now = new Date().toISOString();
@@ -1409,7 +1521,7 @@ export async function saveArticle(data: unknown) {
       }
       return {
         success: false,
-        error: `Gagal menyimpan artikel ke database Neon: ${errMsg}`,
+        error: "Gagal menyimpan artikel ke database. Periksa log server untuk detail teknis.",
       };
     }
   }
@@ -1427,7 +1539,7 @@ export async function deleteArticle(id: string) {
   } catch (authErr: unknown) {
     return {
       success: false,
-      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+      error: sanitizeError(authErr),
     };
   }
 
@@ -1450,7 +1562,7 @@ export async function deleteArticle(id: string) {
       console.error("Sinkronisasi database deleteArticle gagal:", errMsg);
       return {
         success: false,
-        error: `Gagal menghapus artikel dari database: ${errMsg}`,
+        error: "Gagal menghapus artikel dari database. Periksa log server untuk detail teknis.",
       };
     }
   }

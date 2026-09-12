@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
-import { Inter, Fira_Code } from "next/font/google";
+import {
+  Inter,
+  Fira_Code,
+  Silkscreen,
+  Azeret_Mono,
+  Space_Grotesk,
+  Unbounded,
+} from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ClerkProvider } from "@clerk/nextjs";
@@ -15,6 +22,33 @@ const inter = Inter({
 const firaCode = Fira_Code({
   subsets: ["latin"],
   variable: "--font-fira-code",
+  display: "swap",
+});
+
+// Tipografi retro SigitOS — di-host sendiri oleh next/font saat build, sehingga
+// tidak ada request ke fonts.googleapis.com/fonts.gstatic.com saat runtime.
+const silkscreen = Silkscreen({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-silkscreen",
+  display: "swap",
+});
+
+const azeretMono = Azeret_Mono({
+  subsets: ["latin"],
+  variable: "--font-azeret-mono",
+  display: "swap",
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
+  display: "swap",
+});
+
+const unbounded = Unbounded({
+  subsets: ["latin"],
+  variable: "--font-unbounded",
   display: "swap",
 });
 
@@ -84,13 +118,15 @@ export default async function RootLayout({
 
   return (
     <ClerkProvider>
-      <html lang="id" suppressHydrationWarning>
+      <html
+        lang="id"
+        suppressHydrationWarning
+        className={`${inter.variable} ${firaCode.variable} ${silkscreen.variable} ${azeretMono.variable} ${spaceGrotesk.variable} ${unbounded.variable}`}
+      >
         <head>
           <JsonLdSchema profile={profile} />
         </head>
-        <body
-          className={`${inter.variable} ${firaCode.variable} font-sans antialiased selection:bg-primary selection:text-primary-foreground`}
-        >
+        <body className="font-sans antialiased selection:bg-primary selection:text-primary-foreground">
           {children}
           <Toaster position="top-right" richColors />
         </body>

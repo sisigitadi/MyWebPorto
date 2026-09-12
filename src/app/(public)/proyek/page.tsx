@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { getProjects } from "@/lib/actions";
+import { safeJsonLd } from "@/lib/json-ld";
 import { ProjectsCatalogContent } from "@/components/public/projects-catalog-content";
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev";
@@ -71,11 +72,11 @@ export default async function ProjectsPage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbSchema) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(collectionPageSchema) }}
       />
       <ProjectsCatalogContent projects={publishedProjects} />
     </>

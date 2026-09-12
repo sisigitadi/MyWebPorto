@@ -40,7 +40,7 @@ MyWebPorto adalah website portofolio pribadi berbasis Next.js 15 yang menggabung
 - Panel admin `/admin`.
 - CRUD profil, proyek, layanan, produk, testimoni, dan artikel.
 - Konten bilingual untuk beberapa field Indonesia/Inggris.
-- Auto-translate field Inggris ketika kosong.
+- Terjemahan ID → EN opt-in per field melalui tombol di form admin (bukan otomatis saat menyimpan).
 - Upload gambar lokal ke `public/uploads`.
 - SEO metadata, Open Graph, Twitter Card, sitemap, robots.txt, JSON-LD.
 - Fallback data lokal saat database tidak tersedia.
@@ -237,7 +237,7 @@ Tanggung jawab:
 - Save/delete konten.
 - Validasi admin.
 - Validasi input.
-- Auto-translate ID ke EN.
+- Memvalidasi admin, memvalidasi input, menjaga keunikan slug, dan menangani penerjemahan hanya saat diminta eksplisit oleh admin.
 - Menulis local store.
 - Sinkronisasi ke database saat tersedia.
 - Revalidasi halaman publik dan admin.
@@ -250,7 +250,9 @@ Kondisi saat ini:
 
 - Upload disimpan ke `public/uploads`.
 - Nama file dibuat unik dengan timestamp dan random bytes.
-- Tipe gambar yang diterima: JPG, PNG, WEBP, SVG, GIF, AVIF, BMP.
+- Tipe gambar yang diterima: JPG, PNG, WEBP, GIF, AVIF, BMP. **SVG tidak diizinkan** karena dapat memuat `<script>`/event handler (XSS saat disajikan dari origin sendiri).
+- Isi berkas diverifikasi lewat magic bytes, bukan hanya `Content-Type` kiriman klien.
+- Ekstensi berkas ditentukan dari MIME yang lolos whitelist, bukan dari nama file kiriman — mencegah berkas `.html`/`.js` tersimpan dan disajikan sebagai dokumen dari origin kita.
 - Maksimum ukuran file: 20 MB.
 
 Catatan produksi:

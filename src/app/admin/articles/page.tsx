@@ -439,7 +439,7 @@ export default function AdminArticlesPage() {
                 ) : (
                   <Sparkles className="h-3.5 w-3.5" />
                 )}
-                {isTranslating ? "Menerjemahkan..." : "Auto-Terjemahkan ke English"}
+                {isTranslating ? "Menerjemahkan..." : "Terjemahkan (ID → EN)"}
               </Button>
             </div>
 

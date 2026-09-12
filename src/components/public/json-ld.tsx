@@ -1,4 +1,5 @@
 import { ProfileData } from "@/lib/dummy-data";
+import { safeJsonLd } from "@/lib/json-ld";
 
 export function JsonLdSchema({ profile }: { profile: ProfileData }) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev";
@@ -139,19 +140,19 @@ export function JsonLdSchema({ profile }: { profile: ProfileData }) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(personSchema) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(profilePageSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(profilePageSchema) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteSchema) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(professionalServiceSchema) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(professionalServiceSchema) }}
       />
     </>
   );

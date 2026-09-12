@@ -94,6 +94,19 @@ curl -I https://domainanda.com/toko/template-portfolio-notion
 
 Uji browser untuk login admin, CRUD setiap section, upload gambar, form kontak, dan halaman slug artikel/proyek/produk.
 
+## Keamanan Pra-Deploy
+
+Pastikan sudah memenuhi checklist berikut sebelum produksi:
+
+- [ ] `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` & `CLERK_SECRET_KEY` pakai key **produksi** (bukan `pk_test_xxxx`).
+- [ ] `ADMIN_CLERK_ID` diisi dengan Clerk user ID pemilik (bukan `user_xxxxxxxxxxxxxxxxx`).
+- [ ] `DATABASE_URL` Neon produksi sudah di-set.
+- [ ] `NEXT_PUBLIC_APP_URL` diisi domain produksi (untuk canonical URL & OG image).
+- [ ] Jalankan `npx next --experimental-build-mode generate` atau cek header CSP tidak merusak UI (karena CSP ketat memblokir resource tidak terdaftar).
+- [ ] Pastikan storage gambar persisten (object storage) jika deploy ke serverless/Vercel — `public/uploads` lokal **tidak persisten**.
+
+Lihat detail lengkap di [SECURITY.md](./SECURITY.md).
+
 ## Rollback
 
 Simpan paket deployment sebelumnya dengan nomor versi atau commit SHA. Jika release bermasalah, pulihkan paket sebelumnya, restart PM2, dan jangan menghapus `data/local-store.json` sebelum backup. Perubahan schema harus di-rollback atau disesuaikan secara terpisah dari rollback aplikasi.

@@ -28,7 +28,7 @@ Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager int
 - **Editor chip** untuk tag artikel & tech stack proyek (tambah/hapus per item, bukan hardcode).
 - **Terminal AI** dengan perintah: `help`, `whoami`, `skills`, `projects`, `services`, `articles`, `contact`, `open <app>`, `theme`, `lang`, `neofetch`, `history`, `clear`, `reboot` + navigasi riwayat panah atas/bawah dan natural-language chat ke Sigit_Bot.
 - Input konten Indonesia dan Inggris untuk beberapa field.
-- Auto-translate ID ke EN saat field Inggris dikosongkan.
+- Terjemahan ID → EN **opt-in per field** lewat tombol Terjemahkan di form admin (tidak ada terjemahan otomatis saat menyimpan); kolom English yang dikosongkan memakai teks Indonesia sebagai fallback di mode EN.
 - Upload gambar lokal ke `public/uploads`.
 - Slug produk dapat dikelola dari admin dan masuk ke sitemap.
 - **OG preview dinamis** per route/slug: halaman utama, list, detail proyek, artikel & produk masing-masing mempunyai Open Graph image composited (judul + branding + thumbnail).
@@ -81,7 +81,7 @@ src/
     |-- local-upload.ts    # Upload gambar lokal
     |-- product-link.ts    # Helper slug & link produk
     |-- seo.ts             # Helper SEO
-    |-- translate.ts       # Auto-translate ID/EN
+    |-- translate.ts       # Penerjemahan ID/EN opt-in (peringatan privasi ada di berkas ini)
     |-- utils.ts           # Utility umum
     `-- validations.ts     # Skema validasi Zod
 ```
@@ -107,7 +107,7 @@ Project ini tetap bisa berjalan walaupun database belum aktif.
 2. Jika database belum tersedia atau query gagal, aplikasi memakai local store di `data/local-store.json`.
 3. Jika local store belum ada, aplikasi memakai data awal dari `src/lib/dummy-data.ts`.
 
-Server Actions di `src/lib/actions.ts` menangani validasi admin, CRUD, auto-seed awal, local persistence, sinkronisasi database, auto-translate, dan `revalidatePath`.
+Server Actions di `src/lib/actions.ts` menangani validasi admin, CRUD, auto-seed awal, local persistence, sinkronisasi database, penjagaan keunikan slug, dan `revalidatePath`.
 
 ## Environment Variables
 
@@ -133,7 +133,17 @@ DATABASE_URL=postgresql://user:password@host/neondb?sslmode=require
 # Formspree contact form
 NEXT_PUBLIC_FORMSPREE_ENDPOINT=https://formspree.io/f/your-form-id
 NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL=x@sigitadi.id
+
+# Terjemahan ID -> EN (Google Translate / MyMemory)
+# Set "false" untuk mematikan tombol terjemahan di panel admin sepenuhnya.
+ENABLE_EXTERNAL_TRANSLATE=true
 ```
+
+### Terjemahan dan Privasi
+
+Penerjemahan **tidak berjalan otomatis** saat konten disimpan. Tombol *Terjemahkan (ID → EN)* di form admin memanggil `translateFieldAction` (dilindungi `verifyAdmin()`) dan bersifat opt-in per field, karena teks yang diterjemahkan dikirim ke layanan pihak ketiga: `translate.googleapis.com` lalu `api.mymemory.translated.net` sebagai fallback (lihat peringatan di `src/lib/translate.ts`).
+
+Set `ENABLE_EXTERNAL_TRANSLATE=false` bila deployment Anda tidak boleh melakukan egress data. Fungsi terjemahan lalu menolak berjalan dan admin diminta mengisi kolom English secara manual.
 
 Catatan:
 
@@ -141,8 +151,22 @@ Catatan:
 - Jika `DATABASE_URL` kosong, aplikasi tetap berjalan memakai data lokal/fallback.
 - Jika `NEXT_PUBLIC_APP_URL` kosong, fallback canonical URL memakai `https://sigitadi.dev`.
 - Upload gambar saat ini disimpan lokal ke `public/uploads`, bukan ke storage eksternal.
+- **SVG tidak diizinkan diunggah** (risiko XSS via inline script); hanya JPEG, PNG, WEBP, GIF, AVIF, BMP.
+- Isi gambar diverifikasi lewat magic bytes dan ekstensi diturunkan dari MIME tervalidasi, bukan dari nama file kiriman klien.
 - Variabel `BUNNY_STORAGE_*` tersedia di `.env.example` tetapi belum terhubung ke kode; upload gambar masih lokal.
 - Pastikan form Formspree pada dashboard/workflow diarahkan ke `x@sigitadi.id`.
+
+## Keamanan
+
+MyWebPorto menerapkan hardening sesuai OWASP Top 10. Lihat **[SECURITY.md](./SECURITY.md)** untuk detail lengkap. Ringkasan:
+
+- **Akses**: Clerk middleware + `verifyAdmin()` pada semua Server Actions mutasi; non-admin mendapat 404.
+- **CSP ketat** + header keamanan (HSTS, X-Frame-Options, X-Content-Type-Options, dll).
+- **Validasi**: Zod `safeUrlSchema` pada semua input URL; SVG di-blacklist dari upload.
+- **Rate limiting**: `POST /api/indexnow` dibatasi 10 req/60s/IP; GET dinonaktifkan.
+- **Error sanitasi**: pesan internal tidak bocor ke klien.
+
+Pastikan `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `ADMIN_CLERK_ID`, dan `DATABASE_URL` sudah diisi dengan value produksi (bukan placeholder) sebelum deploy.
 
 ## Instalasi
 
@@ -248,6 +272,6 @@ Karena upload saat ini memakai `public/uploads`, penyimpanan gambar tidak persis
 
 - Jangan gunakan Lorem Ipsum untuk konten dummy.
 - Konten publik sebaiknya tetap memakai Bahasa Indonesia profesional dan ramah.
-- Field Inggris dapat diisi manual atau dibiarkan kosong untuk auto-translate.
+- Field Inggris diisi manual, lewat tombol Terjemahkan, atau dibiarkan kosong (mode EN lalu memakai teks Indonesia).
 - Produk hanya berupa katalog/CTA, tidak ada checkout atau payment gateway.
 - Admin adalah single-owner CMS, bukan sistem multi-user publik.

@@ -1,8 +1,24 @@
 /**
- * Utilitas penerjemah otomatis bahasa (ID -> EN)
- * Menggunakan endpoint Google Translate client API dengan fallback ke MyMemory API.
- * Beroperasi di server tanpa memerlukan API key eksternal.
+ * Utilitas penerjemahan bahasa (ID -> EN).
+ *
+ * PERINGATAN PRIVASI / DATA EGRESS
+ * Fungsi ini mengirim teks yang hendak diterjemahkan ke layanan pihak ketiga:
+ *   1. https://translate.googleapis.com (Google Translate web client endpoint)
+ *   2. https://api.mymemory.translated.net (fallback, non-API-key)
+ * Tidak ada API key, tetapi isi teks tetap keluar dari server ini.
+ *
+ * Karena itu fungsi ini TIDAK dipanggil lagi secara otomatis oleh Server Actions
+ * saat menyimpan konten. Penerjemahan bersifat opt-in per field: admin menekan
+ * tombol "Terjemahkan (ID → EN)" di form admin, yang memanggil
+ * `translateFieldAction` (sudah dilindungi `verifyAdmin()`).
+ *
+ * Untuk lingkungan yang tidak mengizinkan egress data sama sekali, set
+ * `ENABLE_EXTERNAL_TRANSLATE=false` — fungsi ini akan melempar error dan UI
+ * meminta admin mengisi kolom English secara manual.
  */
+export function isExternalTranslateEnabled(): boolean {
+  return process.env.ENABLE_EXTERNAL_TRANSLATE !== "false";
+}
 
 export async function translateText(
   text: string,
@@ -11,6 +27,12 @@ export async function translateText(
 ): Promise<string> {
   const trimmed = text.trim();
   if (!trimmed) return text;
+
+  if (!isExternalTranslateEnabled()) {
+    throw new Error(
+      "Terjemahan eksternal dinonaktifkan (ENABLE_EXTERNAL_TRANSLATE=false). Isi kolom English secara manual."
+    );
+  }
 
   // 1. Coba Google Translate Web Client endpoint
   try {
@@ -76,7 +98,10 @@ export async function translateText(
 }
 
 /**
- * Server action helper untuk translate di komponen form admin
+ * Helper lama yang menerjemahkan langsung tanpa cek lingkungan/otorisasi.
+ * Tidak dipakai lagi oleh komponen admin (mereka memakai `translateFieldAction`
+ * di `src/lib/actions.ts` yang sudah memverifikasi admin dan menghormati
+ * ENABLE_EXTERNAL_TRANSLATE). Simpan hanya untuk kompatibilitas.
  */
 export async function autoTranslateText(
   text: string,
