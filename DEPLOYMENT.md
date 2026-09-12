@@ -94,16 +94,20 @@ curl -I https://domainanda.com/toko/template-portfolio-notion
 
 Uji browser untuk login admin, CRUD setiap section, upload gambar, form kontak, dan halaman slug artikel/proyek/produk.
 
-## Keamanan Pra-Deploy
+## Keamanan Pra-Deploy (Hardening v2)
 
-Pastikan sudah memenuhi checklist berikut sebelum produksi:
+Pastikan sudah memenuhi checklist berikut sebelum produksi (lihat `SECURITY.md` §4):
 
 - [ ] `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` & `CLERK_SECRET_KEY` pakai key **produksi** (bukan `pk_test_xxxx`).
 - [ ] `ADMIN_CLERK_ID` diisi dengan Clerk user ID pemilik (bukan `user_xxxxxxxxxxxxxxxxx`).
-- [ ] `DATABASE_URL` Neon produksi sudah di-set.
-- [ ] `NEXT_PUBLIC_APP_URL` diisi domain produksi (untuk canonical URL & OG image).
-- [ ] Jalankan `npx next --experimental-build-mode generate` atau cek header CSP tidak merusak UI (karena CSP ketat memblokir resource tidak terdaftar).
-- [ ] Pastikan storage gambar persisten (object storage) jika deploy ke serverless/Vercel — `public/uploads` lokal **tidak persisten**.
+- [ ] `DATABASE_URL` Neon prod (`sslmode=require`), sudah `npm run db:push`.
+- [ ] `NEXT_PUBLIC_APP_URL` = domain prod (tanpa trailing slash, untuk canonical & OG).
+- [ ] `INDEXNOW_KEY` ganti dari default `e5b871c...` dan jangan commit.
+- [ ] `ENABLE_EXTERNAL_TRANSLATE` sesuai kebijakan privasi (`false` jika egress dilarang).
+- [ ] `npm run lint && npm run build` pass (0 error) + `npm audit --audit-level=high` cek.
+- [ ] Header CSP tidak blokir UI: buka DevTools → Console, pastikan tidak ada CSP violations.
+- [ ] Uji `GET /api/indexnow` → 405; `POST /api/indexnow` tanpa login → 401; non-admin → 403/404.
+- [ ] Storage gambar persisten (Bunny/R2/S3) jika deploy ke Vercel/serverless — `public/uploads` lokal **ephemeral** & hilang saat redeploy.
 
 Lihat detail lengkap di [SECURITY.md](./SECURITY.md).
 

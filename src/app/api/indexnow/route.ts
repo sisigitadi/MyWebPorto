@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { getProjects, getArticles } from "@/lib/actions";
 import { rateLimit, cleanupRateLimits } from "@/lib/rate-limit";
 
 const INDEXNOW_KEY = process.env.INDEXNOW_KEY || "e5b871c984924b179571fcfdca565780";
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev";
 
-// Limit: 10 requests per 60s per IP to prevent abuse of the IndexNow submission.
-const POST_LIMIT = 10;
+// Hardening: IndexNow harus admin-only + rate-limited
+// Limit: 5 requests per 60s per IP (diturunkan dari 10 agar lebih ketat)
+const POST_LIMIT = 5;
 const POST_WINDOW_MS = 60_000;
+const MAX_URLS_PER_REQUEST = 100;
 
 function clientIp(req: NextRequest): string {
   const fwd = req.headers.get("x-forwarded-for");
@@ -22,6 +25,20 @@ function clientIp(req: NextRequest): string {
  * If no body provided, gathers all published projects, articles, and main routes.
  */
 export async function POST(req: NextRequest) {
+  // Auth gate: hanya admin yang boleh trigger IndexNow (mencegah abuse anon)
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  const isPlaceholder = !publishableKey || publishableKey.includes("xxxx");
+  if (!isPlaceholder) {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+    const adminId = process.env.ADMIN_CLERK_ID;
+    if (adminId && adminId !== "user_xxxxxxxxxxxxxxxxx" && userId !== adminId) {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    }
+  }
+
   const ip = clientIp(req);
   const rl = rateLimit(`indexnow:post:${ip}`, POST_LIMIT, POST_WINDOW_MS);
   cleanupRateLimits();
@@ -37,13 +54,24 @@ export async function POST(req: NextRequest) {
     let urlsToSubmit: string[] = [];
 
     try {
-      const body = await req.json();
+      const rawBody = await req.text();
+      if (rawBody.length > 10_000) {
+        return NextResponse.json({ success: false, error: "Payload too large" }, { status: 413 });
+      }
+      const body = rawBody ? JSON.parse(rawBody) : null;
       if (body && Array.isArray(body.urls) && body.urls.length > 0) {
+        if (body.urls.length > MAX_URLS_PER_REQUEST) {
+          return NextResponse.json(
+            { success: false, error: `Too many URLs (max ${MAX_URLS_PER_REQUEST})` },
+            { status: 400 }
+          );
+        }
         // Sanitize: only accept absolute http(s) URLs on our host.
         const host = new URL(BASE_URL).host;
         const rawUrls: unknown[] = body.urls;
         urlsToSubmit = rawUrls
           .filter((u): u is string => typeof u === "string")
+          .slice(0, MAX_URLS_PER_REQUEST)
           .filter((u) => {
             try {
               const parsed = new URL(u);

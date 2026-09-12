@@ -5,7 +5,10 @@ import { useTranslation } from "@/lib/i18n";
 
 export function OSBootLoader() {
   const { language } = useTranslation();
-  const [bootVisible, setBootVisible] = useState(false);
+  // Hardening flash: tetap tampilkan overlay hitam selama hidrasi awal agar
+  // profil SSR tidak berkedip sebelum boot-check. Jika sudah pernah boot di sesi ini,
+  // effect di bawah akan menyembunyikan overlay dalam 1 frame.
+  const [bootVisible, setBootVisible] = useState(true);
   const [isFading, setIsFading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [memCount, setMemCount] = useState(0);
@@ -41,13 +44,13 @@ export function OSBootLoader() {
   };
 
   useEffect(() => {
-    // Check if user has booted in this session
+    // Cek sesi — jika sudah boot, hilangkan overlay segera tanpa animasi
     const hasBooted = sessionStorage.getItem("sigitos_booted_session");
     if (hasBooted) {
+      setBootVisible(false);
       return;
     }
 
-    setBootVisible(true);
     playRetroBeep(750, 0.1);
 
     // Memory test count up to 65536 KB

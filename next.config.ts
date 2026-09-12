@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
+  compress: true,
   // Gunakan standalone hanya untuk build mandiri VPS/PM2, biarkan default untuk Vercel
   output: process.env.VERCEL ? undefined : "standalone",
   experimental: {
@@ -11,18 +13,16 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
     formats: ["image/avif", "image/webp"],
+    // NOTE: wildcard ** memudahkan thumbnail eksternal, tapi long-term batasi ke host terpercaya
+    // Contoh hardening: ganti "**" dengan "images.unsplash.com", "cdn.sigitadi.dev", dll.
     remotePatterns: [
       {
         protocol: "https",
         hostname: "**",
       },
-      {
-        protocol: "http",
-        hostname: "**",
-      },
     ],
   },
-  // Security Headers (Task 3.3)
+  // Security Headers — lihat SECURITY.md §3 untuk mapping OWASP
   async headers() {
     return [
       {
@@ -37,33 +37,78 @@ const nextConfig: NextConfig = {
             value: "max-age=63072000; includeSubDomains; preload",
           },
           {
-            key: "X-XSS-Protection",
-            value: "1; mode=block",
+            key: "X-Content-Type-Options",
+            value: "nosniff",
           },
           {
             key: "X-Frame-Options",
             value: "SAMEORIGIN",
           },
           {
-            key: "X-Content-Type-Options",
-            value: "nosniff",
+            key: "X-XSS-Protection",
+            value: "1; mode=block",
           },
           {
             key: "Referrer-Policy",
-            value: "origin-when-cross-origin",
+            value: "strict-origin-when-cross-origin",
           },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(), browsing-topics=()",
+            value: "camera=(), microphone=(), geolocation=(), browsing-topics=(), payment=(), usb=()",
           },
           {
             key: "X-Permitted-Cross-Domain-Policies",
             value: "none",
           },
           {
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin",
+          },
+          {
+            key: "Cross-Origin-Resource-Policy",
+            value: "same-origin",
+          },
+          {
             key: "Content-Security-Policy",
-            value:
-              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://clerk.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https:; connect-src 'self' https://api.indexnow.org https://*.clerk.accounts.dev https://clerk.com https://formspree.io; frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self' https://formspree.io; frame-ancestors 'self'; upgrade-insecure-requests",
+            value: [
+              "default-src 'self'",
+              // Clerk memerlukan 'unsafe-inline' untuk hydration; 'unsafe-eval' hanya untuk dev — dihapus di prod
+              "script-src 'self' 'unsafe-inline' https://*.clerk.accounts.dev https://clerk.com",
+              "worker-src 'self' blob:",
+              "style-src 'self' 'unsafe-inline'",
+              "font-src 'self' data:",
+              "img-src 'self' data: https: blob:",
+              "connect-src 'self' https://api.indexnow.org https://*.clerk.accounts.dev https://clerk.com https://formspree.io",
+              "frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self' https://formspree.io",
+              "frame-ancestors 'self'",
+              "upgrade-insecure-requests",
+            ].join("; "),
+          },
+        ],
+      },
+      // Cache-control untuk endpoint sensitif — cegah cache admin/API di CDN/proxy
+      {
+        source: "/admin/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store, no-cache, must-revalidate, proxy-revalidate",
+          },
+          {
+            key: "Pragma",
+            value: "no-cache",
+          },
+        ],
+      },
+      {
+        source: "/api/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store, max-age=0",
           },
         ],
       },

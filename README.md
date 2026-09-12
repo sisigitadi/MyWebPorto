@@ -156,17 +156,19 @@ Catatan:
 - Variabel `BUNNY_STORAGE_*` tersedia di `.env.example` tetapi belum terhubung ke kode; upload gambar masih lokal.
 - Pastikan form Formspree pada dashboard/workflow diarahkan ke `x@sigitadi.id`.
 
-## Keamanan
+## Keamanan (Hardening v2 — 2026-09-12)
 
-MyWebPorto menerapkan hardening sesuai OWASP Top 10. Lihat **[SECURITY.md](./SECURITY.md)** untuk detail lengkap. Ringkasan:
+MyWebPorto menerapkan hardening sesuai **OWASP Top 10**. Lihat **[SECURITY.md](./SECURITY.md)** untuk threat model, header lengkap, dan checklist pra-deploy. Ringkasan:
 
-- **Akses**: Clerk middleware + `verifyAdmin()` pada semua Server Actions mutasi; non-admin mendapat 404.
-- **CSP ketat** + header keamanan (HSTS, X-Frame-Options, X-Content-Type-Options, dll).
-- **Validasi**: Zod `safeUrlSchema` pada semua input URL; SVG di-blacklist dari upload.
-- **Rate limiting**: `POST /api/indexnow` dibatasi 10 req/60s/IP; GET dinonaktifkan.
-- **Error sanitasi**: pesan internal tidak bocor ke klien.
+- **Akses**: Clerk middleware + `verifyAdmin()` di semua Server Actions mutasi; non-admin dapat 404 (bukan 403) + `x-request-id` untuk audit.
+- **Header ketat** (`next.config.ts`): HSTS 2 tahun, `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (camera/mic/geo/payment/usb), `COOP/CORP: same-origin`, `Cache-Control: no-store` untuk `/admin` & `/api`, `poweredByHeader: false`.
+- **CSP v2**: `default-src 'self'`; `script-src` tanpa `unsafe-eval`; `worker-src blob:` untuk Clerk; `img-src https: data: blob:`; `object-src 'none'`.
+- **Validasi**: Zod `safeUrlSchema` + **max-length** (headline 200, bio 5000, slug 100) + **slug regex** `^[a-z0-9]+(-[a-z0-9]+)*$`; SVG blacklist, magic-bytes, ekstensi dari MIME, random filename, `bodySizeLimit 25MB`.
+- **Rate limiting**: `POST /api/indexnow` **admin-only** + 5 req/60s/IP, max 100 URLs, payload 10KB, host allowlist; `GET` 405.
+- **Error sanitasi**: allowlist pesan aman + `slice(0,500)` + masking internal di `sanitizeError()`; `safeJsonLd()` escape `</script>`.
+- **Privasi**: translate opt-in per field, `ENABLE_EXTERNAL_TRANSLATE=false` mematikan egress sepenuhnya.
 
-Pastikan `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `ADMIN_CLERK_ID`, dan `DATABASE_URL` sudah diisi dengan value produksi (bukan placeholder) sebelum deploy.
+Pastikan `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `ADMIN_CLERK_ID`, `DATABASE_URL`, dan `INDEXNOW_KEY` sudah diisi value **produksi** (bukan placeholder) sebelum deploy. Jalankan `npm audit` bulanan.
 
 ## Instalasi
 

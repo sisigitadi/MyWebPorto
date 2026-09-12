@@ -540,10 +540,10 @@ export function OSDesktopManager({
       )}
 
       {/* Bottom Taskbar (Windows 95/98 Classic OS Taskbar) */}
-      <div className="vt-taskbar h-8 sm:h-12 md:h-14 px-1 sm:px-3 md:px-4 flex items-center justify-between gap-1 border-t-2 border-border select-none z-30 shrink-0 overflow-hidden">
+      <div className="vt-taskbar h-10 sm:h-12 md:h-14 px-1.5 sm:px-3 md:px-4 flex items-center justify-between gap-1 border-t-2 border-border select-none z-30 shrink-0 overflow-hidden">
         {/* Left Side: Windows Start Button + Separator + Open Windows Tabs */}
         <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0 overflow-hidden">
-          {/* 1. Classic Windows 95/98 Start Button */}
+          {/* 1. Classic Windows 95/98 Start Button — proporsional di mobile */}
           <div className="relative shrink-0">
             <button
               type="button"
@@ -551,14 +551,14 @@ export function OSDesktopManager({
                 setStartOpen(!startOpen);
                 setThemeMenuOpen(false);
               }}
-              className={`vt-btn px-1.5 sm:px-4 py-0.5 sm:py-1.5 md:py-2 text-[10px] sm:text-xs md:text-sm font-bold flex items-center gap-1 sm:gap-2 cursor-pointer select-none transition-all duration-200 group ${
+              className={`vt-btn px-2.5 sm:px-4 py-1 sm:py-1.5 md:py-2 text-[11px] sm:text-xs md:text-sm font-bold flex items-center gap-1.5 sm:gap-2 cursor-pointer select-none transition-all duration-200 group ${
                 startOpen
                   ? "vt-btn-inset bg-[var(--vt-card)] translate-y-0.5"
                   : "vt-btn-chrome text-foreground hover:scale-105"
               }`}
               title={t.os_start_btn}
             >
-              <div className="grid grid-cols-2 gap-0.5 w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 p-0.5 bg-black/20 rounded-xs group-hover:rotate-12 transition-transform">
+              <div className="grid grid-cols-2 gap-0.5 w-5 h-5 sm:w-5 sm:h-5 md:w-5 md:h-5 p-0.5 bg-black/20 rounded-xs group-hover:rotate-12 transition-transform shrink-0">
                 <span className="bg-red-500 rounded-xs" />
                 <span className="bg-green-500 rounded-xs" />
                 <span className="bg-blue-500 rounded-xs" />
@@ -569,7 +569,7 @@ export function OSDesktopManager({
           </div>
 
           {/* Retro Taskbar Separator */}
-          <div className="h-5 sm:h-8 md:h-10 w-[2px] bg-[#5a5750] shadow-[1px_0_0_#fff] mx-0.5 sm:mx-2 shrink-0" />
+          <div className="h-7 sm:h-8 md:h-10 w-[2px] bg-[#5a5750] shadow-[1px_0_0_#fff] mx-0.5 sm:mx-2 shrink-0" />
 
           {/* Open windows taskbar buttons (Icon-only on mobile so ALL items fit without overflow; Icon + Text on md+) */}
           <div className="flex items-center gap-0.5 sm:gap-2 overflow-hidden min-w-0 flex-1 pr-0.5 sm:pr-2">

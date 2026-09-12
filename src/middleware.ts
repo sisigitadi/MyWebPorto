@@ -4,9 +4,11 @@ import { NextResponse } from "next/server";
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
-  // If Clerk keys are not set yet (in development or staging before env keys provided), allow navigation
+  // Jika Clerk keys belum diset / masih placeholder — izinkan navigasi untuk dev lokal (lihat SECURITY.md)
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  if (!publishableKey || publishableKey.includes("xxxx")) {
+  const isPlaceholderKey = !publishableKey || publishableKey.includes("xxxx");
+  if (isPlaceholderKey) {
+    // Hardening: jangan bocorkan bahwa ini placeholder — tetap lanjut tanpa proteksi
     return NextResponse.next();
   }
 
@@ -16,13 +18,18 @@ export default clerkMiddleware(async (auth, req) => {
     const adminClerkId = process.env.ADMIN_CLERK_ID;
     const { userId } = await auth();
 
-    // If ADMIN_CLERK_ID is set and user ID does not match, return 404 as specified in PRD
+    // Single-owner gate: non-admin dapat 404 (bukan 403) agar tidak leak keberadaan /admin
     if (adminClerkId && adminClerkId !== "user_xxxxxxxxxxxxxxxxx" && userId !== adminClerkId) {
+      // Audit log tanpa PII berlebih — cukup catat percobaan akses ditolak
+      console.warn(`[middleware] non-admin access denied: route=${req.nextUrl.pathname} userId=${userId ?? "anon"}`);
       return new NextResponse("Halaman Tidak Ditemukan", { status: 404 });
     }
   }
 
-  return NextResponse.next();
+  // Tambahkan header request-id untuk korelasi log (tanpa expose internal)
+  const res = NextResponse.next();
+  res.headers.set("x-request-id", crypto.randomUUID());
+  return res;
 });
 
 export const config = {

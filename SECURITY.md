@@ -1,105 +1,151 @@
-# Keamanan MyWebPorto (Security Policy)
+# Keamanan MyWebPorto — Security Policy & Hardening Guide
 
-Dokumen ini menjelaskan postur keamanan, langkah hardening yang diterapkan, dan cara melaporkan kerentanan pada **MyWebPorto**.
+Dokumen ini menjelaskan **postur keamanan**, langkah hardening yang diterapkan, threat model, dan cara melaporkan kerentanan pada **MyWebPorto**.
+
+> **Versi hardening:** 2026-09-12 (v2) — mencakup CSP v2, validasi max-length, rate-limit admin-only IndexNow, header COOP/CORP, dan sanitasi error v2.
 
 ---
 
-## Kebijakan Singkat
+## 1. Kebijakan Singkat
 
 - **Jangan** menguji kerentanan pada produksi tanpa izin.
-- Lakukan pengujian hanya pada lingkungan lokal/staging Anda sendiri.
-- Laporkan temuan ke **`x@sigitadi.id`** dengan bukti yang memadai.
-- Kami menghargai responsible disclosure dan akan merespons secara cepat.
+- Lakukan pengujian hanya pada lingkungan **lokal/staging** Anda sendiri.
+- Laporkan temuan ke **`x@sigitadi.id`** dengan bukti yang memadai (PoC, langkah reproduksi).
+- Kami menghargai *responsible disclosure* dan akan merespons dalam **2–5 hari kerja**.
 
 ---
 
-## Hardening yang Diterapkan
+## 2. Threat Model
 
-### 1. OWASP A01 — Broken Access Control
-- Semua **Server Actions** yang melakukan mutasi (CRUD) wajib memanggil `verifyAdmin()`.
-- `ADMIN_CLERK_ID` di environment menentukan satu-satunya akun yang berhak mengubah konten.
-- Rute `/admin/*` dilindungi Clerk middleware; user non-admin mendapat respons **404** (bukan 403) agar tidak membocorkan keberadaan halaman.
-- Respons error disamaratakan lewat `sanitizeError()` agar pesan internal (env, stack trace, DB) tidak bocor ke klien.
+| Aset | Ancaman Utama | Kontrol |
+|------|---------------|---------|
+| `/admin/*`, Server Actions CRUD | Broken Access Control (A01) | Clerk + `ADMIN_CLERK_ID` single-owner + `verifyAdmin()` di **semua** mutasi |
+| `socialLinks`, URL, slug, upload | Injection / XSS (A03) | Zod `safeUrlSchema` + max-length + slug regex + magic-bytes + `safeJsonLd` |
+| Header / CSP / HSTS | Misconfiguration (A05) | Header ketat di `next.config.ts` (HSTS 2 tahun, CSP, COOP/CORP, Permissions-Policy) |
+| `POST /api/indexnow` | Abuse / SSRF / DoS | Admin-only + rate-limit 5/60s/IP + host allowlist + max 100 URLs + payload 10KB |
+| Upload `public/uploads` | Stored XSS / RCE | SVG blacklist, ekstensi dari MIME, timestamp+random filename |
+| Translate (Google/MyMemory) | Privacy egress | Opt-in per field, `ENABLE_EXTERNAL_TRANSLATE=false` mematikan total |
+| Session / CSRF | Session hijack | Clerk httpOnly session, `bodySizeLimit 25MB`, CSRF via same-origin |
 
-### 2. OWASP A03 — Injection & XSS
-- **Validasi input**: semua URL divalidasi dengan `safeUrlSchema` (Zod) yang hanya mengizinkan `http://`, `https://`, `/`, `#`, atau `mailto:`.
-- **Content Security Policy (CSP)** ketat diterapkan via header `Content-Security-Policy`:
+Out of scope: infra pihak ketiga (Clerk, Vercel, Neon, Bunny, Formspree), social engineering.
+
+---
+
+## 3. Hardening yang Diterapkan
+
+### 3.1 OWASP A01 — Broken Access Control
+- Semua **Server Actions** mutasi wajib `await verifyAdmin()` di baris pertama.
+- `ADMIN_CLERK_ID` = satu-satunya akun yang boleh ubah konten. Di `middleware.ts:13` dan `lib/actions.ts:40`, placeholder `user_xxxxxxxxxxxxxxxxx` sengaja diabaikan agar dev tetap jalan.
+- Rute `/admin/*` dilindungi `clerkMiddleware → auth.protect()`; non-admin dapat **404** (bukan 403) agar tidak leak keberadaan halaman.
+- `GET /api/indexnow` dinonaktifkan (405); `POST` kini **admin-only** (`src/app/api/indexnow/route.ts:24`).
+- Error disamaratakan via `sanitizeError()` —Stack trace / env tidak pernah ke klien.
+
+### 3.2 OWASP A03 — Injection & XSS
+- **Validasi input** (`src/lib/validations.ts`):
+  - `safeUrlSchema`: hanya `http://`, `https://`, `/`, `#`, `mailto:`.
+  - `imageOrUrlSchema`: hanya `/` atau `http(s)`.
+  - **Max-length** di semua field (headline 200, bio 5000, title 150, slug 100, content 50000, dll.) untuk cegah DoS via payload raksasa.
+  - **Slug regex** `^[a-z0-9]+(?:-[a-z0-9]+)*$` — cegah path traversal / `../`.
+  - `techStacks` max 30, `tags` max 20, `skills` max 50.
+- **CSP ketat** (`next.config.ts:25`):
   - `default-src 'self'`
-  - `script-src` hanya mengizinkan origin sendiri + Clerk (diperlukan untuk auth)
-  - `worker-src 'self' blob:` — Clerk membuat Web Worker dari blob; tanpa direktif ini `script-src` dipakai sebagai fallback dan worker gagal dibuat
-  - `style-src` hanya origin sendiri + inline (Tailwind). Google Fonts **tidak** lagi diizinkan karena seluruh font (termasuk tipografi retro Silkscreen/Azeret Mono/Unbounded/Space Grotesk) di-host sendiri oleh `next/font/google` saat build
-  - `font-src 'self' data:` — tanpa origin font eksternal
-  - `img-src` mengizinkan sendiri + semua HTTPS (thumbnail eksternal)
-  - `connect-src` dibatasi ke IndexNow, Clerk, Formspree
-  - `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'self'`, `upgrade-insecure-requests`
-- **SVG dihapus** dari tipe yang diunggah karena SVG dapat menyisipkan `<script>`/event handler (XSS saat disajikan dari origin kita).
-- **Magic bytes diverifikasi**: isi berkas harus cocok dengan `Content-Type` yang diklaim, sehingga MIME tidak bisa dipalsukan dari klien.
-- **Ekstensi diturunkan dari MIME tervalidasi**, bukan dari nama file kiriman. Tanpa ini, berkas bernama `evil.html` dengan `Content-Type: image/png` bisa tersimpan sebagai `/uploads/*.html` dan disajikan sebagai dokumen HTML dari origin kita.
-- Nama file unik di-generate ulang (timestamp + random bytes).
-- **JSON-LD di-escape** lewat `safeJsonLd()` (`<` → `\u003c`) karena `JSON.stringify` tidak menetralkan `</script>`, sehingga judul/deskripsi dari CMS tidak bisa menutup tag script lebih awal.
-- **Pesan error database tidak lagi bocor ke klien**: detail teknis hanya dicatat di log server.
+  - `script-src 'self' 'unsafe-inline' https://*.clerk.accounts.dev https://clerk.com` — **`unsafe-eval` dihapus** (hanya diperlukan di dev).
+  - `worker-src 'self' blob:` — Clerk butuh blob worker.
+  - `style-src 'self' 'unsafe-inline'` (Tailwind), `font-src 'self' data:` (next/font self-host).
+  - `img-src 'self' data: https: blob:`.
+  - `connect-src` terbatas ke IndexNow, Clerk, Formspree.
+  - `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'self'`, `upgrade-insecure-requests`.
+- **Upload** (`src/lib/local-upload.ts`):
+  - SVG **blacklist** (inline `<script>`).
+  - **Magic-bytes** diverifikasi (JPEG/PNG/WEBP/GIF/AVIF/BMP).
+  - **Ekstensi dari MIME tervalidasi**, bukan `file.name` → cegah `evil.html` tersimpan sebagai HTML.
+  - Nama file `Date.now()-randomHex.ext`.
+  - **Vercel warning** (`local-upload.ts:114`): log jika `process.env.VERCEL` (FS ephemeral).
+  - `bodySizeLimit 25MB` (serverActions) & `MAX_SIZE 20MB` per file.
+- **JSON-LD** (`src/lib/json-ld.ts`): `safeJsonLd()` ganti `<` → `\u003c` untuk cegah `</script>` breakout (stored XSS).
+- **Error sanitasi** (`src/lib/error-utils.ts:6`): allowlist pesan aman + `slice(0,500)` + `console.error` mask internal.
 
-### 3. OWASP A05 — Security Misconfiguration
-- Header keamanan lengkap di `next.config.ts`:
-  - `Strict-Transport-Security` (HSTS, 2 tahun, includeSubDomains, preload)
-  - `X-Content-Type-Options: nosniff`
-  - `X-Frame-Options: SAMEORIGIN`
-  - `X-XSS-Protection: 1; mode=block`
-  - `Referrer-Policy: origin-when-cross-origin`
-  - `Permissions-Policy` membatasi kamera, mikrofon, geolocation, browsing-topics
-  - `X-Permitted-Cross-Domain-Policies: none`
-- Secret **tidak** di-commit ke repository (lihat `.env.example`).
+### 3.3 OWASP A05 — Security Misconfiguration
+Header lengkap di `next.config.ts:25`:
+- `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload` (2 tahun)
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: SAMEORIGIN`
+- `X-XSS-Protection: 1; mode=block`
+- `Referrer-Policy: strict-origin-when-cross-origin` (diperketat dari `origin-when-cross-origin`)
+- `Permissions-Policy: camera=(), microphone=(), geolocation=(), browsing-topics=(), payment=(), usb=()`
+- `X-Permitted-Cross-Domain-Policies: none`
+- **Baru:** `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: same-origin`
+- **Baru:** `Cache-Control: no-store` untuk `/admin/*` dan `/api/*` (cegah cache sensitif di CDN)
+- `poweredByHeader: false`, `compress: true`
+- `images.remotePatterns` — wildcard `**` masih aktif untuk kemudahan; **rekomendasi hardening:** batasi ke host tepercaya (`images.unsplash.com`, `cdn.sigitadi.dev`) saat prod stabil.
+- Secret tidak di-commit (`.env.example`).
 
-### 4. OWASP A04 — Insecure Design (Rate Limiting)
-- Endpoint `POST /api/indexnow` dibatasi **10 request / 60 detik per IP**.
-- Respons `429` disertai header `Retry-After`.
-- `GET /api/indexnow` dinonaktifkan karena sebelumnya membocorkan IndexNow key.
-- URL yang disubmission ke IndexNow divaluasi ulang: hanya menerima URL absolut pada host kita sendiri.
+### 3.4 OWASP A04 — Insecure Design (Rate Limiting)
+- `POST /api/indexnow` (`src/lib/rate-limit.ts` + `src/app/api/indexnow/route.ts:12`):
+  - **5 req / 60s / IP** (diperketat dari 10) + `Retry-After`.
+  - **Admin-only** (401/403 jika bukan owner).
+  - **Max 100 URLs** + **payload 10KB** (413 jika lebih).
+  - **Allowlist host**: hanya URL dengan `host === NEXT_PUBLIC_APP_URL`.
+  - In-memory sliding window (per-instance). Untuk multi-instance prod, ganti ke **Redis / Vercel KV / Upstash** (komentar di `rate-limit.ts:3`).
+- `GET /api/indexnow` → 405.
 
-### 5. OWASP A07 — CSRF / Session
-- Autentikasi menggunakan **Clerk** (session token httpOnly yang dikelola Clerk).
-- Clerk middleware berjalan pada semua rute (kecuali aset statis).
-- `bodySizeLimit` Server Actions dibatasi 25 MB untuk mencegah unggah berlebihan.
+### 3.5 OWASP A07 — CSRF / Session
+- Clerk httpOnly session, middleware di semua rute kecuali aset statis.
+- `x-request-id` (`middleware.ts:27`) untuk korelasi log tanpa leak PII.
 
-### 6. Privasi — Egress Data ke Pihak Ketiga
-
-- **Tidak ada penerjemahan otomatis saat menyimpan konten.** Sebelumnya setiap `saveProject` / `saveArticle` / `saveProduct` / `saveService` / `saveTestimonial` / `updateProfile` mengirim teks ke `translate.googleapis.com` (fallback `api.mymemory.translated.net`) bila kolom English kosong — termasuk isi artikel penuh. Pemanggilan itu sudah dihapus.
-- Penerjemahan kini **opt-in per field**: admin menekan tombol *Terjemahkan (ID → EN)* di form admin, yang memanggil `translateFieldAction` dan tetap dilindungi `verifyAdmin()`.
-- `ENABLE_EXTERNAL_TRANSLATE=false` mematikan jalur tersebut sepenuhnya; fungsi terjemahan menolak berjalan dan kolom English harus diisi manual.
-- Kolom English yang dibiarkan kosong **tidak** memaksa penerjemahan: mode EN memakai teks Indonesia sebagai fallback.
-- Peringatan yang sama didokumentasikan di dalam `src/lib/translate.ts` agar tidak terlupakan saat berkas itu diubah.
-
----
-
-## Catatan Pengembangan
-
-### Mode Development
-Jika `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` belum diset atau masih berisi placeholder `xxxx`, middleware dan `verifyAdmin()` sengaja mengizinkan navigasi tanpa autentikasi agar development tetap jalan. **Pastikan key produksi sudah benar sebelum deploy.**
-
-### Upload Gambar
-- Gambar disimpan ke `public/uploads` di lingkungan lokal/standalone.
-- Di Vercel serverless, direktori root bersifat **read-only** sehingga upload lokal tidak persisten — gunakan object storage/CDN (Bunny, R2, S3) untuk produksi jangka panjang.
-- Tipe yang diizinkan: JPEG, PNG, WEBP, GIF, AVIF, BMP (tanpa SVG).
-
-### Kontak (Formspree)
-- Form kontak mengirim langsung ke endpoint Formspree, bukan ke server kita.
-- Validasi client tetap berlaku; endpoint Formspree menerapkan validasi & spam filtering sendiri.
+### 3.6 Privasi — Egress Data
+- **Tidak ada auto-translate saat save.** Tombol `Terjemahkan (ID→EN)` opt-in per field → `translateFieldAction` + `verifyAdmin()`.
+- `ENABLE_EXTERNAL_TRANSLATE=false` → `translateText()` throw, UI minta isi manual.
+- Kolom EN kosong = fallback ke teks ID (tidak trigger egress).
 
 ---
 
-## Melaporkan Kerentanan
+## 4. Checklist Hardening Pra-Deploy (Wajib)
 
-Jika Anda menemukan kerentanan keamanan:
-
-1. **Jangan** mengeksploitasi di luar lingkungan Anda sendiri.
-2. Kirim detail ke **`x@sigitadi.id`** dengan subjek `[SECURITY] MyWebPorto`.
-3. Sertakan: langkah reproduksi, dampak potensial, dan apabila memungkinkan usulan perbaikan.
-4. Kami akan mengakui laporan Anda dan berusaha merespons dalam beberapa hari kerja.
+- [ ] `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` & `CLERK_SECRET_KEY` = **live** (bukan `pk_test_xxxx`), `ADMIN_CLERK_ID` terisi valid.
+- [ ] `DATABASE_URL` prod (Neon `sslmode=require`), sudah `npm run db:push`.
+- [ ] `NEXT_PUBLIC_APP_URL` = domain prod (tanpa trailing slash).
+- [ ] `INDEXNOW_KEY` ganti dari default `e5b871c...` (di `.env`, jangan commit).
+- [ ] Storage gambar: **jangan** andalkan `public/uploads` di Vercel — pakai Bunny/R2/S3 (lihat README & `DEPLOYMENT.md`).
+- [ ] `ENABLE_EXTERNAL_TRANSLATE` sesuai kebijakan privasi (set `false` jika egress dilarang).
+- [ ] `npm run lint && npm run build` pass (0 error, 0 warning).
+- [ ] `npm audit --audit-level=high` cek; `postcss`/`esbuild` vuln saat ini dari `next@15` — tunggu upstream fix, jangan `npm audit fix --force` ke `next@16` tanpa uji.
+- [ ] Header CSP tidak blokir UI (cek DevTools → Console → CSP violations).
+- [ ] Uji `/admin` dengan akun non-owner → harus 404; `POST /api/indexnow` tanpa login → 401.
 
 ---
 
-## Cakupan Luar (Out of Scope)
+## 5. Audit Rutin (Bulanan)
 
-- Layanan pihak ketiga yang kami gunakan (Clerk, Vercel, Formspree, Neon, Bunny) — laporkan ke masing-masing vendor.
-- Social engineering / phishing yang menargetkan pemilik akun.
-- Serangan fisik atau terhadap infrastruktur hosting.
+```bash
+npm audit --audit-level=moderate
+npm outdated
+npm run lint && npm run build
+# Cek header prod
+curl -I https://domainanda.com/ | grep -i -E "strict|csp|x-frame|permissions"
+```
+
+---
+
+## 6. Melaporkan Kerentanan
+
+1. **Jangan** eksploitasi di luar lingkungan Anda.
+2. Email **`x@sigitadi.id`** subjek `[SECURITY] MyWebPorto` + langkah reproduksi, dampak, PoC, usulan fix.
+3. Kami akan ack dalam 2–5 hari kerja.
+
+---
+
+## 7. Riwayat Hardening
+
+| Tanggal | Perubahan |
+|---------|-----------|
+| 2026-09-12 v2 | CSP hapus `unsafe-eval`, tambah COOP/CORP, Cache-Control admin/api, validation max-length+slug regex, IndexNow admin-only (5/60s) + max 100 URLs, error sanitasi allowlist diperluas, middleware `x-request-id` |
+| 2026-09-11 v1 | CSP awal, magic-bytes upload, safeJsonLd, rate-limit 10/60s, verifyAdmin, sanitizeError |
+
+---
+
+## 8. Catatan Pengembangan
+
+- **Dev mode:** jika Clerk key placeholder, middleware & `verifyAdmin()` sengaja bypass agar dev jalan. **Pastikan key prod sebelum deploy.**
+- **Upload:** di Vercel, `public/uploads` read-only & ephemeral — file hilang saat redeploy.
+- **Kontak:** Formspree langsung ke endpoint eksternal; validasi client + Formspree spam filter.
