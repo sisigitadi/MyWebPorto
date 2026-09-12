@@ -30,17 +30,6 @@ export async function generateMetadata({ params }: ProjectDetailPageProps) {
   const title = `${project.title} - Portofolio & Studi Kasus`;
   const description = project.summary;
   const url = `${baseUrl}/proyek/${slug}`;
-  const images = project.thumbnailUrl
-    ? [
-        {
-          url: project.thumbnailUrl,
-          width: 1200,
-          height: 630,
-          alt: project.title,
-        },
-      ]
-    : [`${baseUrl}/opengraph-image`];
-
   return {
     title,
     description,
@@ -51,14 +40,12 @@ export async function generateMetadata({ params }: ProjectDetailPageProps) {
       title,
       description,
       url,
-      images,
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: project.thumbnailUrl ? [project.thumbnailUrl] : [`${baseUrl}/opengraph-image`],
     },
   };
 }

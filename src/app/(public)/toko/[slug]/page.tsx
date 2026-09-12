@@ -33,13 +33,11 @@ export async function generateMetadata({ params }: ProductDetailPageProps): Prom
       description: product.description,
       url,
       type: "website",
-      images: product.thumbnailUrl ? [product.thumbnailUrl] : [`${baseUrl}/opengraph-image`],
     },
     twitter: {
       card: "summary_large_image",
       title: `${product.title} - Store.zip`,
       description: product.description,
-      images: product.thumbnailUrl ? [product.thumbnailUrl] : [`${baseUrl}/opengraph-image`],
     },
   };
 }

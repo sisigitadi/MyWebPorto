@@ -30,17 +30,6 @@ export async function generateMetadata({ params }: ArticleDetailPageProps) {
   const title = `${article.title} - Artikel & Wawasan Teknologi`;
   const description = article.summary || article.content.slice(0, 160);
   const url = `${baseUrl}/artikel/${slug}`;
-  const images = article.imageUrl
-    ? [
-        {
-          url: article.imageUrl,
-          width: 1200,
-          height: 630,
-          alt: title,
-        },
-      ]
-    : [`${baseUrl}/opengraph-image`];
-
   return {
     title,
     description,
@@ -51,7 +40,6 @@ export async function generateMetadata({ params }: ArticleDetailPageProps) {
       title,
       description,
       url,
-      images,
       type: "article",
       publishedTime: new Date(article.createdAt).toISOString(),
       modifiedTime: new Date(article.updatedAt || article.createdAt).toISOString(),
@@ -62,7 +50,6 @@ export async function generateMetadata({ params }: ArticleDetailPageProps) {
       card: "summary_large_image",
       title,
       description,
-      images: article.imageUrl ? [article.imageUrl] : [`${baseUrl}/opengraph-image`],
     },
   };
 }

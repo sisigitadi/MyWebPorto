@@ -466,6 +466,10 @@ Status saat dokumen ini direvisi:
 - SigitOS public interface: selesai.
 - Admin layout dan dashboard: selesai.
 - CRUD profil, proyek, layanan, produk, testimoni, artikel: selesai.
+- **Manajemen tautan sosial dinamis** (13 platform, conditional display): selesai.
+- **Editor chip** untuk tag artikel & tech stack proyek: selesai.
+- **Terminal AI** (perintah baru, history, data-driven): selesai.
+- **OG preview dinamis** per route/slug via `next/og`: selesai.
 - Drizzle schema dan migrations: tersedia.
 - Neon integration: tersedia jika `DATABASE_URL` diset.
 - Local fallback store: tersedia.

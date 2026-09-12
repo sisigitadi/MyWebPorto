@@ -24,10 +24,14 @@ Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager int
 - Proteksi rute `/admin/*` memakai Clerk middleware dan `ADMIN_CLERK_ID`.
 - Dashboard ringkasan konten.
 - CRUD profil, proyek, layanan, produk, testimoni, dan artikel.
+- **Manajemen tautan sosial**: isi Telegram, Instagram, TikTok, YouTube, Facebook, Discord, Slack, Reddit, Medium, GitHub, LinkedIn, X, Portofolio — tampil otomatis di Kontak.exe, footer & menubar hanya jika terisi.
+- **Editor chip** untuk tag artikel & tech stack proyek (tambah/hapus per item, bukan hardcode).
+- **Terminal AI** dengan perintah: `help`, `whoami`, `skills`, `projects`, `services`, `articles`, `contact`, `open <app>`, `theme`, `lang`, `neofetch`, `history`, `clear`, `reboot` + navigasi riwayat panah atas/bawah dan natural-language chat ke Sigit_Bot.
 - Input konten Indonesia dan Inggris untuk beberapa field.
 - Auto-translate ID ke EN saat field Inggris dikosongkan.
 - Upload gambar lokal ke `public/uploads`.
 - Slug produk dapat dikelola dari admin dan masuk ke sitemap.
+- **OG preview dinamis** per route/slug: halaman utama, list, detail proyek, artikel & produk masing-masing mempunyai Open Graph image composited (judul + branding + thumbnail).
 - Artikel studi kasus project dan topical authority AI, cybersecurity, Linux, Windows, dan macOS.
 
 ## Tech Stack
@@ -44,6 +48,7 @@ Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager int
 - Sonner
 - GSAP
 - Lucide React
+- next/og (dynamic Open Graph images)
 
 ## Struktur Folder
 
@@ -85,12 +90,12 @@ src/
 
 Skema database utama berada di `src/db/schema.ts`.
 
-- `profiles`: data pemilik website, kontak, avatar, skill, statistik, sosial media, dan status available for hire.
-- `projects`: portofolio proyek, slug, summary, deskripsi, gambar, demo, repo, tech stack, featured, published, dan urutan.
+- `profiles`: data pemilik website, kontak, avatar, skill, statistik, sosial media (GitHub, LinkedIn, Instagram, X, Medium, YouTube, TikTok, Telegram, Facebook, Discord, Slack, Reddit, Portofolio), serta status available for hire. Sosial media tampil hanya jika URL terisi.
+- `projects`: portofolio proyek, slug, summary, deskripsi, gambar, demo, repo, tech stack (array, dikelola via editor chip), featured, published, dan urutan.
 - `services`: layanan atau keahlian yang ditawarkan.
-- `products`: katalog produk dengan slug, label harga, gambar, dan CTA checkout/download.
+- `products`: katalog produk dengan slug, label harga, gambar, CTA checkout/download.
 - `testimonials`: testimoni klien, role, avatar, rating, status publikasi.
-- `articles`: artikel teknis dengan slug, summary, konten, gambar, tag, featured, published, dan urutan.
+- `articles`: artikel teknis dengan slug, summary, konten, gambar, tag (array, dikelola via editor chip), featured, published, dan urutan.
 
 Sebagian tabel mendukung field bilingual seperti `titleEn`, `descriptionEn`, `contentEn`, `summaryEn`, dan sejenisnya.
 
