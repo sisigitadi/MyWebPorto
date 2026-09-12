@@ -187,7 +187,7 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
                             />
                             {article.featured && (
                               <span className="absolute top-2 left-2 bg-[var(--vt-amber)] text-black text-[9px] font-pixel font-bold px-1.5 py-0.5 border border-black shadow">
-                                FEATURED
+                                {language === "en" ? "FEATURED" : "UNGGULAN"}
                               </span>
                             )}
                           </div>

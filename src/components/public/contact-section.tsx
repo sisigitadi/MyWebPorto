@@ -237,7 +237,7 @@ export function ContactSection({ profile }: ContactSectionProps) {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="nama@domain.com"
+                    placeholder={language === "en" ? "name@domain.com" : "nama@domain.com"}
                     required
                     className="vt-card-inset bg-[var(--vt-paper)] text-[var(--vt-ink)] border border-[var(--vt-edge-lo-2)] text-xs font-mono h-9 placeholder:text-[var(--vt-ink-mute)]"
                   />

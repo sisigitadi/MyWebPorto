@@ -107,11 +107,11 @@ export function ServicesSection({ services: propServices, profile }: ServicesSec
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="font-pixel text-[11px] px-2 py-0.5 bg-[var(--vt-blue)] text-white font-bold tracking-wider">
-                        MODULE 0{index + 1}
+                        {language === "en" ? "MODULE" : "MODUL"} 0{index + 1}
                       </span>
                       <span className="inline-flex items-center gap-1 font-mono text-xs font-bold text-emerald-600">
                         <CheckCircle2 className="h-3.5 w-3.5" />
-                        <span>ACTIVE</span>
+                        <span>{language === "en" ? "ACTIVE" : "AKTIF"}</span>
                       </span>
                     </div>
 

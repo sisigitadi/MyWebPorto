@@ -95,7 +95,7 @@ export function TestimonialsSection({ testimonials: propTestimonials }: Testimon
                       ))}
                     </div>
                     <span className="font-pixel text-[11px] bg-[var(--vt-blue)] text-white px-2.5 py-0.5 font-bold">
-                      VERIFIED 100%
+                      {language === "en" ? "VERIFIED 100%" : "TERVERIFIKASI 100%"}
                     </span>
                   </div>
 

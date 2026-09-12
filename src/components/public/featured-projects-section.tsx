@@ -147,7 +147,7 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
               <div className="space-y-2 pb-4 border-b border-border/70">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="bg-amber-400 text-black text-xs font-bold px-2 py-0.5 rounded-xs font-mono uppercase">
-                    FEATURED PROJECT
+                    {language === "en" ? "FEATURED PROJECT" : "PROYEK UNGGULAN"}
                   </span>
                   <span className="text-xs font-mono font-bold text-[var(--vt-ink)] inline-flex items-center gap-1 ml-auto">
                     <Calendar className="h-3.5 w-3.5 text-primary" />
@@ -192,7 +192,7 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
                     className="vt-btn vt-btn-pink px-4 py-2 text-xs font-bold font-mono flex items-center gap-1.5 shadow-md"
                   >
                     <ExternalLink className="h-4 w-4" />
-                    <span>RUN LIVE DEMO</span>
+                    <span>{language === "en" ? "RUN LIVE DEMO" : "JALANKAN DEMO LIVE"}</span>
                   </a>
                 )}
 
@@ -204,7 +204,7 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
                     className="vt-btn vt-btn-chrome px-4 py-2 text-xs font-bold font-mono flex items-center gap-1.5"
                   >
                     <GithubIcon className="h-4 w-4" />
-                    <span>SOURCE CODE</span>
+                    <span>{language === "en" ? "SOURCE CODE" : "KODE SUMBER"}</span>
                   </a>
                 )}
 
@@ -218,15 +218,14 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
                   className="vt-btn vt-btn-chrome px-4 py-2 text-xs font-bold font-mono flex items-center gap-1.5 cursor-pointer"
                 >
                   <Mail className="h-4 w-4 text-rose-500" />
-                  <span>DISKUSIKAN VIA EMAIL</span>
+                  <span>{language === "en" ? "DISCUSS VIA EMAIL" : "DISKUSIKAN VIA EMAIL"}</span>
                 </button>
-
               </div>
 
               {/* Tech Stack Chips */}
               <div className="space-y-2 pt-2">
                 <span className="font-pixel text-xs font-bold text-[var(--vt-ink)] uppercase">
-                  TEKNOLOGI & SPESIFIKASI:
+                  {language === "en" ? "TECHNOLOGY & SPECIFICATIONS:" : "TEKNOLOGI & SPESIFIKASI:"}
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {selectedProject.techStack.map((tech) => (
@@ -243,7 +242,7 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
               {/* In-depth Project Description */}
               <div className="space-y-2 pt-2">
                 <span className="font-pixel text-xs font-bold text-[var(--vt-ink)] uppercase">
-                  DOKUMENTASI & RINGKASAN:
+                  {language === "en" ? "DOCUMENTATION & SUMMARY:" : "DOKUMENTASI & RINGKASAN:"}
                 </span>
                 <div className="vt-card-inset p-4 bg-card text-[var(--vt-ink)] font-mono text-xs sm:text-sm leading-relaxed border-l-4 border-l-[var(--vt-blue)] font-medium space-y-3 whitespace-pre-line">
                   {description}
@@ -284,12 +283,12 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
         {/* Explorer Address Bar Banner */}
         <div className="vt-raised p-2.5 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
           <div className="flex items-center gap-2 flex-1">
-            <span className="text-xs font-bold text-[var(--vt-ink)] font-pixel">DIRECTORY:</span>
+            <span className="text-xs font-bold text-[var(--vt-ink)] font-pixel">{language === "en" ? "DIRECTORY:" : "DIREKTORI:"}</span>
             <div className="vt-card-inset flex-1 px-2.5 py-1 bg-background text-[var(--vt-ink)] font-mono text-xs font-bold truncate">
               C:\Sigit\Portfolio\Projects\Featured\
             </div>
             <span className="hidden sm:inline-flex px-2.5 py-1 vt-btn vt-btn-chrome text-xs font-bold">
-              [{featuredProjects.length} ITEMS]
+              [{featuredProjects.length} {language === "en" ? "ITEMS" : "ITEM"}]
             </span>
           </div>
 
@@ -335,7 +334,7 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
                         className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                       />
                       <span className="absolute top-2 right-2 font-pixel text-[10px] bg-[var(--vt-pink)] text-white px-2 py-0.5 shadow-md font-bold">
-                        FEATURED
+                        {language === "en" ? "FEATURED" : "UNGGULAN"}
                       </span>
                     </div>
 
@@ -371,7 +370,7 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
                       onClick={() => setSelectedProject(project)}
                       className="flex-1 vt-btn vt-btn-chrome py-1.5 px-2.5 text-xs font-bold font-mono text-foreground justify-center cursor-pointer"
                     >
-                      <span>Detail</span>
+                      <span>{t.projects_detail_btn}</span>
                       <ArrowRight className="h-3.5 w-3.5 ml-1" />
                     </button>
 
