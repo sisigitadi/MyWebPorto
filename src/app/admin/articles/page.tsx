@@ -4,6 +4,7 @@ import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import {
   Plus,
+  X,
   Search,
   Pencil,
   Trash2,
@@ -81,7 +82,8 @@ export default function AdminArticlesPage() {
 
   // Form State (Common)
   const [formImageUrl, setFormImageUrl] = useState("");
-  const [formTags, setFormTags] = useState("");
+  const [formTags, setFormTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
   const [formOrder, setFormOrder] = useState(0);
   const [formFeatured, setFormFeatured] = useState(false);
   const [formPublished, setFormPublished] = useState(true);
@@ -112,7 +114,8 @@ export default function AdminArticlesPage() {
     setFormSummaryEn("");
     setFormContentEn("");
     setFormImageUrl("");
-    setFormTags("");
+    setFormTags([]);
+    setTagInput("");
     setFormOrder(articles.length + 1);
     setFormFeatured(false);
     setFormPublished(true);
@@ -131,7 +134,8 @@ export default function AdminArticlesPage() {
     setFormSummaryEn(article.summaryEn || "");
     setFormContentEn(article.contentEn || "");
     setFormImageUrl(article.imageUrl || "");
-    setFormTags(article.tags?.join(", ") || "");
+    setFormTags(article.tags || []);
+    setTagInput("");
     setFormOrder(article.order || 0);
     setFormFeatured(article.featured);
     setFormPublished(article.published);
@@ -167,14 +171,22 @@ export default function AdminArticlesPage() {
     }
   };
 
+  const handleAddTag = () => {
+    const value = tagInput.trim().replace(/^#/, "");
+    if (!value) return;
+    setFormTags((prev) => (prev.includes(value) ? prev : [...prev, value]));
+    setTagInput("");
+  };
+
+  const handleRemoveTag = (tag: string) => {
+    setFormTags((prev) => prev.filter((t) => t !== tag));
+  };
+
   const handleSaveArticle = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
 
-    const tagsArray = formTags
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
+    const tagsArray = formTags;
 
     startTransition(async () => {
       const generatedSlug =
@@ -554,13 +566,38 @@ export default function AdminArticlesPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="tags">Tags / Kategori (Pisahkan dengan koma)</Label>
-                  <Input
-                    id="tags"
-                    placeholder="Next.js, GSAP, Web Architecture, Tutorial"
-                    value={formTags}
-                    onChange={(e) => setFormTags(e.target.value)}
-                  />
+                  <Label htmlFor="tags">Tags / Kategori (Hashtag)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="tags"
+                      placeholder="Tambah tag lalu Enter"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddTag();
+                        }
+                      }}
+                    />
+                    <Button type="button" size="sm" variant="outline" onClick={handleAddTag} className="h-9 px-3">
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 pt-2">
+                    {formTags.map((tag) => (
+                      <Badge key={tag} variant="secondary" className="text-xs pl-2.5 pr-1.5 py-1 gap-1.5">
+                        <span>#{tag}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTag(tag)}
+                          className="h-3.5 w-3.5 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-2.5 w-2.5" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="space-y-1.5">

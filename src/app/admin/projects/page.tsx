@@ -4,6 +4,7 @@ import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import {
   Plus,
+  X,
   Search,
   Pencil,
   Trash2,
@@ -79,7 +80,8 @@ export default function AdminProjectsPage() {
 
   // Form State (Common)
   const [formThumbnail, setFormThumbnail] = useState("");
-  const [formTechStack, setFormTechStack] = useState("");
+  const [formTechStack, setFormTechStack] = useState<string[]>([]);
+  const [techInput, setTechInput] = useState("");
   const [formDemoUrl, setFormDemoUrl] = useState("");
   const [formRepoUrl, setFormRepoUrl] = useState("");
   const [formFeatured, setFormFeatured] = useState(false);
@@ -120,7 +122,8 @@ export default function AdminProjectsPage() {
     setFormSummaryEn("");
     setFormDescriptionEn("");
     setFormThumbnail("");
-    setFormTechStack("Next.js, TypeScript, Tailwind CSS");
+    setFormTechStack([]);
+    setTechInput("");
     setFormDemoUrl("");
     setFormRepoUrl("");
     setFormFeatured(false);
@@ -140,7 +143,8 @@ export default function AdminProjectsPage() {
     setFormSummaryEn(project.summaryEn || "");
     setFormDescriptionEn(project.descriptionEn || "");
     setFormThumbnail(project.thumbnailUrl);
-    setFormTechStack(project.techStack.join(", "));
+    setFormTechStack(project.techStack);
+    setTechInput("");
     setFormDemoUrl(project.demoUrl || "");
     setFormRepoUrl(project.repoUrl || "");
     setFormFeatured(project.featured);
@@ -176,6 +180,17 @@ export default function AdminProjectsPage() {
     }
   };
 
+  const handleAddTech = () => {
+    const value = techInput.trim();
+    if (!value) return;
+    setFormTechStack((prev) => (prev.includes(value) ? prev : [...prev, value]));
+    setTechInput("");
+  };
+
+  const handleRemoveTech = (tech: string) => {
+    setFormTechStack((prev) => prev.filter((t) => t !== tech));
+  };
+
   const handleSaveProject = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
@@ -185,10 +200,7 @@ export default function AdminProjectsPage() {
       return;
     }
 
-    const techArray = formTechStack
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
+    const techArray = formTechStack;
 
     startTransition(async () => {
       const finalDescription = formDescription.trim() || formSummary.trim();
@@ -579,15 +591,40 @@ export default function AdminProjectsPage() {
             {/* Parameter Umum */}
             <div className="space-y-2 pt-2 border-t border-border/60">
               <Label htmlFor="tech" className="text-xs font-medium">
-                Teknologi yang Digunakan (Pisahkan dengan koma)
+                Teknologi yang Digunakan
               </Label>
-              <Input
-                id="tech"
-                placeholder="Next.js, Tailwind CSS, PostgreSQL, Stripe"
-                value={formTechStack}
-                onChange={(e) => setFormTechStack(e.target.value)}
-                className="text-xs"
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="tech"
+                  placeholder="Tambah teknologi lalu Enter"
+                  value={techInput}
+                  onChange={(e) => setTechInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddTech();
+                    }
+                  }}
+                  className="text-xs"
+                />
+                <Button type="button" size="sm" variant="outline" onClick={handleAddTech} className="h-9 px-3">
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pt-2">
+                {formTechStack.map((tech) => (
+                  <Badge key={tech} variant="secondary" className="text-xs pl-2.5 pr-1.5 py-1 gap-1.5">
+                    <span>{tech}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTech(tech)}
+                      className="h-3.5 w-3.5 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
             </div>
 
             <div className="space-y-2">

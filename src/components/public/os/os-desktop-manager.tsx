@@ -362,7 +362,13 @@ export function OSDesktopManager({
                 {activeApp === "kontak" && <ContactSection profile={profile} />}
                 {activeApp === "terminal" && (
                   <div className="max-w-4xl mx-auto py-4">
-                    <OSCrtTerminal ownerName={profile.name} />
+                    <OSCrtTerminal
+                      ownerName={profile.name}
+                      profile={profile}
+                      services={services}
+                      projects={projects}
+                      articles={articles}
+                    />
                   </div>
                 )}
               </div>

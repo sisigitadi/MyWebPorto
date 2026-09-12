@@ -22,6 +22,14 @@ export interface ProfileData {
     instagram?: string;
     twitter?: string;
     portfolio?: string;
+    telegram?: string;
+    tiktok?: string;
+    youtube?: string;
+    facebook?: string;
+    discord?: string;
+    slack?: string;
+    reddit?: string;
+    medium?: string;
   };
 }
 

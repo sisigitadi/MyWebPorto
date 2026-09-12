@@ -32,6 +32,26 @@ import { ImageUpload } from "@/components/admin/image-upload";
 import { DUMMY_PROFILE, ProfileData } from "@/lib/dummy-data";
 import { getProfile, updateProfile, translateFieldAction } from "@/lib/actions";
 
+const SOCIAL_LINK_FIELDS: Array<{
+  key: keyof ProfileData["socialLinks"];
+  label: string;
+  placeholder: string;
+}> = [
+  { key: "github", label: "GitHub URL", placeholder: "https://github.com/username" },
+  { key: "linkedin", label: "LinkedIn URL", placeholder: "https://linkedin.com/in/username" },
+  { key: "instagram", label: "Instagram URL", placeholder: "https://instagram.com/username" },
+  { key: "twitter", label: "X (Twitter) URL", placeholder: "https://x.com/username" },
+  { key: "medium", label: "Medium URL", placeholder: "https://medium.com/@username" },
+  { key: "youtube", label: "YouTube URL", placeholder: "https://youtube.com/@channel" },
+  { key: "tiktok", label: "TikTok URL", placeholder: "https://tiktok.com/@username" },
+  { key: "telegram", label: "Telegram URL", placeholder: "https://t.me/username" },
+  { key: "facebook", label: "Facebook URL", placeholder: "https://facebook.com/username" },
+  { key: "discord", label: "Discord URL", placeholder: "https://discord.gg/invite" },
+  { key: "slack", label: "Slack URL", placeholder: "https://join.slack.com/..." },
+  { key: "reddit", label: "Reddit URL", placeholder: "https://reddit.com/user/username" },
+  { key: "portfolio", label: "Portofolio URL", placeholder: "https://porto.sigitadi.id/" },
+];
+
 export default function AdminProfilePage() {
   const [profile, setProfile] = useState<ProfileData>(DUMMY_PROFILE);
   const [isLoading, setIsLoading] = useState(true);
@@ -521,93 +541,32 @@ export default function AdminProfilePage() {
                   Tautan Media Sosial
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Tautan ke akun jejaring profesional Anda yang tampil di Footer.
+                  Tautan ke akun sosial yang tampil di Kontak.exe dan Footer. Kosongkan untuk menyembunyikan.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="github" className="text-xs font-medium">
-                    GitHub URL
-                  </Label>
-                  <Input
-                    id="github"
-                    value={profile.socialLinks.github || ""}
-                    onChange={(e) =>
-                      setProfile({
-                        ...profile,
-                        socialLinks: {
-                          ...profile.socialLinks,
-                          github: e.target.value,
-                        },
-                      })
-                    }
-                    placeholder="https://github.com/username"
-                    className="text-xs"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="linkedin" className="text-xs font-medium">
-                    LinkedIn URL
-                  </Label>
-                  <Input
-                    id="linkedin"
-                    value={profile.socialLinks.linkedin || ""}
-                    onChange={(e) =>
-                      setProfile({
-                        ...profile,
-                        socialLinks: {
-                          ...profile.socialLinks,
-                          linkedin: e.target.value,
-                        },
-                      })
-                    }
-                    placeholder="https://linkedin.com/in/username"
-                    className="text-xs"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="instagram" className="text-xs font-medium">
-                    Instagram URL
-                  </Label>
-                  <Input
-                    id="instagram"
-                    value={profile.socialLinks.instagram || ""}
-                    onChange={(e) =>
-                      setProfile({
-                        ...profile,
-                        socialLinks: {
-                          ...profile.socialLinks,
-                          instagram: e.target.value,
-                        },
-                      })
-                    }
-                    placeholder="https://instagram.com/username"
-                    className="text-xs"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="twitter" className="text-xs font-medium">
-                    X (Twitter) URL
-                  </Label>
-                  <Input
-                    id="twitter"
-                    value={profile.socialLinks.twitter || ""}
-                    onChange={(e) =>
-                      setProfile({
-                        ...profile,
-                        socialLinks: {
-                          ...profile.socialLinks,
-                          twitter: e.target.value,
-                        },
-                      })
-                    }
-                    placeholder="https://x.com/username"
-                    className="text-xs"
-                  />
-                </div>
+                {SOCIAL_LINK_FIELDS.map((field) => (
+                  <div className="space-y-2" key={field.key}>
+                    <Label htmlFor={field.key} className="text-xs font-medium">
+                      {field.label}
+                    </Label>
+                    <Input
+                      id={field.key}
+                      value={profile.socialLinks?.[field.key] || ""}
+                      onChange={(e) =>
+                        setProfile({
+                          ...profile,
+                          socialLinks: {
+                            ...profile.socialLinks,
+                            [field.key]: e.target.value,
+                          },
+                        })
+                      }
+                      placeholder={field.placeholder}
+                      className="text-xs"
+                    />
+                  </div>
+                ))}
               </CardContent>
             </Card>
           </div>

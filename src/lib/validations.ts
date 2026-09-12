@@ -57,6 +57,15 @@ export const ProfileSchema = z.object({
       linkedin: safeUrlSchema.optional().or(z.literal("")),
       instagram: safeUrlSchema.optional().or(z.literal("")),
       twitter: safeUrlSchema.optional().or(z.literal("")),
+      portfolio: safeUrlSchema.optional().or(z.literal("")),
+      telegram: safeUrlSchema.optional().or(z.literal("")),
+      tiktok: safeUrlSchema.optional().or(z.literal("")),
+      youtube: safeUrlSchema.optional().or(z.literal("")),
+      facebook: safeUrlSchema.optional().or(z.literal("")),
+      discord: safeUrlSchema.optional().or(z.literal("")),
+      slack: safeUrlSchema.optional().or(z.literal("")),
+      reddit: safeUrlSchema.optional().or(z.literal("")),
+      medium: safeUrlSchema.optional().or(z.literal("")),
     })
     .default({}),
 });

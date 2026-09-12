@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
-import { Send, CheckCircle2, AlertCircle, RefreshCw, Mail, ShieldCheck } from "lucide-react";
+import { Send, CheckCircle2, AlertCircle, RefreshCw, Mail, ShieldCheck, Globe } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ProfileData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
 import { OSWindow } from "@/components/public/os/os-window";
+import { buildSocialLinks } from "@/components/public/social-icons";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -30,6 +31,7 @@ export function ContactSection({ profile }: ContactSectionProps) {
   const { t, language } = useTranslation();
   const containerRef = useRef<HTMLElement>(null);
   const contactEmail = CONFIGURED_CONTACT_EMAIL || profile?.email || FALLBACK_CONTACT_EMAIL;
+  const socialLinks = profile ? buildSocialLinks(profile) : [];
 
   // --- State for Formspree Mailer ---
   const [formData, setFormData] = useState({
@@ -295,6 +297,34 @@ export function ContactSection({ profile }: ContactSectionProps) {
             </form>
           </OSWindow>
         </div>
+
+        {/* Social Channels (conditional) */}
+        {socialLinks.length > 0 && (
+          <div className="sigit-contact-window w-full flex flex-col mt-6">
+            <OSWindow
+              title="Sigit_Connect.exe // Social Channels"
+              icon={<Globe className="h-3.5 w-3.5 text-[#37ff9b]" />}
+              statusText={`${socialLinks.length} channel(s) ready // Direct Links`}
+              className="w-full"
+            >
+              <div className="flex flex-wrap gap-2">
+                {socialLinks.map((link) => (
+                  <a
+                    key={link.key}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={link.label}
+                    className="vt-btn vt-btn-chrome inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold text-[var(--vt-ink)] hover:-translate-y-0.5 transition-all"
+                  >
+                    {link.icon}
+                    <span>{link.label}</span>
+                  </a>
+                ))}
+              </div>
+            </OSWindow>
+          </div>
+        )}
       </div>
     </section>
   );

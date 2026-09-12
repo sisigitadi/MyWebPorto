@@ -1,8 +1,7 @@
-"use client";
-
-import React from "react";
 import { OSMenubar } from "@/components/public/os/os-menubar";
+import { getProfile } from "@/lib/actions";
 
-export function Header() {
-  return <OSMenubar profileName="Sigit" />;
+export async function Header() {
+  const profile = await getProfile();
+  return <OSMenubar profile={profile} />;
 }
