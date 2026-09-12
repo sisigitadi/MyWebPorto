@@ -180,6 +180,7 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
                         {/* Cover Image if available */}
                         {article.imageUrl && (
                           <div className="relative mb-3 overflow-hidden rounded-sm border border-[#5a5750] shadow-inner aspect-[16/9] bg-black">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={article.imageUrl}
                               alt={title}

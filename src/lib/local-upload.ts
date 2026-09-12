@@ -111,6 +111,9 @@ export async function uploadImageLocal(formData: FormData): Promise<{
 
     const safeExtension = EXTENSION_BY_MIME[file.type];
     const uniqueFileName = `${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${safeExtension}`;
+    if (process.env.VERCEL) {
+      console.warn("uploadImageLocal: Vercel FS ephemeral — file tidak persisten, gunakan Bunny CDN/S3 untuk prod");
+    }
     const uploadDir = path.join(process.cwd(), "public", "uploads");
 
     try {

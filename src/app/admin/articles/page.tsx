@@ -309,6 +309,7 @@ export default function AdminArticlesPage() {
                   <TableRow key={article.id}>
                     <TableCell>
                       {article.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={article.imageUrl}
                           alt={article.title}
