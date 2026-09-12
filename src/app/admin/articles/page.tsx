@@ -548,6 +548,7 @@ export default function AdminArticlesPage() {
                 <ImageUpload
                   value={formImageUrl}
                   onChange={(url) => setFormImageUrl(url)}
+                  label={formImageUrl ? "Ganti Cover" : "Unggah Cover"}
                 />
               </div>
 

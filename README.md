@@ -1,110 +1,115 @@
 # MyWebPorto
 
-Website profil pribadi dan portofolio profesional elegan berbasis Next.js 15, dirancang untuk personal branding, etalase karya digital, layanan keahlian, katalog produk, dan testimoni klien dengan panel admin lengkap.
+MyWebPorto adalah website portofolio pribadi berbasis Next.js 15 untuk personal branding, katalog proyek, layanan profesional, produk, testimoni, dan artikel teknis. Project ini juga menyediakan panel admin sederhana agar pemilik dapat mengelola konten tanpa mengubah kode langsung.
 
----
+Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager interaktif, namun tetap menyimpan konten server-rendered untuk SEO dan aksesibilitas.
 
-## 🚀 Fitur Utama
+## Fitur Utama
 
-### 🌐 Halaman Publik
-1. **Beranda Interaktif (`/`)**:
-   - **Hero Section**: Foto profil, headline profesional, bio singkat, CTA "Lihat Proyek" & "Hubungi Saya".
-   - **Layanan & Keahlian**: Daftar keahlian/jasa yang ditawarkan beserta tombol konsultasi langsung via WhatsApp/Email.
-   - **Proyek Unggulan**: Showcase portofolio unggulan dengan gambar beresolusi tinggi, tag tech stack, dan link detail.
-   - **Katalog Produk**: Etalase produk digital/fisik dengan label harga dan tombol tanya produk (tanpa checkout otomatis).
-   - **Testimoni Klien**: Ulasan dan rekomendasi dari klien/mitra kerja.
-   - **Kontak & Media Sosial**: Form/link komunikasi langsung dengan pemilik website (tanpa teks debug/eksternal).
-   - **Terminal Interaktif (`Terminal.bat` / `OSCrtTerminal`)**: Konsol CRT interaktif yang mengintegrasikan AI Assistant (`Sigit_Bot.ai`) dengan fitur perintah cepat dan neural logs.
-2. **Daftar Proyek (`/proyek`)**:
-   - Grid seluruh portofolio proyek yang dipublikasikan dengan badge teknologi dan link ke detail proyek.
-3. **Detail Proyek (`/proyek/[slug]`)**:
-   - Penjelasan komprehensif proyek, preview gambar, live demo link, repositori GitHub, dan CTA diskusi proyek serupa.
-4. **Detail Artikel & Wawasan (`/artikel/[slug]`)**:
-   - Halaman artikel teknis dengan navigasi retro document, estimasi waktu baca, format paragraf terstruktur, tombol share URL, dan card profil penulis.
-5. **SEO & Metadata Dinamis**:
-   - Open Graph tags, Twitter Card, `sitemap.xml`, `robots.txt`, BlogPosting & Person JSON-LD Schema.
+### Area Publik
 
-### 🔐 Panel Admin Sederhana (`/admin`)
-1. **Autentikasi Clerk**:
-   - Proteksi rute admin via Clerk Middleware dan validasi `ADMIN_CLERK_ID`.
-2. **Dashboard Ringkasan**:
-   - Menampilkan total proyek, layanan, produk, testimoni, dan artikel teknis.
-3. **Manajemen Konten (CRUD)**:
-   - **Kelola Profil (`/admin/profile`)**: Update nama, headline, bio, avatar, email, WhatsApp, lokasi, link CV, dan akun medsos.
-   - **Kelola Proyek (`/admin/projects`)**: Tambah, edit, hapus, atur urutan, toggle featured & published status.
-   - **Kelola Artikel (`/admin/articles`)**: Tambah, edit, hapus artikel teknis, input konten dwi-bahasa (ID/EN) otomatis, cover image, tag system, dan toggle publish/featured.
-   - **Kelola Layanan (`/admin/services`)**: Tambah, edit, hapus, atur urutan dan published status.
-   - **Kelola Produk (`/admin/products`)**: Tambah, edit, hapus produk, atur harga display dan gambar.
-   - **Kelola Testimoni (`/admin/testimonials`)**: Tambah, edit, hapus testimoni klien beserta peran/organisasi.
-4. **Unggah Gambar Bunny CDN / Storage**:
-   - Upload gambar langsung dari form admin ke Bunny Storage dengan integrasi CDN cepat.
+- Beranda interaktif di `/` dengan profil, layanan, proyek, produk, testimoni, artikel, kontak, terminal CRT, dan asisten AI lokal Sigit_Bot.
+- Katalog proyek di `/proyek`.
+- Detail proyek di `/proyek/[slug]`.
+- Katalog Store.zip pada section `#produk`.
+- Detail produk shareable di `/toko/[slug]`.
+- Katalog artikel di `/artikel`.
+- Detail artikel di `/artikel/[slug]`.
+- Metadata SEO, Open Graph, Twitter Card, sitemap, robots.txt, dan JSON-LD.
+- Fallback konten SSR tersembunyi untuk mesin pencari dan assistive technology.
 
----
+### Panel Admin
 
-## 🛠️ Tech Stack
+- Login admin melalui Clerk di `/sign-in`.
+- Proteksi rute `/admin/*` memakai Clerk middleware dan `ADMIN_CLERK_ID`.
+- Dashboard ringkasan konten.
+- CRUD profil, proyek, layanan, produk, testimoni, dan artikel.
+- Input konten Indonesia dan Inggris untuk beberapa field.
+- Auto-translate ID ke EN saat field Inggris dikosongkan.
+- Upload gambar lokal ke `public/uploads`.
+- Slug produk dapat dikelola dari admin dan masuk ke sitemap.
+- Artikel studi kasus project dan topical authority AI, cybersecurity, Linux, Windows, dan macOS.
 
-- **Framework**: [Next.js 15](https://nextjs.org/) (App Router, Turbopack)
-- **Bahasa**: [TypeScript](https://www.typescriptlang.org/)
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **UI Components**: [shadcn/ui](https://ui.shadcn.com/) (Radix UI)
-- **Database**: [Neon PostgreSQL](https://neon.tech/) Serverless
-- **ORM**: [Drizzle ORM](https://orm.drizzle.team/)
-- **Autentikasi**: [Clerk](https://clerk.com/)
-- **CDN & Storage**: [Bunny CDN / Storage](https://bunny.net/)
-- **Validasi**: [Zod](https://zod.dev/)
-- **Notifikasi**: [Sonner](https://sonner.emilkowal.ski/)
+## Tech Stack
 
----
+- Next.js 15 App Router
+- React 19
+- TypeScript
+- Tailwind CSS v4
+- shadcn/ui dan Radix UI
+- Drizzle ORM
+- Neon PostgreSQL
+- Clerk Authentication
+- Zod
+- Sonner
+- GSAP
+- Lucide React
 
-## 📋 Struktur Folder
+## Struktur Folder
 
-```
+```text
 src/
-├── app/
-│   ├── (public)/          # Rute halaman publik (Beranda, /proyek, /proyek/[slug])
-│   ├── admin/             # Panel admin terproteksi (/admin, /admin/projects, dll.)
-│   ├── sign-in/           # Halaman login Clerk
-│   ├── globals.css        # Konfigurasi Tailwind CSS
-│   ├── layout.tsx         # Root layout dengan ClerkProvider & Sonner
-│   ├── robots.ts          # Generator robots.txt
-│   └── sitemap.ts         # Generator sitemap.xml
-├── components/
-│   ├── admin/             # Komponen panel admin (sidebar, header, uploader)
-│   ├── public/            # Komponen halaman publik (hero, projects, services, footer, dll.)
-│   └── ui/                # Komponen shadcn/ui (Button, Dialog, Card, Input, Table, dll.)
-├── db/
-│   ├── index.ts           # Koneksi Drizzle ORM ke Neon PostgreSQL
-│   ├── schema.ts          # Definisi skema tabel database
-│   └── seed.ts            # Script data awal (dummy seed)
-└── lib/
-    ├── actions.ts         # Server Actions untuk CRUD & pengambilan data
-    ├── bunny-upload.ts    # Integrasi Bunny CDN Storage
-    ├── dummy-data.ts      # Data fallback saat offline/tanpa DB
-    ├── seo.ts             # Metadata dinamis & Open Graph
-    ├── utils.ts           # Utility helper
-    └── validations.ts     # Skema validasi Zod
+|-- app/
+|   |-- (public)/          # Rute publik: beranda, proyek, artikel
+|   |-- admin/             # Panel admin terproteksi
+|   |-- sign-in/           # Login Clerk
+|   |-- sign-up/           # Sign up Clerk
+|   |-- api/               # API routes
+|   |-- globals.css        # Styling global dan token tema
+|   |-- layout.tsx         # Root layout
+|   |-- sitemap.ts         # Generator sitemap.xml
+|   `-- robots.ts          # Generator robots.txt
+|-- components/
+|   |-- admin/             # Komponen admin
+|   |-- public/            # Komponen halaman publik
+|   |   `-- os/            # Komponen SigitOS / retro desktop
+|   `-- ui/                # Komponen UI berbasis shadcn
+|-- db/
+|   |-- index.ts           # Koneksi Drizzle ke Neon
+|   `-- schema.ts          # Skema tabel database
+`-- lib/
+    |-- actions.ts         # Server Actions CRUD dan query data
+    |-- ai-engine.ts       # Mesin NLP/ML lokal untuk terminal & AI bot
+    |-- contact-link.ts    # Helper URL kontak prefill
+    |-- dummy-data.ts      # Data fallback
+    |-- i18n.tsx           # State dan teks bilingual
+    |-- local-upload.ts    # Upload gambar lokal
+    |-- product-link.ts    # Helper slug & link produk
+    |-- seo.ts             # Helper SEO
+    |-- translate.ts       # Auto-translate ID/EN
+    |-- utils.ts           # Utility umum
+    `-- validations.ts     # Skema validasi Zod
 ```
 
----
+## Model Data
 
-## ⚙️ Persiapan & Instalasi
+Skema database utama berada di `src/db/schema.ts`.
 
-### 1. Klon Repositori & Install Dependensi
-```bash
-git clone https://github.com/username/karya-profil-ku.git
-cd karya-profil-ku
-npm install
-```
+- `profiles`: data pemilik website, kontak, avatar, skill, statistik, sosial media, dan status available for hire.
+- `projects`: portofolio proyek, slug, summary, deskripsi, gambar, demo, repo, tech stack, featured, published, dan urutan.
+- `services`: layanan atau keahlian yang ditawarkan.
+- `products`: katalog produk dengan slug, label harga, gambar, dan CTA checkout/download.
+- `testimonials`: testimoni klien, role, avatar, rating, status publikasi.
+- `articles`: artikel teknis dengan slug, summary, konten, gambar, tag, featured, published, dan urutan.
 
-### 2. Atur Environment Variables
-Salin template konfigurasi:
-```bash
-cp .env.example .env.local
-```
+Sebagian tabel mendukung field bilingual seperti `titleEn`, `descriptionEn`, `contentEn`, `summaryEn`, dan sejenisnya.
 
-Isi variabel lingkungan berikut di `.env.local`:
+## Alur Data
+
+Project ini tetap bisa berjalan walaupun database belum aktif.
+
+1. Jika `DATABASE_URL` tersedia, data dibaca dan disimpan ke Neon PostgreSQL melalui Drizzle.
+2. Jika database belum tersedia atau query gagal, aplikasi memakai local store di `data/local-store.json`.
+3. Jika local store belum ada, aplikasi memakai data awal dari `src/lib/dummy-data.ts`.
+
+Server Actions di `src/lib/actions.ts` menangani validasi admin, CRUD, auto-seed awal, local persistence, sinkronisasi database, auto-translate, dan `revalidatePath`.
+
+## Environment Variables
+
+Buat file `.env.local` di root project.
+
 ```env
-# URL Aplikasi
+# URL aplikasi
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 # Clerk Authentication
@@ -113,42 +118,131 @@ CLERK_SECRET_KEY=sk_test_xxxx
 CLERK_SIGN_IN_FORCE_REDIRECT_URL=/admin
 CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/admin
 
-# ID Clerk User yang menjadi Admin / Pemilik website
-ADMIN_CLERK_ID=user_2xxxxxxxxxxxxx
+# ID Clerk user yang berhak masuk admin
+ADMIN_CLERK_ID=user_xxxxxxxxxxxxxxxxx
+NEXT_PUBLIC_ADMIN_CLERK_ID=user_xxxxxxxxxxxxxxxxx
 
 # Neon PostgreSQL
-DATABASE_URL=postgresql://user:password@ep-xxx.region.aws.neon.tech/neondb?sslmode=require
+DATABASE_URL=postgresql://user:password@host/neondb?sslmode=require
 
-# Bunny CDN / Storage (Opsional, fallback otomatis aktif jika kosong)
-BUNNY_STORAGE_ZONE_NAME=nama-storage-zone
-BUNNY_STORAGE_API_KEY=xxxx-xxxx-xxxx
-BUNNY_CDN_HOSTNAME=namazone.b-cdn.net
+# Formspree contact form
+NEXT_PUBLIC_FORMSPREE_ENDPOINT=https://formspree.io/f/your-form-id
+NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL=x@sigitadi.id
 ```
 
-### 3. Migrasi & Seed Database (Opsional)
-Jika Anda sudah mengisi `DATABASE_URL`:
+Catatan:
+
+- Jika Clerk key belum diset atau masih placeholder, middleware mengizinkan navigasi admin untuk kebutuhan development.
+- Jika `DATABASE_URL` kosong, aplikasi tetap berjalan memakai data lokal/fallback.
+- Jika `NEXT_PUBLIC_APP_URL` kosong, fallback canonical URL memakai `https://sigitadi.dev`.
+- Upload gambar saat ini disimpan lokal ke `public/uploads`, bukan ke storage eksternal.
+- Variabel `BUNNY_STORAGE_*` tersedia di `.env.example` tetapi belum terhubung ke kode; upload gambar masih lokal.
+- Pastikan form Formspree pada dashboard/workflow diarahkan ke `x@sigitadi.id`.
+
+## Instalasi
+
 ```bash
-# Generate & migrate schema Drizzle
-npm run db:push
-
-# Isi data awal profil, proyek, layanan, produk, dan testimoni
-npm run db:seed
+npm install
 ```
-*Catatan: Jika `DATABASE_URL` belum diisi, aplikasi akan tetap berfungsi normal dalam mode fallback menggunakan data awal yang elegan.*
 
-### 4. Menjalankan Server Development
+## Menjalankan Development Server
+
 ```bash
 npm run dev
 ```
-Buka browser di `http://localhost:3000`.
 
----
+Buka `http://localhost:3000`.
 
-## 📦 Build Produksi & Deployment
+## Database
 
-Verifikasi build aplikasi:
+Generate migration:
+
+```bash
+npm run db:generate
+```
+
+Push schema ke database:
+
+```bash
+npm run db:push
+```
+
+Seed data awal:
+
+```bash
+npm run db:seed
+```
+
+Buka Drizzle Studio:
+
+```bash
+npm run db:studio
+```
+
+## Build Produksi
+
 ```bash
 npm run build
 ```
 
-Aplikasi siap dideploy ke [Vercel](https://vercel.com/) dengan menambahkan environment variables sesuai konfigurasi di atas.
+Jalankan build produksi:
+
+```bash
+npm run start
+```
+
+Catatan: `next.config.ts` memakai `output: "standalone"` hanya di luar Vercel. Untuk deployment standalone langsung, gunakan `node .next/standalone/server.js`, bukan `next start`. Di Vercel, build memakai output default Next.js.
+
+## Paket Deployment Standalone
+
+Buat paket siap upload ke VPS, cPanel Node.js, atau server PM2:
+
+```bash
+npm run package
+```
+
+Paket dibuat di `deploy_package/` dan berisi server standalone, aset statis, `public`, local store `data`, serta konfigurasi PM2. Edit `deploy_package/.env`, lalu jalankan:
+
+```bash
+node server.js
+# atau
+pm2 start ecosystem.config.cjs
+pm2 save
+```
+
+## Checklist Sebelum Push atau Deploy
+
+```bash
+npm run lint
+npm run build
+npm run package
+```
+
+Pastikan `DATABASE_URL`, `NEXT_PUBLIC_APP_URL`, Clerk production keys, `ADMIN_CLERK_ID`, dan Formspree sudah benar. Terapkan migration database termasuk `drizzle/0003_product_slugs.sql`. Jangan commit `.env`, credential, atau token.
+
+## Verifikasi Setelah Deploy
+
+Uji `/`, `/proyek`, `/artikel`, `/toko/[slug]`, `/sitemap.xml`, `/robots.txt`, dan `/admin`. Lanjutkan dengan uji login admin, CRUD setiap section, upload gambar, form kontak, dan pembaruan slug produk.
+
+## Deployment
+
+Project siap dideploy ke platform Next.js seperti Vercel. Push ke branch `main` akan memicu auto-deploy Vercel jika proyek sudah terhubung. Untuk deployment mandiri (VPS/cPanel/PM2), gunakan paket `deploy_package` sesuai `DEPLOYMENT.md`. Pastikan environment variables produksi sudah tersedia, terutama:
+
+- `NEXT_PUBLIC_APP_URL`
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- `CLERK_SECRET_KEY`
+- `ADMIN_CLERK_ID`
+- `NEXT_PUBLIC_ADMIN_CLERK_ID`
+- `DATABASE_URL`
+- `NEXT_PUBLIC_FORMSPREE_ENDPOINT`
+- `NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL`
+
+Karena upload saat ini memakai `public/uploads`, penyimpanan gambar tidak persisten di lingkungan serverless. Untuk produksi jangka panjang, gunakan object storage atau CDN storage seperti Bunny, S3, R2, atau layanan sejenis.
+
+## Catatan Pengembangan
+
+- Jangan gunakan Lorem Ipsum untuk konten dummy.
+- Konten publik sebaiknya tetap memakai Bahasa Indonesia profesional dan ramah.
+- Field Inggris dapat diisi manual atau dibiarkan kosong untuk auto-translate.
+- Produk hanya berupa katalog/CTA, tidak ada checkout atau payment gateway.
+- Admin adalah single-owner CMS, bukan sistem multi-user publik.

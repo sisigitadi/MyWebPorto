@@ -228,6 +228,28 @@
       "published": true,
       "order": 3,
       "createdAt": "2026-03-08T14:15:00.000Z"
+    },
+    {
+      "id": "d74144d7-b370-4f7d-8ba1-e76b68793d5f",
+      "slug": "membangun-dashboard-halaqah-digitalisasi-presensi-santri-dan-evaluasi-kurikulum-taklim",
+      "title": "Membangun Dashboard Halaqah: Digitalisasi Presensi Santri dan Evaluasi Kurikulum Taklim",
+      "titleEn": "Membangun Dashboard Halaqah: Digitalisasi Presensi Santri dan Evaluasi Kurikulum Taklim",
+      "summary": "Transformasi pencatatan mutaba'ah manual menuju platform presensi santri dan monitoring kurikulum taklim terstruktur secara real-time.",
+      "summaryEn": "Transformasi pencatatan mutaba'ah manual menuju platform presensi santri dan monitoring kurikulum taklim terstruktur secara real-time.",
+      "content": "- Latar Belakang & Masalah: Kendala pencatatan mutaba'ah manual dan evaluasi bulanan yang memakan waktu bagi pengurus taklim.\n\n- Solusi & Arsitektur: Membangun aplikasi berbasis React dan TypeScript untuk rekapitulasi data presensi dan capaian kurikulum harian.\n\n- Dampak & Implementasi: Meningkatkan transparansi monitoring santri secara real-time dan memangkas friksi administratif pengasuhan ma'had.",
+      "contentEn": "- Latar Belakang & Masalah: Kendala pencatatan mutaba'ah manual dan evaluasi bulanan yang memakan waktu bagi pengurus taklim.\n\n- Solusi & Arsitektur: Membangun aplikasi berbasis React dan TypeScript untuk rekapitulasi data presensi dan capaian kurikulum harian.\n\n- Dampak & Implementasi: Meningkatkan transparansi monitoring santri secara real-time dan memangkas friksi administratif pengasuhan ma'had.",
+      "imageUrl": "/uploads/1789177425748-93e9001a.png",
+      "tags": [
+        "React",
+        "TypeScript",
+        "Tailwind CSS",
+        "Education Tech"
+      ],
+      "featured": true,
+      "published": true,
+      "order": 4,
+      "createdAt": "2026-09-12T01:43:52.401Z",
+      "updatedAt": "2026-09-12T01:43:52.401Z"
     }
   ]
 }

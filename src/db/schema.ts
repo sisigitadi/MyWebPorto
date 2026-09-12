@@ -115,6 +115,7 @@ export const products = pgTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
+    slug: text("slug").unique(),
     title: text("title").notNull(),
     titleEn: text("title_en"),
     description: text("description").notNull(),

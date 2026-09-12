@@ -1,9 +1,10 @@
 import { MetadataRoute } from "next";
-import { getProjects, getArticles } from "@/lib/actions";
+import { getProjects, getArticles, getProducts } from "@/lib/actions";
+import { getProductSlug } from "@/lib/product-link";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev";
-  const [projects, articles] = await Promise.all([getProjects(), getArticles()]);
+  const [projects, articles, products] = await Promise.all([getProjects(), getArticles(), getProducts()]);
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {
@@ -47,5 +48,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       images: a.imageUrl ? [a.imageUrl] : undefined,
     }));
 
-  return [...staticRoutes, ...projectRoutes, ...articleRoutes];
+  const productRoutes: MetadataRoute.Sitemap = products
+    .filter((p) => p.published)
+    .map((p) => ({
+      url: `${baseUrl}/toko/${getProductSlug(p)}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+      images: p.thumbnailUrl ? [p.thumbnailUrl] : undefined,
+    }));
+
+  return [...staticRoutes, ...projectRoutes, ...articleRoutes, ...productRoutes];
 }

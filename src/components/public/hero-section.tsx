@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useRef } from "react";
-import Link from "next/link";
-import { ArrowRight, ExternalLink, MapPin, User, Mail } from "lucide-react";
+import { ExternalLink, MapPin, User, Mail } from "lucide-react";
 import { ProfileData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
 import { OSWindow } from "@/components/public/os/os-window";

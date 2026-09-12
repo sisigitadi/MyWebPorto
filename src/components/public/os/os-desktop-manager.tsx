@@ -95,18 +95,18 @@ const APPS: AppItem[] = [
     activeClass: "text-[#ea580c] dark:text-[#fb923c] bg-[#ea580c]/15 dark:bg-[#fb923c]/15 ring-[#ea580c]/50 dark:ring-[#fb923c]/50",
   },
   {
-    id: "kontak",
-    icon: <Mail className="h-[22px] w-[22px] text-[#e11d48] dark:text-[#fb7185] shrink-0 transition-transform group-hover:scale-110" strokeWidth={2.2} />,
-    number: 7,
-    colorClass: "hover:bg-[#e11d48]/10 hover:text-[#e11d48] dark:hover:bg-[#fb7185]/10 dark:hover:text-[#fb7185]",
-    activeClass: "text-[#e11d48] dark:text-[#fb7185] bg-[#e11d48]/15 dark:bg-[#fb7185]/15 ring-[#e11d48]/50 dark:ring-[#fb7185]/50",
-  },
-  {
     id: "terminal",
     icon: <Terminal className="h-[22px] w-[22px] text-[#059669] dark:text-[#34d399] shrink-0 transition-transform group-hover:scale-110" strokeWidth={2.2} />,
-    number: 8,
+    number: 7,
     colorClass: "hover:bg-[#059669]/10 hover:text-[#059669] dark:hover:bg-[#34d399]/10 dark:hover:text-[#34d399]",
     activeClass: "text-[#059669] dark:text-[#34d399] bg-[#059669]/15 dark:bg-[#34d399]/15 ring-[#059669]/50 dark:ring-[#34d399]/50",
+  },
+  {
+    id: "kontak",
+    icon: <Mail className="h-[22px] w-[22px] text-[#e11d48] dark:text-[#fb7185] shrink-0 transition-transform group-hover:scale-110" strokeWidth={2.2} />,
+    number: 8,
+    colorClass: "hover:bg-[#e11d48]/10 hover:text-[#e11d48] dark:hover:bg-[#fb7185]/10 dark:hover:text-[#fb7185]",
+    activeClass: "text-[#e11d48] dark:text-[#fb7185] bg-[#e11d48]/15 dark:bg-[#fb7185]/15 ring-[#e11d48]/50 dark:ring-[#fb7185]/50",
   },
 ];
 
@@ -190,7 +190,7 @@ export function OSDesktopManager({
     }
   }, []);
 
-  // Keyboard navigation: Arrow Left/Right and Number keys 1-7
+  // Keyboard navigation: Arrow Left/Right and Number keys 1-8
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -206,7 +206,7 @@ export function OSDesktopManager({
       } else if (e.key === "ArrowLeft") {
         e.preventDefault();
         handlePrev();
-      } else if (e.key >= "1" && e.key <= "7") {
+      } else if (e.key >= "1" && e.key <= "8") {
         const idx = parseInt(e.key, 10) - 1;
         if (APPS[idx]) {
           e.preventDefault();
@@ -534,9 +534,9 @@ export function OSDesktopManager({
       )}
 
       {/* Bottom Taskbar (Windows 95/98 Classic OS Taskbar) */}
-      <div className="vt-taskbar h-10 sm:h-12 md:h-14 px-1.5 sm:px-3 md:px-4 flex items-center justify-between border-t-2 border-border select-none z-30 shrink-0">
+      <div className="vt-taskbar h-8 sm:h-12 md:h-14 px-1 sm:px-3 md:px-4 flex items-center justify-between gap-1 border-t-2 border-border select-none z-30 shrink-0 overflow-hidden">
         {/* Left Side: Windows Start Button + Separator + Open Windows Tabs */}
-        <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
+        <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0 overflow-hidden">
           {/* 1. Classic Windows 95/98 Start Button */}
           <div className="relative shrink-0">
             <button
@@ -545,28 +545,28 @@ export function OSDesktopManager({
                 setStartOpen(!startOpen);
                 setThemeMenuOpen(false);
               }}
-              className={`vt-btn px-2 sm:px-4 py-1 sm:py-1.5 md:py-2 text-[11px] sm:text-xs md:text-sm font-bold flex items-center gap-1.5 sm:gap-2 cursor-pointer select-none transition-all duration-200 group ${
+              className={`vt-btn px-1.5 sm:px-4 py-0.5 sm:py-1.5 md:py-2 text-[10px] sm:text-xs md:text-sm font-bold flex items-center gap-1 sm:gap-2 cursor-pointer select-none transition-all duration-200 group ${
                 startOpen
                   ? "vt-btn-inset bg-[var(--vt-card)] translate-y-0.5"
                   : "vt-btn-chrome text-foreground hover:scale-105"
               }`}
               title={t.os_start_btn}
             >
-              <div className="grid grid-cols-2 gap-0.5 w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 p-0.5 bg-black/20 rounded-xs group-hover:rotate-12 transition-transform">
+              <div className="grid grid-cols-2 gap-0.5 w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 p-0.5 bg-black/20 rounded-xs group-hover:rotate-12 transition-transform">
                 <span className="bg-red-500 rounded-xs" />
                 <span className="bg-green-500 rounded-xs" />
                 <span className="bg-blue-500 rounded-xs" />
                 <span className="bg-yellow-400 rounded-xs" />
               </div>
-              <span className="font-pixel text-[11px] sm:text-xs md:text-[13px] tracking-wide font-bold">{t.os_start_btn}</span>
+              <span className="hidden sm:inline font-pixel text-xs md:text-[13px] tracking-wide font-bold">{t.os_start_btn}</span>
             </button>
           </div>
 
           {/* Retro Taskbar Separator */}
-          <div className="h-6 sm:h-8 md:h-10 w-[2px] bg-[#5a5750] shadow-[1px_0_0_#fff] mx-1 sm:mx-2 shrink-0" />
+          <div className="h-5 sm:h-8 md:h-10 w-[2px] bg-[#5a5750] shadow-[1px_0_0_#fff] mx-0.5 sm:mx-2 shrink-0" />
 
           {/* Open windows taskbar buttons (Icon-only on mobile so ALL items fit without overflow; Icon + Text on md+) */}
-          <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto vt-scrollbar-hidden pr-2">
+          <div className="flex items-center gap-0.5 sm:gap-2 overflow-hidden min-w-0 flex-1 pr-0.5 sm:pr-2">
             {APPS.map((app) => (
               <button
                 key={app.id}
@@ -574,7 +574,7 @@ export function OSDesktopManager({
                 onClick={() => switchApp(app.id)}
                 title={getAppFilename(app.id)}
                 aria-label={getAppFilename(app.id)}
-                className={`vt-taskbar-tab group relative h-7 sm:h-9 md:h-10 px-2 sm:px-3 text-[10px] sm:text-[11px] md:text-xs flex items-center justify-center gap-1.5 cursor-pointer shrink-0 transition-all duration-300 ${
+                className={`vt-taskbar-tab group relative h-6 sm:h-9 md:h-10 px-1 sm:px-3 text-[9px] sm:text-[11px] md:text-xs flex items-center justify-center gap-0.5 sm:gap-1.5 cursor-pointer shrink-0 transition-all duration-300 ${
                   activeApp === app.id
                     ? `active shadow-md ring-2 font-extrabold -translate-y-0.5 ${app.activeClass}`
                     : `text-foreground font-semibold opacity-85 hover:opacity-100 ${app.colorClass}`
@@ -593,8 +593,8 @@ export function OSDesktopManager({
         </div>
 
         {/* System Status on Bottom Right */}
-        <div className="flex items-center gap-1 sm:gap-2 md:gap-3 text-[10px] sm:text-xs md:text-sm font-mono font-bold shrink-0 pl-2 sm:pl-3 md:pl-4">
-          <span className="h-2 w-2 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_5px_rgba(16,185,129,0.8)]" />
+        <div className="flex items-center gap-1 sm:gap-2 md:gap-3 text-[9px] sm:text-xs md:text-sm font-mono font-bold shrink-0 pl-1 sm:pl-3 md:pl-4">
+          <span className="h-1.5 w-1.5 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_5px_rgba(16,185,129,0.8)]" />
           <span className="hidden sm:inline text-emerald-700 dark:text-emerald-400">{t.os_status_online}</span>
         </div>
       </div>

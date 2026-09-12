@@ -49,6 +49,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUpload } from "@/components/admin/image-upload";
 import { DUMMY_PRODUCTS, ProductData } from "@/lib/dummy-data";
 import { getProducts, saveProduct, deleteProduct, translateFieldAction } from "@/lib/actions";
+import { getProductSlug, slugifyProduct } from "@/lib/product-link";
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<ProductData[]>(DUMMY_PRODUCTS);
@@ -63,6 +64,7 @@ export default function AdminProductsPage() {
 
   // Form State
   const [formTitle, setFormTitle] = useState("");
+  const [formSlug, setFormSlug] = useState("");
   const [formTitleEn, setFormTitleEn] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formDescriptionEn, setFormDescriptionEn] = useState("");
@@ -94,6 +96,7 @@ export default function AdminProductsPage() {
     setSelectedProduct(null);
     setErrorMessage("");
     setFormTitle("");
+    setFormSlug("");
     setFormTitleEn("");
     setFormDescription("");
     setFormDescriptionEn("");
@@ -109,6 +112,7 @@ export default function AdminProductsPage() {
     setSelectedProduct(product);
     setErrorMessage("");
     setFormTitle(product.title);
+    setFormSlug(product.slug || getProductSlug(product));
     setFormTitleEn(product.titleEn || "");
     setFormDescription(product.description);
     setFormDescriptionEn(product.descriptionEn || "");
@@ -151,6 +155,7 @@ export default function AdminProductsPage() {
     startTransition(async () => {
       const payload = {
         id: isEditing && selectedProduct ? selectedProduct.id : undefined,
+        slug: formSlug.trim() || slugifyProduct(formTitle),
         title: formTitle,
         titleEn: formTitleEn,
         description: formDescription,
@@ -299,6 +304,17 @@ export default function AdminProductsPage() {
                           </Button>
                         )}
                         <Button
+                          asChild
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          title="Preview Halaman Produk"
+                        >
+                          <Link href={`/toko/${getProductSlug(product)}`}>
+                            <Globe className="h-3.5 w-3.5" />
+                          </Link>
+                        </Button>
+                        <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => openEditDialog(product)}
@@ -369,7 +385,11 @@ export default function AdminProductsPage() {
                     required
                     placeholder="Contoh: Next.js 15 SaaS Starter Boilerplate"
                     value={formTitle}
-                    onChange={(e) => setFormTitle(e.target.value)}
+                    onChange={(e) => {
+                      const nextTitle = e.target.value;
+                      setFormTitle(nextTitle);
+                      if (!isEditing) setFormSlug(slugifyProduct(nextTitle));
+                    }}
                     className="text-xs"
                   />
                 </div>
@@ -441,6 +461,23 @@ export default function AdminProductsPage() {
                 </div>
               </TabsContent>
             </Tabs>
+
+            <div className="space-y-2 border-t border-border/60 pt-4">
+              <Label htmlFor="slug" className="text-xs font-medium">
+                Slug URL Produk *
+              </Label>
+              <Input
+                id="slug"
+                required
+                placeholder="template-portfolio-notion"
+                value={formSlug}
+                onChange={(e) => setFormSlug(slugifyProduct(e.target.value))}
+                className="text-xs font-mono"
+              />
+              <p className="text-[10px] text-muted-foreground font-mono">
+                Link share: /toko/{formSlug || "slug-produk"}
+              </p>
+            </div>
 
             <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/60">
               <div className="space-y-2">

@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   output: process.env.VERCEL ? undefined : "standalone",
   experimental: {
     serverActions: {
-      bodySizeLimit: "10mb",
+      bodySizeLimit: "25mb",
     },
   },
   images: {

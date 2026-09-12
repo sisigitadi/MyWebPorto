@@ -119,7 +119,7 @@ export default function AdminProjectsPage() {
     setFormTitleEn("");
     setFormSummaryEn("");
     setFormDescriptionEn("");
-    setFormThumbnail("https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop");
+    setFormThumbnail("");
     setFormTechStack("Next.js, TypeScript, Tailwind CSS");
     setFormDemoUrl("");
     setFormRepoUrl("");
@@ -179,6 +179,11 @@ export default function AdminProjectsPage() {
   const handleSaveProject = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
+
+    if (!formThumbnail.trim()) {
+      setErrorMessage("Gambar cover wajib diunggah dari perangkat Anda sebelum proyek disimpan.");
+      return;
+    }
 
     const techArray = formTechStack
       .split(",")
@@ -590,7 +595,7 @@ export default function AdminProjectsPage() {
               <ImageUpload
                 value={formThumbnail}
                 onChange={(url) => setFormThumbnail(url)}
-                label="Unggah Cover"
+                label={formThumbnail ? "Ganti Cover" : "Unggah Cover"}
               />
             </div>
 

@@ -70,7 +70,8 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
                 className="vt-btn vt-btn-chrome px-3 py-1 text-xs font-bold text-foreground inline-flex items-center gap-1.5 shrink-0"
               >
                 <Monitor className="h-3.5 w-3.5 text-primary" />
-                <span>{language === "en" ? "← Back to Desktop OS" : "← Kembali ke Menu Desktop"}</span>
+                <span className="hidden sm:inline">{language === "en" ? "Back to Desktop OS" : "Kembali ke Menu Desktop"}</span>
+                <span className="sm:hidden">Desktop</span>
               </Link>
               <div className="hidden sm:flex items-center gap-2">
                 <span className="text-[var(--vt-ink)] font-bold">Address:</span>
@@ -80,9 +81,9 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-[var(--vt-ink)] font-bold text-xs">
-              <Terminal className="h-3.5 w-3.5 text-emerald-500" />
-              <span>SIGIT_KERNEL_OK</span>
+            <div className="flex items-center gap-2 text-[var(--vt-ink)] font-bold text-xs min-w-0">
+              <Terminal className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+              <span className="mobile-safe-inline">SIGIT_KERNEL_OK</span>
             </div>
           </div>
 
@@ -95,7 +96,7 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold font-pixel tracking-tight text-foreground">
               {t.projects_page_title}
             </h1>
-            <p className="text-xs sm:text-sm text-[var(--vt-ink)] font-medium font-mono max-w-2xl">
+            <p className="text-xs sm:text-sm text-[var(--vt-ink)] font-medium font-mono max-w-2xl mobile-safe-text">
               {t.projects_page_subtitle}
             </p>
           </div>
@@ -150,7 +151,7 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
                           </h2>
                         </Link>
 
-                        <p className="text-xs text-[var(--vt-ink)] font-medium font-mono leading-relaxed line-clamp-2">
+                        <p className="text-xs text-[var(--vt-ink)] font-medium font-mono leading-relaxed line-clamp-2 mobile-safe-text">
                           {summary}
                         </p>
 

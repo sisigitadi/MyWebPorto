@@ -15,7 +15,11 @@
 
 # next.js
 /.next/
+/.next-stale-*/
 /out/
+
+# command code tooling
+/.commandcode/
 
 # production
 /build

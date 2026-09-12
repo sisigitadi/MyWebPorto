@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Terminal as TerminalIcon, Play, RotateCcw, Cpu, Sparkles, Bot, CornerDownLeft } from "lucide-react";
+import { Terminal as TerminalIcon, RotateCcw, Cpu, Sparkles, Bot, CornerDownLeft } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { queryAIEngine } from "@/lib/ai-engine";
 

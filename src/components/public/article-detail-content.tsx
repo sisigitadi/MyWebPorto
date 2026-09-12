@@ -21,6 +21,7 @@ import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { OSWindow } from "@/components/public/os/os-window";
 import { ArticleData, ProfileData } from "@/lib/dummy-data";
+import { buildContactPrefillUrl } from "@/lib/contact-link";
 import { toast } from "sonner";
 
 interface ArticleDetailContentProps {
@@ -76,17 +77,14 @@ export function ArticleDetailContent({
     }
   };
 
-  const encodedDiscussionSubject = encodeURIComponent(
-    isEn ? `Article Discussion: ${title}` : `Diskusi Artikel: ${title}`
-  );
-  const encodedDiscussionMsg = encodeURIComponent(
-    isEn
-      ? `Hello ${profile.name || "Sigit"},\n\nI just read your article "${title}" and would love to share thoughts/inquire about it.`
-      : `Halo ${profile.name || "Sigit"},\n\nSaya baru saja membaca artikel "${title}" dan tertarik untuk berdiskusi/bertanya lebih lanjut.`
-  );
-  const emailDiscussionUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
-    profile.email || "x@sigitadi.id"
-  )}&su=${encodedDiscussionSubject}&body=${encodedDiscussionMsg}`;
+  const discussionSubject = isEn ? `Article Discussion: ${title}` : `Diskusi Artikel: ${title}`;
+  const discussionBody = isEn
+    ? `Hello ${profile.name || "Sigit"},\n\nI just read your article "${title}" and would love to share thoughts/inquire about it.`
+    : `Halo ${profile.name || "Sigit"},\n\nSaya baru saja membaca artikel "${title}" dan tertarik untuk berdiskusi/bertanya lebih lanjut.`;
+  const contactDiscussionUrl = buildContactPrefillUrl({
+    subject: discussionSubject,
+    body: discussionBody,
+  });
 
   // Helper to render formatted article paragraphs or headers
   const renderFormattedContent = (rawText: string) => {
@@ -151,7 +149,7 @@ export function ArticleDetailContent({
       return (
         <p
           key={idx}
-          className="text-xs sm:text-sm font-mono text-foreground/90 leading-relaxed sm:leading-loose my-3"
+          className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] leading-relaxed sm:leading-loose my-3 mobile-safe-text"
         >
           {trimmed}
         </p>
@@ -172,7 +170,8 @@ export function ArticleDetailContent({
             >
               <Link href="/">
                 <Monitor className="h-3.5 w-3.5 text-primary" />
-                <span>{t.article_detail_back_desktop}</span>
+                <span className="hidden sm:inline">{t.article_detail_back_desktop}</span>
+                <span className="sm:hidden">Desktop</span>
               </Link>
             </Button>
 
@@ -183,15 +182,16 @@ export function ArticleDetailContent({
             >
               <Link href="/#artikel">
                 <ArrowLeft className="h-3.5 w-3.5" />
-                <span>{t.article_detail_back_articles}</span>
+                <span className="hidden sm:inline">{t.article_detail_back_articles}</span>
+                <span className="sm:hidden">{isEn ? "Articles" : "Artikel"}</span>
               </Link>
             </Button>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[var(--vt-ink)]">
-            <HardDrive className="h-3.5 w-3.5 text-primary" />
-            <span className="hidden sm:inline">C:\Sigit\Articles\{article.slug}.doc</span>
-            <span className="text-emerald-700 dark:text-emerald-400 font-bold">[READY]</span>
+          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[var(--vt-ink)] min-w-0">
+            <HardDrive className="h-3.5 w-3.5 text-primary shrink-0" />
+            <span className="hidden sm:inline mobile-safe-path max-w-[220px] sm:max-w-none">C:\Sigit\Articles\{article.slug}.doc</span>
+            <span className="text-emerald-700 dark:text-emerald-400 font-bold shrink-0">[READY]</span>
           </div>
         </div>
 
@@ -252,7 +252,7 @@ export function ArticleDetailContent({
                 {title}
               </h1>
 
-              <p className="text-xs sm:text-sm font-mono text-muted-foreground leading-relaxed bg-muted/30 p-3 rounded border border-border/50">
+              <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] leading-relaxed bg-[var(--vt-card)] p-3 rounded border border-[var(--vt-edge-lo-2)] mobile-safe-text">
                 {summary}
               </p>
 
@@ -316,7 +316,7 @@ export function ArticleDetailContent({
                 size="sm"
                 className="vt-btn-pink h-8 px-4 text-xs font-mono font-bold uppercase gap-1.5"
               >
-                <a href={emailDiscussionUrl} target="_blank" rel="noopener noreferrer">
+                <a href={contactDiscussionUrl}>
                   <Mail className="h-3.5 w-3.5" />
                   <span>{t.article_detail_discuss_cta}</span>
                 </a>

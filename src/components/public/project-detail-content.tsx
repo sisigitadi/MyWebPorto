@@ -9,6 +9,7 @@ import { useTranslation } from "@/lib/i18n";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { OSWindow } from "@/components/public/os/os-window";
+import { buildContactPrefillUrl } from "@/lib/contact-link";
 
 function GithubIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -80,17 +81,14 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
   );
 
   const isEnglish = language === "en";
-  const encodedDiscussionSubject = encodeURIComponent(
-    isEnglish ? `Project Discussion: ${title}` : `Diskusi Proyek: ${title}`
-  );
-  const encodedDiscussionMsg = encodeURIComponent(
-    isEnglish
-      ? `Hello ${profile.name || "Sigit"},\n\nI came across "${title}" on your portfolio and would like to explore collaboration or a similar project.`
-      : `Halo ${profile.name || "Sigit"},\n\nSaya melihat proyek "${title}" di portofolio Anda dan tertarik mendiskusikan peluang kerja sama atau proyek serupa.`
-  );
-  const emailDiscussionUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
-    profile.email || "x@sigitadi.id"
-  )}&su=${encodedDiscussionSubject}&body=${encodedDiscussionMsg}`;
+  const discussionSubject = isEnglish ? `Project Discussion: ${title}` : `Diskusi Proyek: ${title}`;
+  const discussionBody = isEnglish
+    ? `Hello ${profile.name || "Sigit"},\n\nI came across "${title}" on your portfolio and would like to explore collaboration or a similar project.`
+    : `Halo ${profile.name || "Sigit"},\n\nSaya melihat proyek "${title}" di portofolio Anda dan tertarik mendiskusikan peluang kerja sama atau proyek serupa.`;
+  const contactDiscussionUrl = buildContactPrefillUrl({
+    subject: discussionSubject,
+    body: discussionBody,
+  });
 
   const ctaDesc = t.detail_cta_box_desc.replace("{name}", profile.name || "Sigit");
 
@@ -107,7 +105,8 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
             >
               <Link href="/">
                 <Monitor className="h-3.5 w-3.5 text-primary" />
-                <span>{language === "en" ? "← Back to Desktop OS" : "← Kembali ke Desktop OS"}</span>
+                <span className="hidden sm:inline">{language === "en" ? "Back to Desktop OS" : "Kembali ke Desktop OS"}</span>
+                <span className="sm:hidden">Desktop</span>
               </Link>
             </Button>
 
@@ -118,15 +117,16 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
             >
               <Link href="/proyek">
                 <ArrowLeft className="h-3.5 w-3.5" />
-                <span>{t.detail_back_all}</span>
+                <span className="hidden sm:inline">{t.detail_back_all}</span>
+                <span className="sm:hidden">{language === "en" ? "Projects" : "Proyek"}</span>
               </Link>
             </Button>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[var(--vt-ink)]">
-            <HardDrive className="h-3.5 w-3.5 text-primary" />
-            <span className="hidden sm:inline">C:\Sigit\Projects\{project.slug}\</span>
-            <span className="text-emerald-700 dark:text-emerald-400 font-bold">[OK]</span>
+          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[var(--vt-ink)] min-w-0">
+            <HardDrive className="h-3.5 w-3.5 text-primary shrink-0" />
+            <span className="hidden sm:inline mobile-safe-path max-w-[220px] sm:max-w-none">C:\Sigit\Projects\{project.slug}\</span>
+            <span className="text-emerald-700 dark:text-emerald-400 font-bold shrink-0">[OK]</span>
           </div>
         </div>
 
@@ -160,7 +160,7 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
                 {title}
               </h1>
 
-              <p className="text-xs sm:text-sm font-mono text-muted-foreground leading-relaxed">
+              <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] leading-relaxed mobile-safe-text">
                 {summary}
               </p>
             </div>
@@ -255,7 +255,7 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
                   size="default"
                   className="vt-btn-pink h-10 px-6 font-mono font-bold text-xs uppercase gap-2"
                 >
-                  <a href={emailDiscussionUrl} target="_blank" rel="noopener noreferrer">
+                  <a href={contactDiscussionUrl}>
                     <Mail className="h-4 w-4" />
                     <span>{t.detail_cta_gmail}</span>
                   </a>

@@ -9,7 +9,6 @@ import {
   ArrowRight,
   Tag,
   Search,
-  ExternalLink,
   BookOpen,
 } from "lucide-react";
 import { ArticleData, DUMMY_ARTICLES } from "@/lib/dummy-data";
@@ -89,7 +88,7 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
       id="artikel"
       className="relative py-12 md:py-20 scroll-mt-14"
     >
-      <div className="max-w-7xl mx-auto px-2 sm:px-4">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 mobile-safe-copy">
         {/* Section Header */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-amber)]">
@@ -105,9 +104,9 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
         </div>
 
         {/* Retro Filter Bar */}
-        <div className="mb-6 p-3 bg-[var(--vt-chrome)] border-2 border-t-[#dfdeda] border-l-[#dfdeda] border-r-[#5a5750] border-b-[#5a5750] shadow-[inset_1px_1px_0_#fff,inset_-1px_-1px_0_#808080] flex flex-col md:flex-row gap-3 items-center justify-between">
+        <div className="mb-6 p-3 bg-[var(--vt-chrome)] border-2 border-t-[#dfdeda] border-l-[#dfdeda] border-r-[#5a5750] border-b-[#5a5750] shadow-[inset_1px_1px_0_#fff,inset_-1px_-1px_0_#808080] flex flex-col md:flex-row gap-3 items-center justify-between min-w-0">
           {/* Tag Chips */}
-          <div className="flex flex-wrap gap-1.5 w-full md:w-auto items-center">
+          <div className="flex flex-wrap gap-1.5 w-full md:w-auto items-center min-w-0">
             <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-[var(--vt-ink)] mr-1 flex items-center gap-1">
               <Tag className="h-3 w-3" /> Filter:
             </span>
@@ -130,14 +129,14 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
           </div>
 
           {/* Search Box */}
-          <div className="relative w-full md:w-64">
+          <div className="relative w-full md:w-64 min-w-0">
             <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-[#5a5750]" />
             <input
               type="text"
               placeholder={language === "en" ? "Search articles..." : "Cari artikel..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1 bg-white border-2 border-t-[#5a5750] border-l-[#5a5750] border-r-[#dfdeda] border-b-[#dfdeda] text-xs font-mono text-black placeholder:text-[#808080] focus:outline-none focus:ring-1 focus:ring-[var(--vt-amber)]"
+              className="w-full pl-8 pr-3 py-1 bg-white border-2 border-t-[#5a5750] border-l-[#5a5750] border-r-[#dfdeda] border-b-[#dfdeda] text-xs font-mono text-black placeholder:text-[#808080] focus:outline-none focus:ring-1 focus:ring-[var(--vt-amber)] min-w-0"
             />
           </div>
         </div>
@@ -169,14 +168,14 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
               return (
                 <div
                   key={article.id}
-                  className="sigit-article-card flex flex-col h-full"
+                  className="sigit-article-card flex flex-col h-full min-w-0"
                 >
                   <OSWindow
                     title={`ARTIKEL_${String(index + 1).padStart(2, "0")}.DOC`}
                     icon={<FileText className="h-3.5 w-3.5 text-[var(--vt-amber)]" />}
                     className="h-full flex flex-col"
                   >
-                    <div className="p-4 flex-1 flex flex-col justify-between bg-white text-black">
+                    <div className="p-4 flex-1 flex flex-col justify-between bg-white text-black min-w-0">
                       <div>
                         {/* Cover Image if available */}
                         {article.imageUrl && (
@@ -212,15 +211,15 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
                         {/* Title */}
                         <Link
                           href={`/artikel/${article.slug}`}
-                          className="group block"
+                          className="group block min-w-0"
                         >
-                          <h3 className="font-bold text-base font-display text-black leading-snug group-hover:text-[var(--vt-blue)] transition-colors line-clamp-2 mb-2">
+                          <h3 className="font-bold text-base font-display text-black leading-snug group-hover:text-[var(--vt-blue)] transition-colors line-clamp-2 mb-2 mobile-safe-text">
                             {title}
                           </h3>
                         </Link>
 
                         {/* Summary */}
-                        <p className="text-xs font-mono text-[#444] leading-relaxed line-clamp-3 mb-4">
+                        <p className="text-xs font-mono text-[#444] leading-relaxed line-clamp-3 mb-4 mobile-safe-text">
                           {summary}
                         </p>
                       </div>

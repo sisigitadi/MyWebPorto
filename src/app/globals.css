@@ -12,8 +12,8 @@
   --vt-paper: #f3f2ee;
   --vt-card: #e9e7e2;
   --vt-ink: #0d0d14;
-  --vt-ink-soft: #23232c;
-  --vt-ink-mute: #454552;
+  --vt-ink-soft: #171722;
+  --vt-ink-mute: #2c2c35;
   --vt-blue: #3b2fd6;
   --vt-violet: #7c5cff;
   --vt-navy: #0a0a5e;
@@ -45,7 +45,7 @@
   --secondary: 40 6% 85%;
   --secondary-foreground: 240 18% 9%;
   --muted: 40 8% 88%;
-  --muted-foreground: 240 10% 25%;
+  --muted-foreground: 240 13% 18%;
   --border: 40 6% 70%;
   --input: 40 6% 70%;
   --ring: 245 64% 51%;
@@ -213,12 +213,38 @@ html {
   scroll-padding-top: 4.5rem;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 body {
   background-color: var(--vt-desktop);
   color: var(--vt-ink);
   font-family: var(--vt-font-mono), var(--font-mono), monospace;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgba(59, 47, 214, 0.85);
+  color: #ffffff;
+}
+
+@media (max-width: 640px) {
+  .mobile-safe-text,
+  .mobile-safe-copy,
+  .mobile-safe-inline,
+  .mobile-safe-path {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .mobile-safe-path {
+    display: inline-block;
+    max-width: 100%;
+    white-space: normal;
+  }
 }
 
 /* Desktop wallpaper surface with subtle dot grid */
@@ -241,6 +267,22 @@ body {
     inset -2px -2px 0 var(--vt-edge-lo-2),
     var(--vt-drop-offset) var(--vt-drop-offset) 0 var(--vt-drop);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.vt-window,
+.vt-raised,
+.vt-card-inset,
+.vt-paper-inset {
+  color: var(--vt-ink);
+}
+
+.vt-window p,
+.vt-window span,
+.vt-window li,
+.vt-window label,
+.vt-window input,
+.vt-window textarea {
+  text-rendering: optimizeLegibility;
 }
 
 .vt-raised {
@@ -316,6 +358,8 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
+  min-width: 0;
+  line-height: 1.2;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
@@ -328,6 +372,11 @@ body {
     inset 2px 2px 0 var(--vt-edge-hi-2),
     inset -2px -2px 0 var(--vt-edge-lo-2),
     var(--vt-drop-offset-btn) var(--vt-drop-offset-btn) 0 var(--vt-drop-btn);
+}
+
+.vt-btn-chrome,
+.vt-btn-chrome span {
+  color: var(--vt-ink);
 }
 
 .vt-btn-chrome:hover {
@@ -357,6 +406,11 @@ body {
     inset 1px 1px #ffffffaa,
     inset -2px -2px #00000055,
     4px 4px 0 rgba(0, 0, 0, 0.45);
+}
+
+.vt-btn-pink,
+.vt-btn-pink span {
+  color: #ffffff;
 }
 
 .vt-btn-pink:hover {
@@ -647,6 +701,7 @@ body {
     inset -1px -1px 0 var(--vt-edge-lo);
   transition: all 0.1s ease;
   white-space: nowrap;
+  min-width: 0;
 }
 
 .vt-taskbar-tab.active {
@@ -664,8 +719,35 @@ body {
   background: var(--vt-edge-hi-2);
 }
 
+.vt-status-banner {
+  background: var(--vt-paper);
+  color: var(--vt-ink);
+  border-color: var(--vt-ink);
+  line-height: 1.45;
+}
+
+.vt-status-success {
+  background: color-mix(in srgb, var(--vt-teal) 18%, var(--vt-paper));
+  border-color: var(--vt-teal);
+}
+
+.vt-status-error {
+  background: color-mix(in srgb, var(--vt-pink) 14%, var(--vt-paper));
+  border-color: var(--vt-pink);
+}
+
+.vt-status-loading {
+  background: color-mix(in srgb, var(--vt-blue) 14%, var(--vt-paper));
+  border-color: var(--vt-blue);
+}
+
 /* Mobile responsive enhancements for Retro OS */
 @media (max-width: 640px) {
+  .vt-taskbar-tab svg {
+    width: 0.9rem;
+    height: 0.9rem;
+  }
+
   .vt-taskbar-tab {
     padding: 2px 6px;
     font-size: 10px;

@@ -30,6 +30,7 @@ import {
   type ProfileData,
 } from "@/lib/dummy-data";
 import { translateText } from "@/lib/translate";
+import { getProductSlug } from "@/lib/product-link";
 
 /**
  * Verifikasi apakah request mutasi berasal dari Admin yang terotentikasi.
@@ -128,6 +129,16 @@ export async function translateFieldAction(
   from: string = "id",
   to: string = "en"
 ) {
+  try {
+    await verifyAdmin();
+  } catch (authErr: unknown) {
+    return {
+      success: false,
+      text,
+      error: authErr instanceof Error ? authErr.message : "Akses ditolak",
+    };
+  }
+
   if (!text || !text.trim()) return { success: true, text: "" };
   try {
     const translated = await translateText(text, from, to);
@@ -764,6 +775,7 @@ export async function getProducts(): Promise<ProductData[]> {
             .insert(schema.products)
             .values({
               id: pr.id,
+              slug: pr.slug || null,
               title: pr.title,
               titleEn: pr.titleEn || null,
               description: pr.description,
@@ -783,6 +795,7 @@ export async function getProducts(): Promise<ProductData[]> {
     }
     return list.map((p) => ({
       id: p.id,
+      slug: p.slug || null,
       title: p.title,
       titleEn: p.titleEn || null,
       description: p.description,
@@ -835,6 +848,7 @@ export async function saveProduct(data: unknown) {
   const targetId = id || `prod-${Date.now()}`;
   const dummyItem: ProductData = {
     id: targetId,
+    slug: productData.slug || null,
     title: productData.title,
     titleEn: productData.titleEn,
     description: productData.description,
@@ -849,6 +863,7 @@ export async function saveProduct(data: unknown) {
   const store = getLocalStore();
   const currentList = (store?.products as ProductData[]) || [...DUMMY_PRODUCTS];
   const existingIdx = currentList.findIndex((p) => p.id === targetId || (id && p.id === id));
+  const previousProduct = existingIdx >= 0 ? currentList[existingIdx] : null;
   if (existingIdx >= 0) {
     currentList[existingIdx] = {
       ...currentList[existingIdx],
@@ -914,6 +929,10 @@ export async function saveProduct(data: unknown) {
   }
 
   revalidatePath("/", "layout");
+  revalidatePath("/toko", "layout");
+  revalidatePath("/toko/[slug]", "page");
+  if (previousProduct) revalidatePath(`/toko/${getProductSlug(previousProduct)}`);
+  revalidatePath(`/toko/${getProductSlug(dummyItem)}`);
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/products");
   return { success: true, message: "Produk berhasil disimpan!" };
@@ -930,6 +949,7 @@ export async function deleteProduct(id: string) {
   }
 
   const store = getLocalStore();
+  const deletedProduct = (store?.products as ProductData[] | undefined)?.find((p) => p.id === id);
   if (store?.products) {
     const updated = (store.products as ProductData[]).filter((p) => p.id !== id);
     updateLocalStore("products", updated);
@@ -954,6 +974,9 @@ export async function deleteProduct(id: string) {
   }
 
   revalidatePath("/", "layout");
+  revalidatePath("/toko", "layout");
+  revalidatePath("/toko/[slug]", "page");
+  if (deletedProduct) revalidatePath(`/toko/${getProductSlug(deletedProduct)}`);
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/products");
   return { success: true, message: "Produk berhasil dihapus!" };
@@ -1182,10 +1205,12 @@ export async function getArticles(): Promise<ArticleData[]> {
     const list = await db.query.articles.findMany({
       orderBy: [asc(schema.articles.order), desc(schema.articles.createdAt)],
     });
-    if (!list || list.length === 0) {
+    const existingIds = new Set((list || []).map((article) => article.id));
+    const missingDefaults = DUMMY_ARTICLES.filter((article) => !existingIds.has(article.id));
+
+    if (missingDefaults.length > 0) {
       try {
-        for (let i = 0; i < DUMMY_ARTICLES.length; i++) {
-          const a = DUMMY_ARTICLES[i];
+        for (const a of missingDefaults) {
           await db
             .insert(schema.articles)
             .values({
@@ -1201,15 +1226,21 @@ export async function getArticles(): Promise<ArticleData[]> {
               tags: a.tags,
               featured: a.featured,
               published: a.published,
-              order: a.order ?? i + 1,
+              order: a.order,
             })
             .onConflictDoNothing();
         }
+
+        const seededList = await db.query.articles.findMany({
+          orderBy: [asc(schema.articles.order), desc(schema.articles.createdAt)],
+        });
+        list.splice(0, list.length, ...seededList);
       } catch (seedErr) {
-        console.warn("Auto-seed articles dilewati:", seedErr);
+        console.warn("Auto-seed artikel baru dilewati:", seedErr);
       }
-      return baseArticles;
     }
+
+    if (!list || list.length === 0) return baseArticles;
 
     return list.map((a) => ({
       id: a.id,

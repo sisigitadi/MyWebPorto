@@ -93,6 +93,7 @@ export const ServiceSchema = z.object({
 
 export const ProductSchema = z.object({
   id: z.string().optional(),
+  slug: z.string().min(2, "Slug minimal 2 karakter").optional().or(z.literal("")),
   title: z.string().min(2, "Nama produk minimal 2 karakter"),
   titleEn: z.string().optional().or(z.literal("")),
   description: z.string().min(5, "Deskripsi minimal 5 karakter"),

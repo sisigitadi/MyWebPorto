@@ -11,7 +11,6 @@ import {
   ChevronRight,
   Calendar,
   Mail,
-  HardDrive,
 } from "lucide-react";
 import { ProjectData, ProfileData, DUMMY_PROJECTS } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
@@ -19,6 +18,7 @@ import { OSWindow } from "@/components/public/os/os-window";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import { buildContactPrefillUrl } from "@/lib/contact-link";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -89,18 +89,14 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
     const prevProject = featuredProjects[(currentIndex - 1 + featuredProjects.length) % featuredProjects.length];
     const nextProject = featuredProjects[(currentIndex + 1) % featuredProjects.length];
 
-    const contactEmail = profile?.email || "x@sigitadi.id";
-    const encodedDiscussionSubject = encodeURIComponent(
-      language === "en" ? `Project Inquiry: ${title}` : `Diskusi Proyek: ${title}`
-    );
-    const encodedDiscussionBody = encodeURIComponent(
-      language === "en"
-        ? `Hello Sigit Adi,\n\nI saw your project "${title}" and would like to discuss building something similar.`
-        : `Halo Sigit Adi,\n\nSaya melihat proyek "${title}" di portofolio Anda dan ingin mendiskusikan peluang kerja sama atau proyek serupa.`
-    );
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
-      contactEmail
-    )}&su=${encodedDiscussionSubject}&body=${encodedDiscussionBody}`;
+    const discussionSubject = language === "en" ? `Project Inquiry: ${title}` : `Diskusi Proyek: ${title}`;
+    const discussionBody = language === "en"
+      ? `Hello ${profile?.name || "Sigit Adi"},\n\nI saw your project "${title}" and would like to discuss building something similar.`
+      : `Halo ${profile?.name || "Sigit Adi"},\n\nSaya melihat proyek "${title}" di portofolio Anda dan ingin mendiskusikan peluang kerja sama atau proyek serupa.`;
+    const contactDiscussionUrl = buildContactPrefillUrl({
+      subject: discussionSubject,
+      body: discussionBody,
+    });
 
     return (
       <section id="proyek" className="relative py-4 md:py-6">
@@ -114,7 +110,8 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
               className="vt-btn vt-btn-chrome px-3 py-1 text-xs font-bold text-foreground flex items-center gap-1.5 cursor-pointer shadow-xs"
             >
               <ArrowLeft className="h-3.5 w-3.5 text-primary" />
-              <span>{language === "en" ? "← Back to Projects Grid" : "← Kembali ke Daftar Proyek"}</span>
+              <span className="hidden sm:inline">{language === "en" ? "Back to Projects Grid" : "Kembali ke Daftar Proyek"}</span>
+              <span className="sm:hidden">{language === "en" ? "Projects" : "Proyek"}</span>
             </button>
 
 
@@ -208,15 +205,13 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
                   </a>
                 )}
 
-                <a
-                  href={gmailUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  href={contactDiscussionUrl}
                   className="vt-btn vt-btn-chrome px-4 py-2 text-xs font-bold font-mono flex items-center gap-1.5"
                 >
                   <Mail className="h-4 w-4 text-rose-500" />
                   <span>DISKUSIKAN VIA EMAIL</span>
-                </a>
+                </Link>
 
               </div>
 
@@ -255,7 +250,8 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
                   className="vt-btn vt-btn-chrome px-4 py-2 text-xs font-bold font-mono flex items-center gap-1.5 cursor-pointer"
                 >
                   <ArrowLeft className="h-3.5 w-3.5 text-primary" />
-                  <span>{language === "en" ? "← Back to Projects Grid" : "← Kembali ke Daftar Proyek"}</span>
+                  <span className="hidden sm:inline">{language === "en" ? "Back to Projects Grid" : "Kembali ke Daftar Proyek"}</span>
+                  <span className="sm:hidden">{language === "en" ? "Projects" : "Proyek"}</span>
                 </button>
 
                 <span className="text-xs font-mono font-bold text-[var(--vt-ink)] opacity-75">

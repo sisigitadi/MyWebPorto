@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useRef } from "react";
-import { Send, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
+import React, { useEffect, useState, useRef } from "react";
+import { Send, CheckCircle2, AlertCircle, RefreshCw, Mail, ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -20,9 +20,16 @@ interface ContactSectionProps {
   profile?: ProfileData;
 }
 
-export function ContactSection({ profile: _profile }: ContactSectionProps) {
+const FALLBACK_CONTACT_EMAIL = "x@sigitadi.id";
+const CONFIGURED_CONTACT_EMAIL =
+  (process.env.NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL || FALLBACK_CONTACT_EMAIL).trim();
+const FORMSPREE_ENDPOINT =
+  (process.env.NEXT_PUBLIC_FORMSPREE_ENDPOINT || "https://formspree.io/f/mkgknrqk").trim();
+
+export function ContactSection({ profile }: ContactSectionProps) {
   const { t, language } = useTranslation();
   const containerRef = useRef<HTMLElement>(null);
+  const contactEmail = CONFIGURED_CONTACT_EMAIL || profile?.email || FALLBACK_CONTACT_EMAIL;
 
   // --- State for Formspree Mailer ---
   const [formData, setFormData] = useState({
@@ -33,6 +40,22 @@ export function ContactSection({ profile: _profile }: ContactSectionProps) {
   });
   const [submitStatus, setSubmitStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [statusMessage, setStatusMessage] = useState("");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const subject = params.get("contactSubject");
+    const body = params.get("contactBody");
+
+    if (!subject && !body) return;
+
+    setFormData((current) => ({
+      ...current,
+      subject: subject || current.subject,
+      message: body || current.message,
+    }));
+  }, []);
 
   useGSAP(
     () => {
@@ -64,7 +87,7 @@ export function ContactSection({ profile: _profile }: ContactSectionProps) {
     );
 
     try {
-      const res = await fetch("https://formspree.io/f/mkgknrqk", {
+      const res = await fetch(FORMSPREE_ENDPOINT, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -74,9 +97,13 @@ export function ContactSection({ profile: _profile }: ContactSectionProps) {
           name: formData.name,
           email: formData.email,
           subject: formData.subject,
+          _subject: formData.subject,
           message: formData.message,
           _replyto: formData.email,
-          _to: "x@sigitadi.id"
+          _to: contactEmail,
+          to: contactEmail,
+          recipient: contactEmail,
+          email_to: contactEmail,
         }),
       });
 
@@ -86,8 +113,8 @@ export function ContactSection({ profile: _profile }: ContactSectionProps) {
         setSubmitStatus("success");
         setStatusMessage(
           language === "en"
-            ? "MESSAGE DISPATCHED! Message successfully delivered to x@sigitadi.id."
-            : "PESAN TERKIRIM! Pesan berhasil diteruskan ke x@sigitadi.id."
+            ? `MESSAGE DISPATCHED! Message successfully submitted for ${contactEmail}.`
+            : `PESAN TERKIRIM! Pesan berhasil diteruskan untuk ${contactEmail}.`
         );
         setFormData({ name: "", email: "", subject: "", message: "" });
       } else {
@@ -98,7 +125,7 @@ export function ContactSection({ profile: _profile }: ContactSectionProps) {
             : "GAGAL: Gagal mengirimkan pesan. Silakan hubungi langsung via kontak yang tersedia.")
         );
       }
-    } catch (err: unknown) {
+    } catch {
       setSubmitStatus("error");
       setStatusMessage(
         language === "en"
@@ -124,7 +151,7 @@ export function ContactSection({ profile: _profile }: ContactSectionProps) {
           <h2 className="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
             {t.contact_title}
           </h2>
-          <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] font-medium mt-1 max-w-2xl">
+          <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] font-bold mt-1 max-w-2xl">
             {t.contact_subtitle}
           </p>
         </div>
@@ -134,20 +161,38 @@ export function ContactSection({ profile: _profile }: ContactSectionProps) {
           <OSWindow
             title="Sigit_Mailer.exe // Send Message"
             icon={<Send className="h-3.5 w-3.5 text-[#37ff9b]" />}
-            statusText="Gateway: Direct Dispatch Protocol"
+            statusText={`Gateway: Formspree -> ${contactEmail}`}
             className="w-full flex-1"
             bodyClassName="p-4 sm:p-6 flex flex-col justify-between"
           >
             <form onSubmit={handleMailerSubmit} className="space-y-3.5 font-mono text-xs">
+              <div className="vt-card-inset bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)] p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[var(--vt-ink)]">
+                <div className="flex items-start gap-2 min-w-0">
+                  <Mail className="h-4 w-4 text-[var(--vt-blue)] shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <p className="font-pixel text-[10px] sm:text-xs font-bold tracking-wide uppercase text-[var(--vt-ink)]">
+                      {language === "en" ? "Destination Inbox" : "Inbox Tujuan"}
+                    </p>
+                    <p className="font-mono text-sm sm:text-base font-extrabold text-[var(--vt-ink)] break-all leading-snug">
+                      {contactEmail}
+                    </p>
+                  </div>
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[var(--vt-paper)] border border-[var(--vt-edge-lo-2)] text-[10px] font-extrabold text-[var(--vt-ink)] shrink-0">
+                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-300" />
+                  <span>{language === "en" ? "DIRECT MAILER" : "MAILER LANGSUNG"}</span>
+                </div>
+              </div>
+
               {/* Form feedback alert banner */}
               {statusMessage && (
                 <div
-                  className={`p-2.5 rounded-xs text-[11px] font-mono flex items-center gap-2 border ${
+                  className={`vt-status-banner p-2.5 rounded-xs text-[11px] font-mono font-bold flex items-center gap-2 border-2 ${
                     submitStatus === "success"
-                      ? "bg-emerald-950/20 border-emerald-500 text-emerald-700 dark:text-emerald-300"
+                      ? "vt-status-success"
                       : submitStatus === "error"
-                      ? "bg-rose-950/20 border-rose-500 text-rose-700 dark:text-rose-300"
-                      : "bg-blue-950/20 border-blue-500 text-blue-700 dark:text-blue-300"
+                      ? "vt-status-error"
+                      : "vt-status-loading"
                   }`}
                 >
                   {submitStatus === "success" && <CheckCircle2 className="h-4 w-4 shrink-0" />}

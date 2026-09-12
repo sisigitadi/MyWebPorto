@@ -133,7 +133,9 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppSchema) }}
       />
-      <ProjectDetailContent project={project} profile={profile} />
+      <div className="h-full w-full overflow-y-auto vt-scrollbar">
+        <ProjectDetailContent project={project} profile={profile} />
+      </div>
     </>
   );
 }

@@ -17,11 +17,13 @@ export async function uploadImageLocal(formData: FormData): Promise<{
   error?: string;
 }> {
   try {
-    // Enforce admin verification before processing uploads
     try {
       await verifyAdmin();
     } catch (authErr) {
-      console.warn("verifyAdmin warning in uploadImageLocal:", authErr);
+      return {
+        success: false,
+        error: authErr instanceof Error ? authErr.message : "Akses upload ditolak.",
+      };
     }
 
     const file = formData.get("file") as File | null;
@@ -46,7 +48,7 @@ export async function uploadImageLocal(formData: FormData): Promise<{
       };
     }
 
-    // Flexible file size (max 20MB)
+    // Keep this below next.config.ts serverActions.bodySizeLimit.
     const MAX_SIZE = 20 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
       return {
@@ -58,8 +60,9 @@ export async function uploadImageLocal(formData: FormData): Promise<{
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const fileExtension = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const uniqueFileName = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}.${fileExtension}`;
+    const originalExtension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const safeExtension = originalExtension.replace(/[^a-z0-9]/g, "") || "jpg";
+    const uniqueFileName = `${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${safeExtension}`;
     const uploadDir = path.join(process.cwd(), "public", "uploads");
 
     try {
@@ -73,6 +76,9 @@ export async function uploadImageLocal(formData: FormData): Promise<{
 
     const publicUrl = `/uploads/${uniqueFileName}`;
 
+    revalidatePath("/", "layout");
+    revalidatePath("/proyek", "layout");
+    revalidatePath("/artikel", "layout");
     revalidatePath("/admin", "layout");
 
     return { success: true, url: publicUrl };

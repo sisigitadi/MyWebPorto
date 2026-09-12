@@ -2,7 +2,9 @@
 
 import React, { useRef } from "react";
 import { ArrowUpRight, Package, ShoppingCart } from "lucide-react";
+import Link from "next/link";
 import { ProductData, DUMMY_PRODUCTS } from "@/lib/dummy-data";
+import { getProductSlug } from "@/lib/product-link";
 import { useTranslation } from "@/lib/i18n";
 import { OSWindow } from "@/components/public/os/os-window";
 import gsap from "gsap";
@@ -72,6 +74,7 @@ export function ProductsSection({ products: propProducts }: ProductsSectionProps
           {products.map((product, index) => {
             const title = (language === "en" && product.titleEn) ? product.titleEn : product.title;
             const description = (language === "en" && product.descriptionEn) ? product.descriptionEn : product.description;
+            const productUrl = `/toko/${getProductSlug(product)}`;
 
             return (
               <div key={product.id} className="sigit-product-card flex flex-col h-full">
@@ -84,7 +87,7 @@ export function ProductsSection({ products: propProducts }: ProductsSectionProps
                 >
                   <div className="space-y-3">
                     {/* Retro Software Box Thumbnail */}
-                    <div className="relative aspect-[16/10] overflow-hidden rounded-xs vt-card-inset bg-muted">
+                    <Link href={productUrl} className="relative block aspect-[16/10] overflow-hidden rounded-xs vt-card-inset bg-muted" aria-label={`${title} details`}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={product.thumbnailUrl}
@@ -95,10 +98,10 @@ export function ProductsSection({ products: propProducts }: ProductsSectionProps
                       <div className="absolute top-2 right-2 vt-btn vt-btn-pink px-3 py-1 text-xs font-pixel font-bold shadow-md">
                         {product.priceFormatted}
                       </div>
-                    </div>
+                    </Link>
 
                     <h3 className="text-base sm:text-lg font-bold font-mono text-[var(--vt-ink)] leading-snug">
-                      {title}
+                      <Link href={productUrl} className="hover:underline underline-offset-2">{title}</Link>
                     </h3>
 
                     <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] font-medium leading-relaxed">
@@ -107,12 +110,18 @@ export function ProductsSection({ products: propProducts }: ProductsSectionProps
                   </div>
 
                   {/* Purchase / Download CTA */}
-                  <div className="pt-3 border-t border-border/80">
+                  <div className="pt-3 border-t border-border/80 flex flex-col sm:flex-row gap-2">
+                    <Link
+                      href={productUrl}
+                      className="vt-btn vt-btn-chrome flex-1 py-2 px-3 text-xs font-bold font-mono text-foreground justify-center"
+                    >
+                      {language === "en" ? "OPEN PRODUCT" : "LIHAT PRODUK"}
+                    </Link>
                     <a
                       href={product.ctaUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="vt-btn vt-btn-chrome w-full py-2 px-3 text-xs font-bold font-mono text-foreground justify-between group"
+                      className="vt-btn vt-btn-chrome flex-1 py-2 px-3 text-xs font-bold font-mono text-foreground justify-between group"
                     >
                       <span className="inline-flex items-center gap-1.5">
                         <ShoppingCart className="h-3.5 w-3.5 text-primary" />

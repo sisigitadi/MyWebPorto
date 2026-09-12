@@ -55,6 +55,7 @@ export interface ServiceData {
 
 export interface ProductData {
   id: string;
+  slug?: string | null;
   title: string;
   titleEn?: string | null;
   description: string;
@@ -239,6 +240,7 @@ export const DUMMY_PROJECTS: ProjectData[] = [
 export const DUMMY_PRODUCTS: ProductData[] = [
   {
     id: "prod-1",
+    slug: "template-portfolio-notion",
     title: "Template Portfolio Notion",
     titleEn: "Notion Portfolio Template",
     description:
@@ -253,6 +255,7 @@ export const DUMMY_PRODUCTS: ProductData[] = [
   },
   {
     id: "prod-2",
+    slug: "e-book-belajar-freelance",
     title: "E-book Belajar Freelance",
     titleEn: "Freelance Mastery E-book",
     description:
@@ -411,5 +414,293 @@ Never write the first line of production code before receiving a deposit and an 
     published: true,
     order: 3,
     createdAt: "2026-03-08T14:15:00.000Z",
+  },
+  {
+    id: "art-4",
+    slug: "studi-kasus-pojok-baca-digital-nextjs-postgresql",
+    title: "Studi Kasus Pojok Baca Digital: Membangun Perpustakaan Komunitas dengan Next.js dan PostgreSQL",
+    titleEn: "Digital Reading Corner Case Study: Building a Community Library with Next.js and PostgreSQL",
+    summary:
+      "Membahas arsitektur katalog buku, autentikasi anggota, peminjaman, QR inventory, dan dashboard analitik untuk perpustakaan digital komunitas.",
+    summaryEn:
+      "A practical case study covering book catalogs, member authentication, lending workflows, QR inventory, and analytics for a community digital library.",
+    content: `Pojok Baca Digital dirancang untuk menjawab masalah yang sering muncul pada taman bacaan komunitas: data buku tersebar, status peminjaman tidak konsisten, dan pengelola kesulitan membuat laporan.
+
+### Arsitektur Data yang Sederhana
+Katalog buku, anggota, dan transaksi peminjaman dipisahkan agar setiap perubahan memiliki sumber kebenaran yang jelas. PostgreSQL menangani relasi dan histori, sementara Next.js menyediakan antarmuka administrasi yang cepat.
+
+### QR Inventory untuk Operasional Lapangan
+QR code mempersingkat proses pencarian inventaris. Pengelola dapat memindai buku, melihat statusnya, dan memperbarui transaksi tanpa mengetik kode inventaris secara manual.
+
+### Pelajaran SEO dan Produk
+Halaman katalog publik harus memiliki URL yang stabil, judul buku yang semantik, dan metadata yang mudah dipahami mesin pencari. Studi kasus ini menunjukkan bahwa sistem komunitas tetap dapat dibangun dengan standar engineering yang rapi.`,
+    contentEn: `Digital Reading Corner solves common community library problems: scattered book data, inconsistent lending status, and difficult reporting.
+
+### A Simple Data Architecture
+Books, members, and lending transactions are separated so every change has a clear source of truth. PostgreSQL handles relationships and history while Next.js provides a fast administration interface.
+
+### QR Inventory for Field Operations
+QR codes shorten inventory workflows. Staff can scan a book, inspect its status, and update a transaction without manually entering inventory codes.
+
+### SEO and Product Lessons
+Public catalog pages need stable URLs, semantic book titles, and machine-readable metadata. Community software can still follow disciplined engineering standards.`,
+    imageUrl: "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=800&auto=format&fit=crop",
+    tags: ["Next.js", "PostgreSQL", "Digital Library", "QR Code", "Web Development", "SEO Indonesia"],
+    featured: true,
+    published: true,
+    order: 4,
+    createdAt: "2026-03-10T08:00:00.000Z",
+  },
+  {
+    id: "art-5",
+    slug: "studi-kasus-mading-online-sekolah-cms-editorial",
+    title: "Studi Kasus Mading Online Sekolah: CMS Editorial Aman untuk Siswa dan Guru",
+    titleEn: "Online School Wall Magazine Case Study: A Safe Editorial CMS for Students and Teachers",
+    summary:
+      "Mendesain CMS publikasi sekolah dengan workflow persetujuan guru, struktur artikel SEO-friendly, dan akses yang sesuai untuk penulis siswa.",
+    summaryEn:
+      "Designing a school publishing CMS with teacher approvals, SEO-friendly articles, and access controls suited to student writers.",
+    content: `Mading Online Sekolah bukan sekadar blog. Sistem ini harus memberi ruang kreatif bagi siswa sekaligus menjaga kualitas, privasi, dan akurasi informasi yang dipublikasikan.
+
+### Workflow Persetujuan
+Penulis siswa dapat membuat draft, sedangkan guru pembina menjadi pemeriksa sebelum artikel diterbitkan. Status draft, review, dan published mencegah perubahan penting langsung tampil tanpa pengawasan.
+
+### Struktur Konten yang Ramah Mesin Pencari
+Setiap artikel memiliki slug, ringkasan, tag, tanggal terbit, dan data terstruktur. Kombinasi ini membantu artikel sekolah ditemukan untuk pencarian kegiatan, literasi, dan informasi akademik lokal.
+
+### Prinsip Keamanan
+Hak akses harus mengikuti peran. Validasi input, sanitasi konten, dan audit perubahan menjadi bagian dari fitur editorial, bukan tambahan belakangan.`,
+    contentEn: `An online school wall magazine is more than a blog. It must give students creative space while preserving quality, privacy, and publishing accuracy.
+
+### Approval Workflow
+Student writers create drafts while teacher editors review them before publication. Draft, review, and published states prevent unmoderated changes from appearing publicly.
+
+### Search-Friendly Content Structure
+Each article uses a slug, summary, tags, publication date, and structured data. This helps school content rank for local activities, literacy, and academic information.
+
+### Security Principles
+Permissions must follow roles. Input validation, content sanitization, and change auditing belong inside the editorial feature itself.`,
+    imageUrl: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=800&auto=format&fit=crop",
+    tags: ["Laravel", "MySQL", "CMS", "School Technology", "Content Security", "Technical SEO"],
+    featured: true,
+    published: true,
+    order: 5,
+    createdAt: "2026-03-11T08:00:00.000Z",
+  },
+  {
+    id: "art-6",
+    slug: "studi-kasus-sistem-kasir-umkm-offline-first",
+    title: "Studi Kasus Sistem Kasir UMKM: Strategi Offline-First untuk Transaksi Cepat",
+    titleEn: "SMB Point-of-Sale Case Study: An Offline-First Strategy for Fast Transactions",
+    summary:
+      "Membahas POS web ringan dengan IndexedDB, sinkronisasi transaksi, kontrol stok, dan cetak struk thermal untuk kedai kopi.",
+    summaryEn:
+      "A case study on a lightweight POS using IndexedDB, transaction sync, stock control, and thermal receipt printing for coffee shops.",
+    content: `Sistem kasir UMKM harus tetap berguna ketika koneksi internet tidak stabil. Karena itu, Sistem Kasir UMKM Sederhana menggunakan pendekatan offline-first untuk memprioritaskan transaksi di meja kasir.
+
+### IndexedDB sebagai Buffer Lokal
+Transaksi ditulis ke penyimpanan lokal terlebih dahulu. Kasir tetap dapat menyelesaikan pesanan tanpa menunggu koneksi, lalu data disinkronkan ketika jaringan kembali tersedia.
+
+### Konsistensi Stok dan Konflik Data
+Sinkronisasi harus memiliki id transaksi, waktu perubahan, dan strategi resolusi konflik. Tanpa identitas transaksi yang konsisten, penjualan ganda atau stok negatif mudah terjadi.
+
+### SEO untuk Produk SaaS Lokal
+Landing page POS harus menargetkan kebutuhan spesifik seperti kasir kedai kopi, stok UMKM, dan cetak struk thermal. Bahasa yang dekat dengan masalah pengguna lebih kuat daripada klaim fitur yang generik.`,
+    contentEn: `A small-business POS must remain useful when internet connectivity is unreliable. This project uses an offline-first approach to prioritize counter transactions.
+
+### IndexedDB as a Local Buffer
+Transactions are written locally first. Cashiers can complete orders without waiting for the network, then synchronize when connectivity returns.
+
+### Stock Consistency and Conflicts
+Synchronization needs transaction IDs, timestamps, and conflict resolution. Without consistent identities, duplicate sales and negative inventory become likely.
+
+### SEO for Local SaaS Products
+A POS landing page should target specific needs such as coffee shop cashier systems, SMB inventory, and thermal receipt printing. Problem-focused language beats generic feature claims.`,
+    imageUrl: "https://images.unsplash.com/photo-1556742049-0a67c5574f73?q=80&w=800&auto=format&fit=crop",
+    tags: ["React", "TypeScript", "IndexedDB", "Offline-First", "POS UMKM", "Product Engineering"],
+    featured: true,
+    published: true,
+    order: 6,
+    createdAt: "2026-03-12T08:00:00.000Z",
+  },
+  {
+    id: "art-7",
+    slug: "integrasi-ai-generatif-aman-untuk-aplikasi-bisnis",
+    title: "Integrasi AI Generatif yang Aman untuk Aplikasi Bisnis: Dari Prompt hingga Evaluasi",
+    titleEn: "Secure Generative AI Integration for Business Apps: From Prompts to Evaluation",
+    summary:
+      "Panduan engineering untuk memilih use case AI, menjaga data sensitif, mengendalikan prompt, dan mengevaluasi kualitas output secara terukur.",
+    summaryEn:
+      "An engineering guide to selecting AI use cases, protecting sensitive data, controlling prompts, and measuring output quality.",
+    content: `AI generatif bukan hanya persoalan memilih model. Aplikasi yang dapat dipercaya membutuhkan batasan data, validasi output, observability, dan jalur fallback ketika model gagal.
+
+### Pilih Use Case yang Terukur
+Mulai dari pekerjaan yang memiliki input, output, dan kriteria keberhasilan yang jelas. Ringkasan dokumen, klasifikasi tiket, dan ekstraksi data lebih mudah dievaluasi daripada chatbot tanpa tujuan spesifik.
+
+### Lindungi Data dan Prompt
+Jangan mengirim rahasia, token, atau data pribadi ke model tanpa kebijakan yang jelas. Terapkan redaction, batas ukuran input, dan logging yang tidak membocorkan isi sensitif.
+
+### Evaluasi dan Human Review
+Simpan contoh input-output, ukur akurasi, dan sediakan persetujuan manusia untuk keputusan berisiko. AI yang baik adalah sistem yang dapat diaudit, bukan hanya respons yang terdengar meyakinkan.`,
+    contentEn: `Generative AI is not only about choosing a model. A trustworthy application needs data boundaries, output validation, observability, and fallbacks when the model fails.
+
+### Choose Measurable Use Cases
+Start with tasks that have clear inputs, outputs, and success criteria. Document summarization, ticket classification, and data extraction are easier to evaluate than an undefined chatbot.
+
+### Protect Data and Prompts
+Do not send secrets, tokens, or personal data to a model without clear policies. Apply redaction, input limits, and privacy-aware logging.
+
+### Evaluation and Human Review
+Store input-output examples, measure accuracy, and require human approval for high-impact decisions. Good AI is auditable systems engineering.`,
+    imageUrl: "https://images.unsplash.com/photo-1677442136019-21780ecad995?q=80&w=800&auto=format&fit=crop",
+    tags: ["Artificial Intelligence", "Generative AI", "LLM", "Prompt Engineering", "AI Security", "Machine Learning"],
+    featured: true,
+    published: true,
+    order: 7,
+    createdAt: "2026-03-13T08:00:00.000Z",
+  },
+  {
+    id: "art-8",
+    slug: "dasar-cybersecurity-untuk-aplikasi-web-modern",
+    title: "Dasar Cybersecurity untuk Aplikasi Web Modern: Threat Modeling hingga Monitoring",
+    titleEn: "Cybersecurity Fundamentals for Modern Web Apps: From Threat Modeling to Monitoring",
+    summary:
+      "Menyusun pertahanan aplikasi web melalui threat modeling, autentikasi, validasi input, manajemen secret, logging, dan incident response.",
+    summaryEn:
+      "A practical web security foundation covering threat modeling, authentication, input validation, secrets, logging, and incident response.",
+    content: `Keamanan aplikasi web dimulai sebelum kode masuk production. Threat modeling membantu tim memahami aset penting, jalur serangan, dan kontrol yang harus diuji.
+
+### Identifikasi Aset dan Ancaman
+Petakan data pengguna, endpoint admin, kredensial, upload, dan integrasi eksternal. Hubungkan setiap aset dengan risiko seperti broken access control, injection, dan kebocoran informasi.
+
+### Kontrol yang Wajib Konsisten
+Gunakan validasi schema di server, authorization pada setiap mutation, cookie/session yang aman, serta secret dari environment variable. Keamanan UI saja tidak cukup.
+
+### Monitoring dan Respons
+Log harus membantu investigasi tanpa menyimpan password atau token. Siapkan alert, backup, dan prosedur pemulihan sehingga insiden dapat ditangani dengan cepat.`,
+    contentEn: `Web security begins before code reaches production. Threat modeling helps teams understand critical assets, attack paths, and controls that must be tested.
+
+### Identify Assets and Threats
+Map user data, admin endpoints, credentials, uploads, and external integrations. Connect every asset to risks such as broken access control, injection, and information disclosure.
+
+### Consistent Controls
+Use server-side schema validation, authorization on every mutation, secure sessions, and environment-managed secrets. UI security alone is insufficient.
+
+### Monitoring and Response
+Logs should support investigation without storing passwords or tokens. Prepare alerts, backups, and recovery procedures before an incident occurs.`,
+    imageUrl: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?q=80&w=800&auto=format&fit=crop",
+    tags: ["Cybersecurity", "Web Security", "OWASP", "Threat Modeling", "DevSecOps", "Security Audit"],
+    featured: true,
+    published: true,
+    order: 8,
+    createdAt: "2026-03-14T08:00:00.000Z",
+  },
+  {
+    id: "art-9",
+    slug: "linux-server-hardening-untuk-developer",
+    title: "Linux Server Hardening untuk Developer: Checklist Aman sebelum Deployment",
+    titleEn: "Linux Server Hardening for Developers: A Secure Pre-Deployment Checklist",
+    summary:
+      "Checklist praktis hardening Linux meliputi user privilege, SSH, firewall, patching, service exposure, logging, dan backup.",
+    summaryEn:
+      "A practical Linux hardening checklist covering privileges, SSH, firewall rules, patching, exposed services, logging, and backups.",
+    content: `Linux memberi kontrol besar atas server, tetapi kontrol itu harus diikuti kebiasaan operasional yang disiplin.
+
+### Kurangi Permukaan Serangan
+Hapus service yang tidak diperlukan, batasi port dengan firewall, dan gunakan user non-root untuk pekerjaan harian. Akses administratif harus eksplisit dan tercatat.
+
+### Amankan SSH dan Patch
+Gunakan key-based authentication, matikan login root langsung, batasi percobaan login, dan jadwalkan pembaruan keamanan. Jangan menunda patch untuk service yang terekspos internet.
+
+### Observability dan Recovery
+Aktifkan log terpusat, pantau disk dan resource, serta uji backup secara berkala. Server yang aman bukan hanya sulit ditembus, tetapi juga cepat dipulihkan.`,
+    contentEn: `Linux gives developers deep server control, but that control requires disciplined operations.
+
+### Reduce Attack Surface
+Remove unused services, restrict ports with a firewall, and use non-root users for daily work. Administrative access must be explicit and auditable.
+
+### Secure SSH and Patch Regularly
+Use key-based authentication, disable direct root login, limit login attempts, and schedule security updates. Internet-facing services should never remain unpatched.
+
+### Observability and Recovery
+Centralize logs, monitor resources, and test backups regularly. A secure server is also one that can be restored quickly.`,
+    imageUrl: "https://images.unsplash.com/photo-1629654297299-c8506221ca97?q=80&w=800&auto=format&fit=crop",
+    tags: ["Linux", "Linux Server", "Server Hardening", "SSH Security", "DevOps", "System Administration"],
+    featured: false,
+    published: true,
+    order: 9,
+    createdAt: "2026-03-15T08:00:00.000Z",
+  },
+  {
+    id: "art-10",
+    slug: "windows-security-hardening-untuk-workstation-dan-server",
+    title: "Windows Security Hardening untuk Workstation dan Server: Praktik Dasar yang Sering Terlewat",
+    titleEn: "Windows Security Hardening for Workstations and Servers: Commonly Missed Basics",
+    summary:
+      "Membahas hardening Windows melalui patch management, least privilege, Defender, firewall, PowerShell logging, dan kebijakan akses.",
+    summaryEn:
+      "Windows hardening through patch management, least privilege, Defender, firewall rules, PowerShell logging, and access policies.",
+    content: `Windows workstation dan server sering menjadi target karena dipakai untuk identitas, file, aplikasi bisnis, dan akses remote.
+
+### Patch dan Least Privilege
+Pastikan Windows Update berjalan, aplikasi lama diinventarisasi, dan user tidak memakai akun administrator untuk aktivitas rutin. Least privilege mengurangi dampak ketika kredensial bocor.
+
+### Defender, Firewall, dan Remote Access
+Konfigurasikan Microsoft Defender, Windows Firewall, dan kebijakan remote access sesuai kebutuhan. RDP harus dibatasi melalui jaringan tepercaya dan autentikasi berlapis.
+
+### PowerShell dan Event Logging
+Logging membantu tim melihat pola eksekusi mencurigakan. Gabungkan event log, backup, dan prosedur isolasi endpoint untuk mempercepat respons insiden.`,
+    contentEn: `Windows workstations and servers are targeted because they host identity, files, business applications, and remote access.
+
+### Patching and Least Privilege
+Keep Windows Update active, inventory legacy software, and avoid administrator accounts for routine work. Least privilege limits the blast radius of stolen credentials.
+
+### Defender, Firewall, and Remote Access
+Configure Microsoft Defender, Windows Firewall, and remote access policies according to need. Restrict RDP to trusted networks and layered authentication.
+
+### PowerShell and Event Logging
+Logging reveals suspicious execution patterns. Combine event logs, backups, and endpoint isolation procedures to improve incident response.`,
+    imageUrl: "https://images.unsplash.com/photo-1624571409108-e9a7c47e3f29?q=80&w=800&auto=format&fit=crop",
+    tags: ["Windows", "Windows Security", "Microsoft Defender", "PowerShell", "Endpoint Security", "IT Security"],
+    featured: false,
+    published: true,
+    order: 10,
+    createdAt: "2026-03-16T08:00:00.000Z",
+  },
+  {
+    id: "art-11",
+    slug: "macos-security-privacy-untuk-developer",
+    title: "macOS Security dan Privacy untuk Developer: Menjaga Device, Credential, dan Source Code",
+    titleEn: "macOS Security and Privacy for Developers: Protecting Devices, Credentials, and Source Code",
+    summary:
+      "Panduan keamanan macOS untuk developer: FileVault, keychain, permission aplikasi, update, credential hygiene, dan backup source code.",
+    summaryEn:
+      "A macOS security guide for developers covering FileVault, Keychain, app permissions, updates, credential hygiene, and source-code backups.",
+    content: `macOS sering dipercaya sebagai workstation developer, tetapi keamanan tetap bergantung pada konfigurasi dan kebiasaan pengguna.
+
+### Lindungi Device dan Disk
+Aktifkan FileVault, gunakan password kuat, dan pastikan perangkat memiliki lock screen otomatis. Perangkat yang hilang tidak boleh langsung membuka data source code.
+
+### Kelola Credential Developer
+Simpan credential di Keychain atau secret manager, bukan di repository dan file dot yang ikut terunggah. Rotasi token ketika device pernah dipakai di jaringan yang tidak tepercaya.
+
+### Permission, Update, dan Backup
+Tinjau izin aplikasi, perbarui macOS serta dependency, dan siapkan backup terenkripsi. Privacy yang baik membantu mengurangi risiko supply-chain dan credential theft.`,
+    contentEn: `macOS is commonly trusted as a developer workstation, but security still depends on configuration and user habits.
+
+### Protect the Device and Disk
+Enable FileVault, use a strong password, and configure automatic screen locking. A lost laptop must not expose source code immediately.
+
+### Manage Developer Credentials
+Store credentials in Keychain or a secret manager, never in repositories or uploaded dotfiles. Rotate tokens after exposure to untrusted networks.
+
+### Permissions, Updates, and Backups
+Review app permissions, update macOS and dependencies, and maintain encrypted backups. Strong privacy reduces supply-chain and credential-theft risk.`,
+    imageUrl: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=800&auto=format&fit=crop",
+    tags: ["macOS", "Mac Security", "FileVault", "Keychain", "Developer Security", "Privacy"],
+    featured: false,
+    published: true,
+    order: 11,
+    createdAt: "2026-03-17T08:00:00.000Z",
   },
 ];

@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { getArticles } from "@/lib/actions";
 import { OSWindow } from "@/components/public/os/os-window";
-import { FileText, Calendar, Clock, ArrowRight, Folder, Monitor, HardDrive } from "lucide-react";
+import { Calendar, Clock, ArrowRight, Folder, Monitor, HardDrive } from "lucide-react";
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev";
 
@@ -95,7 +95,8 @@ export default async function ArticlesPage() {
                   className="vt-btn vt-btn-chrome px-3 py-1 text-xs font-bold text-foreground inline-flex items-center gap-1.5 shrink-0"
                 >
                   <Monitor className="h-3.5 w-3.5 text-primary" />
-                  <span>← Kembali ke Desktop OS</span>
+                  <span className="hidden sm:inline">Kembali ke Desktop OS</span>
+                  <span className="sm:hidden">Desktop</span>
                 </Link>
                 <div className="hidden sm:flex items-center gap-2">
                   <span className="text-[var(--vt-ink)] font-bold">Address:</span>
