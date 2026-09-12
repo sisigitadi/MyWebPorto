@@ -18,7 +18,6 @@ import { OSWindow } from "@/components/public/os/os-window";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
-import { buildContactPrefillUrl } from "@/lib/contact-link";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -93,10 +92,6 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
     const discussionBody = language === "en"
       ? `Hello ${profile?.name || "Sigit Adi"},\n\nI saw your project "${title}" and would like to discuss building something similar.`
       : `Halo ${profile?.name || "Sigit Adi"},\n\nSaya melihat proyek "${title}" di portofolio Anda dan ingin mendiskusikan peluang kerja sama atau proyek serupa.`;
-    const contactDiscussionUrl = buildContactPrefillUrl({
-      subject: discussionSubject,
-      body: discussionBody,
-    });
 
     return (
       <section id="proyek" className="relative py-4 md:py-6">
@@ -167,6 +162,14 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
                 <p className="text-sm font-mono font-bold text-[var(--vt-blue)]">
                   {summary}
                 </p>
+
+                <Link
+                  href={`/proyek/${selectedProject.slug}`}
+                  className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-[var(--vt-ink)] hover:underline"
+                >
+                  <ExternalLink className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="break-all">C:\Sigit\Projects\{selectedProject.slug}\</span>
+                </Link>
               </div>
 
               {/* Media Preview Box */}
@@ -205,13 +208,18 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
                   </a>
                 )}
 
-                <Link
-                  href={contactDiscussionUrl}
-                  className="vt-btn vt-btn-chrome px-4 py-2 text-xs font-bold font-mono flex items-center gap-1.5"
+                <button
+                  type="button"
+                  onClick={() => {
+                    sessionStorage.setItem("contactSubject", discussionSubject);
+                    sessionStorage.setItem("contactBody", discussionBody);
+                    window.dispatchEvent(new CustomEvent("switch-os-app", { detail: "kontak" }));
+                  }}
+                  className="vt-btn vt-btn-chrome px-4 py-2 text-xs font-bold font-mono flex items-center gap-1.5 cursor-pointer"
                 >
                   <Mail className="h-4 w-4 text-rose-500" />
                   <span>DISKUSIKAN VIA EMAIL</span>
-                </Link>
+                </button>
 
               </div>
 
@@ -333,7 +341,9 @@ export function FeaturedProjectsSection({ projects, profile }: FeaturedProjectsS
 
                     {/* Title */}
                     <h3 className="text-base sm:text-lg font-bold font-mono text-[var(--vt-ink)] leading-snug">
-                      {title}
+                      <Link href={`/proyek/${project.slug}`} className="hover:underline underline-offset-2">
+                        {title}
+                      </Link>
                     </h3>
 
                     {/* Summary */}

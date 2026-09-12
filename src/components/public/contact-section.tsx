@@ -44,9 +44,17 @@ export function ContactSection({ profile }: ContactSectionProps) {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const params = new URLSearchParams(window.location.search);
-    const subject = params.get("contactSubject");
-    const body = params.get("contactBody");
+    let subject = sessionStorage.getItem("contactSubject");
+    let body = sessionStorage.getItem("contactBody");
+
+    if (subject || body) {
+      sessionStorage.removeItem("contactSubject");
+      sessionStorage.removeItem("contactBody");
+    } else {
+      const params = new URLSearchParams(window.location.search);
+      subject = params.get("contactSubject");
+      body = params.get("contactBody");
+    }
 
     if (!subject && !body) return;
 
