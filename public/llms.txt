@@ -2,7 +2,7 @@
 
 > Portofolio profesional, arsitektur sistem modern, aplikasi web full-stack, dan integrasi kecerdasan buatan (AI/LLM).
 
-- **Website Resmi**: https://sigitadi.dev
+- **Website Resmi**: https://sigitadi.id
 - **Profesi**: Senior Web Developer / Full Stack Engineer & Cloud Architect
 - **Lokasi**: Jakarta, Indonesia
 - **Email**: sigitadipranoto.it@gmail.com
@@ -21,9 +21,9 @@
 ---
 
 ## Halaman Utama & Direktori Proyek
-- [Beranda & Terminal OS](https://sigitadi.dev/): Portofolio interaktif berbasis Single-Page Desktop OS (SigitOS).
-- [Katalog Proyek Lengkap](https://sigitadi.dev/proyek): Daftar lengkap studi kasus, implementasi kode sumber, dan demo aplikasi web.
-- [Artikel & Wawasan Teknologi](https://sigitadi.dev/artikel): Kumpulan tulisan teknis, panduan arsitektur software, dan analisis AI.
+- [Beranda & Terminal OS](https://sigitadi.id/): Portofolio interaktif berbasis Single-Page Desktop OS (SigitOS).
+- [Katalog Proyek Lengkap](https://sigitadi.id/proyek): Daftar lengkap studi kasus, implementasi kode sumber, dan demo aplikasi web.
+- [Artikel & Wawasan Teknologi](https://sigitadi.id/artikel): Kumpulan tulisan teknis, panduan arsitektur software, dan analisis AI.
 
 ---
 

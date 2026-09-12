@@ -3,7 +3,7 @@ import { getProfile } from "@/lib/actions";
 
 export async function generateDynamicMetadata(): Promise<Metadata> {
   const profile = await getProfile();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev";
+  const appUrl = ((process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "")).replace(/\/$/, "");
 
   const title = `${profile.name} — ${profile.headline}`;
   const description = profile.bio;

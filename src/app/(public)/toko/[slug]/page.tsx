@@ -17,7 +17,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: ProductDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev";
+  const baseUrl = ((process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "")).replace(/\/$/, "");
   const products = await getProducts();
   const product = products.find((item) => item.published && getProductSlug(item) === slug);
 

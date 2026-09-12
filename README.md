@@ -149,7 +149,7 @@ Catatan:
 
 - Jika Clerk key belum diset atau masih placeholder, middleware mengizinkan navigasi admin untuk kebutuhan development.
 - Jika `DATABASE_URL` kosong, aplikasi tetap berjalan memakai data lokal/fallback.
-- Jika `NEXT_PUBLIC_APP_URL` kosong, fallback canonical URL memakai `https://sigitadi.dev`.
+- Jika `NEXT_PUBLIC_APP_URL` kosong, fallback canonical URL memakai `https://sigitadi.id`.
 - Upload gambar saat ini disimpan lokal ke `public/uploads`, bukan ke storage eksternal.
 - **SVG tidak diizinkan diunggah** (risiko XSS via inline script); hanya JPEG, PNG, WEBP, GIF, AVIF, BMP.
 - Isi gambar diverifikasi lewat magic bytes dan ekstensi diturunkan dari MIME tervalidasi, bukan dari nama file kiriman klien.

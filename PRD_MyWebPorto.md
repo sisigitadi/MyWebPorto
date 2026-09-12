@@ -387,7 +387,7 @@ Kebutuhan SEO:
 - `sitemap.ts` dan `robots.ts` tersedia.
 - JSON-LD digunakan untuk Person, CollectionPage, BlogPosting, BreadcrumbList, atau schema lain yang relevan.
 - Slug proyek dan artikel harus ramah URL.
-- Jika `NEXT_PUBLIC_APP_URL` kosong, canonical URL fallback ke `https://sigitadi.dev`.
+- Jika `NEXT_PUBLIC_APP_URL` kosong, canonical URL fallback ke `https://sigitadi.id`.
 
 Kebutuhan aksesibilitas:
 

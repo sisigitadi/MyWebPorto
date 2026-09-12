@@ -86,7 +86,7 @@ export function createOgImage({
         React.createElement(
           "div",
           { style: { fontSize: "22px", fontFamily: "monospace", color: "#64748b", fontWeight: 600 } },
-          "sigitadi.dev"
+          "sigitadi.id"
         )
       ),
       // center content

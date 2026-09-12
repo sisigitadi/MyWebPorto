@@ -74,7 +74,7 @@ export function createOgImage({
             SIGITOS // {badge}
           </div>
           <div style={{ fontSize: "22px", fontFamily: "monospace", color: "#64748b", fontWeight: 600 }}>
-            sigitadi.dev
+            sigitadi.id
           </div>
         </div>
 

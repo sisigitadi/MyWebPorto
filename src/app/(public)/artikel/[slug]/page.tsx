@@ -18,7 +18,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: ArticleDetailPageProps) {
   const { slug } = await params;
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev";
+  const baseUrl = ((process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "")).replace(/\/$/, "");
   const articles = await getArticles();
   const article = articles.find((a) => a.slug === slug);
 
@@ -57,7 +57,7 @@ export async function generateMetadata({ params }: ArticleDetailPageProps) {
 
 export default async function ArticleDetailPage({ params }: ArticleDetailPageProps) {
   const { slug } = await params;
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev";
+  const baseUrl = ((process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "")).replace(/\/$/, "");
   const [articles, profile] = await Promise.all([getArticles(), getProfile()]);
   const article = articles.find((a) => a.slug === slug && a.published);
 

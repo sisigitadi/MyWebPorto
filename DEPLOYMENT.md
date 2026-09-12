@@ -39,7 +39,7 @@ Perintah ini akan secara otomatis:
    PORT=3000
    ```
 
-Catatan: variabel `BUNNY_STORAGE_*` bersifat opsional dan belum terhubung ke kode. Upload gambar saat ini disimpan lokal ke `public/uploads`. Jika `NEXT_PUBLIC_APP_URL` kosong, canonical URL fallback ke `https://sigitadi.dev`.
+Catatan: variabel `BUNNY_STORAGE_*` bersifat opsional dan belum terhubung ke kode. Upload gambar saat ini disimpan lokal ke `public/uploads`. Jika `NEXT_PUBLIC_APP_URL` kosong, canonical URL fallback ke `https://sigitadi.id`.
 
 ### Langkah 3: Konfigurasi Environment dan Database
 

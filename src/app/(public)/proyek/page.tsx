@@ -3,7 +3,7 @@ import { getProjects } from "@/lib/actions";
 import { safeJsonLd } from "@/lib/json-ld";
 import { ProjectsCatalogContent } from "@/components/public/projects-catalog-content";
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev";
+const baseUrl = (((process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "")).replace(/\/$/, "")).replace(/\/$/, "");
 
 export const metadata: Metadata = {
   title: "Daftar Proyek & Portofolio Karya Digital",

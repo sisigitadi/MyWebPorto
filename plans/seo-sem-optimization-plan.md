@@ -89,7 +89,7 @@ flowchart TD
 
 ### Task 2: Advanced Dynamic Sitemap & Robots.txt Directives
 - Refactor [`src/app/sitemap.ts`](src/app/sitemap.ts:1):
-  - Fix default URL fallback to `https://sigitadi.dev` (eliminate `http://localhost:3000`).
+  - Fix default URL fallback to `https://sigitadi.id` (eliminate `http://localhost:3000`).
   - Add `/artikel` catalog route to static routes.
   - Include `<image:image>` metadata for projects and articles so Google & Bing image search crawls project screenshots.
   - Set accurate `<lastmod>` timestamps based on database `updatedAt` / `createdAt`.

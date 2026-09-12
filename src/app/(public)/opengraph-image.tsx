@@ -35,7 +35,7 @@ export default async function Image() {
         <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(rgba(59,130,246,0.12) 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", position: "relative" }}>
           <div style={{ background: "rgba(59,130,246,0.15)", border: "2px solid rgba(59,130,246,0.4)", borderRadius: "8px", padding: "8px 16px", fontSize: "20px", fontWeight: 700, fontFamily: "monospace", letterSpacing: "1px", color: "#93c5fd" }}>SIGITOS // HOME</div>
-          <div style={{ fontSize: "22px", fontFamily: "monospace", color: "#64748b", fontWeight: 600 }}>sigitadi.dev</div>
+          <div style={{ fontSize: "22px", fontFamily: "monospace", color: "#64748b", fontWeight: 600 }}>sigitadi.id</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "40px", position: "relative", flex: 1 }}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "18px" }}>

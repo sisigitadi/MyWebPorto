@@ -4,7 +4,7 @@ import { getProjects, getArticles } from "@/lib/actions";
 import { rateLimit, cleanupRateLimits } from "@/lib/rate-limit";
 
 const INDEXNOW_KEY = process.env.INDEXNOW_KEY || "e5b871c984924b179571fcfdca565780";
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev";
+const BASE_URL = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
 
 // Hardening: IndexNow harus admin-only + rate-limited
 // Limit: 5 requests per 60s per IP (diturunkan dari 10 agar lebih ketat)

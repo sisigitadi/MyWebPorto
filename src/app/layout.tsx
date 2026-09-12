@@ -52,7 +52,7 @@ const unbounded = Unbounded({
   display: "swap",
 });
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev";
+const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
 const googleVerification = process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION || "nO80bNSBPyrM7VQYvpPKCmgcQVBuJ_7Ydaxhfsk5Vbw";
 const bingVerification = process.env.NEXT_PUBLIC_BING_VERIFICATION || "e5b871c984924b179571fcfdca565780";
 

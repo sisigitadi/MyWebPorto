@@ -3,12 +3,13 @@ import { getProjects, getArticles, getProducts } from "@/lib/actions";
 import { getProductSlug } from "@/lib/product-link";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.dev";
+  // PENTING: harus sama dengan domain di Vercel env & GSC property (tanpa trailing slash)
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
   const [projects, articles, products] = await Promise.all([getProjects(), getArticles(), getProducts()]);
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {
-      url: `${baseUrl}`,
+      url: `${baseUrl}/`,
       lastModified: new Date(),
       changeFrequency: "daily" as const,
       priority: 1.0,
