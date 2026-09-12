@@ -93,10 +93,10 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
   const ctaDesc = t.detail_cta_box_desc.replace("{name}", profile.name || "Sigit");
 
   return (
-    <div ref={containerRef} className="py-8 md:py-14">
+    <div ref={containerRef} className="py-6 md:py-10">
       <div className="max-w-5xl mx-auto px-3 sm:px-6 space-y-6">
-        {/* Navigation Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        {/* Navigation Bar — sticky agar selalu terlihat saat scroll fullscreen */}
+        <div className="sticky top-0 z-20 -mx-3 sm:mx-0 px-3 sm:px-0 py-2 bg-[var(--vt-paper)]/95 backdrop-blur border-b border-border/60 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Button
               asChild
@@ -113,7 +113,7 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
             <Button
               asChild
               size="sm"
-              className="vt-btn vt-btn-chrome h-8 px-3 font-mono text-xs font-bold gap-1.5 cursor-pointer"
+              className="vt-btn vt-btn-chrome h-8 px-3 font-mono text-xs font-bold gap-1.5 cursor-pointer border-primary/30"
             >
               <Link href="/proyek">
                 <ArrowLeft className="h-3.5 w-3.5" />
@@ -261,6 +261,22 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
                   </a>
                 </Button>
               </div>
+            </div>
+
+            {/* Bottom Back — fallback saat sudah scroll paling bawah fullscreen */}
+            <div className="flex justify-center gap-2 pt-4">
+              <Button asChild size="sm" className="vt-btn vt-btn-chrome h-8 px-4 font-mono text-xs font-bold gap-1.5">
+                <Link href="/proyek">
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  <span>{t.detail_back_all}</span>
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="h-8 px-4 font-mono text-xs gap-1.5">
+                <Link href="/#proyek">
+                  <Monitor className="h-3.5 w-3.5" />
+                  <span>{language === "en" ? "Desktop" : "Desktop"}</span>
+                </Link>
+              </Button>
             </div>
           </div>
         </OSWindow>

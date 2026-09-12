@@ -5,7 +5,7 @@ import { safeJsonLd } from "@/lib/json-ld";
 import { OSWindow } from "@/components/public/os/os-window";
 import { Calendar, Clock, ArrowRight, Folder, Monitor, HardDrive } from "lucide-react";
 
-const baseUrl = ((((process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "")).replace(/\/$/, "")).replace(/\/$/, "")).replace(/\/$/, "");
+const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
 
 export const metadata: Metadata = {
   title: "Artikel & Wawasan Teknologi — Sigit Adi Pranoto",

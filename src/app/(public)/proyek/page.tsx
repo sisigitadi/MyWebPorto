@@ -3,7 +3,7 @@ import { getProjects } from "@/lib/actions";
 import { safeJsonLd } from "@/lib/json-ld";
 import { ProjectsCatalogContent } from "@/components/public/projects-catalog-content";
 
-const baseUrl = (((process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "")).replace(/\/$/, "")).replace(/\/$/, "");
+const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
 
 export const metadata: Metadata = {
   title: "Daftar Proyek & Portofolio Karya Digital",
@@ -78,7 +78,9 @@ export default async function ProjectsPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd(collectionPageSchema) }}
       />
-      <ProjectsCatalogContent projects={publishedProjects} />
+      <div className="flex-1 min-h-0 w-full overflow-y-auto vt-scrollbar">
+        <ProjectsCatalogContent projects={publishedProjects} />
+      </div>
     </>
   );
 }

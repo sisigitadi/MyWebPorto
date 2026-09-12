@@ -2,7 +2,7 @@ import { ProfileData } from "@/lib/dummy-data";
 import { safeJsonLd } from "@/lib/json-ld";
 
 export function JsonLdSchema({ profile }: { profile: ProfileData }) {
-  const baseUrl = ((process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "")).replace(/\/$/, "");
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
 
   const personId = `${baseUrl}/#sigitadi`;
   const websiteId = `${baseUrl}/#website`;

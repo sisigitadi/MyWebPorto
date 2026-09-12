@@ -18,7 +18,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: ProjectDetailPageProps) {
   const { slug } = await params;
-  const baseUrl = ((process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "")).replace(/\/$/, "");
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
   const projects = await getProjects();
   const project = projects.find((p) => p.slug === slug);
 
@@ -53,7 +53,7 @@ export async function generateMetadata({ params }: ProjectDetailPageProps) {
 
 export default async function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const { slug } = await params;
-  const baseUrl = ((process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "")).replace(/\/$/, "");
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
   const [projects, profile] = await Promise.all([getProjects(), getProfile()]);
   const project = projects.find((p) => p.slug === slug && p.published);
 
@@ -121,7 +121,7 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd(softwareAppSchema) }}
       />
-      <div className="h-full w-full overflow-y-auto vt-scrollbar">
+      <div className="flex-1 min-h-0 w-full overflow-y-auto vt-scrollbar">
         <ProjectDetailContent project={project} profile={profile} />
       </div>
     </>
