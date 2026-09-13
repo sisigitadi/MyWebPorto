@@ -321,14 +321,14 @@ body {
 }
 
 .vt-titlebar-btn {
-  width: 18px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
   flex: none;
   background: var(--vt-chrome);
   box-shadow:
     inset 1px 1px 0 var(--vt-edge-hi),
     inset -1px -1px 0 var(--vt-edge-lo);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: bold;
   color: var(--vt-ink);
   display: flex;

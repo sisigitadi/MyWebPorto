@@ -409,8 +409,8 @@ export function OSDesktopManager({
                   className="group vt-btn vt-btn-pink h-8 sm:h-10 px-3 sm:px-5 text-[11px] sm:text-sm font-extrabold text-white flex items-center gap-1.5 cursor-pointer shadow-md hover:brightness-110 active:brightness-90 transition-all"
                   title={t.os_nav_next_tooltip}
                 >
-                  <span className="hidden sm:inline">{t.os_nav_next}</span>
-                  <span className="sm:hidden">{language === "en" ? "Next" : "Lanjut"}</span>
+                  <span className="hidden sm:inline text-[#1a1512]">{t.os_nav_next}</span>
+                  <span className="sm:hidden text-[#1a1512]">{language === "en" ? "Next" : "Lanjut"}</span>
                   <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 group-hover:translate-x-0.5 transition-transform" />
                 </button>
               </div>

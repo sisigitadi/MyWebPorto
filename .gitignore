@@ -28,6 +28,11 @@
 .DS_Store
 *.pem
 
+# lighthouse CI artifacts (local runs)
+lhci-public/
+.lhci/
+.lighthouseci/
+
 # debug
 npm-debug.log*
 yarn-debug.log*

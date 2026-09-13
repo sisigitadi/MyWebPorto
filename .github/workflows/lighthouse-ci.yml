@@ -1,0 +1,60 @@
+# ---------------------------------------------------------------------------
+# Lighthouse CI — Quality Gate (GitHub Actions)
+#
+# Runs Lighthouse (performance, accessibility, best-practices, SEO) against the
+# PRODUCTION deployment (https://sigitadi.id) on every push to main and every
+# pull request. Vercel deploys from the same push concurrently, so the run
+# audits the live production build (use the manual workflow_dispatch re-run
+# after Vercel finishes if a run catches a mid-deploy window).
+# Assertions (see .lighthouserc.json):
+#   - accessibility / seo                : REQUIRED 100 (error)
+#   - best-practices                     : warn-only — Clerk (*.clerk.accounts.dev)
+#     sets third-party Cloudflare cookies (__cf_bm, _cfuvid) that no code change
+#     can remove (fix = Clerk custom domain). Tracked, non-blocking.
+#   - performance                        : >= 0.5 (warn — non-blocking; the
+#     synthetic mobile-throttle score is prone to cross-runner noise)
+#
+# Chrome is pinned to a version compatible with the Lighthouse bundled with
+# @lhci/cli (12.6.1) so newer runner Chrome versions cannot break it.
+#
+# Local equivalent (needs Chrome):
+#     npx --yes @lhci/cli@0.15.1 autorun --config=.lighthouserc.json
+# ---------------------------------------------------------------------------
+name: lighthouse-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: # allow manual trigger from the Actions tab
+
+jobs:
+  lighthouse:
+    name: Lighthouse CI (a11y / BP / SEO = 100)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0 (pinned)
+
+      - name: Setup Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0 (pinned)
+        with:
+          node-version: "20"
+
+      # Pin Chrome compatible with Lighthouse 12.6.1 (the @lhci/cli 0.15.1
+      # bundle). setup-chrome exports CHROME_PATH which lhci honors.
+      - name: Setup Chrome (LH-compatible)
+        uses: browser-actions/setup-chrome@086160e580d6e8c142ad5ba29009dcde677c6321 # v2 (pinned)
+        with:
+          chrome-version: 134
+
+      - name: Run Lighthouse CI against production
+        run: |
+          if npx --yes @lhci/cli@0.15.1 autorun --config=.lighthouserc.json > /tmp/lhci.log 2>&1; then
+            echo "::notice::Lighthouse CI passed — accessibility / best-practices / SEO = 100"
+            exit 0
+          fi
+          echo "::error::LHCI FAILED | log lines: $(wc -l < /tmp/lhci.log) | key errors: $(grep -E 'Assertion|assertion|✖|Error:|error:|failed|FAILED|Fatal|Unable|EPERM' /tmp/lhci.log | tail -6 | tr '\n' ' | ') | tail: $(tail -c 1800 /tmp/lhci.log | tr '\n' ' ')"
+          exit 1
