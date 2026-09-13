@@ -98,12 +98,12 @@ export function OSMenubar({ profile }: OSMenubarProps) {
             <span>{language.toUpperCase()}</span>
           </button>
 
-          {/* Theme Selector - hidden on mobile, shown on sm+ */}
-          <div className="hidden sm:block relative">
+          {/* Theme Selector - terlihat di semua ukuran layar */}
+          <div className="block relative">
             <select
               value={theme}
               onChange={(e) => setTheme(e.target.value as OSTheme)}
-              className="vt-btn vt-btn-chrome px-2 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-[13px] font-bold appearance-none cursor-pointer bg-transparent text-[var(--vt-ink)] hover:-translate-y-0.5 hover:text-indigo-500 transition-all shadow-sm"
+              className="vt-btn vt-btn-chrome px-2 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-[13px] font-bold appearance-none cursor-pointer bg-transparent text-[var(--vt-ink)] hover:-translate-y-0.5 hover:text-indigo-500 transition-all shadow-sm max-w-[92px] sm:max-w-none truncate"
               title={t.os_theme_tooltip}
             >
               <option value="retro90s" className="bg-[var(--vt-chrome)] text-foreground">90s Retro</option>
