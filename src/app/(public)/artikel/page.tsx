@@ -211,7 +211,7 @@ export default async function ArticlesPage() {
                           href={`/artikel/${article.slug}`}
                           className="vt-btn vt-btn-pink px-3 py-1 text-[11px] font-bold inline-flex items-center gap-1 text-white shadow-sm"
                         >
-                          <span>Baca Lengkap</span>
+                          <span style={{ color: "#1a1512" }}>Baca Lengkap</span>
                           <ArrowRight className="h-3 w-3" />
                         </Link>
                       </div>

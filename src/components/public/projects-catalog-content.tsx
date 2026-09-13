@@ -183,7 +183,7 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
                           className="vt-btn-pink h-7 px-2.5 text-[11px] font-mono uppercase font-bold"
                         >
                           <Link href={`/proyek/${project.slug}`}>
-                            <span>Open</span>
+                            <span style={{ color: "#1a1512" }}>Open</span>
                             <ArrowRight className="h-3 w-3 ml-1" />
                           </Link>
                         </Button>
