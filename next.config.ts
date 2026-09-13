@@ -84,6 +84,7 @@ const nextConfig: NextConfig = {
               "base-uri 'self'",
               "form-action 'self' https://formspree.io",
               "frame-ancestors 'self'",
+              "report-uri https://portofolio-visitor-tracker.si-sigitadi.workers.dev/csp-report",
               "upgrade-insecure-requests",
             ].join("; "),
           },
