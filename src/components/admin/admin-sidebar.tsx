@@ -10,6 +10,7 @@ import {
   Package,
   MessageSquareQuote,
   FileText,
+  Activity,
   ExternalLink,
   LogOut,
   Sparkles,
@@ -62,6 +63,11 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     title: "Kelola Artikel",
     href: "/admin/articles",
     icon: FileText,
+  },
+  {
+    title: "Sistem & Logs",
+    href: "/admin/system",
+    icon: Activity,
   },
 ];
 
