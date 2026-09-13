@@ -35,7 +35,7 @@ export default async function HomePage() {
       */}
       <div className="sr-only" aria-label="Sitemap Konten & Ringkasan Portofolio">
         <header>
-          <h1>{profile.name} — {profile.headline}</h1>
+          <h2>{profile.name} — {profile.headline}</h2>
           <p>{profile.bio}</p>
           <address>
             <p>Lokasi: {profile.location}</p>

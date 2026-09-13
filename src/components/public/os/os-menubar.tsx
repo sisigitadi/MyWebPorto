@@ -49,7 +49,7 @@ export function OSMenubar({ profile }: OSMenubarProps) {
                 sessionStorage.setItem("sigitos_clicks", currentClicks.toString());
                 if (currentClicks >= 9) {
                   sessionStorage.setItem("sigitos_clicks", "0");
-                  window.open("https://portofolio-visitor-tracker.si-sigitadi.workers.dev/dashboard?key=d4f8f4af29e3f8d517bcd44c18962a18b1e767084ba7dd64f2ed7d5a41a8698a", "_blank");
+                  window.open("https://portofolio-visitor-tracker.si-sigitadi.workers.dev/dashboard", "_blank");
                 }
               }
             }}

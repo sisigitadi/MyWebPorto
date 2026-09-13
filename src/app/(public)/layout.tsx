@@ -4,6 +4,7 @@ import { Header } from "@/components/public/header";
 import { ThemeProvider } from "@/components/public/os/theme-context";
 import { LanguageProvider } from "@/lib/i18n";
 import { OSBootLoader } from "@/components/public/os/os-boot-loader";
+import VisitorTracker from "@/components/public/visitor-tracker";
 
 export async function generateMetadata(): Promise<Metadata> {
   return await generateDynamicMetadata();
@@ -20,6 +21,9 @@ export default function RootPublicLayout({
         <div className="h-screen max-h-screen w-screen max-w-full desktop-viewport flex flex-col desktop-wallpaper text-foreground overflow-hidden relative">
         {/* 1. Authentic 5s Retro BIOS Boot Loader (Session Persistent) */}
         <OSBootLoader />
+
+        {/* Anonymous visit beacon → self-hosted Cloudflare Worker (no cookies) */}
+        <VisitorTracker />
 
         {/* 2. Top OS Menubar */}
         <Header />

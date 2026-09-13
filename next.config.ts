@@ -78,7 +78,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "font-src 'self' data:",
               "img-src 'self' data: https: blob:",
-              "connect-src 'self' https://api.indexnow.org https://*.clerk.accounts.dev https://clerk.com https://formspree.io",
+              "connect-src 'self' https://api.indexnow.org https://*.clerk.accounts.dev https://clerk.com https://formspree.io https://portofolio-visitor-tracker.si-sigitadi.workers.dev",
               "frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com",
               "object-src 'none'",
               "base-uri 'self'",
