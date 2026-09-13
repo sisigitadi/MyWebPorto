@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "@clerk/ui/themes/shadcn.css";
 
+/* dark: utilities follow the APP theme (.dark class), never the OS color
+   scheme — otherwise OS-dark + light app theme mixes light backgrounds with
+   dark: foregrounds (and vice versa), breaking contrast (WCAG 1.4.3). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ========================================================
    SIGIT-OS / RETRO-FUTURISTIC THEME TOKENS
    ======================================================== */

@@ -409,8 +409,8 @@ export function OSDesktopManager({
                   className="group vt-btn vt-btn-pink h-8 sm:h-10 px-3 sm:px-5 text-[11px] sm:text-sm font-extrabold text-white flex items-center gap-1.5 cursor-pointer shadow-md hover:brightness-110 active:brightness-90 transition-all"
                   title={t.os_nav_next_tooltip}
                 >
-                  <span className="hidden sm:inline text-[#1a1512]">{t.os_nav_next}</span>
-                  <span className="sm:hidden text-[#1a1512]">{language === "en" ? "Next" : "Lanjut"}</span>
+                  <span className="hidden sm:inline" style={{ color: "#1a1512" }}>{t.os_nav_next}</span>
+                  <span className="sm:hidden" style={{ color: "#1a1512" }}>{language === "en" ? "Next" : "Lanjut"}</span>
                   <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 group-hover:translate-x-0.5 transition-transform" />
                 </button>
               </div>
@@ -601,7 +601,7 @@ export function OSDesktopManager({
         {/* System Status on Bottom Right */}
         <div className="flex items-center gap-1 sm:gap-2 md:gap-3 text-[9px] sm:text-xs md:text-sm font-mono font-bold shrink-0 pl-1 sm:pl-3 md:pl-4">
           <span className="h-1.5 w-1.5 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_5px_rgba(16,185,129,0.8)]" />
-          <span className="hidden sm:inline text-emerald-700 dark:text-emerald-400">{t.os_status_online}</span>
+          <span className="hidden sm:inline text-[#065f46] dark:text-[#6ee7b7]">{t.os_status_online}</span>
         </div>
       </div>
     </div>
