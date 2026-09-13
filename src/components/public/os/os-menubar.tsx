@@ -9,7 +9,6 @@ import {
   Globe,
 } from "lucide-react";
 import { useUser, UserButton } from "@clerk/nextjs";
-import { useOSTheme, OSTheme } from "./theme-context";
 import { useTranslation } from "@/lib/i18n";
 import { ProfileData } from "@/lib/dummy-data";
 import { buildSocialLinks } from "@/components/public/social-icons";
@@ -20,22 +19,26 @@ interface OSMenubarProps {
 
 export function OSMenubar({ profile }: OSMenubarProps) {
   const { isLoaded, isSignedIn } = useUser();
-  const { theme, setTheme } = useOSTheme();
   const { t, language, setLanguage } = useTranslation();
   const [shortDate, setShortDate] = useState("");
   const [fullDate, setFullDate] = useState("");
-  const socialLinks = buildSocialLinks(profile);
+  const socialLinks = buildSocialLinks(profile).filter((link) =>
+    ["github", "medium", "portfolio"].includes(link.key)
+  );
 
-  // Tanggal Bulan Tahun Hari Ini
+  // Tanggal format dd/mm/yyyy
   useEffect(() => {
     const updateDate = () => {
       const now = new Date();
-      const locale = language === "en" ? "en-GB" : "id-ID";
-      setShortDate(now.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" }));
-      setFullDate(now.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" }));
+      const dd = String(now.getDate()).padStart(2, "0");
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const yyyy = now.getFullYear();
+      const formatted = `${dd}/${mm}/${yyyy}`;
+      setShortDate(formatted);
+      setFullDate(formatted);
     };
     updateDate();
-  }, [language]);
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 w-full bg-[var(--vt-chrome)] border-b-2 border-[#5a5750] shadow-[0_2px_8px_rgba(0,0,0,0.35)] select-none">
@@ -93,7 +96,7 @@ export function OSMenubar({ profile }: OSMenubarProps) {
           ))}
         </div>
 
-        {/* Right Side: Language, Theme & Clock */}
+        {/* Right Side: Language & Clock */}
         <div className="flex items-center gap-1 sm:gap-2 font-mono text-xs shrink-0">
           {/* Status Badge - desktop only */}
           <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 bg-[var(--vt-card)] vt-card-inset text-xs font-bold text-[var(--vt-ink)] hover:bg-primary/10 transition-colors">
@@ -112,29 +115,14 @@ export function OSMenubar({ profile }: OSMenubarProps) {
             <span>{language.toUpperCase()}</span>
           </button>
 
-          {/* Theme Selector - hidden on mobile, shown on sm+ */}
-          <div className="hidden sm:block relative">
-            <select
-              value={theme}
-              onChange={(e) => setTheme(e.target.value as OSTheme)}
-              className="vt-btn vt-btn-chrome px-2 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-[13px] font-bold appearance-none cursor-pointer bg-transparent text-[var(--vt-ink)] hover:-translate-y-0.5 hover:text-indigo-500 transition-all shadow-sm"
-              title={t.os_theme_tooltip}
-            >
-              <option value="retro90s" className="bg-[var(--vt-chrome)] text-foreground">90s Retro</option>
-              <option value="dark" className="bg-[var(--vt-chrome)] text-foreground">Cyber Dark</option>
-              <option value="tokyo" className="bg-[var(--vt-chrome)] text-foreground">Tokyo Night</option>
-              <option value="vscode" className="bg-[var(--vt-chrome)] text-foreground">VS Code</option>
-            </select>
-          </div>
-
-          {/* Digital Date (Tanggal Bulan Tahun Hari Ini) */}
+          {/* Digital Date (dd/mm/yyyy) */}
           <div
             className="group vt-card-inset px-2 sm:px-3 py-0.5 sm:py-1 bg-[var(--vt-paper)] font-pixel text-[11px] sm:text-[13px] tracking-wider text-[var(--vt-ink)] font-bold flex items-center gap-1.5 shadow-inner shrink-0 hover:bg-emerald-50 transition-colors dark:hover:bg-emerald-950/30 cursor-default"
             title="Tanggal Hari Ini"
           >
             <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary group-hover:scale-110 group-hover:text-emerald-500 transition-all" />
-            <span className="sm:hidden">{shortDate || "10 Sep 2026"}</span>
-            <span className="hidden sm:inline">{fullDate || "10 September 2026"}</span>
+            <span className="sm:hidden">{shortDate || "13/09/2026"}</span>
+            <span className="hidden sm:inline">{fullDate || "13/09/2026"}</span>
           </div>
 
           {/* User Button / Admin link */}
