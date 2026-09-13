@@ -5,6 +5,9 @@ import { getProductSlug } from "@/lib/product-link";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // PENTING: harus sama dengan domain di Vercel env & GSC property (tanpa trailing slash)
   const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+  // image:loc wajib URL absolut (skema + host) — kolom DB kadang menyimpan path relatif /uploads/...
+  const toAbsoluteImageUrl = (url: string): string =>
+    /^https?:\/\//i.test(url) ? url : `${baseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
   const [projects, articles, products] = await Promise.all([getProjects(), getArticles(), getProducts()]);
 
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -36,7 +39,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(p.createdAt || Date.now()),
       changeFrequency: "weekly" as const,
       priority: p.featured ? 0.85 : 0.75,
-      images: p.thumbnailUrl ? [p.thumbnailUrl] : undefined,
+      images: p.thumbnailUrl ? [toAbsoluteImageUrl(p.thumbnailUrl)] : undefined,
     }));
 
   const articleRoutes: MetadataRoute.Sitemap = articles
@@ -46,7 +49,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(a.updatedAt || a.createdAt || Date.now()),
       changeFrequency: "weekly" as const,
       priority: a.featured ? 0.85 : 0.75,
-      images: a.imageUrl ? [a.imageUrl] : undefined,
+      images: a.imageUrl ? [toAbsoluteImageUrl(a.imageUrl)] : undefined,
     }));
 
   const productRoutes: MetadataRoute.Sitemap = products
@@ -56,7 +59,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: "monthly" as const,
       priority: 0.7,
-      images: p.thumbnailUrl ? [p.thumbnailUrl] : undefined,
+      images: p.thumbnailUrl ? [toAbsoluteImageUrl(p.thumbnailUrl)] : undefined,
     }));
 
   return [...staticRoutes, ...projectRoutes, ...articleRoutes, ...productRoutes];
