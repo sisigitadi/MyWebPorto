@@ -6,8 +6,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // PENTING: harus sama dengan domain di Vercel env & GSC property (tanpa trailing slash)
   const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
   // image:loc wajib URL absolut (skema + host) — kolom DB kadang menyimpan path relatif /uploads/...
-  const toAbsoluteImageUrl = (url: string): string =>
-    /^https?:\/\//i.test(url) ? url : `${baseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
+  // Catatan XML: '&' query-string (mis. ?q=80&w=800) wajib di-escape jadi '&amp;'
+  // karena serializer sitemap Next.js tidak meng-escape otomatis.
+  const toAbsoluteImageUrl = (url: string): string => {
+    const absolute = /^https?:\/\//i.test(url) ? url : `${baseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
+    return absolute.replace(/&/g, "&amp;");
+  };
   const [projects, articles, products] = await Promise.all([getProjects(), getArticles(), getProducts()]);
 
   const staticRoutes: MetadataRoute.Sitemap = [
