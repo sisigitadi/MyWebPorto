@@ -5,6 +5,7 @@ import {
   Database,
   FolderCheck,
   Globe,
+  History,
   Route,
   Server,
   XCircle,
@@ -18,6 +19,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getSystemStatus } from "@/lib/system-status";
+import { getAuditLogs } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -36,6 +38,7 @@ function StatusBadge({ ok, trueLabel = "OK", falseLabel = "Perhatian" }: { ok: b
 
 export default async function AdminSystemPage() {
   const status = await getSystemStatus();
+  const { logs: audits, source: auditSource } = await getAuditLogs(30);
   const envOk = status.env.filter((e) => e.key !== "NEXT_PUBLIC_APP_URL" && e.key !== "ENABLE_EXTERNAL_TRANSLATE").every((e) => e.configured);
 
   return (
@@ -57,7 +60,10 @@ export default async function AdminSystemPage() {
           <CardTitle className="flex items-center gap-2 text-base">
             <Server className="h-4 w-4 text-primary" /> Kelayakan Deploy (Feasibility)
           </CardTitle>
-          <CardDescription>Checklist pra-deploy dari SECURITY.md — semua harus OK sebelum ke produksi.</CardDescription>
+          <CardDescription className="flex items-center gap-2">
+            Checklist pra-deploy dari SECURITY.md.
+            <StatusBadge ok={status.deployReady} trueLabel="Siap deploy" falseLabel="Belum siap" />
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
           {status.env.map((e) => (
@@ -73,6 +79,20 @@ export default async function AdminSystemPage() {
           <div className="pt-2 text-xs text-muted-foreground">
             Kesimpulan env: {envOk ? "siap deploy." : "belum siap — lengkapi yang bertanda Perhatian."}
           </div>
+          {status.envIssues.length > 0 && (
+            <div className="pt-1 space-y-1">
+              <p className="text-xs font-semibold">Temuan validasi env (src/lib/env.ts):</p>
+              {status.envIssues.map((issue) => (
+                <p key={issue.key} className="text-xs font-mono">
+                  <Badge variant={issue.severity === "info" ? "outline" : "destructive"} className="mr-1.5">
+                    {issue.severity}
+                  </Badge>
+                  <span className="font-semibold">{issue.key}:</span>{" "}
+                  <span className="text-muted-foreground">{issue.message}</span>
+                </p>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -149,13 +169,54 @@ export default async function AdminSystemPage() {
         </CardContent>
       </Card>
 
+      {/* Audit log */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <History className="h-4 w-4 text-primary" /> Audit Log Admin
+          </CardTitle>
+          <CardDescription>
+            30 mutasi terakhir (sumber: {auditSource}). Ditulis best-effort setiap save/delete — tidak pernah menggagalkan mutasi.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {audits.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Belum ada aktivitas tercatat. Lakukan simpan/hapus konten via panel admin untuk mengisi log ini.
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              {audits.map((a) => (
+                <div key={a.id} className="flex items-start justify-between gap-3 border-b border-border/60 py-1.5 text-sm">
+                  <div className="min-w-0">
+                    <p className="text-xs">
+                      <Badge variant={a.action === "delete" ? "destructive" : "secondary"} className="mr-1.5">
+                        {a.action}
+                      </Badge>
+                      <span className="font-semibold font-mono">{a.entity}</span>
+                      {a.detail && <span className="text-muted-foreground"> — {a.detail}</span>}
+                    </p>
+                    <p className="font-mono text-[11px] text-muted-foreground truncate">
+                      {a.entityId ?? "—"} · actor {a.actor ? `${a.actor.slice(0, 12)}…` : "—"}
+                    </p>
+                  </div>
+                  <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
+                    {new Date(a.createdAt).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Logging */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Bug className="h-4 w-4 text-primary" /> Logging
           </CardTitle>
-          <CardDescription>Saat ini console-only — belum ada tabel audit persisten.</CardDescription>
+          <CardDescription>Mutasi admin persisten di tabel audit_logs; error teknis tetap disanitasi.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-1 text-sm">
           <p><span className="font-semibold">Strategi:</span> {status.observability.logging.strategy}</p>

@@ -32,6 +32,7 @@ import {
 import { translateText, isExternalTranslateEnabled } from "@/lib/translate";
 import { getProductSlug, slugifyProduct } from "@/lib/product-link";
 import { sanitizeError } from "@/lib/error-utils";
+import { logAudit } from "@/lib/audit";
 
 /**
  * Verifikasi apakah request mutasi berasal dari Admin yang terotentikasi.
@@ -396,6 +397,7 @@ export async function updateProfile(data: unknown) {
     }
   }
 
+  void logAudit({ action: "save", entity: "profile", entityId: "owner", detail: payload.name });
   revalidatePath("/", "layout");
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/profile");
@@ -626,6 +628,7 @@ export async function saveProject(data: unknown) {
     }
   }
 
+  void logAudit({ action: "save", entity: "projects", entityId: targetId, detail: dummyItem.title });
   revalidatePath("/", "layout");
   revalidatePath("/proyek", "layout");
   revalidatePath("/admin/projects");
@@ -666,6 +669,7 @@ export async function deleteProject(id: string) {
     }
   }
 
+  void logAudit({ action: "delete", entity: "projects", entityId: id });
   revalidatePath("/", "layout");
   revalidatePath("/proyek", "layout");
   revalidatePath("/admin/projects");
@@ -821,6 +825,7 @@ export async function saveService(data: unknown) {
     }
   }
 
+  void logAudit({ action: "save", entity: "services", entityId: targetId, detail: serviceData.title });
   revalidatePath("/");
   revalidatePath("/", "layout");
   revalidatePath("/admin");
@@ -863,6 +868,7 @@ export async function deleteService(id: string) {
     }
   }
 
+  void logAudit({ action: "delete", entity: "services", entityId: id });
   revalidatePath("/");
   revalidatePath("/", "layout");
   revalidatePath("/admin");
@@ -1051,6 +1057,7 @@ export async function saveProduct(data: unknown) {
     }
   }
 
+  void logAudit({ action: "save", entity: "products", entityId: targetId, detail: dummyItem.title });
   revalidatePath("/", "layout");
   revalidatePath("/toko", "layout");
   revalidatePath("/toko/[slug]", "page");
@@ -1096,6 +1103,7 @@ export async function deleteProduct(id: string) {
     }
   }
 
+  void logAudit({ action: "delete", entity: "products", entityId: id, detail: deletedProduct?.title });
   revalidatePath("/", "layout");
   revalidatePath("/toko", "layout");
   revalidatePath("/toko/[slug]", "page");
@@ -1264,6 +1272,7 @@ export async function saveTestimonial(data: unknown) {
     }
   }
 
+  void logAudit({ action: "save", entity: "testimonials", entityId: targetId, detail: testimonialData.clientName });
   revalidatePath("/", "layout");
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/testimonials");
@@ -1304,6 +1313,7 @@ export async function deleteTestimonial(id: string) {
     }
   }
 
+  void logAudit({ action: "delete", entity: "testimonials", entityId: id });
   revalidatePath("/", "layout");
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/testimonials");
@@ -1532,6 +1542,7 @@ export async function saveArticle(data: unknown) {
     }
   }
 
+  void logAudit({ action: "save", entity: "articles", entityId: articleId, detail: title });
   revalidatePath("/", "layout");
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/articles");
@@ -1573,6 +1584,7 @@ export async function deleteArticle(id: string) {
     }
   }
 
+  void logAudit({ action: "delete", entity: "articles", entityId: id });
   revalidatePath("/", "layout");
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/articles");

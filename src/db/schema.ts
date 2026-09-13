@@ -201,6 +201,29 @@ export const articles = pgTable(
   ]
 );
 
+/**
+ * Audit log admin — siapa mengubah apa dan kapan.
+ * Ditulis best-effort (tidak pernah menggagalkan mutasi) via src/lib/audit.ts.
+ * Retensi dibatasi di level aplikasi (default 500 baris terbaru).
+ */
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    action: text("action").notNull(),
+    entity: text("entity").notNull(),
+    entityId: text("entity_id"),
+    actor: text("actor"),
+    detail: text("detail"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("audit_logs_created_idx").on(table.createdAt)]
+);
+
 export type Profile = typeof profiles.$inferSelect;
 export type NewProfile = typeof profiles.$inferInsert;
 
@@ -218,3 +241,6 @@ export type NewTestimonial = typeof testimonials.$inferInsert;
 
 export type Article = typeof articles.$inferSelect;
 export type NewArticle = typeof articles.$inferInsert;
+
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type NewAuditLog = typeof auditLogs.$inferInsert;

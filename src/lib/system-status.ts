@@ -3,6 +3,7 @@
 import fs from "fs";
 import path from "path";
 import { db, isDbConnected } from "@/db";
+import { getEnvIssues, isDeployReady, type EnvIssue } from "@/lib/env";
 
 /**
  * Status kelayakan (feasibility/readiness) + observabilitas untuk /admin/system.
@@ -20,6 +21,8 @@ export interface EnvCheck {
 
 export interface SystemStatus {
   generatedAt: string;
+  deployReady: boolean;
+  envIssues: EnvIssue[];
   runtime: {
     nodeVersion: string;
     platform: string;
@@ -201,6 +204,8 @@ export async function getSystemStatus(): Promise<SystemStatus> {
 
   return {
     generatedAt: new Date().toISOString(),
+    deployReady: isDeployReady(),
+    envIssues: getEnvIssues(),
     runtime: {
       nodeVersion: process.version,
       platform: `${process.platform}-${process.arch}`,
@@ -244,7 +249,7 @@ export async function getSystemStatus(): Promise<SystemStatus> {
           "src/middleware.ts:24 — non-admin access denied",
         ],
         sanitization: "Allowlist pesan aman, stack/env tidak pernah ke klien.",
-        persistence: "Belum persisten — hilang di serverless. Langkah lanjut: tabel audit_logs + Sentry.",
+        persistence: "Mutasi admin persisten di tabel audit_logs (fallback local-store, retensi 500). Error teknis: console server + sanitizeError(). Langkah lanjut: Sentry/Log Drains.",
       },
     },
   };
