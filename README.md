@@ -24,6 +24,7 @@ Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager int
 - Proteksi rute `/admin/*` memakai Clerk middleware dan `ADMIN_CLERK_ID`.
 - Dashboard ringkasan konten.
 - CRUD profil, proyek, layanan, produk, testimoni, dan artikel.
+- Sistem & Logs di `/admin/system`: kelayakan deploy, tracing `x-request-id`, dan audit log mutasi.
 - **Manajemen tautan sosial**: isi Telegram, Instagram, TikTok, YouTube, Facebook, Discord, Slack, Reddit, Medium, GitHub, LinkedIn, X, Portofolio — tampil otomatis di Kontak.exe, footer & menubar hanya jika terisi.
 - **Editor chip** untuk tag artikel & tech stack proyek (tambah/hapus per item, bukan hardcode).
 - **Terminal AI** dengan perintah: `help`, `whoami`, `skills`, `projects`, `services`, `articles`, `contact`, `open <app>`, `theme`, `lang`, `neofetch`, `history`, `clear`, `reboot` + navigasi riwayat panah atas/bawah dan natural-language chat ke Sigit_Bot.
@@ -190,6 +191,14 @@ npm run dev
 ```
 
 Buka `http://localhost:3000`.
+
+## Pengujian
+
+```bash
+npm run test
+```
+
+Unit test Vitest untuk slug produk, AI engine terminal, dan validasi env. CI menjalankan ini otomatis di setiap PR.
 
 ## Database
 
