@@ -9,9 +9,9 @@ import {
   Globe,
 } from "lucide-react";
 import { useUser, UserButton } from "@clerk/nextjs";
+import { useOSTheme, OSTheme } from "./theme-context";
 import { useTranslation } from "@/lib/i18n";
 import { ProfileData } from "@/lib/dummy-data";
-import { buildSocialLinks } from "@/components/public/social-icons";
 
 interface OSMenubarProps {
   profile: ProfileData;
@@ -19,12 +19,10 @@ interface OSMenubarProps {
 
 export function OSMenubar({ profile }: OSMenubarProps) {
   const { isLoaded, isSignedIn } = useUser();
+  const { theme, setTheme } = useOSTheme();
   const { t, language, setLanguage } = useTranslation();
   const [shortDate, setShortDate] = useState("");
   const [fullDate, setFullDate] = useState("");
-  const socialLinks = buildSocialLinks(profile).filter((link) =>
-    ["github", "medium", "portfolio"].includes(link.key)
-  );
 
   // Tanggal format dd/mm/yyyy
   useEffect(() => {
@@ -78,25 +76,10 @@ export function OSMenubar({ profile }: OSMenubarProps) {
           </div>
         </div>
 
-        {/* Center: Social Media Links Bar (conditional) */}
-        <div className="flex items-center gap-1.5 sm:gap-2 px-1.5 sm:px-3 py-1 bg-[var(--vt-paper)] vt-card-inset">
-          {socialLinks.map((link) => (
-            <a
-              key={link.key}
-              href={link.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group vt-btn vt-btn-chrome px-2 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-xs md:text-[13px] font-bold text-[var(--vt-ink)] flex items-center gap-1.5 sm:gap-2 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:-translate-y-0.5 transition-all duration-300 cursor-pointer shadow-sm"
-              title={`${link.label}: ${link.href}`}
-              aria-label={link.label}
-            >
-              {link.icon}
-              <span className="hidden md:inline">{link.label}</span>
-            </a>
-          ))}
-        </div>
+        {/* Center: spacer agar branding kiri & clock kanan tetap seimbang */}
+        <div className="flex-1" />
 
-        {/* Right Side: Language & Clock */}
+        {/* Right Side: Language, Theme & Clock */}
         <div className="flex items-center gap-1 sm:gap-2 font-mono text-xs shrink-0">
           {/* Status Badge - desktop only */}
           <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 bg-[var(--vt-card)] vt-card-inset text-xs font-bold text-[var(--vt-ink)] hover:bg-primary/10 transition-colors">
@@ -114,6 +97,21 @@ export function OSMenubar({ profile }: OSMenubarProps) {
             <Globe className="h-3.5 w-3.5 sm:h-4.5 sm:w-4.5 text-primary group-hover:scale-110 group-hover:rotate-12 transition-all" />
             <span>{language.toUpperCase()}</span>
           </button>
+
+          {/* Theme Selector - hidden on mobile, shown on sm+ */}
+          <div className="hidden sm:block relative">
+            <select
+              value={theme}
+              onChange={(e) => setTheme(e.target.value as OSTheme)}
+              className="vt-btn vt-btn-chrome px-2 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-[13px] font-bold appearance-none cursor-pointer bg-transparent text-[var(--vt-ink)] hover:-translate-y-0.5 hover:text-indigo-500 transition-all shadow-sm"
+              title={t.os_theme_tooltip}
+            >
+              <option value="retro90s" className="bg-[var(--vt-chrome)] text-foreground">90s Retro</option>
+              <option value="dark" className="bg-[var(--vt-chrome)] text-foreground">Cyber Dark</option>
+              <option value="tokyo" className="bg-[var(--vt-chrome)] text-foreground">Tokyo Night</option>
+              <option value="vscode" className="bg-[var(--vt-chrome)] text-foreground">VS Code</option>
+            </select>
+          </div>
 
           {/* Digital Date (dd/mm/yyyy) */}
           <div
