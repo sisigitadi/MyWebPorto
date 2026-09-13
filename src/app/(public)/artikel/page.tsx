@@ -115,7 +115,7 @@ export default async function ArticlesPage() {
 
             {/* Header Banner */}
             <div className="mb-8">
-              <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-amber)]">
+              <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[#7a5f00] dark:text-[var(--vt-amber)]">
                 <span className="h-2 w-2 rounded-full bg-[var(--vt-amber)] animate-pulse" />
                 <span>ARTIKEL & PUBLIKASI</span>
               </div>
