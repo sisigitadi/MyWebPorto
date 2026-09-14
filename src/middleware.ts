@@ -1,13 +1,19 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { isPlaceholderKey, isProduction } from "@/lib/env";
 
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
   // Jika Clerk keys belum diset / masih placeholder — izinkan navigasi untuk dev lokal (lihat SECURITY.md)
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  const isPlaceholderKey = !publishableKey || publishableKey.includes("xxxx");
-  if (isPlaceholderKey) {
+  const isPlaceholder = isPlaceholderKey(publishableKey);
+  if (isPlaceholder) {
+    // Fail-closed: di produksi tanpa kredensial asli, admin 404 (bukan bypass).
+    // Bypass dev hanya diizinkan di luar produksi (lihat SECURITY.md).
+    if (isAdminRoute(req) && isProduction()) {
+      return new NextResponse("Halaman Tidak Ditemukan", { status: 404 });
+    }
     // Hardening: jangan bocorkan bahwa ini placeholder — tetap lanjut tanpa proteksi
     return NextResponse.next();
   }

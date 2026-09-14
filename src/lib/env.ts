@@ -23,12 +23,22 @@ const EnvSchema = z.object({
 export type AppEnv = z.infer<typeof EnvSchema>;
 
 function isPlaceholder(value: string | undefined): boolean {
+  return isPlaceholderKey(value);
+}
+
+/** True untuk nilai kosong/placeholder (xxxx, your-form-id, nama-storage-zone). */
+export function isPlaceholderKey(value: string | undefined): boolean {
   if (!value) return true;
   return (
     value.includes("xxxx") ||
     value.includes("your-form-id") ||
     value.includes("nama-storage-zone")
   );
+}
+
+/** True hanya di lingkungan produksi (Vercel production / NODE_ENV production). */
+export function isProduction(): boolean {
+  return process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
 }
 
 export interface EnvIssue {

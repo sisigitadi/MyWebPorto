@@ -146,6 +146,6 @@ curl -I https://domainanda.com/ | grep -i -E "strict|csp|x-frame|permissions"
 
 ## 8. Catatan Pengembangan
 
-- **Dev mode:** jika Clerk key placeholder, middleware & `verifyAdmin()` sengaja bypass agar dev jalan. **Pastikan key prod sebelum deploy.**
+- **Dev mode:** jika Clerk key placeholder, middleware & `verifyAdmin()` sengaja bypass agar dev jalan — **kecuali di produksi** (`VERCEL_ENV/NODE_ENV=production`): admin 404 dan mutasi ditolak (fail-closed, lihat `src/lib/env.ts`). **Pastikan key prod sebelum deploy.**
 - **Upload:** di Vercel, `public/uploads` read-only & ephemeral — file hilang saat redeploy.
 - **Kontak:** Formspree langsung ke endpoint eksternal; validasi client + Formspree spam filter.

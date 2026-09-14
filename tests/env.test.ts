@@ -1,6 +1,36 @@
-import { describe, expect, it } from "vitest";
-import { getEnvIssues, isDeployReady } from "@/lib/env";
+import { describe, expect, it, afterEach } from "vitest";
+import { getEnvIssues, isDeployReady, isPlaceholderKey, isProduction } from "@/lib/env";
 
+const OLD_VERCEL_ENV = process.env.VERCEL_ENV;
+const OLD_NODE_ENV = process.env.NODE_ENV;
+const writableEnv = process.env as Record<string, string | undefined>;
+
+afterEach(() => {
+  if (OLD_VERCEL_ENV === undefined) delete process.env.VERCEL_ENV;
+  else process.env.VERCEL_ENV = OLD_VERCEL_ENV;
+  writableEnv.NODE_ENV = OLD_NODE_ENV;
+});
+
+describe("isPlaceholderKey", () => {
+  it("mendeteksi kosong dan placeholder", () => {
+    expect(isPlaceholderKey(undefined)).toBe(true);
+    expect(isPlaceholderKey("")).toBe(true);
+    expect(isPlaceholderKey("pk_test_xxxx")).toBe(true);
+    expect(isPlaceholderKey("pk_live_abc")).toBe(false);
+  });
+});
+
+describe("isProduction", () => {
+  it("true hanya di production", () => {
+    process.env.VERCEL_ENV = "production";
+    expect(isProduction()).toBe(true);
+    delete process.env.VERCEL_ENV;
+    writableEnv.NODE_ENV = "production";
+    expect(isProduction()).toBe(true);
+    writableEnv.NODE_ENV = "test";
+    expect(isProduction()).toBe(false);
+  });
+});
 describe("getEnvIssues", () => {
   it("tidak pernah throw dan melabeli env kosong", () => {
     const issues = getEnvIssues({
@@ -16,8 +46,10 @@ describe("getEnvIssues", () => {
     expect(issues.length).toBeGreaterThan(0);
     expect(issues.some((i) => i.key === "DATABASE_URL")).toBe(true);
   });
+});
 
-  it("isDeployReady false bila ada warning, true bila lengkap", () => {
+describe("isDeployReady", () => {
+  it("false bila ada warning, true bila lengkap", () => {
     expect(
       isDeployReady({
         NEXT_PUBLIC_APP_URL: "",
