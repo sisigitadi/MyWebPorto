@@ -15,10 +15,12 @@ export function OSBootLoader() {
   const [currentStep, setCurrentStep] = useState(0);
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  // Synthesize mild retro PC speaker beep via Web Audio API (safe & gentle)
+  // Synthesize mild retro PC speaker beep via Web Audio API (safe & gentle).
+  // Dihormati preferensi suara pengguna (toggle di Start Menu, default ON).
   const playRetroBeep = (freq = 850, duration = 0.08) => {
     try {
       if (typeof window === "undefined") return;
+      if (window.localStorage?.getItem("sigitos_sound") === "off") return;
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (!AudioCtx) return;
       if (!audioContextRef.current) {
