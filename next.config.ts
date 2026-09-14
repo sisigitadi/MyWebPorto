@@ -13,12 +13,24 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
     formats: ["image/avif", "image/webp"],
-    // NOTE: wildcard ** memudahkan thumbnail eksternal, tapi long-term batasi ke host terpercaya
-    // Contoh hardening: ganti "**" dengan "images.unsplash.com", "cdn.sigitadi.id", dll.
+    // Allowlist host gambar eksternal (defense in depth — aktif penuh saat unoptimized=false).
+    // unoptimized=true saat ini (ramah VPS tanpa sharp) sehingga pola ini belum dienforce runtime.
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "**",
+        hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.b-cdn.net",
+      },
+      {
+        protocol: "https",
+        hostname: "sigitadi.id",
+      },
+      {
+        protocol: "https",
+        hostname: "*.sigitadi.id",
       },
     ],
   },
