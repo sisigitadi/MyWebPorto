@@ -42,12 +42,13 @@ import {
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUpload } from "@/components/admin/image-upload";
 import { DUMMY_PROJECTS, ProjectData } from "@/lib/dummy-data";
+import { ContentEditor } from "@/components/admin/content-editor";
+import { isScheduled } from "@/lib/publish";
 import {
   getProjects,
   saveProject,
@@ -86,10 +87,11 @@ export default function AdminProjectsPage() {
   const [formRepoUrl, setFormRepoUrl] = useState("");
   const [formFeatured, setFormFeatured] = useState(false);
   const [formPublished, setFormPublished] = useState(true);
+  const [formPublishAt, setFormPublishAt] = useState("");
 
   const fetchProjects = async () => {
     try {
-      const data = await getProjects();
+      const data = await getProjects({ includeScheduled: true });
       if (data) {
         setProjects(data);
       }
@@ -128,6 +130,7 @@ export default function AdminProjectsPage() {
     setFormRepoUrl("");
     setFormFeatured(false);
     setFormPublished(true);
+    setFormPublishAt("");
     setDialogOpen(true);
   };
 
@@ -149,6 +152,7 @@ export default function AdminProjectsPage() {
     setFormRepoUrl(project.repoUrl || "");
     setFormFeatured(project.featured);
     setFormPublished(project.published);
+    setFormPublishAt(project.publishAt ? project.publishAt.slice(0, 16) : "");
     setDialogOpen(true);
   };
 
@@ -221,6 +225,7 @@ export default function AdminProjectsPage() {
         techStacks: techArray,
         featured: formFeatured,
         published: formPublished,
+        publishAt: formPublishAt || undefined,
       };
 
       const res = await saveProject(payload);
@@ -364,6 +369,11 @@ export default function AdminProjectsPage() {
                       >
                         {project.published ? "Publik" : "Draf"}
                       </Badge>
+                      {isScheduled(project) && (
+                        <Badge variant="outline" className="ml-1 text-[10px] py-0 px-2 font-normal border-amber-500/50 text-amber-600 dark:text-amber-400">
+                          Terjadwal
+                        </Badge>
+                      )}
                     </TableCell>
 
                     <TableCell className="py-3">
@@ -505,16 +515,13 @@ export default function AdminProjectsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description" className="text-xs font-medium">
-                    Deskripsi Lengkap Latar Belakang & Solusi (ID)
-                  </Label>
-                  <Textarea
+                  <ContentEditor
                     id="description"
+                    label="Deskripsi Lengkap Latar Belakang & Solusi (ID)"
                     rows={4}
                     placeholder="Jelaskan tantangan, arsitektur sistem, dan solusi yang diimplementasikan"
                     value={formDescription}
-                    onChange={(e) => setFormDescription(e.target.value)}
-                    className="text-xs"
+                    onChange={(v) => setFormDescription(v)}
                   />
                 </div>
               </TabsContent>
@@ -569,16 +576,13 @@ export default function AdminProjectsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="descriptionEn" className="text-xs font-medium">
-                    Deskripsi Lengkap (English)
-                  </Label>
-                  <Textarea
+                  <ContentEditor
                     id="descriptionEn"
+                    label="Deskripsi Lengkap (English)"
                     rows={4}
                     placeholder="Detailed project background, technical architecture, and impact"
                     value={formDescriptionEn}
-                    onChange={(e) => setFormDescriptionEn(e.target.value)}
-                    className="text-xs"
+                    onChange={(v) => setFormDescriptionEn(v)}
                   />
                 </div>
 
@@ -684,6 +688,16 @@ export default function AdminProjectsPage() {
                     className="rounded border-border"
                   />
                   <span>Terbitkan ke Publik</span>
+                </label>
+
+                <label className="flex flex-col gap-1 text-xs font-medium text-foreground">
+                  <span>Jadwal tayang (opsional — kosong = langsung)</span>
+                  <input
+                    type="datetime-local"
+                    value={formPublishAt}
+                    onChange={(e) => setFormPublishAt(e.target.value)}
+                    className="rounded border border-border bg-background px-2 py-1 text-xs"
+                  />
                 </label>
               </div>
 

@@ -50,6 +50,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUpload } from "@/components/admin/image-upload";
 import { DUMMY_ARTICLES, ArticleData } from "@/lib/dummy-data";
+import { ContentEditor } from "@/components/admin/content-editor";
+import { isScheduled } from "@/lib/publish";
 import {
   getArticles,
   saveArticle,
@@ -87,10 +89,11 @@ export default function AdminArticlesPage() {
   const [formOrder, setFormOrder] = useState(0);
   const [formFeatured, setFormFeatured] = useState(false);
   const [formPublished, setFormPublished] = useState(true);
+  const [formPublishAt, setFormPublishAt] = useState("");
 
   const fetchArticles = async () => {
     try {
-      const data = await getArticles();
+      const data = await getArticles({ includeScheduled: true });
       if (data) {
         setArticles(data);
       }
@@ -119,6 +122,7 @@ export default function AdminArticlesPage() {
     setFormOrder(articles.length + 1);
     setFormFeatured(false);
     setFormPublished(true);
+    setFormPublishAt("");
     setErrorMessage("");
     setDialogOpen(true);
   };
@@ -139,6 +143,7 @@ export default function AdminArticlesPage() {
     setFormOrder(article.order || 0);
     setFormFeatured(article.featured);
     setFormPublished(article.published);
+    setFormPublishAt(article.publishAt ? article.publishAt.slice(0, 16) : "");
     setErrorMessage("");
     setDialogOpen(true);
   };
@@ -209,6 +214,7 @@ export default function AdminArticlesPage() {
         tags: tagsArray,
         featured: formFeatured,
         published: formPublished,
+        publishAt: formPublishAt || undefined,
         order: Number(formOrder) || 0,
       };
 
@@ -358,6 +364,11 @@ export default function AdminArticlesPage() {
                           Draft
                         </Badge>
                       )}
+                      {isScheduled(article) && (
+                        <Badge variant="outline" className="ml-1 text-amber-600 dark:text-amber-400 border-amber-500/40 text-[11px]">
+                          Terjadwal
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       <span className="flex items-center gap-1 font-mono text-[11px]">
@@ -501,15 +512,14 @@ export default function AdminArticlesPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="content">Isi Lengkap Artikel (ID) *</Label>
-                  <Textarea
+                  <ContentEditor
                     id="content"
+                    label="Isi Lengkap Artikel (ID) *"
                     required
                     rows={8}
-                    className="font-mono text-xs"
                     placeholder="Tulis artikel lengkap di sini. Anda dapat menggunakan format paragraf dan heading..."
                     value={formContent}
-                    onChange={(e) => setFormContent(e.target.value)}
+                    onChange={(v) => setFormContent(v)}
                   />
                 </div>
               </TabsContent>
@@ -538,14 +548,13 @@ export default function AdminArticlesPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="contentEn">Full Content (EN)</Label>
-                  <Textarea
+                  <ContentEditor
                     id="contentEn"
+                    label="Full Content (EN)"
                     rows={8}
-                    className="font-mono text-xs"
                     placeholder="Write the full English version here..."
                     value={formContentEn}
-                    onChange={(e) => setFormContentEn(e.target.value)}
+                    onChange={(v) => setFormContentEn(v)}
                   />
                 </div>
               </TabsContent>
@@ -631,6 +640,16 @@ export default function AdminArticlesPage() {
                     className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
                   />
                   <span>Publikasikan Langsung (Published)</span>
+                </label>
+
+                <label className="flex flex-col gap-1 text-sm text-foreground select-none">
+                  <span>Jadwal tayang (opsional — kosong = langsung)</span>
+                  <input
+                    type="datetime-local"
+                    value={formPublishAt}
+                    onChange={(e) => setFormPublishAt(e.target.value)}
+                    className="h-9 rounded border border-border bg-background px-2 text-xs"
+                  />
                 </label>
               </div>
             </div>

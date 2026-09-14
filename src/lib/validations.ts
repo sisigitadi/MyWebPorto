@@ -92,6 +92,14 @@ export const ProjectSchema = z.object({
   techStacks: z.array(z.string().max(40)).max(30).default([]),
   featured: z.boolean().default(false),
   published: z.boolean().default(true),
+  publishAt: z
+    .string()
+    .max(100, "Jadwal tayang tidak valid")
+    .optional()
+    .or(z.literal(""))
+    .refine((v) => !v || !Number.isNaN(new Date(v).getTime()), {
+      message: "Jadwal tayang harus tanggal valid (atau kosong untuk langsung tayang)",
+    }),
   order: z.number().int().min(0).max(9999).default(0),
 });
 
@@ -157,6 +165,14 @@ export const ArticleSchema = z.object({
   tags: z.array(z.string().max(30)).max(20).default([]),
   featured: z.boolean().default(false),
   published: z.boolean().default(true),
+  publishAt: z
+    .string()
+    .max(100, "Jadwal tayang tidak valid")
+    .optional()
+    .or(z.literal(""))
+    .refine((v) => !v || !Number.isNaN(new Date(v).getTime()), {
+      message: "Jadwal tayang harus tanggal valid (atau kosong untuk langsung tayang)",
+    }),
   order: z.number().int().min(0).max(9999).default(0),
 });
 

@@ -81,6 +81,8 @@ export const projects = pgTable(
     featured: boolean("featured").notNull().default(false),
     published: boolean("published").notNull().default(true),
     order: integer("order").notNull().default(0),
+    // Penjadwalan tayang: null = langsung tayang (bila published). Masa depan = tersembunyi publik.
+    publishAt: timestamp("publish_at", { withTimezone: true }),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -188,6 +190,8 @@ export const articles = pgTable(
     featured: boolean("featured").notNull().default(false),
     published: boolean("published").notNull().default(true),
     order: integer("order").notNull().default(0),
+    // Penjadwalan tayang: null = langsung tayang (bila published). Masa depan = tersembunyi publik.
+    publishAt: timestamp("publish_at", { withTimezone: true }),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

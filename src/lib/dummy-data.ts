@@ -49,6 +49,7 @@ export interface ProjectData {
   repoUrl?: string | null;
   featured: boolean;
   published: boolean;
+  publishAt?: string | null;
   createdAt: string;
 }
 
@@ -100,6 +101,7 @@ export interface ArticleData {
   tags: string[];
   featured: boolean;
   published: boolean;
+  publishAt?: string | null;
   order: number;
   createdAt: string;
   updatedAt?: string;

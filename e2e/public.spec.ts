@@ -31,5 +31,20 @@ test("feed RSS dan llms.txt tersedia", async ({ request }) => {
 
   const llms = await request.get("/llms.txt");
   expect(llms.status()).toBe(200);
-  expect(await llms.text()).toContain("# ");
+  const llmsText = await llms.text();
+  expect(llmsText).toContain("# ");
+  // Penanda route DINAMIS (bukan file statis basi): tautan kontak kanonis
+  expect(llmsText).toContain("/#kontak");
+});
+
+test("PWA: manifest, ikon, dan halaman offline", async ({ request }) => {
+  const manifest = await request.get("/manifest.webmanifest");
+  expect(manifest.status()).toBe(200);
+  expect(await manifest.text()).toContain("icon-512.png");
+
+  const icon = await request.get("/icons/icon-192.png");
+  expect(icon.status()).toBe(200);
+
+  const offline = await request.get("/offline");
+  expect(offline.status()).toBe(200);
 });

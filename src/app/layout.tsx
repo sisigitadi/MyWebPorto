@@ -12,6 +12,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ClerkProvider } from "@clerk/nextjs";
 import { getProfile } from "@/lib/actions";
 import { JsonLdSchema } from "@/components/public/json-ld";
+import { SwRegister } from "@/components/public/sw-register";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -110,6 +111,20 @@ export const metadata: Metadata = {
       "msvalidate.01": bingVerification,
     },
   },
+  manifest: "/manifest.webmanifest",
+  themeColor: "#0a0f1e",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "SigitOS",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 export default async function RootLayout({
@@ -132,6 +147,7 @@ export default async function RootLayout({
         <body className="font-sans antialiased selection:bg-primary selection:text-primary-foreground">
           {children}
           <Toaster position="top-right" richColors />
+          <SwRegister />
         </body>
       </html>
     </ClerkProvider>
