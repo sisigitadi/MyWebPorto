@@ -35,6 +35,7 @@ import { sanitizeError } from "@/lib/error-utils";
 import { logAudit } from "@/lib/audit";
 import { isPlaceholderKey, isProduction } from "@/lib/env";
 import { catalogUrl, detailUrl, submitUrlsToIndexNow } from "@/lib/indexnow";
+import { isLivePublished, normalizePublishAt } from "@/lib/publish";
 import { queryAIEngine } from "@/lib/ai-engine";
 import {
   buildCloudPrompt,
@@ -424,11 +425,15 @@ export async function updateProfile(data: unknown) {
 // ==========================================
 // PROYEK SERVER ACTIONS
 // ==========================================
-export async function getProjects(): Promise<ProjectData[]> {
+export async function getProjects(
+  opts: { includeScheduled?: boolean } = {}
+): Promise<ProjectData[]> {
   const store = getLocalStore();
   const baseProjects = (store?.projects as ProjectData[]) || DUMMY_PROJECTS;
+  const visible = (list: ProjectData[]) =>
+    opts.includeScheduled ? list : list.filter((p) => isLivePublished(p));
 
-  if (!isDbConnected) return baseProjects;
+  if (!isDbConnected) return visible(baseProjects);
   try {
     const list = await db.query.projects.findMany({
       orderBy: [asc(schema.projects.order), desc(schema.projects.createdAt)],
@@ -461,9 +466,10 @@ export async function getProjects(): Promise<ProjectData[]> {
       } catch (seedErr) {
         console.warn("Auto-seed projects dilewati:", seedErr);
       }
-      return baseProjects;
+      return visible(baseProjects);
     }
-    return list.map((p) => {
+    return visible(
+      list.map((p) => {
       const summaryId =
         (p.summary && p.summary.trim()) ||
         p.description.slice(0, 120) + (p.description.length > 120 ? "..." : "");
@@ -488,12 +494,14 @@ export async function getProjects(): Promise<ProjectData[]> {
         repoUrl: p.repoUrl || undefined,
         featured: p.featured,
         published: p.published ?? true,
+        publishAt: p.publishAt ? p.publishAt.toISOString() : null,
         createdAt: p.createdAt ? p.createdAt.toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
-      };
-    });
+      }
+      })
+    );
   } catch (error) {
     console.warn("Database query getProjects gagal, menggunakan data lokal:", error);
-    return baseProjects;
+    return visible(baseProjects);
   }
 }
 
@@ -547,6 +555,7 @@ export async function saveProject(data: unknown) {
       : null);
 
   const targetId = id || `proj-${Date.now()}`;
+  const publishAtISO = normalizePublishAt(projectData.publishAt);
   const dummyItem: ProjectData = {
     id: targetId,
     title: projectData.title,
@@ -562,6 +571,7 @@ export async function saveProject(data: unknown) {
     repoUrl: projectData.repoUrl || null,
     featured: projectData.featured ?? false,
     published: projectData.published ?? true,
+    publishAt: publishAtISO,
     createdAt: new Date().toISOString().split("T")[0],
   };
 
@@ -591,6 +601,7 @@ export async function saveProject(data: unknown) {
     DUMMY_PROJECTS.unshift(dummyItem);
   }
 
+  const publishAtDate = publishAtISO ? new Date(publishAtISO) : null;
   if (isDbConnected) {
     try {
       if (id) {
@@ -603,6 +614,7 @@ export async function saveProject(data: unknown) {
             .update(schema.projects)
             .set({
               ...projectData,
+              publishAt: publishAtDate,
               summary: summaryId,
               summaryEn: summaryEn,
               imageUrl: projectData.imageUrl,
@@ -614,6 +626,7 @@ export async function saveProject(data: unknown) {
           await db.insert(schema.projects).values({
             id,
             ...projectData,
+            publishAt: publishAtDate,
             summary: summaryId,
             summaryEn: summaryEn,
             imageUrl: projectData.imageUrl,
@@ -623,6 +636,7 @@ export async function saveProject(data: unknown) {
       } else {
         await db.insert(schema.projects).values({
           ...projectData,
+          publishAt: publishAtDate,
           summary: summaryId,
           summaryEn: summaryEn,
           imageUrl: projectData.imageUrl,
@@ -646,7 +660,7 @@ export async function saveProject(data: unknown) {
   }
 
   void logAudit({ action: "save", entity: "projects", entityId: targetId, detail: dummyItem.title });
-  if (projectData.published !== false) {
+  if (isLivePublished(dummyItem)) {
     void submitUrlsToIndexNow([detailUrl("proyek", dummyItem.slug)]);
   }
   revalidatePath("/", "layout");
@@ -1344,11 +1358,15 @@ export async function deleteTestimonial(id: string) {
 // ==========================================
 // ARTIKEL SERVER ACTIONS
 // ==========================================
-export async function getArticles(): Promise<ArticleData[]> {
+export async function getArticles(
+  opts: { includeScheduled?: boolean } = {}
+): Promise<ArticleData[]> {
   const store = getLocalStore();
   const baseArticles = (store?.articles as ArticleData[]) || DUMMY_ARTICLES;
+  const visible = (list: ArticleData[]) =>
+    opts.includeScheduled ? list : list.filter((a) => isLivePublished(a));
 
-  if (!isDbConnected) return baseArticles;
+  if (!isDbConnected) return visible(baseArticles);
   try {
     const list = await db.query.articles.findMany({
       orderBy: [asc(schema.articles.order), desc(schema.articles.createdAt)],
@@ -1388,9 +1406,10 @@ export async function getArticles(): Promise<ArticleData[]> {
       }
     }
 
-    if (!list || list.length === 0) return baseArticles;
+    if (!list || list.length === 0) return visible(baseArticles);
 
-    return list.map((a) => ({
+    return visible(
+      list.map((a) => ({
       id: a.id,
       slug: a.slug,
       title: a.title,
@@ -1403,13 +1422,15 @@ export async function getArticles(): Promise<ArticleData[]> {
       tags: (Array.isArray(a.tags) ? a.tags : []) as string[],
       featured: a.featured,
       published: a.published,
+      publishAt: a.publishAt ? a.publishAt.toISOString() : null,
       order: a.order,
       createdAt: a.createdAt ? a.createdAt.toISOString() : new Date().toISOString(),
       updatedAt: a.updatedAt ? a.updatedAt.toISOString() : undefined,
-    }));
+      }))
+    );
   } catch (error) {
     console.warn("Neon DB query getArticles gagal, beralih ke local-store/dummy:", error);
-    return baseArticles;
+    return visible(baseArticles);
   }
 }
 
@@ -1476,6 +1497,7 @@ export async function saveArticle(data: unknown) {
 
   const articleId = id || crypto.randomUUID();
   const now = new Date().toISOString();
+  const publishAtISO = normalizePublishAt(parseResult.data.publishAt);
 
   const articleRecord: ArticleData = {
     id: articleId,
@@ -1490,6 +1512,7 @@ export async function saveArticle(data: unknown) {
     tags: tags || [],
     featured: Boolean(featured),
     published: Boolean(published),
+    publishAt: publishAtISO,
     order: Number(order) || 0,
     createdAt: now,
     updatedAt: now,
@@ -1526,6 +1549,7 @@ export async function saveArticle(data: unknown) {
           tags: articleRecord.tags,
           featured: articleRecord.featured,
           published: articleRecord.published,
+          publishAt: publishAtISO ? new Date(publishAtISO) : null,
           order: articleRecord.order,
           updatedAt: new Date(),
         })
@@ -1543,6 +1567,7 @@ export async function saveArticle(data: unknown) {
             tags: articleRecord.tags,
             featured: articleRecord.featured,
             published: articleRecord.published,
+            publishAt: publishAtISO ? new Date(publishAtISO) : null,
             order: articleRecord.order,
             updatedAt: new Date(),
           },
@@ -1564,7 +1589,7 @@ export async function saveArticle(data: unknown) {
   }
 
   void logAudit({ action: "save", entity: "articles", entityId: articleId, detail: title });
-  if (published) {
+  if (isLivePublished(articleRecord)) {
     void submitUrlsToIndexNow([detailUrl("artikel", articleRecord.slug)]);
   }
   revalidatePath("/", "layout");

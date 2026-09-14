@@ -39,11 +39,11 @@ export default async function AdminDashboardPage() {
     await Promise.all([
       currentUser(),
       getProfile(),
-      getProjects(),
+      getProjects({ includeScheduled: true }),
       getServices(),
       getProducts(),
       getTestimonials(),
-      getArticles(),
+      getArticles({ includeScheduled: true }),
     ]);
 
   const displayName =
