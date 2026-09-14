@@ -78,6 +78,9 @@ export const metadata: Metadata = {
   publisher: "Sigit Adi Pranoto",
   alternates: {
     canonical: appUrl,
+    types: {
+      "application/rss+xml": `${appUrl}/feed.xml`,
+    },
   },
   openGraph: {
     type: "website",

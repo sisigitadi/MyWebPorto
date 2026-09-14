@@ -34,6 +34,7 @@ import { getProductSlug, slugifyProduct } from "@/lib/product-link";
 import { sanitizeError } from "@/lib/error-utils";
 import { logAudit } from "@/lib/audit";
 import { isPlaceholderKey, isProduction } from "@/lib/env";
+import { catalogUrl, detailUrl, submitUrlsToIndexNow } from "@/lib/indexnow";
 
 /**
  * Verifikasi apakah request mutasi berasal dari Admin yang terotentikasi.
@@ -635,6 +636,9 @@ export async function saveProject(data: unknown) {
   }
 
   void logAudit({ action: "save", entity: "projects", entityId: targetId, detail: dummyItem.title });
+  if (projectData.published !== false) {
+    void submitUrlsToIndexNow([detailUrl("proyek", dummyItem.slug)]);
+  }
   revalidatePath("/", "layout");
   revalidatePath("/proyek", "layout");
   revalidatePath("/admin/projects");
@@ -676,6 +680,7 @@ export async function deleteProject(id: string) {
   }
 
   void logAudit({ action: "delete", entity: "projects", entityId: id });
+  void submitUrlsToIndexNow([catalogUrl("proyek")]);
   revalidatePath("/", "layout");
   revalidatePath("/proyek", "layout");
   revalidatePath("/admin/projects");
@@ -1549,6 +1554,9 @@ export async function saveArticle(data: unknown) {
   }
 
   void logAudit({ action: "save", entity: "articles", entityId: articleId, detail: title });
+  if (published) {
+    void submitUrlsToIndexNow([detailUrl("artikel", articleRecord.slug)]);
+  }
   revalidatePath("/", "layout");
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/articles");
@@ -1591,6 +1599,7 @@ export async function deleteArticle(id: string) {
   }
 
   void logAudit({ action: "delete", entity: "articles", entityId: id });
+  void submitUrlsToIndexNow([catalogUrl("artikel")]);
   revalidatePath("/", "layout");
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/articles");

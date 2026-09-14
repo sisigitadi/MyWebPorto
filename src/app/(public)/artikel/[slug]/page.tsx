@@ -66,7 +66,23 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
   }
 
   const pageUrl = `${baseUrl}/artikel/${article.slug}`;
-  const relatedArticles = articles.filter((a) => a.id !== article.id && a.published);
+  // Terkait: skor = jumlah tag sama, lalu featured, lalu terbaru. Max 3.
+  const currentTags = new Set((article.tags || []).map((t) => t.toLowerCase()));
+  const relatedArticles = articles
+    .filter((a) => a.id !== article.id && a.published)
+    .map((a) => ({
+      article: a,
+      score: (a.tags || []).filter((t) => currentTags.has(t.toLowerCase())).length,
+    }))
+    .sort((x, y) => {
+      if (y.score !== x.score) return y.score - x.score;
+      if (Number(y.article.featured) !== Number(x.article.featured)) {
+        return Number(y.article.featured) - Number(x.article.featured);
+      }
+      return +new Date(y.article.createdAt) - +new Date(x.article.createdAt);
+    })
+    .slice(0, 3)
+    .map((x) => x.article);
 
   const breadcrumbSchema = {
     "@context": "https://schema.org",
