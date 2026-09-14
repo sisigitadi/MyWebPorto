@@ -20,6 +20,7 @@ import { useTranslation } from "@/lib/i18n";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { OSWindow } from "@/components/public/os/os-window";
+import { FormattedText } from "@/components/public/formatted-text";
 import { ArticleData, ProfileData } from "@/lib/dummy-data";
 import { buildContactPrefillUrl } from "@/lib/contact-link";
 import { toast } from "sonner";
@@ -120,76 +121,10 @@ export function ArticleDetailContent({
     body: discussionBody,
   });
 
-  // Helper to render formatted article paragraphs or headers
-  const renderFormattedContent = (rawText: string) => {
-    if (!rawText) return null;
-    const blocks = rawText.split(/\n\n+/);
-
-    return blocks.map((block, idx) => {
-      const trimmed = block.trim();
-      if (!trimmed) return null;
-
-      // H2 Heading
-      if (trimmed.startsWith("## ")) {
-        return (
-          <h2
-            key={idx}
-            className="text-xl sm:text-2xl font-pixel font-bold text-foreground mt-8 mb-4 tracking-tight border-b border-border/60 pb-2"
-          >
-            {trimmed.replace(/^##\s+/, "")}
-          </h2>
-        );
-      }
-
-      // H3 Heading
-      if (trimmed.startsWith("### ")) {
-        return (
-          <h3
-            key={idx}
-            className="text-base sm:text-lg font-mono font-bold text-foreground mt-6 mb-3 tracking-tight"
-          >
-            {"> "}
-            {trimmed.replace(/^###\s+/, "")}
-          </h3>
-        );
-      }
-
-      // Blockquote
-      if (trimmed.startsWith("> ")) {
-        return (
-          <blockquote
-            key={idx}
-            className="border-l-4 border-primary bg-muted/40 p-4 rounded-r font-mono text-xs sm:text-sm text-[var(--vt-ink)] italic my-4"
-          >
-            {trimmed.replace(/^>\s+/, "")}
-          </blockquote>
-        );
-      }
-
-      // Code Block / Terminal snippet
-      if (trimmed.startsWith("```") && trimmed.endsWith("```")) {
-        const cleanCode = trimmed.replace(/^```[a-z]*\n?/, "").replace(/```$/, "");
-        return (
-          <pre
-            key={idx}
-            className="p-4 rounded bg-black/90 text-emerald-400 font-mono text-xs overflow-x-auto border border-border/80 shadow-inner my-4"
-          >
-            <code>{cleanCode}</code>
-          </pre>
-        );
-      }
-
-      // Regular Paragraph
-      return (
-        <p
-          key={idx}
-          className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] leading-relaxed sm:leading-loose my-3 mobile-safe-text"
-        >
-          {trimmed}
-        </p>
-      );
-    });
-  };
+            {/* In-Depth Article Content Body */}
+            <article className="prose prose-sm dark:prose-invert max-w-none pt-2 font-mono">
+              <FormattedText text={content} />
+            </article>
 
   return (
     <div ref={containerRef} className="py-8 md:py-14 w-full">
@@ -369,11 +304,6 @@ export function ArticleDetailContent({
                 </div>
               </div>
             )}
-
-            {/* In-Depth Article Content Body */}
-            <article className="prose prose-sm dark:prose-invert max-w-none pt-2 font-mono">
-              {renderFormattedContent(content)}
-            </article>
 
             {/* Author Footer Card */}
             <div className="p-4 rounded bg-muted/40 border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-8">

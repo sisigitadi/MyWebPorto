@@ -50,6 +50,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUpload } from "@/components/admin/image-upload";
 import { DUMMY_ARTICLES, ArticleData } from "@/lib/dummy-data";
+import { ContentEditor } from "@/components/admin/content-editor";
 import { isScheduled } from "@/lib/publish";
 import {
   getArticles,
@@ -511,15 +512,14 @@ export default function AdminArticlesPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="content">Isi Lengkap Artikel (ID) *</Label>
-                  <Textarea
+                  <ContentEditor
                     id="content"
+                    label="Isi Lengkap Artikel (ID) *"
                     required
                     rows={8}
-                    className="font-mono text-xs"
                     placeholder="Tulis artikel lengkap di sini. Anda dapat menggunakan format paragraf dan heading..."
                     value={formContent}
-                    onChange={(e) => setFormContent(e.target.value)}
+                    onChange={(v) => setFormContent(v)}
                   />
                 </div>
               </TabsContent>
@@ -548,14 +548,13 @@ export default function AdminArticlesPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="contentEn">Full Content (EN)</Label>
-                  <Textarea
+                  <ContentEditor
                     id="contentEn"
+                    label="Full Content (EN)"
                     rows={8}
-                    className="font-mono text-xs"
                     placeholder="Write the full English version here..."
                     value={formContentEn}
-                    onChange={(e) => setFormContentEn(e.target.value)}
+                    onChange={(v) => setFormContentEn(v)}
                   />
                 </div>
               </TabsContent>

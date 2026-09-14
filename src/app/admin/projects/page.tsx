@@ -42,12 +42,12 @@ import {
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUpload } from "@/components/admin/image-upload";
 import { DUMMY_PROJECTS, ProjectData } from "@/lib/dummy-data";
+import { ContentEditor } from "@/components/admin/content-editor";
 import { isScheduled } from "@/lib/publish";
 import {
   getProjects,
@@ -515,16 +515,13 @@ export default function AdminProjectsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description" className="text-xs font-medium">
-                    Deskripsi Lengkap Latar Belakang & Solusi (ID)
-                  </Label>
-                  <Textarea
+                  <ContentEditor
                     id="description"
+                    label="Deskripsi Lengkap Latar Belakang & Solusi (ID)"
                     rows={4}
                     placeholder="Jelaskan tantangan, arsitektur sistem, dan solusi yang diimplementasikan"
                     value={formDescription}
-                    onChange={(e) => setFormDescription(e.target.value)}
-                    className="text-xs"
+                    onChange={(v) => setFormDescription(v)}
                   />
                 </div>
               </TabsContent>
@@ -579,16 +576,13 @@ export default function AdminProjectsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="descriptionEn" className="text-xs font-medium">
-                    Deskripsi Lengkap (English)
-                  </Label>
-                  <Textarea
+                  <ContentEditor
                     id="descriptionEn"
+                    label="Deskripsi Lengkap (English)"
                     rows={4}
                     placeholder="Detailed project background, technical architecture, and impact"
                     value={formDescriptionEn}
-                    onChange={(e) => setFormDescriptionEn(e.target.value)}
-                    className="text-xs"
+                    onChange={(v) => setFormDescriptionEn(v)}
                   />
                 </div>
 
