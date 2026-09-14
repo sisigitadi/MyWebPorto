@@ -19,6 +19,7 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 - Added: draft & schedule — kolom `publishAt` proyek/artikel (migrasi 0005), filter publik otomatis, input jadwal + badge Terjadwal di admin.
 - Added: content editor admin — toolbar sintaks (H2/H3/quote/kode) + pratinjau WYSIWYG via renderer publik bersama.
 - Added: PWA — manifest, ikon avatar (192/512/maskable/Apple), halaman offline + service worker fallback, theme-color.
+- Changed: urutan aplikasi SigitOS — Testimoni pindah setelah Terminal, sebelum Kontak.
 
 ## [v2.6.1] - 2026-09-13
 - Changed: taskbar atas tanpa bar sosmed; theme selector tampil di semua ukuran layar.
