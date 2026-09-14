@@ -9,9 +9,13 @@ import {
   Bot,
   CornerDownLeft,
   Copy,
+  Mic,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { queryAIEngine } from "@/lib/ai-engine";
+import { askSigitBot, getCloudAIStatus } from "@/lib/actions";
 import { useOSTheme, OSTheme } from "./theme-context";
 import { ProfileData, ServiceData, ProjectData, ArticleData } from "@/lib/dummy-data";
 import { buildSocialLinks } from "@/components/public/social-icons";
@@ -23,6 +27,19 @@ interface OSCrtTerminalProps {
   projects: ProjectData[];
   articles: ArticleData[];
 }
+
+// Minimal Web Speech API typing (tanpa dep tambahan)
+interface SpeechRecognitionInstance {
+  lang: string;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onresult: ((e: { results?: { 0?: { 0?: { transcript?: string } } } }) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+type SpeechRecognitionCtor = new () => SpeechRecognitionInstance;
 
 const APP_ALIASES: Record<string, string> = {
   profil: "profil",
@@ -92,11 +109,91 @@ export function OSCrtTerminal({
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [copied, setCopied] = useState(false);
+  const [cloudOn, setCloudOn] = useState(false);
+  const [ttsOn, setTtsOn] = useState(false);
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [logs]);
+
+  // Tanyakan sekali apakah cloud AI opt-in aktif (default OFF).
+  useEffect(() => {
+    let cancelled = false;
+    getCloudAIStatus()
+      .then((s) => {
+        if (!cancelled) setCloudOn(s.enabled);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const speak = (text: string) => {
+    try {
+      if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text.replace(/\n+/g, ". ").slice(0, 500));
+      utter.lang = language === "en" ? "en-US" : "id-ID";
+      window.speechSynthesis.speak(utter);
+    } catch {
+      // TTS opsional — abaikan bila diblokir browser
+    }
+  };
+
+  const stopSpeaking = () => {
+    try {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    } catch {
+      // abaikan
+    }
+  };
+
+  const speechSupported =
+    typeof window !== "undefined" &&
+    Boolean(
+      (window as unknown as { SpeechRecognition?: SpeechRecognitionCtor }).SpeechRecognition ||
+        (window as unknown as { webkitSpeechRecognition?: SpeechRecognitionCtor }).webkitSpeechRecognition
+    );
+
+  const toggleMic = () => {
+    if (!speechSupported) return;
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const w = window as unknown as {
+      SpeechRecognition?: SpeechRecognitionCtor;
+      webkitSpeechRecognition?: SpeechRecognitionCtor;
+    };
+    const Ctor = w.SpeechRecognition || w.webkitSpeechRecognition;
+    if (!Ctor) return;
+    const rec = new Ctor();
+    recognitionRef.current = rec;
+    rec.lang = language === "en" ? "en-US" : "id-ID";
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    rec.onresult = (e) => {
+      const transcript = e.results?.[0]?.[0]?.transcript || "";
+      if (transcript.trim()) {
+        setCommandInput(transcript.trim());
+        executeCommandOrQuery(transcript.trim());
+      }
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    try {
+      rec.start();
+      setListening(true);
+    } catch {
+      setListening(false);
+    }
+  };
 
   const appendLogs = (lines: string[]) => setLogs((prev) => [...prev, ...lines]);
 
@@ -401,18 +498,39 @@ export function OSCrtTerminal({
       return;
     }
 
-    // Machine Learning / NLP inference fallback
+    // Machine Learning / NLP inference: lokal dulu, cloud bila ragu + opt-in.
     setIsInferencing(true);
+    stopSpeaking();
     appendLogs([...newLogs, "SIGIT_BOT: [Inferencing neural weights...]"]);
 
-    setTimeout(() => {
+    setTimeout(async () => {
       const result = queryAIEngine(raw, language);
+      if (result.confidence < 0.55 && cloudOn) {
+        appendLogs(["SIGIT_BOT: [Consulting cloud model...]"]);
+        try {
+          const cloud = await askSigitBot(raw, language);
+          if (cloud.source === "cloud") {
+            const outputLines = cloud.text.split("\n");
+            setLogs((prev) => [
+              ...prev.filter((l) => !l.includes("[Inferencing neural weights") && !l.includes("[Consulting cloud")),
+              `[Sigit_Bot.ai Cloud | Gemini | Intent: ${cloud.intent}]`,
+              ...outputLines,
+            ]);
+            if (ttsOn) speak(cloud.text);
+            setIsInferencing(false);
+            return;
+          }
+        } catch {
+          // jatuh ke jawaban lokal di bawah
+        }
+      }
       const outputLines = result.text.split("\n");
       setLogs((prev) => [
-        ...prev.filter((l) => !l.includes("[Inferencing neural weights")),
+        ...prev.filter((l) => !l.includes("[Inferencing neural weights") && !l.includes("[Consulting cloud")),
         `[Sigit_Bot.ai | Confidence: ${(result.confidence * 100).toFixed(0)}% | Intent: ${result.intent}]`,
         ...outputLines,
       ]);
+      if (ttsOn) speak(result.text);
       setIsInferencing(false);
     }, 280);
 
@@ -592,8 +710,40 @@ export function OSCrtTerminal({
           onChange={(e) => setCommandInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={language === "en" ? "Type 'help' or ask anything..." : "Ketik 'help' atau tanyakan apa saja..."}
-          className="flex-1 bg-transparent border-0 outline-none text-[#37ff9b] font-mono text-xs placeholder:text-[#37ff9b]/40 focus:ring-0 p-0"
+          className="flex-1 bg-transparent border-0 outline-none text-[#37ff9b] font-mono text-xs placeholder:text-[#37ff9b]/40 focus:ring-0 p-0 min-w-0"
         />
+        {speechSupported && (
+          <button
+            type="button"
+            onClick={toggleMic}
+            className={`shrink-0 p-1.5 rounded-xs border transition-colors cursor-pointer ${
+              listening
+                ? "bg-red-500/20 border-red-500 text-red-400 animate-pulse"
+                : "border-[#37ff9b]/30 text-[#37ff9b]/70 hover:text-[#37ff9b]"
+            }`}
+            title={language === "en" ? "Voice input" : "Input suara"}
+            aria-label={language === "en" ? "Voice input" : "Input suara"}
+          >
+            <Mic className="h-3 w-3" />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            if (ttsOn) stopSpeaking();
+            setTtsOn((v) => !v);
+          }}
+          className={`shrink-0 p-1.5 rounded-xs border transition-colors cursor-pointer ${
+            ttsOn
+              ? "border-sky-400/60 text-sky-300"
+              : "border-[#37ff9b]/30 text-[#37ff9b]/70 hover:text-[#37ff9b]"
+          }`}
+          title={language === "en" ? "Read answers aloud" : "Bacakan jawaban"}
+          aria-label={language === "en" ? "Read answers aloud" : "Bacakan jawaban"}
+          aria-pressed={ttsOn}
+        >
+          {ttsOn ? <Volume2 className="h-3 w-3" /> : <VolumeX className="h-3 w-3" />}
+        </button>
         <button
           type="submit"
           className="vt-btn vt-btn-chrome px-3 py-1 text-[10px] font-mono font-bold flex items-center gap-1 cursor-pointer"

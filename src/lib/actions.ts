@@ -35,6 +35,16 @@ import { sanitizeError } from "@/lib/error-utils";
 import { logAudit } from "@/lib/audit";
 import { isPlaceholderKey, isProduction } from "@/lib/env";
 import { catalogUrl, detailUrl, submitUrlsToIndexNow } from "@/lib/indexnow";
+import { queryAIEngine } from "@/lib/ai-engine";
+import {
+  buildCloudPrompt,
+  getCloudAIModel,
+  isCloudAIEnabled,
+  submitToGemini,
+  type LiveContext,
+} from "@/lib/ai-provider";
+import { rateLimit, cleanupRateLimits } from "@/lib/rate-limit";
+import { headers } from "next/headers";
 
 /**
  * Verifikasi apakah request mutasi berasal dari Admin yang terotentikasi.
@@ -1604,4 +1614,96 @@ export async function deleteArticle(id: string) {
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/articles");
   return { success: true, message: "Artikel berhasil dihapus!" };
+}
+
+// ==========================================
+// SIGIT_BOT HYBRID AI (publik, tanpa login)
+// ==========================================
+// Lokal dulu (gratis, privat), cloud hanya bila confidence rendah DAN provider
+// opt-in aktif. Anti-abuse: rate-limit per IP, input dibatasi, output dibatasi,
+// prompt hanya berisi katalog publik. BUKAN verifyAdmin — bot dipakai pengunjung.
+const AIBOT_LIMIT = 10;
+const AIBOT_WINDOW_MS = 5 * 60_000;
+const AIBOT_CONFIDENCE_THRESHOLD = 0.55;
+
+async function aibotIp(): Promise<string> {
+  try {
+    const h = await headers();
+    const fwd = h.get("x-forwarded-for");
+    if (fwd) return fwd.split(",")[0].trim();
+    return h.get("x-real-ip") || "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+/** Status cloud AI untuk client (agar tahu perlu fallback cloud atau tidak). */
+export async function getCloudAIStatus(): Promise<{ enabled: boolean; model: string }> {
+  return { enabled: isCloudAIEnabled(), model: getCloudAIModel() };
+}
+
+export async function askSigitBot(
+  rawInput: string,
+  preferredLang: "id" | "en" = "id"
+): Promise<{ text: string; intent: string; confidence: number; source: "local" | "cloud" }> {
+  const cleanInput = (rawInput || "").trim().slice(0, 500);
+  const lang = preferredLang === "en" ? "en" : "id";
+  if (!cleanInput) {
+    return {
+      text: lang === "en" ? "Please enter a query or command." : "Silakan masukkan pertanyaan atau perintah.",
+      intent: "empty",
+      confidence: 0,
+      source: "local",
+    };
+  }
+
+  const ip = await aibotIp();
+  const rl = rateLimit(`aibot:${ip}`, AIBOT_LIMIT, AIBOT_WINDOW_MS);
+  cleanupRateLimits();
+  if (!rl.allowed) {
+    return {
+      text:
+        lang === "en"
+          ? "Rate limit reached. Please wait a moment before asking again."
+          : "Batas pertanyaan tercapai. Tunggu sebentar sebelum bertanya lagi.",
+      intent: "rate_limited",
+      confidence: 1,
+      source: "local",
+    };
+  }
+
+  const local = queryAIEngine(cleanInput, lang);
+  if (local.confidence >= AIBOT_CONFIDENCE_THRESHOLD || !isCloudAIEnabled()) {
+    return { ...local, source: "local" };
+  }
+
+  try {
+    const [profile, services, projects, articles] = await Promise.all([
+      getProfile(),
+      getServices(),
+      getProjects(),
+      getArticles(),
+    ]);
+    const ctx: LiveContext = {
+      ownerName: profile.name,
+      headline: profile.headline,
+      skills: profile.skills || [],
+      services: services.filter((s) => s.published !== false).map((s) => s.title),
+      projects: projects
+        .filter((p) => p.published)
+        .slice(0, 8)
+        .map((p) => ({ title: p.title, slug: p.slug })),
+      articles: articles
+        .filter((a) => a.published)
+        .slice(0, 8)
+        .map((a) => ({ title: a.title, slug: a.slug })),
+    };
+    const cloud = await submitToGemini(buildCloudPrompt(cleanInput, ctx, lang));
+    if (cloud.success) {
+      return { text: cloud.text, intent: local.intent, confidence: local.confidence, source: "cloud" };
+    }
+  } catch (err) {
+    console.error("askSigitBot cloud fallback gagal:", err instanceof Error ? err.message.slice(0, 200) : err);
+  }
+  return { ...local, source: "local" };
 }

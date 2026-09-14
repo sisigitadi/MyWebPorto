@@ -4,6 +4,14 @@ import fs from "fs";
 import path from "path";
 import { db, isDbConnected } from "@/db";
 import { getEnvIssues, isDeployReady, type EnvIssue } from "@/lib/env";
+import { getCloudAIModel, isCloudAIEnabled } from "@/lib/ai-provider";
+
+function cloudAIDetail(): string {
+  if (!isCloudAIEnabled()) {
+    return "OFF (default) — Sigit_Bot 100% lokal TF-IDF, nol egress. Aktifkan via AI_PROVIDER=gemini + GEMINI_API_KEY.";
+  }
+  return `ON — Gemini ${getCloudAIModel()} sebagai fallback confidence rendah + konteks katalog live. Rate-limit publik 10/5 mnt/IP.`;
+}
 
 /**
  * Status kelayakan (feasibility/readiness) + observabilitas untuk /admin/system.
@@ -49,6 +57,7 @@ export interface SystemStatus {
     indexNow: string;
     formspree: string;
     storage: string;
+    cloudAI: string;
   };
   observability: {
     tracing: {
@@ -232,6 +241,7 @@ export async function getSystemStatus(): Promise<SystemStatus> {
         ? "Terkonfigurasi."
         : "Belum dikonfigurasi — form kontak tidak terkirim.",
       storage: "Lokal (public/uploads). BUNNY_* ada di .env.example tapi belum di-wiring.",
+      cloudAI: cloudAIDetail(),
     },
     observability: {
       tracing: {
