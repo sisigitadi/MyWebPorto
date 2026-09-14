@@ -97,6 +97,7 @@ Header lengkap di `next.config.ts:25`:
 - **Tidak ada auto-translate saat save.** Tombol `Terjemahkan (ID→EN)` opt-in per field → `translateFieldAction` + `verifyAdmin()`.
 - `ENABLE_EXTERNAL_TRANSLATE=false` → `translateText()` throw, UI minta isi manual.
 - Kolom EN kosong = fallback ke teks ID (tidak trigger egress).
+- **Sigit_Bot hybrid (default lokal):** `askSigitBot` publik tanpa login, dibatasi rate-limit 10/5 mnt/IP, input 500 char, output 300 token. Cloud (Gemini) hanya bila `AI_PROVIDER=gemini` + key valid DAN confidence lokal < 0,55. Prompt hanya berisi katalog publik (nama, headline, skill, judul layanan/proyek/artikel) — tanpa PII/secret. Aktifkan hanya dengan key server-side (`GEMINI_API_KEY`, tidak pernah ke klien).
 
 ---
 

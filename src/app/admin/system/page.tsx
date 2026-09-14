@@ -151,6 +151,7 @@ export default async function AdminSystemPage() {
           <p><span className="font-semibold">IndexNow:</span> {status.integrations.indexNow}</p>
           <p><span className="font-semibold">Formspree:</span> {status.integrations.formspree}</p>
           <p className="md:col-span-2"><span className="font-semibold">Storage:</span> {status.integrations.storage}</p>
+          <p className="md:col-span-2"><span className="font-semibold">Cloud AI:</span> {status.integrations.cloudAI}</p>
         </CardContent>
       </Card>
 
