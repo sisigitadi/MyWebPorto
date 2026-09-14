@@ -12,6 +12,7 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 - Added: auto-ping IndexNow saat save/delete proyek & artikel (best-effort, hanya published).
 - Added: RSS `/feed.xml` + autodiscovery, related articles berperingkat tag.
 - Added: reading progress + share X/LinkedIn/WA di detail artikel; perintah terminal `cv/github/email/theme random`.
+- Added: SigitOS UX — animasi minimize/restore + indikator taskbar, double-click maximize, palet perintah Ctrl+K, search start menu, toggle suara persisten.
 
 ## [v2.6.1] - 2026-09-13
 - Changed: taskbar atas tanpa bar sosmed; theme selector tampil di semua ukuran layar.

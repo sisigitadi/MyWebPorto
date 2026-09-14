@@ -13,6 +13,8 @@ import {
   ChevronRight,
   Maximize2,
   Minimize2,
+  Volume2,
+  VolumeX,
   X,
   HardDrive,
   Palette,
@@ -31,6 +33,7 @@ import { TestimonialsSection } from "@/components/public/testimonials-section";
 import { ArticlesSection } from "@/components/public/articles-section";
 import { ContactSection } from "@/components/public/contact-section";
 import { OSCrtTerminal } from "@/components/public/os/os-crt-terminal";
+import { OSCommandPalette, PaletteAction } from "@/components/public/os/os-command-palette";
 
 interface OSDesktopManagerProps {
   profile: ProfileData;
@@ -42,6 +45,13 @@ interface OSDesktopManagerProps {
 }
 
 type AppId = "profil" | "layanan" | "proyek" | "toko" | "testimoni" | "artikel" | "kontak" | "terminal";
+
+const THEMES: { id: OSTheme; label: string; tag: string }[] = [
+  { id: "retro90s", label: "Classic 90s OS", tag: "DEFAULT" },
+  { id: "dark", label: "Cyber Dark OS", tag: "DARK" },
+  { id: "tokyo", label: "Tokyo Night Cyber", tag: "NEON" },
+  { id: "vscode", label: "VS Code Hacker", tag: "DEV" },
+];
 
 interface AppItem {
   id: AppId;
@@ -125,14 +135,13 @@ export function OSDesktopManager({
   const [isMaximized, setIsMaximized] = useState(false);
   const [startOpen, setStartOpen] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [menuQuery, setMenuQuery] = useState("");
+  const [soundOn, setSoundOn] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.localStorage?.getItem("sigitos_sound") !== "off";
+  });
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  const themes: { id: OSTheme; label: string; tag: string }[] = [
-    { id: "retro90s", label: "Classic 90s OS", tag: "DEFAULT" },
-    { id: "dark", label: "Cyber Dark OS", tag: "DARK" },
-    { id: "tokyo", label: "Tokyo Night Cyber", tag: "NEON" },
-    { id: "vscode", label: "VS Code Hacker", tag: "DEV" },
-  ];
 
   const getAppFilename = useCallback((id: AppId) => {
     switch (id) {
@@ -265,6 +274,45 @@ export function OSDesktopManager({
     };
   }, [handleNext, handlePrev, switchApp]);
 
+  // Command palette: Ctrl+K / Cmd+K (bekerja walau fokus di input)
+  useEffect(() => {
+    const openPalette = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen(true);
+      }
+    };
+    window.addEventListener("keydown", openPalette);
+    return () => window.removeEventListener("keydown", openPalette);
+  }, []);
+
+  const paletteActions: PaletteAction[] = React.useMemo(
+    () => [
+      ...THEMES.map((th) => ({
+        id: `theme-${th.id}`,
+        label: `${language === "en" ? "Theme" : "Tema"}: ${th.label}`,
+        hint: th.tag,
+        run: () => setTheme(th.id),
+      })),
+      {
+        id: "toggle-language",
+        label: language === "id" ? "Ganti ke English (EN)" : "Switch to Bahasa (ID)",
+        hint: language.toUpperCase(),
+        run: () => setLanguage(language === "id" ? "en" : "id"),
+      },
+      {
+        id: "reboot",
+        label: "Reboot SigitOS",
+        hint: "BIOS",
+        run: () => {
+          sessionStorage.removeItem("sigitos_booted_session");
+          window.location.reload();
+        },
+      },
+    ],
+    [language, setLanguage, setTheme]
+  );
+
   return (
     <div className="flex-1 w-full h-full flex flex-col overflow-hidden relative select-none">
       <div className="flex-1 flex overflow-hidden p-1 sm:p-2 md:p-4 gap-1.5 sm:gap-3 relative">
@@ -294,12 +342,16 @@ export function OSDesktopManager({
         {/* Center: The Active OS Application Window */}
         <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0 z-20">
           <div
-            className={`vt-window flex flex-col h-full transition-all duration-150 ${
+            className={`vt-window flex flex-col h-full transition-all duration-150 animate-in fade-in-50 zoom-in-95 ${
               isMaximized ? "fixed inset-2 z-50" : "flex-1"
             } ${isMinimized ? "h-auto" : ""}`}
           >
-            {/* 1. OS Titlebar */}
-            <div className="vt-titlebar select-none py-1 sm:py-1.5 px-2 sm:px-3 flex items-center justify-between">
+            {/* 1. OS Titlebar (double-click = maximize toggle) */}
+            <div
+              className="vt-titlebar select-none py-1 sm:py-1.5 px-2 sm:px-3 flex items-center justify-between"
+              onDoubleClick={() => setIsMaximized((v) => !v)}
+              title={language === "en" ? "Double-click to maximize" : "Klik 2x untuk maximize"}
+            >
               <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                 <span className="shrink-0">{currentApp.icon}</span>
                 <span className="font-mono text-[10px] sm:text-xs font-bold text-white tracking-wide truncate">
@@ -400,6 +452,14 @@ export function OSDesktopManager({
                   <span className="hidden lg:inline text-xs text-[var(--vt-ink)] opacity-75 font-medium italic">
                     {t.os_nav_keys}
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => setPaletteOpen(true)}
+                    className="hidden lg:inline-flex items-center gap-1 px-2 py-0.5 bg-muted/50 rounded-sm border border-border/50 text-xs text-[var(--vt-ink)] font-medium hover:bg-muted transition-colors cursor-pointer"
+                    title={language === "en" ? "Open command palette (Ctrl+K)" : "Buka palet perintah (Ctrl+K)"}
+                  >
+                    <span className="opacity-75">Ctrl+K</span>
+                  </button>
                 </div>
 
                 {/* Next Button */}
@@ -419,6 +479,16 @@ export function OSDesktopManager({
         </div>
       </div>
 
+      {/* Command palette Ctrl+K */}
+      <OSCommandPalette
+        open={paletteOpen}
+        apps={APPS.map((a) => ({ id: a.id, label: getAppFilename(a.id), icon: a.icon }))}
+        actions={paletteActions}
+        language={language}
+        onSelectApp={(id) => switchApp(id as AppId)}
+        onClose={() => setPaletteOpen(false)}
+      />
+
       {/* Fixed Start Menu Popup (Placed at root level so it is NEVER clipped by taskbar) */}
       {startOpen && (
         <>
@@ -428,6 +498,7 @@ export function OSDesktopManager({
             onClick={() => {
               setStartOpen(false);
               setThemeMenuOpen(false);
+              setMenuQuery("");
             }}
           />
 
@@ -447,13 +518,26 @@ export function OSDesktopManager({
                 </p>
               </div>
 
-              {APPS.map((app) => (
+              <div className="px-1 pb-1">
+                <input
+                  type="text"
+                  value={menuQuery}
+                  onChange={(e) => setMenuQuery(e.target.value)}
+                  placeholder={language === "en" ? "Search apps..." : "Cari aplikasi..."}
+                  className="w-full px-2.5 py-1.5 text-xs font-mono bg-muted/60 border border-border/60 rounded-xs outline-none placeholder:text-muted-foreground focus:border-[var(--vt-blue)]"
+                />
+              </div>
+
+              {APPS.filter((app) =>
+                getAppFilename(app.id).toLowerCase().includes(menuQuery.trim().toLowerCase())
+              ).map((app) => (
                 <button
                   key={app.id}
                   type="button"
                   onClick={() => {
                     switchApp(app.id);
                     setStartOpen(false);
+                    setMenuQuery("");
                   }}
                   className={`w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors text-left cursor-pointer ${
                     activeApp === app.id ? "bg-[var(--vt-blue)]/20 font-bold text-[var(--vt-blue)]" : ""
@@ -484,6 +568,33 @@ export function OSDesktopManager({
                 </span>
               </button>
 
+              {/* Sound Toggle (persist localStorage, dibaca boot beep) */}
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !soundOn;
+                  setSoundOn(next);
+                  try {
+                    window.localStorage?.setItem("sigitos_sound", next ? "on" : "off");
+                  } catch {
+                    // abaikan bila storage diblokir
+                  }
+                }}
+                className="w-full flex items-center justify-between px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors text-left font-bold cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  {soundOn ? (
+                    <Volume2 className="h-3.5 w-3.5 text-emerald-500" />
+                  ) : (
+                    <VolumeX className="h-3.5 w-3.5 text-muted-foreground" />
+                  )}
+                  <span>{language === "en" ? "Sound" : "Suara"}</span>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded border border-border">
+                  {soundOn ? "ON" : "OFF"}
+                </span>
+              </button>
+
               {/* Theme Selector Submenu */}
               <div className="relative">
                 <button
@@ -500,7 +611,7 @@ export function OSDesktopManager({
 
                 {themeMenuOpen && (
                   <div className="mt-1 pl-4 space-y-1 bg-muted/40 p-1.5 rounded-xs border border-border">
-                    {themes.map((th) => (
+                    {THEMES.map((th) => (
                       <button
                         key={th.id}
                         type="button"
@@ -578,11 +689,17 @@ export function OSDesktopManager({
                 key={app.id}
                 type="button"
                 onClick={() => switchApp(app.id)}
-                title={getAppFilename(app.id)}
+                title={
+                  activeApp === app.id && isMinimized
+                    ? `${getAppFilename(app.id)} (${language === "en" ? "minimized — click to restore" : "minimize — klik untuk pulihkan"})`
+                    : getAppFilename(app.id)
+                }
                 aria-label={getAppFilename(app.id)}
                 className={`vt-taskbar-tab group relative h-6 sm:h-9 md:h-10 px-1 sm:px-3 text-[9px] sm:text-[11px] md:text-xs flex items-center justify-center gap-0.5 sm:gap-1.5 cursor-pointer shrink-0 transition-all duration-300 ${
                   activeApp === app.id
-                    ? `active shadow-md ring-2 font-extrabold -translate-y-0.5 ${app.activeClass}`
+                    ? `active shadow-md ring-2 font-extrabold -translate-y-0.5 ${app.activeClass} ${
+                        isMinimized ? "opacity-70 ring-dashed animate-pulse" : ""
+                      }`
                     : `text-foreground font-semibold opacity-85 hover:opacity-100 ${app.colorClass}`
                 }`}
               >
