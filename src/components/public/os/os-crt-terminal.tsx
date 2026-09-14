@@ -175,8 +175,11 @@ export function OSCrtTerminal({
         services: "services - Buka daftar layanan",
         contact: "contact - Tampilkan & buka saluran kontak",
         open: "open <app> - Buka aplikasi (profil, proyek, toko, dll)",
-        theme: "theme <retro|dark|tokyo|vscode> - Ganti tema",
+        theme: "theme <retro|dark|tokyo|vscode|random> - Ganti tema",
         lang: "lang <id|en> - Ganti bahasa",
+        cv: "cv      - Buka CV pemilik",
+        github: "github  - Buka GitHub pemilik",
+        email: "email   - Tampilkan & tulis email",
       };
       const found = Object.entries(map).find(([k]) => topic === k);
       if (found) return [found[1]];
@@ -196,8 +199,11 @@ export function OSCrtTerminal({
       "  services    - Buka layanan",
       "  articles    - Buka artikel",
       "  contact     - Saluran kontak",
+      "  cv          - Buka CV pemilik",
+      "  github      - Buka GitHub pemilik",
+      "  email       - Tulis email ke pemilik",
       "  open <app>  - Buka aplikasi desktop",
-      "  theme <t>   - Ganti tema OS",
+      "  theme <t>   - Ganti tema OS (random tersedia)",
       "  lang <id|en> - Ganti bahasa",
       "  neofetch    - Info sistem",
       "  history     - Riwayat perintah",
@@ -317,7 +323,16 @@ export function OSCrtTerminal({
     }
 
     if (command === "theme") {
-      const theme = THEME_ALIASES[arg.toLowerCase()];
+      const argLower = arg.toLowerCase();
+      if (argLower === "random" || argLower === "acak") {
+        const pool: OSTheme[] = ["retro90s", "dark", "tokyo", "vscode"];
+        const picked = pool[Math.floor(Math.random() * pool.length)];
+        setTheme(picked);
+        appendLogs([...newLogs, `Theme -> ${picked} (random)`]);
+        setCommandInput("");
+        return;
+      }
+      const theme = THEME_ALIASES[argLower];
       if (theme) {
         setTheme(theme);
         appendLogs([...newLogs, `Theme -> ${theme}`]);
@@ -335,6 +350,40 @@ export function OSCrtTerminal({
       } else {
         setLanguage(next);
         appendLogs([...newLogs, `Language -> ${next.toUpperCase()}`]);
+      }
+      setCommandInput("");
+      return;
+    }
+
+    if (command === "cv") {
+      if (profile.cvUrl) {
+        window.open(profile.cvUrl, "_blank", "noopener,noreferrer");
+        appendLogs([...newLogs, `Membuka CV: ${profile.cvUrl}`]);
+      } else {
+        appendLogs([...newLogs, language === "en" ? "CV not available yet." : "CV belum tersedia."]);
+      }
+      setCommandInput("");
+      return;
+    }
+
+    if (command === "github" || command === "gh") {
+      const gh = buildSocialLinks(profile).find((s) => s.key === "github");
+      if (gh) {
+        window.open(gh.href, "_blank", "noopener,noreferrer");
+        appendLogs([...newLogs, `Membuka GitHub: ${gh.href}`]);
+      } else {
+        appendLogs([...newLogs, language === "en" ? "GitHub link not configured." : "Tautan GitHub belum dikonfigurasi."]);
+      }
+      setCommandInput("");
+      return;
+    }
+
+    if (command === "email" || command === "mail") {
+      if (profile.email) {
+        appendLogs([...newLogs, `Email: ${profile.email}`, language === "en" ? "Opening mail app..." : "Membuka aplikasi email..."]);
+        window.location.href = `mailto:${profile.email}`;
+      } else {
+        appendLogs([...newLogs, language === "en" ? "Email not configured." : "Email belum dikonfigurasi."]);
       }
       setCommandInput("");
       return;

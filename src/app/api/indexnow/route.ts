@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getProjects, getArticles } from "@/lib/actions";
 import { rateLimit, cleanupRateLimits } from "@/lib/rate-limit";
+import {
+  filterOwnUrls,
+  getIndexNowBaseUrl,
+  submitUrlsToIndexNow,
+} from "@/lib/indexnow";
 
-const INDEXNOW_KEY = process.env.INDEXNOW_KEY || "e5b871c984924b179571fcfdca565780";
-const BASE_URL = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+const BASE_URL = getIndexNowBaseUrl();
 
 // Hardening: IndexNow harus admin-only + rate-limited
 // Limit: 5 requests per 60s per IP (diturunkan dari 10 agar lebih ketat)
@@ -67,22 +71,7 @@ export async function POST(req: NextRequest) {
           );
         }
         // Sanitize: only accept absolute http(s) URLs on our host.
-        const host = new URL(BASE_URL).host;
-        const rawUrls: unknown[] = body.urls;
-        urlsToSubmit = rawUrls
-          .filter((u): u is string => typeof u === "string")
-          .slice(0, MAX_URLS_PER_REQUEST)
-          .filter((u) => {
-            try {
-              const parsed = new URL(u);
-              return (
-                (parsed.protocol === "https:" || parsed.protocol === "http:") &&
-                parsed.host === host
-              );
-            } catch {
-              return false;
-            }
-          });
+        urlsToSubmit = filterOwnUrls(body.urls);
       }
     } catch {
       // Body not provided or invalid JSON, collect site urls dynamically
@@ -101,33 +90,18 @@ export async function POST(req: NextRequest) {
       ];
     }
 
-    const hostName = new URL(BASE_URL).host;
-
-    const payload = {
-      host: hostName,
-      key: INDEXNOW_KEY,
-      keyLocation: `${BASE_URL.replace(/\/$/, "")}/${INDEXNOW_KEY}.txt`,
-      urlList: urlsToSubmit,
-    };
-
-    const response = await fetch("https://api.indexnow.org/indexnow", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const success = response.ok || response.status === 200 || response.status === 202;
+    const result = await submitUrlsToIndexNow(urlsToSubmit);
 
     return NextResponse.json({
-      success,
-      status: response.status,
-      submittedCount: urlsToSubmit.length,
+      success: result.success,
+      status: result.status,
+      submittedCount: result.submittedCount,
       urls: urlsToSubmit,
-      message: success
+      message: result.success
         ? "URLs successfully submitted to IndexNow (Bing & Search Engine Network)."
-        : `IndexNow API returned status code ${response.status}`,
+        : result.skipped
+          ? "Skipped: no valid own-host URLs or IndexNow key not configured."
+          : `IndexNow API returned status code ${result.status}`,
     });
   } catch {
     return NextResponse.json(

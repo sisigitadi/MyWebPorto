@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -38,6 +38,40 @@ export function ArticleDetailContent({
   const { t, language } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
+  const [pageUrl, setPageUrl] = useState("");
+  const [readProgress, setReadProgress] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setPageUrl(window.location.href);
+  }, []);
+
+  // Progress baca: dengar scroll pada ancestor scrollable (jendela OS) + fallback window.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const root = containerRef.current;
+    if (!root) return;
+    const scroller =
+      (root.closest(".vt-scrollbar") as HTMLElement | null) ||
+      (root.closest("[class*='overflow-y-auto']") as HTMLElement | null);
+
+    const update = () => {
+      if (scroller) {
+        const max = scroller.scrollHeight - scroller.clientHeight;
+        setReadProgress(max > 0 ? Math.min(100, Math.round((scroller.scrollTop / max) * 100)) : 0);
+      } else {
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        setReadProgress(max > 0 ? Math.min(100, Math.round((window.scrollY / max) * 100)) : 0);
+      }
+    };
+    update();
+    scroller?.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("scroll", update, { passive: true });
+    return () => {
+      scroller?.removeEventListener("scroll", update);
+      window.removeEventListener("scroll", update);
+    };
+  }, []);
 
   const isEn = language === "en";
   const title = isEn && article.titleEn ? article.titleEn : article.title;
@@ -203,6 +237,21 @@ export function ArticleDetailContent({
           statusText={`Words: ${wordCount} | Read Time: ~${readMinutes} min | Status: PUBLISHED`}
         >
           <div className="article-detail-section space-y-6">
+            {/* Reading progress */}
+            <div
+              className="sticky top-0 z-10 -mx-1 h-1.5 rounded bg-muted/60 border border-border/60 overflow-hidden"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={readProgress}
+              aria-label={isEn ? "Reading progress" : "Progress baca"}
+              title={`${readProgress}%`}
+            >
+              <div
+                className="h-full bg-primary transition-[width] duration-150"
+                style={{ width: `${readProgress}%` }}
+              />
+            </div>
             {/* Header / Meta */}
             <div className="space-y-4 pb-4 border-b border-border/70">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -246,6 +295,40 @@ export function ArticleDetailContent({
                     </>
                   )}
                 </Button>
+                {pageUrl && (
+                  <>
+                    <a
+                      href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(pageUrl)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Share ke X"
+                      title="Share ke X"
+                      className="h-7 px-2.5 inline-flex items-center text-xs font-mono font-bold gap-1.5 rounded-md border border-input bg-background hover:bg-muted"
+                    >
+                      <span aria-hidden="true">𝕏</span>
+                    </a>
+                    <a
+                      href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(pageUrl)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Share ke LinkedIn"
+                      title="Share ke LinkedIn"
+                      className="h-7 px-2.5 inline-flex items-center text-xs font-mono font-bold gap-1.5 rounded-md border border-input bg-background hover:bg-muted"
+                    >
+                      <span aria-hidden="true">in</span>
+                    </a>
+                    <a
+                      href={`https://wa.me/?text=${encodeURIComponent(`${title} ${pageUrl}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Share ke WhatsApp"
+                      title="Share ke WhatsApp"
+                      className="h-7 px-2.5 inline-flex items-center text-xs font-mono font-bold gap-1.5 rounded-md border border-input bg-background hover:bg-muted"
+                    >
+                      <span aria-hidden="true">WA</span>
+                    </a>
+                  </>
+                )}
               </div>
 
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold font-pixel tracking-tight text-foreground leading-tight">

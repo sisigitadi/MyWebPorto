@@ -9,6 +9,7 @@ export interface ProfileData {
   email: string;
   phone: string;
   location: string;
+  cvUrl?: string | null;
   availableForHire: boolean;
   skills: string[];
   stats: {
