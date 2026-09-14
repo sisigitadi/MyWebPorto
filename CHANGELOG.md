@@ -8,6 +8,7 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 - Added: audit log persisten (`audit_logs` + fallback local-store, tampil di `/admin/system`).
 - Added: unit test Vitest (`npm run test`).
 - Added: E2E Playwright area publik (`npm run test:e2e`, 3 spec hijau).
+- Security: fail-closed admin di produksi tanpa kredensial asli (middleware 404 + `verifyAdmin` tolak).
 
 ## [v2.6.1] - 2026-09-13
 - Changed: taskbar atas tanpa bar sosmed; theme selector tampil di semua ukuran layar.

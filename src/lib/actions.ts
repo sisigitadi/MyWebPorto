@@ -33,14 +33,16 @@ import { translateText, isExternalTranslateEnabled } from "@/lib/translate";
 import { getProductSlug, slugifyProduct } from "@/lib/product-link";
 import { sanitizeError } from "@/lib/error-utils";
 import { logAudit } from "@/lib/audit";
+import { isPlaceholderKey, isProduction } from "@/lib/env";
 
 /**
  * Verifikasi apakah request mutasi berasal dari Admin yang terotentikasi.
  * Mencegah Broken Access Control (OWASP A01) pada Server Actions.
+ * Fail-closed: di produksi tanpa kredensial asli, SELALU tolak (tanpa dev-bypass).
  */
 export async function verifyAdmin(): Promise<void> {
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  if (publishableKey && !publishableKey.includes("xxxx")) {
+  if (!isPlaceholderKey(publishableKey)) {
     const { userId } = await auth();
     if (!userId) {
       throw new Error("Akses ditolak: Anda harus login sebagai admin untuk melakukan tindakan ini.");
@@ -49,6 +51,10 @@ export async function verifyAdmin(): Promise<void> {
     if (adminClerkId && adminClerkId !== "user_xxxxxxxxxxxxxxxxx" && userId !== adminClerkId) {
       throw new Error("Akses ditolak: Akun Anda bukan administrator website ini.");
     }
+    return;
+  }
+  if (isProduction()) {
+    throw new Error("Akses ditolak: konfigurasi autentikasi belum lengkap di lingkungan produksi.");
   }
 }
 
