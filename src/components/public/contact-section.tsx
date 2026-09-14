@@ -25,7 +25,7 @@ const FALLBACK_CONTACT_EMAIL = "x@sigitadi.id";
 const CONFIGURED_CONTACT_EMAIL =
   (process.env.NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL || FALLBACK_CONTACT_EMAIL).trim();
 const FORMSPREE_ENDPOINT =
-  (process.env.NEXT_PUBLIC_FORMSPREE_ENDPOINT || "https://formspree.io/f/mkgknrqk").trim();
+  (process.env.NEXT_PUBLIC_FORMSPREE_ENDPOINT || "https://formspree.io/f/meaqbvpa").trim();
 
 export function ContactSection({ profile }: ContactSectionProps) {
   const { t, language } = useTranslation();
