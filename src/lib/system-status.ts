@@ -5,12 +5,21 @@ import path from "path";
 import { db, isDbConnected } from "@/db";
 import { getEnvIssues, isDeployReady, type EnvIssue } from "@/lib/env";
 import { getCloudAIModel, isCloudAIEnabled } from "@/lib/ai-provider";
+import { getBunnyConfig, isBunnyConfigured } from "@/lib/storage";
 
 function cloudAIDetail(): string {
   if (!isCloudAIEnabled()) {
     return "OFF (default) — Sigit_Bot 100% lokal TF-IDF, nol egress. Aktifkan via AI_PROVIDER=gemini + GEMINI_API_KEY.";
   }
   return `ON — Gemini ${getCloudAIModel()} sebagai fallback confidence rendah + konteks katalog live. Rate-limit publik 10/5 mnt/IP.`;
+}
+
+function storageDetail(): string {
+  if (!isBunnyConfigured()) {
+    return "Lokal (public/uploads) — tidak persisten di serverless. Isi BUNNY_STORAGE_ZONE_NAME + BUNNY_STORAGE_API_KEY untuk produksi.";
+  }
+  const cfg = getBunnyConfig();
+  return `Bunny Storage aktif — upload persisten via ${cfg?.publicBaseUrl}. Lokal dipakai hanya bila Bunny belum dikonfigurasi; kegagalan Bunny dilaporkan eksplisit (tidak fallback diam-diam).`;
 }
 
 /**
@@ -240,7 +249,7 @@ export async function getSystemStatus(): Promise<SystemStatus> {
       formspree: process.env.NEXT_PUBLIC_FORMSPREE_ENDPOINT && !isPlaceholder(process.env.NEXT_PUBLIC_FORMSPREE_ENDPOINT)
         ? "Terkonfigurasi."
         : "Belum dikonfigurasi — form kontak tidak terkirim.",
-      storage: "Lokal (public/uploads). BUNNY_* ada di .env.example tapi belum di-wiring.",
+      storage: storageDetail(),
       cloudAI: cloudAIDetail(),
     },
     observability: {
