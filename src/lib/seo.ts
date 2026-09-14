@@ -1,4 +1,58 @@
 import type { Metadata } from "next";
+
+export interface LlmsEntry {
+  title: string;
+  slug: string;
+  summary?: string | null;
+}
+
+export interface LlmsProfile {
+  name: string;
+  headline: string;
+  bio: string;
+  skills: string[];
+}
+
+/**
+ * Bangun llms.txt (AI-crawler friendly) dari data katalog publik.
+ * Murni (tanpa I/O) agar mudah diuji — route di app/llms.txt/route.ts yang mengambil data.
+ */
+export function buildLlmsTxt(input: {
+  baseUrl: string;
+  profile: LlmsProfile;
+  services: string[];
+  projects: LlmsEntry[];
+  articles: LlmsEntry[];
+}): string {
+  const { baseUrl, profile, services, projects, articles } = input;
+  const lines: string[] = [
+    `# ${profile.name}`,
+    "",
+    `> ${profile.headline}`,
+    "",
+    profile.bio,
+    "",
+    "## Layanan",
+    "",
+    ...services.slice(0, 12).map((s) => `- ${s}`),
+    "",
+    "## Proyek",
+    "",
+    ...projects
+      .slice(0, 20)
+      .map((p) => `- [${p.title}](${baseUrl}/proyek/${p.slug})${p.summary ? `: ${p.summary}` : ""}`),
+    "",
+    "## Artikel",
+    "",
+    ...articles
+      .slice(0, 20)
+      .map((a) => `- [${a.title}](${baseUrl}/artikel/${a.slug})${a.summary ? `: ${a.summary}` : ""}`),
+    "",
+    `## Kontak\n\n- ${baseUrl}/#kontak`,
+    "",
+  ];
+  return lines.join("\n");
+}
 import { getProfile } from "@/lib/actions";
 
 export async function generateDynamicMetadata(): Promise<Metadata> {

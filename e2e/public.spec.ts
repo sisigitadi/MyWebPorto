@@ -23,3 +23,13 @@ test("sitemap dan robots tersedia", async ({ request }) => {
   const robots = await request.get("/robots.txt");
   expect(robots.status()).toBe(200);
 });
+
+test("feed RSS dan llms.txt tersedia", async ({ request }) => {
+  const feed = await request.get("/feed.xml");
+  expect(feed.status()).toBe(200);
+  expect(await feed.text()).toContain("<rss");
+
+  const llms = await request.get("/llms.txt");
+  expect(llms.status()).toBe(200);
+  expect(await llms.text()).toContain("# ");
+});

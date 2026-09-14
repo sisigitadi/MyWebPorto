@@ -11,6 +11,7 @@ import {
   Sparkles,
   Layers,
   FileText,
+  Activity,
 } from "lucide-react";
 import {
   Card,
@@ -138,6 +139,19 @@ export default async function AdminDashboardPage() {
               <Eye className="h-3.5 w-3.5" />
               <span>Kunjungi Website Publik</span>
             </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm" className="gap-1.5 text-xs h-9 text-muted-foreground hover:text-foreground">
+            <a
+              href={
+                process.env.NEXT_PUBLIC_ANALYTICS_DASHBOARD_URL ||
+                "https://portofolio-visitor-tracker.si-sigitadi.workers.dev/dashboard"
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Activity className="h-3.5 w-3.5" />
+              <span>Visitor Analytics</span>
+            </a>
           </Button>
         </div>
       </div>
