@@ -5,47 +5,15 @@ import { verifyAdmin } from "./actions";
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
-
-/**
- * Ekstensi file ditentukan dari MIME yang sudah lolos whitelist, BUKAN dari nama
- * file kiriman klien. Tanpa ini, `Content-Type: image/png` + `name: evil.html`
- * akan tersimpan sebagai /uploads/*.html dan disajikan sebagai dokumen HTML dari
- * origin kita — jalur stored XSS.
- */
-const EXTENSION_BY_MIME: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-  "image/gif": "gif",
-  "image/avif": "avif",
-  "image/bmp": "bmp",
-};
-
-/**
- * MIME dari klien mudah dipalsukan, jadi isi berkasnya ikut diverifikasi lewat
- * magic bytes. Berkas yang Content-Type-nya tidak cocok dengan signature-nya ditolak.
- */
-function matchesImageSignature(buffer: Buffer, mime: string): boolean {
-  const ascii = (start: number, end: number) => buffer.subarray(start, end).toString("ascii");
-  const startsWith = (...bytes: number[]) => bytes.every((byte, i) => buffer[i] === byte);
-
-  switch (mime) {
-    case "image/jpeg":
-      return startsWith(0xff, 0xd8, 0xff);
-    case "image/png":
-      return startsWith(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a);
-    case "image/gif":
-      return ascii(0, 4) === "GIF8";
-    case "image/webp":
-      return ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP";
-    case "image/bmp":
-      return startsWith(0x42, 0x4d);
-    case "image/avif":
-      return ascii(4, 8) === "ftyp" && /^(avif|avis|heic|heix|mif1|msf1)/.test(ascii(8, 12));
-    default:
-      return false;
-  }
-}
+import {
+  buildStorageKey,
+  deleteBunny,
+  isBunnyConfigured,
+  listBunny,
+  putBunny,
+  validateImageFile,
+  type MediaItem,
+} from "@/lib/storage";
 
 /**
  * Upload an image file locally to public/uploads
@@ -72,45 +40,35 @@ export async function uploadImageLocal(formData: FormData): Promise<{
       return { success: false, error: "Tidak ada file yang dipilih." };
     }
 
-    // Flexible mime types.
-    // NOTE: SVG is intentionally EXCLUDED — SVG can embed inline <script>
-    // and event handlers, which is an XSS vector when served from our origin.
-    const allowedTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-      "image/gif",
-      "image/avif",
-      "image/bmp",
-    ];
-    if (!allowedTypes.includes(file.type)) {
-      return {
-        success: false,
-        error: "Format file tidak didukung. Harap unggah gambar JPG, PNG, WEBP, GIF, AVIF, atau BMP.",
-      };
+    // Validasi terpusat (whitelist MIME kecuali SVG, max 20MB, magic bytes,
+    // ekstensi dari MIME) — lihat src/lib/storage.ts.
+    const validated = await validateImageFile({
+      type: file.type,
+      size: file.size,
+      arrayBuffer: () => file.arrayBuffer(),
+    });
+    if (!validated.ok) {
+      return { success: false, error: validated.error };
+    }
+    const { buffer, mime, extension } = validated.image;
+    const originalName = typeof file.name === "string" ? file.name : "image";
+
+    // Bunny Storage bila terkonfigurasi (persisten, wajib di prod/Vercel).
+    if (isBunnyConfigured()) {
+      const key = buildStorageKey(originalName, extension);
+      const remote = await putBunny(key, buffer, mime);
+      if (!remote.ok || !remote.url) {
+        console.error("uploadImage: Bunny gagal:", remote.error);
+        return { success: false, error: remote.error || "Upload ke Bunny Storage gagal. Coba lagi." };
+      }
+      revalidatePath("/", "layout");
+      revalidatePath("/proyek", "layout");
+      revalidatePath("/artikel", "layout");
+      revalidatePath("/admin", "layout");
+      return { success: true, url: remote.url };
     }
 
-    // Keep this below next.config.ts serverActions.bodySizeLimit.
-    const MAX_SIZE = 20 * 1024 * 1024;
-    if (file.size > MAX_SIZE) {
-      return {
-        success: false,
-        error: "Ukuran file terlalu besar. Maksimum ukuran adalah 20 MB.",
-      };
-    }
-
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    if (!matchesImageSignature(buffer, file.type)) {
-      return {
-        success: false,
-        error: "Isi berkas tidak cocok dengan tipe gambarnya. Pastikan file benar-benar JPG, PNG, WEBP, GIF, AVIF, atau BMP.",
-      };
-    }
-
-    const safeExtension = EXTENSION_BY_MIME[file.type];
-    const uniqueFileName = `${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${safeExtension}`;
+    const uniqueFileName = `${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${extension}`;
     if (process.env.VERCEL) {
       console.warn("uploadImageLocal: Vercel FS ephemeral — file tidak persisten, gunakan Bunny CDN/S3 untuk prod");
     }
@@ -136,5 +94,80 @@ export async function uploadImageLocal(formData: FormData): Promise<{
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Terjadi kesalahan saat upload gambar.";
     return { success: false, error: message };
+  }
+}
+
+async function requireAdmin(): Promise<string | null> {
+  try {
+    await verifyAdmin();
+    return null;
+  } catch (authErr) {
+    return authErr instanceof Error ? authErr.message : "Akses ditolak.";
+  }
+}
+
+/** Daftar media: Bunny (bila terkonfigurasi) + uploads lokal. Admin only. */
+export async function listMedia(): Promise<{ items: MediaItem[]; remote: boolean; error?: string }> {
+  const denied = await requireAdmin();
+  if (denied) return { items: [], remote: false, error: denied };
+
+  if (isBunnyConfigured()) {
+    return { items: await listBunny(), remote: true };
+  }
+  try {
+    const uploadDir = path.join(process.cwd(), "public", "uploads");
+    const names = await fs.readdir(uploadDir);
+    const items: MediaItem[] = [];
+    for (const name of names.slice(0, 200)) {
+      if (name.startsWith(".") || name.includes("/") || name.includes("\\")) continue;
+      const ext = name.split(".").pop()?.toLowerCase() || "";
+      if (!["jpg", "png", "webp", "gif", "avif", "bmp"].includes(ext)) continue;
+      try {
+        const st = await fs.stat(path.join(uploadDir, name));
+        if (!st.isFile()) continue;
+        items.push({
+          key: name,
+          name,
+          url: `/uploads/${name}`,
+          size: st.size,
+          lastChanged: st.mtime.toISOString(),
+          remote: false,
+        });
+      } catch {
+        continue;
+      }
+    }
+    items.sort((a, b) => (b.lastChanged || "").localeCompare(a.lastChanged || ""));
+    return { items: items.slice(0, 100), remote: false };
+  } catch {
+    return { items: [], remote: false };
+  }
+}
+
+/** Hapus 1 media (basename saja — anti traversal). Admin only. */
+export async function deleteMedia(key: string): Promise<{ success: boolean; error?: string }> {
+  const denied = await requireAdmin();
+  if (denied) return { success: false, error: denied };
+
+  const safe = (key || "").split("/").pop()?.split("\\").pop() || "";
+  if (!safe || safe === "." || safe === ".." || safe.startsWith(".")) {
+    return { success: false, error: "Nama berkas tidak valid." };
+  }
+
+  if (isBunnyConfigured()) {
+    const ok = await deleteBunny(safe);
+    if (ok) {
+      revalidatePath("/admin", "layout");
+      return { success: true };
+    }
+    return { success: false, error: "Gagal menghapus dari Bunny Storage." };
+  }
+
+  try {
+    await fs.unlink(path.join(process.cwd(), "public", "uploads", safe));
+    revalidatePath("/admin", "layout");
+    return { success: true };
+  } catch {
+    return { success: false, error: "Berkas tidak ditemukan." };
   }
 }
