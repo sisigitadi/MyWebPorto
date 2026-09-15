@@ -66,7 +66,11 @@ export function ContentEditor({ id, label, value, onChange, placeholder, rows = 
             title={tool.title}
             aria-label={tool.title}
             onClick={tool.run}
-            className="p-1.5 rounded border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+            // Toolbar tidak relevan di mode pratinjau: tidak ada teks yang bisa
+            // dipilih (textarea tersembunyi), dan apply() akan menulis ke
+            // selection yang tidak terlihat.
+            disabled={preview}
+            className="p-1.5 rounded border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:cursor-pointer"
           >
             <tool.icon className="h-3.5 w-3.5" />
           </button>
@@ -76,24 +80,37 @@ export function ContentEditor({ id, label, value, onChange, placeholder, rows = 
         </span>
       </div>
       {preview ? (
-        <div className="min-h-[180px] rounded border border-border bg-muted/20 p-4">
+        // aria-hidden: isi yang sama sudah ada di textarea ter-label di bawah;
+        // tandai duplikat agar screen reader tidak membacanya dua kali.
+        <div
+          aria-hidden="true"
+          className="min-h-[180px] rounded border border-border bg-muted/20 p-4"
+        >
           {value.trim() ? (
             <FormattedText text={value} />
           ) : (
             <p className="text-xs font-mono text-muted-foreground">Belum ada isi untuk dipratinjau.</p>
           )}
         </div>
-      ) : (
-        <Textarea
-          id={id}
-          ref={areaRef}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          rows={rows}
-          required={required}
-        />
-      )}
+      ) : null}
+      <Textarea
+        id={id}
+        ref={areaRef}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        required={required}
+        // Saat pratinjau textarea disembunyikan, TAPI TETAP DI DOM. Sebelumnya
+        // di-unmount, sehingga: (1) constraint validation `required` lenyap —
+        // form bisa di-submit dengan isi kosong dari mode pratinjau (validasi
+        // baru muncul setelah round-trip ke server); (2) asosiasi label
+        // `htmlFor={id}` dangling. sr-only menjaga element tetap "being
+        // rendered" (validasi & label bekerja) tanpa menempati ruang; tabIndex
+        // -1 mengeluarkannya dari urutan tab saat tidak terlihat.
+        className={preview ? "sr-only" : undefined}
+        tabIndex={preview ? -1 : 0}
+      />
     </div>
   );
 }

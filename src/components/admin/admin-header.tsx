@@ -4,14 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, ExternalLink, Menu } from "lucide-react";
 import { UserButton, useUser } from "@clerk/nextjs";
-import { Button } from "@/components/ui/button";
 import { ADMIN_NAV_ITEMS } from "./admin-sidebar";
 
 interface AdminHeaderProps {
   onToggleSidebar?: () => void;
+  dbConnected?: boolean;
 }
 
-export function AdminHeader({ onToggleSidebar }: AdminHeaderProps) {
+export function AdminHeader({ onToggleSidebar, dbConnected }: AdminHeaderProps) {
   const pathname = usePathname();
   const { isSignedIn, user } = useUser();
 
@@ -31,69 +31,69 @@ export function AdminHeader({ onToggleSidebar }: AdminHeaderProps) {
     "Admin";
 
   return (
-    <header className="sticky top-0 z-30 h-16 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 flex items-center justify-between px-4 sm:px-6">
-      <div className="flex items-center gap-3">
-        <Button
-          variant="outline"
-          size="icon"
-          className="lg:hidden h-9 w-9 text-muted-foreground hover:text-foreground"
+    <header className="vt-raised sticky top-0 lg:static shrink-0 z-30 h-14 sm:h-16 w-full border-b-2 border-[var(--vt-edge-lo-2)] flex items-center justify-between gap-2 px-2 sm:px-4">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <button
+          type="button"
+          className="vt-btn vt-btn-chrome lg:hidden h-9 w-9 shrink-0 p-0"
           onClick={onToggleSidebar}
           aria-label="Toggle Menu Sidebar"
         >
-          <Menu className="h-5 w-5" />
-        </Button>
-        <div className="flex flex-col">
-          <h1 className="text-base font-semibold text-foreground tracking-tight">
+          <Menu className="h-4 w-4" />
+        </button>
+        <div className="flex flex-col min-w-0">
+          <h1 className="text-sm sm:text-base font-bold font-mono text-[var(--vt-ink)] tracking-tight truncate">
             {title}
           </h1>
-          <p className="text-xs text-muted-foreground hidden sm:block">
-            Area Pengelolaan Data Portofolio & Personal Branding
+          <p className="text-[11px] font-mono text-[var(--vt-ink-mute)] hidden sm:block truncate">
+            Area Pengelolaan Data Portofolio &amp; Personal Branding
           </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-3">
-        {/* Realtime Database Connection Badge */}
-        <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[11px] font-mono font-medium">
-          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>Neon DB: Connected</span>
-        </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {/* Realtime Database Connection Badge — status dari probe layout server */}
+        {dbConnected !== undefined && (
+          dbConnected ? (
+            <div className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-[11px] font-mono font-bold">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Neon DB: Connected</span>
+            </div>
+          ) : (
+            <div className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-400 text-[11px] font-mono font-bold">
+              <span className="h-2 w-2 rounded-full bg-rose-500" />
+              <span>Neon DB: Offline (fallback lokal)</span>
+            </div>
+          )
+        )}
 
-        <Button
-          asChild
-          variant="outline"
-          size="sm"
-          className="text-xs h-8 gap-1.5 hidden sm:flex text-muted-foreground hover:text-foreground"
+        <Link
+          href="/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="vt-btn vt-btn-chrome hidden sm:inline-flex h-8 px-2.5 text-[11px] font-mono font-bold gap-1.5"
         >
-          <Link href="/" target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="h-3.5 w-3.5" />
-            <span>Lihat Web</span>
-          </Link>
-        </Button>
+          <ExternalLink className="h-3.5 w-3.5" />
+          <span>Lihat Web</span>
+        </Link>
 
-        <div className="h-4 w-px bg-border hidden sm:block" />
+        <div className="h-5 w-px bg-[var(--vt-edge-lo-2)] hidden sm:block" />
 
         {isSignedIn ? (
           <div className="flex items-center gap-2">
             <UserButton />
-            <span className="text-xs font-medium text-foreground hidden md:inline-block">
+            <span className="text-xs font-mono font-bold text-[var(--vt-ink)] hidden md:inline-block truncate max-w-[120px]">
               {displayName}
             </span>
           </div>
         ) : (
-          <div className="flex items-center gap-2">
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="text-xs h-8 gap-1.5 text-muted-foreground hover:text-foreground"
-            >
-              <Link href="/sign-in">
-                <LogOut className="h-3.5 w-3.5" />
-                <span>Masuk Akun</span>
-              </Link>
-            </Button>
-          </div>
+          <Link
+            href="/sign-in"
+            className="vt-btn vt-btn-chrome h-8 px-2.5 text-[11px] font-mono font-bold gap-1.5"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            <span>Masuk Akun</span>
+          </Link>
         )}
       </div>
     </header>

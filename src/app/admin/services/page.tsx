@@ -43,11 +43,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DUMMY_SERVICES, ServiceData } from "@/lib/dummy-data";
+import { ServiceData } from "@/lib/dummy-data";
 import { getServices, saveService, deleteService, translateFieldAction } from "@/lib/actions";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
+import { toast } from "sonner";
 
 export default function AdminServicesPage() {
-  const [services, setServices] = useState<ServiceData[]>(DUMMY_SERVICES);
+  const [services, setServices] = useState<ServiceData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
@@ -78,6 +80,21 @@ export default function AdminServicesPage() {
   useEffect(() => {
     fetchServices();
   }, []);
+
+  // Guard "belum disimpan": baseline direset saat sessionKey berubah — yaitu
+  // saat dialog tambah/edit dibuka atau item lain dipilih. Mengetik di form
+  // tidak mengubah sessionKey, jadi perubahan terdeteksi sebagai dirty.
+  useUnsavedChanges(
+    selectedService?.id ?? (dialogOpen ? "new" : null),
+    {
+      formTitle,
+      formTitleEn,
+      formDescription,
+      formDescriptionEn,
+      formOrder,
+      formPublished,
+    },
+  );
 
   const openCreateDialog = () => {
     setSelectedService(null);
@@ -143,12 +160,20 @@ export default function AdminServicesPage() {
         published: formPublished,
       };
 
-      const res = await saveService(payload);
-      if (res.success) {
-        setDialogOpen(false);
-        await fetchServices();
-      } else {
-        setErrorMessage(res.error || "Gagal menyimpan layanan.");
+      try {
+        const res = await saveService(payload);
+        if (res.success) {
+          setDialogOpen(false);
+          toast.success(res.message || "Layanan berhasil disimpan!");
+          await fetchServices();
+        } else {
+          setErrorMessage(res.error || "Gagal menyimpan layanan.");
+          toast.error(res.error || "Gagal menyimpan layanan.");
+        }
+      } catch (err) {
+        console.error("[admin] saveService gagal:", err);
+        setErrorMessage("Gagal menghubungi server. Periksa koneksi, muat ulang halaman, lalu coba lagi.");
+        toast.error("Gagal menghubungi server. Coba simpan lagi.");
       }
     });
   };
@@ -157,11 +182,19 @@ export default function AdminServicesPage() {
     if (!selectedService) return;
 
     startTransition(async () => {
-      const res = await deleteService(selectedService.id);
-      if (res.success) {
-        setDeleteAlertOpen(false);
-        setSelectedService(null);
-        await fetchServices();
+      try {
+        const res = await deleteService(selectedService.id);
+        if (res.success) {
+          setDeleteAlertOpen(false);
+          setSelectedService(null);
+          toast.success(res.message || "Layanan berhasil dihapus!");
+          await fetchServices();
+        } else {
+          toast.error(res.error || "Gagal menghapus layanan.");
+        }
+      } catch (err) {
+        console.error("[admin] deleteService gagal:", err);
+        toast.error("Gagal menghubungi server. Muat ulang halaman lalu coba lagi.");
       }
     });
   };
@@ -388,7 +421,7 @@ export default function AdminServicesPage() {
               </TabsContent>
             </Tabs>
 
-            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/60">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-border/60">
               <div className="space-y-2">
                 <Label htmlFor="order" className="text-xs font-medium">
                   Urutan Tampil
@@ -447,10 +480,11 @@ export default function AdminServicesPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="text-xs h-8">Batal</AlertDialogCancel>
+            <AlertDialogCancel className="text-xs h-8" disabled={isPending}>Batal</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteService}
-              className="text-xs h-8 bg-rose-600 hover:bg-rose-700 text-white"
+              disabled={isPending}
+              className="text-xs h-8 bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isPending ? "Menghapus..." : "Ya, Hapus Layanan"}
             </AlertDialogAction>

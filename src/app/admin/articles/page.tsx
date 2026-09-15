@@ -51,7 +51,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUpload } from "@/components/admin/image-upload";
 import { DUMMY_ARTICLES, ArticleData } from "@/lib/dummy-data";
 import { ContentEditor } from "@/components/admin/content-editor";
-import { isScheduled } from "@/lib/publish";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
+import { isScheduled, localInputToUtcIso, utcIsoToLocalInput } from "@/lib/publish";
+import { toast } from "sonner";
 import {
   getArticles,
   saveArticle,
@@ -106,6 +108,28 @@ export default function AdminArticlesPage() {
     fetchArticles();
   }, []);
 
+  // Guard "belum disimpan": baseline direset saat sessionKey berubah — yaitu
+  // saat dialog tambah/edit dibuka atau item lain dipilih. Mengetik di form
+  // tidak mengubah sessionKey, jadi perubahan terdeteksi sebagai dirty.
+  useUnsavedChanges(
+    selectedArticle?.id ?? (dialogOpen ? "new" : null),
+    {
+      formTitle,
+      formSlug,
+      formSummary,
+      formContent,
+      formTitleEn,
+      formSummaryEn,
+      formContentEn,
+      formImageUrl,
+      formTags,
+      formOrder,
+      formFeatured,
+      formPublished,
+      formPublishAt,
+    },
+  );
+
   const handleOpenAddDialog = () => {
     setIsEditing(false);
     setSelectedArticle(null);
@@ -143,7 +167,7 @@ export default function AdminArticlesPage() {
     setFormOrder(article.order || 0);
     setFormFeatured(article.featured);
     setFormPublished(article.published);
-    setFormPublishAt(article.publishAt ? article.publishAt.slice(0, 16) : "");
+    setFormPublishAt(utcIsoToLocalInput(article.publishAt));
     setErrorMessage("");
     setDialogOpen(true);
   };
@@ -214,16 +238,24 @@ export default function AdminArticlesPage() {
         tags: tagsArray,
         featured: formFeatured,
         published: formPublished,
-        publishAt: formPublishAt || undefined,
+        publishAt: localInputToUtcIso(formPublishAt) || undefined,
         order: Number(formOrder) || 0,
       };
 
-      const res = await saveArticle(payload);
-      if (res.success) {
-        setDialogOpen(false);
-        fetchArticles();
-      } else {
-        setErrorMessage(res.error || "Gagal menyimpan artikel.");
+      try {
+        const res = await saveArticle(payload);
+        if (res.success) {
+          setDialogOpen(false);
+          toast.success(res.message || "Artikel berhasil disimpan!");
+          fetchArticles();
+        } else {
+          setErrorMessage(res.error || "Gagal menyimpan artikel.");
+          toast.error(res.error || "Gagal menyimpan artikel.");
+        }
+      } catch (err) {
+        console.error("[admin] saveArticle gagal:", err);
+        setErrorMessage("Gagal menghubungi server. Periksa koneksi, muat ulang halaman, lalu coba lagi.");
+        toast.error("Gagal menghubungi server. Coba simpan lagi.");
       }
     });
   };
@@ -231,13 +263,19 @@ export default function AdminArticlesPage() {
   const handleDeleteArticle = async () => {
     if (!selectedArticle) return;
     startTransition(async () => {
-      const res = await deleteArticle(selectedArticle.id);
-      if (res.success) {
-        setDeleteAlertOpen(false);
-        setSelectedArticle(null);
-        fetchArticles();
-      } else {
-        alert(res.error || "Gagal menghapus artikel.");
+      try {
+        const res = await deleteArticle(selectedArticle.id);
+        if (res.success) {
+          setDeleteAlertOpen(false);
+          setSelectedArticle(null);
+          toast.success(res.message || "Artikel berhasil dihapus!");
+          fetchArticles();
+        } else {
+          toast.error(res.error || "Gagal menghapus artikel.");
+        }
+      } catch (err) {
+        console.error("[admin] deleteArticle gagal:", err);
+        toast.error("Gagal menghubungi server. Muat ulang halaman lalu coba lagi.");
       }
     });
   };
