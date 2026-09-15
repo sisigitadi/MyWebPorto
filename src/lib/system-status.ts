@@ -6,6 +6,7 @@ import { db, isDbConnected } from "@/db";
 import { getEnvIssues, isDeployReady, type EnvIssue } from "@/lib/env";
 import { getCloudAIModel, isCloudAIEnabled } from "@/lib/ai-provider";
 import { getBunnyConfig, isBunnyConfigured } from "@/lib/storage";
+import { verifyAdmin } from "./admin-auth";
 
 function cloudAIDetail(): string {
   if (!isCloudAIEnabled()) {
@@ -24,8 +25,8 @@ function storageDetail(): string {
 
 /**
  * Status kelayakan (feasibility/readiness) + observabilitas untuk /admin/system.
- * Read-only, tidak memutasi data. Halaman admin sudah diproteksi layout,
- * jadi tidak perlu verifyAdmin() seperti Server Actions mutasi.
+ * Read-only, tidak memutasi data — tetap wajib verifyAdmin() karena berkas
+ * "use server" bisa dipanggil langsung sebagai RPC endpoint publik.
  */
 
 export interface EnvCheck {
@@ -95,6 +96,7 @@ function isPlaceholder(value: string | undefined): boolean {
 }
 
 export async function getSystemStatus(): Promise<SystemStatus> {
+  await verifyAdmin();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id (fallback)";
   const dbUrl = process.env.DATABASE_URL;
   const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;

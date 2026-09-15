@@ -31,6 +31,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUpload } from "@/components/admin/image-upload";
 import { DUMMY_PROFILE, ProfileData } from "@/lib/dummy-data";
 import { getProfile, updateProfile, translateFieldAction } from "@/lib/actions";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 
 const SOCIAL_LINK_FIELDS: Array<{
   key: keyof ProfileData["socialLinks"];
@@ -60,6 +61,10 @@ export default function AdminProfilePage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [isPending, startTransition] = useTransition();
   const [translating, setTranslating] = useState(false);
+  // `profile` berganti identitas pada tiap ketikan, jadi ia tidak bisa
+  // dipakai langsung sebagai sessionKey. `profileVersion` dinaikkan saat
+  // baseline harus direset: setelah muat awal & setelah simpan berhasil.
+  const [profileVersion, setProfileVersion] = useState(0);
 
   useEffect(() => {
     async function loadData() {
@@ -67,6 +72,7 @@ export default function AdminProfilePage() {
         const data = await getProfile();
         if (data) {
           setProfile(data);
+          setProfileVersion((v) => v + 1);
         }
       } finally {
         setIsLoading(false);
@@ -74,6 +80,8 @@ export default function AdminProfilePage() {
     }
     loadData();
   }, []);
+
+  useUnsavedChanges(profileVersion, profile);
 
   const handleAddSkill = (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,33 +128,42 @@ export default function AdminProfilePage() {
     setSavedSuccess(false);
 
     startTransition(async () => {
-      const res = await updateProfile({
-        name: profile.name,
-        headline: profile.headline,
-        headlineEn: profile.headlineEn,
-        bio: profile.bio,
-        bioEn: profile.bioEn,
-        avatarUrl: profile.avatarUrl,
-        email: profile.email,
-        phone: profile.phone,
-        location: profile.location,
-        availableForHire: profile.availableForHire,
-        skills: profile.skills,
-        stats: profile.stats,
-        socialLinks: profile.socialLinks,
-      });
+      try {
+        const res = await updateProfile({
+          name: profile.name,
+          headline: profile.headline,
+          headlineEn: profile.headlineEn,
+          bio: profile.bio,
+          bioEn: profile.bioEn,
+          avatarUrl: profile.avatarUrl,
+          email: profile.email,
+          phone: profile.phone,
+          location: profile.location,
+          cvUrl: profile.cvUrl || undefined,
+          paymentQrUrl: profile.paymentQrUrl || undefined,
+          paymentBankInfo: profile.paymentBankInfo || undefined,
+          availableForHire: profile.availableForHire,
+          skills: profile.skills,
+          stats: profile.stats,
+          socialLinks: profile.socialLinks,
+        });
 
-      if (res.success) {
-        setSavedSuccess(true);
-        const updated = await getProfile();
-        if (updated) {
-          setProfile(updated);
+        if (res.success) {
+          setSavedSuccess(true);
+          const updated = await getProfile();
+          if (updated) {
+            setProfile(updated);
+            setProfileVersion((v) => v + 1);
+          }
+          setTimeout(() => {
+            setSavedSuccess(false);
+          }, 3500);
+        } else {
+          setErrorMessage(res.error || "Gagal menyimpan data profil.");
         }
-        setTimeout(() => {
-          setSavedSuccess(false);
-        }, 3500);
-      } else {
-        setErrorMessage(res.error || "Gagal menyimpan data profil.");
+      } catch (err) {
+        console.error("[admin] updateProfile gagal:", err);
+        setErrorMessage("Gagal menghubungi server. Periksa koneksi, muat ulang halaman, lalu coba lagi.");
       }
     });
   };
@@ -154,12 +171,12 @@ export default function AdminProfilePage() {
   return (
     <div className="space-y-6">
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--vt-edge-lo-2)] pb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--vt-ink)]">
             Kelola Profil Pribadi
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-[var(--vt-ink-mute)]">
             Perbarui data identitas, headline, narasi biografi, dan keahlian yang ditampilkan kepada calon klien.
           </p>
         </div>
@@ -189,7 +206,7 @@ export default function AdminProfilePage() {
 
       {/* Tabs Layout */}
       <Tabs defaultValue="utama" className="space-y-6">
-        <TabsList className="bg-muted/60 p-1 border border-border">
+         <TabsList className="bg-[var(--vt-card)] p-1 border border-[var(--vt-edge-lo-2)]">
           <TabsTrigger value="utama" className="text-xs">
             Informasi Utama
           </TabsTrigger>
@@ -203,7 +220,7 @@ export default function AdminProfilePage() {
 
         {/* Tab 1: Informasi Utama */}
         <TabsContent value="utama">
-          <Card>
+               <Card className="bg-[var(--vt-card)] border-[var(--vt-edge-lo-2)]">
             <CardHeader>
               <CardTitle className="text-base font-semibold">
                 Biodata & Kontak Utama
@@ -275,7 +292,7 @@ export default function AdminProfilePage() {
                 </TabsContent>
 
                 <TabsContent value="en" className="space-y-4">
-                  <div className="flex items-center justify-between bg-muted/40 p-2.5 rounded-md border border-border/60">
+                  <div className="flex items-center justify-between bg-muted/40 p-2.5 rounded-md border border-[var(--vt-edge-lo-2)]">
                     <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                       <Globe className="h-3.5 w-3.5 text-primary" />
                       <span>Kosongkan bila mode EN cukup memakai teks Indonesia</span>
@@ -330,7 +347,7 @@ export default function AdminProfilePage() {
                 </TabsContent>
               </Tabs>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-border/60">
+               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-[var(--vt-edge-lo-2)]/60">
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-xs font-medium flex items-center gap-1.5">
                     <Mail className="h-3 w-3 text-muted-foreground" />
@@ -343,7 +360,7 @@ export default function AdminProfilePage() {
                     onChange={(e) =>
                       setProfile({ ...profile, email: e.target.value })
                     }
-                    className="text-xs"
+                    className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
                   />
                 </div>
 
@@ -358,7 +375,7 @@ export default function AdminProfilePage() {
                     onChange={(e) =>
                       setProfile({ ...profile, phone: e.target.value })
                     }
-                    className="text-xs"
+                    className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
                   />
                 </div>
 
@@ -373,8 +390,59 @@ export default function AdminProfilePage() {
                     onChange={(e) =>
                       setProfile({ ...profile, location: e.target.value })
                     }
-                    className="text-xs"
+                    className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
                   />
+                </div>
+
+                 <div className="space-y-2">
+                   <Label className="text-xs font-medium flex items-center gap-1.5">
+                     <span>Tautan CV / Resume (URL publik / Google Drive)</span>
+                   </Label>
+                   <Input
+                     id="cvUrl"
+                     placeholder="https://..."
+                     value={profile.cvUrl || ""}
+                     onChange={(e) =>
+                       setProfile({ ...profile, cvUrl: e.target.value })
+                     }
+                     className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
+                   />
+                 </div>
+              </div>
+
+              <div className="pt-4 border-t border-[var(--vt-edge-lo-2)] space-y-3">
+                <div>
+                  <p className="text-xs font-semibold text-foreground">
+                    Pengaturan Pembayaran Toko (QRIS &amp; Transfer Bank)
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Digunakan pada modal checkout Toko untuk pembayaran manual pelanggan.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Gambar Barcode / QRIS</Label>
+                    <ImageUpload
+                      value={profile.paymentQrUrl || ""}
+                      onChange={(url) => setProfile({ ...profile, paymentQrUrl: url })}
+                      label="Unggah QRIS"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="paymentBankInfo" className="text-xs font-medium">
+                      Informasi Rekening / Bank Transfer
+                    </Label>
+                    <Textarea
+                      id="paymentBankInfo"
+                      rows={3}
+                      placeholder="Contoh: BCA 1234567890 a.n. Sigit Adi&#10;Mandiri 9876543210 a.n. Sigit Adi"
+                      value={profile.paymentBankInfo || ""}
+                      onChange={(e) =>
+                        setProfile({ ...profile, paymentBankInfo: e.target.value })
+                      }
+                      className="text-xs font-mono"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -409,7 +477,7 @@ export default function AdminProfilePage() {
         {/* Tab 2: Keahlian & Statistik */}
         <TabsContent value="keahlian">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
+               <Card className="bg-[var(--vt-card)] border-[var(--vt-edge-lo-2)]">
               <CardHeader>
                 <CardTitle className="text-base font-semibold">
                   Daftar Tag Keahlian (Skills)
@@ -453,7 +521,7 @@ export default function AdminProfilePage() {
               </CardContent>
             </Card>
 
-            <Card>
+               <Card className="bg-[var(--vt-card)] border-[var(--vt-edge-lo-2)]">
               <CardHeader>
                 <CardTitle className="text-base font-semibold">
                   Statistik Ringkas
@@ -466,7 +534,7 @@ export default function AdminProfilePage() {
                 {profile.stats.map((stat, idx) => (
                   <div
                     key={idx}
-                    className="grid grid-cols-2 gap-3 p-3 rounded-lg border border-border bg-muted/20"
+                    className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-lg border border-[var(--vt-edge-lo-2)] bg-[var(--vt-card)]"
                   >
                     <div className="space-y-1">
                       <Label className="text-[10px] uppercase font-semibold text-muted-foreground">
@@ -479,7 +547,22 @@ export default function AdminProfilePage() {
                           newStats[idx].label = e.target.value;
                           setProfile({ ...profile, stats: newStats });
                         }}
-                        className="text-xs h-8 bg-background"
+                        className="text-xs h-8 bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] uppercase font-semibold text-muted-foreground">
+                        Label Metrik (EN)
+                      </Label>
+                      <Input
+                        value={stat.labelEn ?? ""}
+                        onChange={(e) => {
+                          const newStats = [...profile.stats];
+                          newStats[idx].labelEn = e.target.value;
+                          setProfile({ ...profile, stats: newStats });
+                        }}
+                        placeholder="English metric label"
+                        className="text-xs h-8 bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
                       />
                     </div>
                     <div className="space-y-1">
@@ -493,7 +576,7 @@ export default function AdminProfilePage() {
                           newStats[idx].value = e.target.value;
                           setProfile({ ...profile, stats: newStats });
                         }}
-                        className="text-xs h-8 bg-background"
+                        className="text-xs h-8 bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
                       />
                     </div>
                   </div>
@@ -506,7 +589,7 @@ export default function AdminProfilePage() {
         {/* Tab 3: Media Sosial & Foto */}
         <TabsContent value="sosial">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="md:col-span-1">
+             <Card className="md:col-span-1 bg-[var(--vt-card)] border-[var(--vt-edge-lo-2)]">
               <CardHeader>
                 <CardTitle className="text-base font-semibold">
                   Foto Profil Avatar
@@ -535,7 +618,7 @@ export default function AdminProfilePage() {
               </CardContent>
             </Card>
 
-            <Card className="md:col-span-2">
+             <Card className="md:col-span-2 bg-[var(--vt-card)] border-[var(--vt-edge-lo-2)]">
               <CardHeader>
                 <CardTitle className="text-base font-semibold">
                   Tautan Media Sosial

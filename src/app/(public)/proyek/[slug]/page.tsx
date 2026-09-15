@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getProjects, getProfile } from "@/lib/actions";
 import { safeJsonLd } from "@/lib/json-ld";
+import { localeAlternates } from "@/lib/seo";
 import { ProjectDetailContent } from "@/components/public/project-detail-content";
 
 interface ProjectDetailPageProps {
@@ -34,9 +35,7 @@ export async function generateMetadata({ params }: ProjectDetailPageProps) {
   return {
     title,
     description,
-    alternates: {
-      canonical: url,
-    },
+    alternates: localeAlternates(url),
     openGraph: {
       title,
       description,

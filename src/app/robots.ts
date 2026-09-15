@@ -6,15 +6,13 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
+        // Catatan: /_next/ sengaja TIDAK diblokir. Situs ini sangat bergantung
+        // pada JS (shell OS desktop, window manager, RetroBot) — memblokir
+        // /_next/static/*.js membuat crawler render halaman kosong. Rule bot
+        // khusus di bawah memang tidak memblokirnya; konsistenkan di sini.
         userAgent: "*",
         allow: "/",
-        disallow: [
-          "/admin/",
-          "/sign-in/",
-          "/sign-up/",
-          "/api/",
-          "/_next/",
-        ],
+        disallow: ["/admin/", "/sign-in/", "/sign-up/", "/api/"],
       },
       {
         userAgent: [
@@ -41,12 +39,16 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: [
           "PerplexityBot",
           "GPTBot",
+          "OAI-SearchBot", // ChatGPT Search
           "ChatGPT-User",
+          "Google-Extended", // Gemini / AI Overviews
           "ClaudeBot",
           "anthropic-ai",
           "Applebot-Extended",
         ],
-        allow: ["/", "/proyek/", "/artikel/", "/llms.txt"],
+        // allow: "/" sudah mencakup semuanya — list ini deklaratif: konten
+        // yang sengaja dipromosikan ke mesin jawab AI.
+        allow: ["/", "/proyek/", "/artikel/", "/toko/", "/feed.xml", "/llms.txt"],
         disallow: [
           "/admin/",
           "/sign-in/",

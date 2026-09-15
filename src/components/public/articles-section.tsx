@@ -11,7 +11,7 @@ import {
   Search,
   BookOpen,
 } from "lucide-react";
-import { ArticleData, DUMMY_ARTICLES } from "@/lib/dummy-data";
+import { ArticleData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
 import { OSWindow } from "@/components/public/os/os-window";
 import gsap from "gsap";
@@ -30,13 +30,11 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string>("ALL");
 
-  const rawArticles =
-    propArticles && Array.isArray(propArticles) && propArticles.length > 0
-      ? propArticles
-      : DUMMY_ARTICLES;
-
-  const publishedArticles = rawArticles.filter((a) => a.published !== false);
-  const articles = publishedArticles.length > 0 ? publishedArticles : rawArticles;
+  // Tanpa fallback dummy: tanpa artikel, tampil empty state jujur
+  const publishedArticles = ((propArticles && Array.isArray(propArticles)) ? propArticles : []).filter(
+    (a) => a.published !== false
+  );
+  const articles = publishedArticles;
 
   // Extract all unique tags
   const allTags = useMemo(() => {
@@ -104,7 +102,7 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
         </div>
 
         {/* Retro Filter Bar */}
-        <div className="mb-6 p-3 bg-[var(--vt-chrome)] border-2 border-t-[#dfdeda] border-l-[#dfdeda] border-r-[#5a5750] border-b-[#5a5750] shadow-[inset_1px_1px_0_#fff,inset_-1px_-1px_0_#808080] flex flex-col md:flex-row gap-3 items-center justify-between min-w-0">
+        <div className="mb-6 p-3 bg-[var(--vt-chrome)] border-2 border-t-[var(--vt-edge-hi-2)] border-l-[var(--vt-edge-hi-2)] border-r-[var(--vt-edge-lo)] border-b-[var(--vt-edge-lo)] shadow-[inset_1px_1px_0_var(--vt-edge-hi),inset_-1px_-1px_0_var(--vt-edge-lo)] flex flex-col md:flex-row gap-3 items-center justify-between min-w-0">
           {/* Tag Chips */}
           <div className="flex flex-wrap gap-1.5 w-full md:w-auto items-center min-w-0">
             <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-[var(--vt-ink)] mr-1 flex items-center gap-1">
@@ -119,7 +117,7 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
                   className={`px-2 py-0.5 text-[11px] font-mono transition-all uppercase ${
                     isActive
                       ? "bg-[var(--vt-amber)] text-black font-bold border-2 border-t-[#000] border-l-[#000] border-r-[#fff] border-b-[#fff] shadow-[inset_1px_1px_0_rgba(0,0,0,0.5)]"
-                      : "bg-[#dfdeda] text-black border-2 border-t-[#fff] border-l-[#fff] border-r-[#5a5750] border-b-[#5a5750] hover:bg-[#eae8e4]"
+                      : "bg-[var(--vt-card)] text-[var(--vt-ink)] border-2 border-t-[var(--vt-edge-hi)] border-l-[var(--vt-edge-hi)] border-r-[var(--vt-edge-lo)] border-b-[var(--vt-edge-lo)] hover:bg-[var(--vt-edge-hi-2)]"
                   }`}
                 >
                   {tag}
@@ -130,21 +128,21 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
 
           {/* Search Box */}
           <div className="relative w-full md:w-64 min-w-0">
-            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-[#5a5750]" />
+            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-[var(--vt-ink-mute)]" />
             <input
               type="text"
               placeholder={language === "en" ? "Search articles..." : "Cari artikel..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1 bg-white border-2 border-t-[#5a5750] border-l-[#5a5750] border-r-[#dfdeda] border-b-[#dfdeda] text-xs font-mono text-black placeholder:text-[#808080] focus:outline-none focus:ring-1 focus:ring-[var(--vt-amber)] min-w-0"
+              className="w-full pl-8 pr-3 py-1 bg-[var(--vt-paper)] border-2 border-t-[var(--vt-edge-lo)] border-l-[var(--vt-edge-lo)] border-r-[var(--vt-edge-hi-2)] border-b-[var(--vt-edge-hi-2)] text-xs font-mono text-[var(--vt-ink)] placeholder:text-[var(--vt-ink-mute)] focus:outline-none focus:ring-1 focus:ring-[var(--vt-amber)] min-w-0"
             />
           </div>
         </div>
 
         {/* Articles Grid */}
         {filteredArticles.length === 0 ? (
-          <div className="p-8 text-center bg-[var(--vt-chrome)] border-2 border-[#5a5750] shadow-[inset_1px_1px_0_#fff]">
-            <BookOpen className="h-8 w-8 mx-auto text-[#808080] mb-2" />
+          <div className="p-8 text-center bg-[var(--vt-chrome)] border-2 border-[var(--vt-edge-lo-2)] shadow-[inset_1px_1px_0_var(--vt-edge-hi)]">
+            <BookOpen className="h-8 w-8 mx-auto text-[var(--vt-ink-mute)] mb-2" />
             <p className="font-mono text-xs text-[var(--vt-ink)]">
               {t.articles_empty}
             </p>
@@ -175,11 +173,11 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
                     icon={<FileText className="h-3.5 w-3.5 text-[var(--vt-amber)]" />}
                     className="h-full flex flex-col"
                   >
-                    <div className="p-4 flex-1 flex flex-col justify-between bg-white text-black min-w-0">
+                    <div className="p-4 flex-1 flex flex-col justify-between bg-[var(--vt-paper)] text-[var(--vt-ink)] min-w-0">
                       <div>
                         {/* Cover Image if available */}
                         {article.imageUrl && (
-                          <div className="relative mb-3 overflow-hidden rounded-sm border border-[#5a5750] shadow-inner aspect-[16/9] bg-black">
+                          <div className="relative mb-3 overflow-hidden rounded-sm border border-[var(--vt-edge-lo-2)] shadow-inner aspect-[16/9] bg-black">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={article.imageUrl}
@@ -195,7 +193,7 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
                         )}
 
                         {/* Metadata row */}
-                        <div className="flex items-center gap-3 text-[10px] font-mono text-[#5a5750] mb-2 border-b border-[#e5e5e5] pb-1.5">
+                        <div className="flex items-center gap-3 text-[10px] font-mono text-[var(--vt-ink-mute)] mb-2 border-b border-[var(--vt-edge-hi-2)] pb-1.5">
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
                             {new Date(article.createdAt).toLocaleDateString(
@@ -214,13 +212,13 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
                           href={`/artikel/${article.slug}`}
                           className="group block min-w-0"
                         >
-                          <h3 className="font-bold text-base font-display text-black leading-snug group-hover:text-[var(--vt-blue)] transition-colors line-clamp-2 mb-2 mobile-safe-text">
+                          <h3 className="font-bold text-base font-display text-[var(--vt-ink)] leading-snug group-hover:text-[var(--vt-blue)] transition-colors line-clamp-2 mb-2 mobile-safe-text">
                             {title}
                           </h3>
                         </Link>
 
                         {/* Summary */}
-                        <p className="text-xs font-mono text-[#444] leading-relaxed line-clamp-3 mb-4 mobile-safe-text">
+                        <p className="text-xs font-mono text-[var(--vt-ink-soft)] leading-relaxed line-clamp-3 mb-4 mobile-safe-text">
                           {summary}
                         </p>
                       </div>
@@ -231,7 +229,7 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
                           {article.tags.map((tg, i) => (
                             <span
                               key={i}
-                              className="text-[9px] font-mono px-1.5 py-0.2 bg-[#f0f0f0] border border-[#ccc] text-[#333]"
+                              className="text-[9px] font-mono px-1.5 py-0.2 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)] text-[var(--vt-ink)]"
                             >
                               #{tg}
                             </span>
@@ -241,13 +239,13 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
                         {/* Read Full Article Button */}
                         <Link
                           href={`/artikel/${article.slug}`}
-                          className="w-full flex items-center justify-between px-3 py-1.5 bg-[#dfdeda] border-2 border-t-[#ffffff] border-l-[#ffffff] border-r-[#5a5750] border-b-[#5a5750] hover:bg-[#d0cec8] active:border-t-[#5a5750] active:border-l-[#5a5750] active:border-r-[#fff] active:border-b-[#fff] font-mono text-xs font-bold text-black group transition-all"
+                          className="w-full flex items-center justify-between px-3 py-1.5 bg-[var(--vt-card)] border-2 border-t-[var(--vt-edge-hi)] border-l-[var(--vt-edge-hi)] border-r-[var(--vt-edge-lo)] border-b-[var(--vt-edge-lo)] hover:bg-[var(--vt-edge-hi-2)] active:border-t-[var(--vt-edge-lo)] active:border-l-[var(--vt-edge-lo)] active:border-r-[var(--vt-edge-hi-2)] active:border-b-[var(--vt-edge-hi-2)] font-mono text-xs font-bold text-[var(--vt-ink)] group transition-all"
                         >
                           <span className="flex items-center gap-1.5">
                             <FileText className="h-3.5 w-3.5 text-[var(--vt-amber)]" />
                             {t.articles_read_more}
                           </span>
-                          <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform text-black" />
+                          <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform text-[var(--vt-ink)]" />
                         </Link>
                       </div>
                     </div>

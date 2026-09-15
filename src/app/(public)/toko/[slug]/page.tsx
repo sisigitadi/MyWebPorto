@@ -1,57 +1,41 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getProducts } from "@/lib/actions";
-import { getProductSlug } from "@/lib/product-link";
 import { ProductDetailContent } from "@/components/public/product-detail-content";
+import { getProducts, getProfile } from "@/lib/actions";
+import { getProductSlug } from "@/lib/product-link";
+import { generateDynamicMetadata, localeAlternates } from "@/lib/seo";
+import { STORE_NAME } from "@/lib/store";
 
-interface ProductDetailPageProps {
+interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-export const revalidate = 60;
-
-export async function generateStaticParams() {
-  const products = await getProducts();
-  return products.filter((product) => product.published).map((product) => ({ slug: getProductSlug(product) }));
-}
-
-export async function generateMetadata({ params }: ProductDetailPageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
   const products = await getProducts();
-  const product = products.find((item) => item.published && getProductSlug(item) === slug);
-
-  if (!product) return { title: "Produk Tidak Ditemukan" };
-
+  const product = products.find((p) => getProductSlug(p) === slug);
+  // Sebelumnya halaman produk tidak mendefinisikan alternates, sehingga
+  // kanonikal & hreflang-nya diambil dari layout = URL root (salah untuk
+  // produk). Kembalikan ke URL produk yang sebenarnya.
+  if (!product) return generateDynamicMetadata();
   const url = `${baseUrl}/toko/${slug}`;
   return {
-    title: `${product.title} - Store.zip | Sigit Adi`,
-    description: product.description,
-    alternates: { canonical: url },
-    openGraph: {
-      title: `${product.title} - Store.zip`,
-      description: product.description,
-      url,
-      type: "website",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: `${product.title} - Store.zip`,
-      description: product.description,
-    },
+    title: product.title + " \u2014 " + STORE_NAME,
+    description: product.description.slice(0, 160),
+    alternates: localeAlternates(url),
+    openGraph: { title: product.title, description: product.description.slice(0, 160), url, images: [product.thumbnailUrl] },
   };
 }
 
-export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
+export default async function ProductDetailPage({ params }: PageProps) {
   const { slug } = await params;
-  const products = await getProducts();
-  const product = products.find((item) => item.published && getProductSlug(item) === slug);
-
+  const [products, profile] = await Promise.all([getProducts(), getProfile()]);
+  const product = products.find((p) => getProductSlug(p) === slug);
   if (!product) notFound();
-
   return (
-    <div className="h-full w-full overflow-y-auto vt-scrollbar">
-      <ProductDetailContent product={product} />
+    <div className="flex-1 min-h-0 w-full overflow-y-auto vt-scrollbar">
+      <ProductDetailContent product={product} profile={profile} />
     </div>
   );
 }

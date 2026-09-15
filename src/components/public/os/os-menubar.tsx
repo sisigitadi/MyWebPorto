@@ -119,8 +119,13 @@ export function OSMenubar({ profile }: OSMenubarProps) {
             title="Tanggal Hari Ini"
           >
             <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary group-hover:scale-110 group-hover:text-emerald-500 transition-all" />
-            <span className="sm:hidden">{shortDate || "13/09/2026"}</span>
-            <span className="hidden sm:inline">{fullDate || "13/09/2026"}</span>
+            {/* Tanggal hanya diisi setelah mount (useEffect di bawah). Literal
+              tanggal statis sebagai fallback SSR menyebabkan hydration
+              mismatch: SSR memakai "13/09/2026", client mengisi tanggal asli
+              → React warning + event handler bisa terputus, terlihat seperti
+              "hang di loading / tidak masuk menu". */}
+            <span className="sm:hidden">{shortDate}</span>
+            <span className="hidden sm:inline">{fullDate}</span>
           </div>
 
           {/* User Button / Admin link */}

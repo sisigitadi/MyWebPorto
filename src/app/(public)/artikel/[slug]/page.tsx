@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getArticles, getProfile } from "@/lib/actions";
 import { safeJsonLd } from "@/lib/json-ld";
+import { localeAlternates } from "@/lib/seo";
 import { ArticleDetailContent } from "@/components/public/article-detail-content";
 
 interface ArticleDetailPageProps {
@@ -34,9 +35,7 @@ export async function generateMetadata({ params }: ArticleDetailPageProps) {
   return {
     title,
     description,
-    alternates: {
-      canonical: url,
-    },
+    alternates: localeAlternates(url),
     openGraph: {
       title,
       description,
@@ -44,7 +43,7 @@ export async function generateMetadata({ params }: ArticleDetailPageProps) {
       type: "article",
       publishedTime: new Date(article.createdAt).toISOString(),
       modifiedTime: new Date(article.updatedAt || article.createdAt).toISOString(),
-      authors: ["Sigit Adi Pranoto"],
+      authors: ["Sigit Adi Irianto"],
       tags: article.tags || [],
     },
     twitter: {
@@ -121,12 +120,12 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
     inLanguage: "id-ID",
     author: {
       "@type": "Person",
-      name: profile.name || "Sigit Adi Pranoto",
+      name: profile.name || "Sigit Adi Irianto",
       url: baseUrl,
     },
     publisher: {
       "@type": "Person",
-      name: profile.name || "Sigit Adi Pranoto",
+      name: profile.name || "Sigit Adi Irianto",
       url: baseUrl,
     },
     mainEntityOfPage: {

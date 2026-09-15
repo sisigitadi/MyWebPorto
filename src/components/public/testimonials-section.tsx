@@ -2,7 +2,7 @@
 
 import React, { useRef } from "react";
 import { Star, MessageSquareQuote } from "lucide-react";
-import { TestimonialData, DUMMY_TESTIMONIALS } from "@/lib/dummy-data";
+import { TestimonialData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
 import { OSWindow } from "@/components/public/os/os-window";
 import { gsap } from "gsap";
@@ -20,12 +20,10 @@ interface TestimonialsSectionProps {
 export function TestimonialsSection({ testimonials: propTestimonials }: TestimonialsSectionProps) {
   const { t, language } = useTranslation();
   const containerRef = useRef<HTMLElement>(null);
-  const rawTestimonials =
-    propTestimonials && Array.isArray(propTestimonials) && propTestimonials.length > 0
-      ? propTestimonials
-      : DUMMY_TESTIMONIALS;
-  const published = rawTestimonials.filter((t) => t.published !== false);
-  const testimonials = published.length > 0 ? published : DUMMY_TESTIMONIALS;
+  // Tanpa fallback dummy: tanpa testimoni, tampil empty state jujur
+  const testimonials = ((propTestimonials && Array.isArray(propTestimonials)) ? propTestimonials : []).filter(
+    (item) => item.published !== false
+  );
 
   useGSAP(
     () => {
@@ -68,6 +66,12 @@ export function TestimonialsSection({ testimonials: propTestimonials }: Testimon
         </div>
 
         {/* Testimonials Grid */}
+        {testimonials.length === 0 ? (
+          <div className="text-center py-10 vt-card-inset bg-[var(--vt-card)] rounded-xs border border-dashed border-border font-mono text-xs">
+            <MessageSquareQuote className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="font-bold text-sm text-[var(--vt-ink)]">{t.testimonials_empty}</p>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {testimonials.map((testi, index) => {
             const role = (language === "en" && testi.clientRoleEn) ? testi.clientRoleEn : testi.clientRole;
@@ -134,6 +138,7 @@ export function TestimonialsSection({ testimonials: propTestimonials }: Testimon
             );
           })}
         </div>
+        )}
       </div>
     </section>
   );

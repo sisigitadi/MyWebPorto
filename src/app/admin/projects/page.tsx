@@ -48,7 +48,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUpload } from "@/components/admin/image-upload";
 import { DUMMY_PROJECTS, ProjectData } from "@/lib/dummy-data";
 import { ContentEditor } from "@/components/admin/content-editor";
-import { isScheduled } from "@/lib/publish";
+import { isScheduled, localInputToUtcIso, utcIsoToLocalInput } from "@/lib/publish";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
+import { toast } from "sonner";
 import {
   getProjects,
   saveProject,
@@ -104,6 +106,29 @@ export default function AdminProjectsPage() {
     fetchProjects();
   }, []);
 
+  // Guard "belum disimpan": baseline direset saat sessionKey berubah — yaitu
+  // saat dialog tambah/edit dibuka atau item lain dipilih. Mengetik di form
+  // tidak mengubah sessionKey, jadi perubahan terdeteksi sebagai dirty.
+  useUnsavedChanges(
+    selectedProject?.id ?? (dialogOpen ? "new" : null),
+    {
+      formTitle,
+      formSlug,
+      formSummary,
+      formDescription,
+      formTitleEn,
+      formSummaryEn,
+      formDescriptionEn,
+      formThumbnail,
+      formTechStack,
+      formDemoUrl,
+      formRepoUrl,
+      formFeatured,
+      formPublished,
+      formPublishAt,
+    },
+  );
+
   // Filter projects by search
   const filteredProjects = projects.filter(
     (p) =>
@@ -152,7 +177,7 @@ export default function AdminProjectsPage() {
     setFormRepoUrl(project.repoUrl || "");
     setFormFeatured(project.featured);
     setFormPublished(project.published);
-    setFormPublishAt(project.publishAt ? project.publishAt.slice(0, 16) : "");
+    setFormPublishAt(utcIsoToLocalInput(project.publishAt));
     setDialogOpen(true);
   };
 
@@ -225,15 +250,23 @@ export default function AdminProjectsPage() {
         techStacks: techArray,
         featured: formFeatured,
         published: formPublished,
-        publishAt: formPublishAt || undefined,
+        publishAt: localInputToUtcIso(formPublishAt) || undefined,
       };
 
-      const res = await saveProject(payload);
-      if (res.success) {
-        setDialogOpen(false);
-        await fetchProjects();
-      } else {
-        setErrorMessage(res.error || "Gagal menyimpan proyek.");
+      try {
+        const res = await saveProject(payload);
+        if (res.success) {
+          setDialogOpen(false);
+          toast.success(res.message || "Proyek berhasil disimpan!");
+          await fetchProjects();
+        } else {
+          setErrorMessage(res.error || "Gagal menyimpan proyek.");
+          toast.error(res.error || "Gagal menyimpan proyek.");
+        }
+      } catch (err) {
+        console.error("[admin] saveProject gagal:", err);
+        setErrorMessage("Gagal menghubungi server. Periksa koneksi, muat ulang halaman, lalu coba lagi.");
+        toast.error("Gagal menghubungi server. Coba simpan lagi.");
       }
     });
   };
@@ -242,11 +275,19 @@ export default function AdminProjectsPage() {
     if (!selectedProject) return;
 
     startTransition(async () => {
-      const res = await deleteProject(selectedProject.id);
-      if (res.success) {
-        setDeleteAlertOpen(false);
-        setSelectedProject(null);
-        await fetchProjects();
+      try {
+        const res = await deleteProject(selectedProject.id);
+        if (res.success) {
+          setDeleteAlertOpen(false);
+          setSelectedProject(null);
+          toast.success(res.message || "Proyek berhasil dihapus!");
+          await fetchProjects();
+        } else {
+          toast.error(res.error || "Gagal menghapus proyek.");
+        }
+      } catch (err) {
+        console.error("[admin] deleteProject gagal:", err);
+        toast.error("Gagal menghubungi server. Muat ulang halaman lalu coba lagi.");
       }
     });
   };
@@ -707,6 +748,7 @@ export default function AdminProjectsPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setDialogOpen(false)}
+                  disabled={isPending}
                   className="text-xs h-8"
                 >
                   Batal
@@ -733,10 +775,11 @@ export default function AdminProjectsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="text-xs h-8">Batal</AlertDialogCancel>
+            <AlertDialogCancel className="text-xs h-8" disabled={isPending}>Batal</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteProject}
-              className="bg-rose-600 hover:bg-rose-700 text-white text-xs h-8"
+              disabled={isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs h-8"
             >
               Ya, Hapus Proyek
             </AlertDialogAction>

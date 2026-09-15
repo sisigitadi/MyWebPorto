@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import {
   Inter,
   Fira_Code,
@@ -60,12 +60,12 @@ const bingVerification = process.env.NEXT_PUBLIC_BING_VERIFICATION || "e5b871c98
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
   title: {
-    default: "Sigit Adi Pranoto — Senior Web Developer & Tech Creator",
+    default: "Sigit Adi Irianto — Senior Web Developer & Tech Creator",
     template: "%s | Sigit Web Porto",
   },
-  description: "Portofolio profesional Sigit Adi Pranoto menampilkan karya pengembangan web modern, sistem berbasis AI, arsitektur cloud, dan solusi full-stack.",
+  description: "Portofolio profesional Sigit Adi Irianto menampilkan karya pengembangan web modern, sistem berbasis AI, arsitektur cloud, dan solusi full-stack.",
   keywords: [
-    "Sigit Adi Pranoto",
+    "Sigit Adi Irianto",
     "Web Developer Indonesia",
     "Full Stack Engineer",
     "Jasa Pembuatan Website",
@@ -74,9 +74,9 @@ export const metadata: Metadata = {
     "Portofolio Digital",
     "Software Engineer Portfolio",
   ],
-  authors: [{ name: "Sigit Adi Pranoto", url: appUrl }],
-  creator: "Sigit Adi Pranoto",
-  publisher: "Sigit Adi Pranoto",
+  authors: [{ name: "Sigit Adi Irianto", url: appUrl }],
+  creator: "Sigit Adi Irianto",
+  publisher: "Sigit Adi Irianto",
   alternates: {
     canonical: appUrl,
     types: {
@@ -87,7 +87,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "id_ID",
     url: appUrl,
-    title: "Sigit Adi Pranoto — Senior Web Developer & Tech Creator",
+    title: "Sigit Adi Irianto — Senior Web Developer & Tech Creator",
     description: "Jelajahi portofolio interaktif SigitOS dengan sistem modern, karya unggulan, dan integrasi kecerdasan buatan.",
     siteName: "Sigit Web Porto",
     images: [
@@ -95,14 +95,14 @@ export const metadata: Metadata = {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "Sigit Adi Pranoto - Portofolio & Workstation",
+        alt: "Sigit Adi Irianto - Portofolio & Workstation",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Sigit Adi Pranoto — Senior Web Developer & Tech Creator",
-    description: "Portofolio digital interaktif Sigit Adi Pranoto berbasis Next.js dan SigitOS.",
+    title: "Sigit Adi Irianto — Senior Web Developer & Tech Creator",
+    description: "Portofolio digital interaktif Sigit Adi Irianto berbasis Next.js dan SigitOS.",
     images: ["/opengraph-image"],
   },
   verification: {
@@ -112,7 +112,6 @@ export const metadata: Metadata = {
     },
   },
   manifest: "/manifest.webmanifest",
-  themeColor: "#0a0f1e",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -125,6 +124,10 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0a0f1e",
 };
 
 export default async function RootLayout({

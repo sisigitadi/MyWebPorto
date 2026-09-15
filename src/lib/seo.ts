@@ -23,8 +23,9 @@ export function buildLlmsTxt(input: {
   services: string[];
   projects: LlmsEntry[];
   articles: LlmsEntry[];
+  products?: LlmsEntry[];
 }): string {
-  const { baseUrl, profile, services, projects, articles } = input;
+  const { baseUrl, profile, services, projects, articles, products } = input;
   const lines: string[] = [
     `# ${profile.name}`,
     "",
@@ -48,12 +49,46 @@ export function buildLlmsTxt(input: {
       .slice(0, 20)
       .map((a) => `- [${a.title}](${baseUrl}/artikel/${a.slug})${a.summary ? `: ${a.summary}` : ""}`),
     "",
+    ...(products && products.length > 0
+      ? [
+          "## Toko",
+          "",
+          ...products
+            .slice(0, 20)
+            .map((p) => `- [${p.title}](${baseUrl}/toko/${p.slug})${p.summary ? `: ${p.summary}` : ""}`),
+        ]
+      : []),
+    "",
     `## Kontak\n\n- ${baseUrl}/#kontak`,
     "",
   ];
   return lines.join("\n");
 }
 import { getProfile } from "@/lib/actions";
+
+/**
+ * Alternates locale untuk satu URL absolut.
+ *
+ * Locale dibawa via ?lang= (client-side i18n). Awalnya pakai URL relatif "./"
+ * di metadata layout, tapi terbukti rapuh: (1) alternates di halaman menimpa
+ * milik layout sepenuhnya — tidak ada merge — sehingga hreflang hilang di
+ * /proyek & /artikel; (2) di root path, "./?lang=id" diresolve tanpa query-nya.
+ * Helper ini dipanggil eksplisit per-halaman agar kanonikal & hreflang selalu
+ * konsisten.
+ */
+export function localeAlternates(
+  canonicalUrl: string
+): { canonical: string; languages: Record<string, string> } {
+  const clean = canonicalUrl.replace(/[?#].*$/, "");
+  return {
+    canonical: clean,
+    languages: {
+      "id-ID": `${clean}?lang=id`,
+      en: `${clean}?lang=en`,
+      "x-default": clean,
+    },
+  };
+}
 
 export async function generateDynamicMetadata(): Promise<Metadata> {
   const profile = await getProfile();
@@ -95,11 +130,11 @@ export async function generateDynamicMetadata(): Promise<Metadata> {
     authors: [{ name: profile.name, url: appUrl }],
     creator: profile.name,
     publisher: profile.name,
-    alternates: {
-      canonical: appUrl,
-    },
+    alternates: localeAlternates(appUrl),
     openGraph: {
       type: "website",
+      // Locale default situs ini id-ID; varian EN dideklarasikan via
+      // alternates.languages (hreflang) di atas.
       locale: "id_ID",
       url: appUrl,
       title,

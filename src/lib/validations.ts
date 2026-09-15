@@ -40,6 +40,8 @@ export const ProfileSchema = z.object({
   phone: z.string().max(30, "Nomor telepon maksimal 30 karakter").optional().or(z.literal("")),
   location: z.string().max(100, "Lokasi maksimal 100 karakter").optional().or(z.literal("")),
   cvUrl: safeUrlSchema.optional().or(z.literal("")),
+  paymentQrUrl: imageOrUrlSchema.optional().or(z.literal("")),
+  paymentBankInfo: z.string().max(1000, "Info pembayaran maksimal 1000 karakter").optional().or(z.literal("")),
   availableForHire: z.boolean().default(true),
   skills: z.array(z.string().max(50, "Skill maksimal 50 karakter")).max(50, "Maksimal 50 skills").default([]),
   stats: z
@@ -130,9 +132,24 @@ export const ProductSchema = z.object({
     message: "URL gambar produk wajib diisi",
   }),
   priceLabel: z.string().max(100).optional().or(z.literal("")),
+  comparePriceLabel: z.string().max(100).optional().or(z.literal("")),
+  priceAmount: z.preprocess(
+    (v) => (v === "" || v === undefined ? null : v),
+    z.coerce.number().int().min(0).max(999999999).nullable().optional()
+  ),
+  badge: z.string().max(30).optional().or(z.literal("")),
+  category: z.string().max(60).optional().or(z.literal("")),
+  stock: z.preprocess(
+    (v) => (v === "" || v === undefined ? null : v),
+    z.coerce.number().int().min(0).max(999999).nullable().optional()
+  ),
+  gallery: z.array(imageOrUrlSchema).max(10).default([]),
   ctaUrl: safeUrlSchema.optional().or(z.literal("")),
   published: z.boolean().default(true),
   order: z.number().int().min(0).max(9999).default(0),
+  purchaseType: z.enum(["whatsapp", "external", "referral", "affiliate"]).optional(),
+  customWhatsapp: z.string().max(30).optional().or(z.literal("")),
+  customButtonLabel: z.string().max(50).optional().or(z.literal("")),
 });
 
 export const TestimonialSchema = z.object({

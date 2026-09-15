@@ -35,3 +35,27 @@ export function normalizePublishAt(value: unknown): string | null {
   if (Number.isNaN(t)) return null;
   return new Date(trimmed).toISOString();
 }
+
+/**
+ * Konversi nilai input datetime-local ("2026-09-14T10:00") → ISO UTC.
+ * WAJIB dipanggil di KLIEN sebelum dikirim ke server action: string tanpa
+ * zona akan diparse browser sebagai waktu LOKAL admin, bukan waktu server
+ * (UTC di Vercel) — tanpa ini jadwal tayang bergeser sebesar offset timezone.
+ */
+export function localInputToUtcIso(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const t = new Date(trimmed).getTime();
+  if (Number.isNaN(t)) return null;
+  return new Date(trimmed).toISOString();
+}
+
+/** ISO UTC → nilai untuk input datetime-local dalam zona LOKAL browser. */
+export function utcIsoToLocalInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}

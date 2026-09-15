@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "@/lib/i18n";
+import { playOS } from "@/lib/os-sound";
 
 export function OSBootLoader() {
   const { language } = useTranslation();
@@ -116,6 +117,8 @@ export function OSBootLoader() {
   const handleComplete = () => {
     setIsFading(true);
     sessionStorage.setItem("sigitos_booted_session", "true");
+    // Chime "masuk desktop" ala startup jadul — sopan dan singkat
+    playOS("boot");
     setTimeout(() => {
       setBootVisible(false);
     }, 600);

@@ -6,6 +6,7 @@ import { desc } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
 import { db, isDbConnected } from "@/db";
 import * as schema from "@/db/schema";
+import { verifyAdmin } from "./admin-auth";
 
 /**
  * Audit log admin — best-effort, TIDAK PERNAH melempar error.
@@ -109,8 +110,9 @@ export async function logAudit(input: LogAuditInput): Promise<void> {
   appendLocalAudit(entry);
 }
 
-/** Ambil N audit terbaru (DB dulu, fallback file). Tidak pernah throw. */
+/** Ambil N audit terbaru (DB dulu, fallback file). Admin-only, tidak pernah throw. */
 export async function getAuditLogs(limit = 50): Promise<{ logs: AuditLogData[]; source: string }> {
+  await verifyAdmin();
   const safeLimit = Math.min(Math.max(limit, 1), 100);
   if (isDbConnected) {
     try {

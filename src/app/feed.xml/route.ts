@@ -38,12 +38,14 @@ export async function GET() {
 
   const xml = [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    '<rss version="2.0">',
+    '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">',
     "  <channel>",
     `    <title>${escapeXml("Sigit Adi — Artikel Teknis")}</title>`,
     `    <link>${escapeXml(`${baseUrl}/artikel`)}</link>`,
     `    <description>${escapeXml("Artikel AI, cybersecurity, Linux, Windows, macOS, dan studi kasus proyek.")}</description>`,
     "    <language>id-ID</language>",
+    `    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>`,
+    `    <atom:link href="${escapeXml(`${baseUrl}/feed.xml`)}" rel="self" type="application/rss+xml" />`,
     items,
     "  </channel>",
     "</rss>",

@@ -25,6 +25,7 @@ import {
 import { ProfileData, ServiceData, ProjectData, ProductData, TestimonialData, ArticleData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
 import { useOSTheme, OSTheme } from "./theme-context";
+import { playOS } from "@/lib/os-sound";
 import { HeroSection } from "@/components/public/hero-section";
 import { ServicesSection } from "@/components/public/services-section";
 import { FeaturedProjectsSection } from "@/components/public/featured-projects-section";
@@ -91,25 +92,25 @@ const APPS: AppItem[] = [
     activeClass: "text-[#c026d3] dark:text-[#e879f9] bg-[#c026d3]/15 dark:bg-[#e879f9]/15 ring-[#c026d3]/50 dark:ring-[#e879f9]/50",
   },
   {
-    id: "testimoni",
-    icon: <MessageSquareQuote className="h-[22px] w-[22px] text-[#7c3aed] dark:text-[#a78bfa] shrink-0 transition-transform group-hover:scale-110" strokeWidth={2.2} />,
-    number: 5,
-    colorClass: "hover:bg-[#7c3aed]/10 hover:text-[#7c3aed] dark:hover:bg-[#a78bfa]/10 dark:hover:text-[#a78bfa]",
-    activeClass: "text-[#7c3aed] dark:text-[#a78bfa] bg-[#7c3aed]/15 dark:bg-[#a78bfa]/15 ring-[#7c3aed]/50 dark:ring-[#a78bfa]/50",
-  },
-  {
     id: "artikel",
     icon: <FileText className="h-[22px] w-[22px] text-[#ea580c] dark:text-[#fb923c] shrink-0 transition-transform group-hover:scale-110" strokeWidth={2.2} />,
-    number: 6,
+    number: 5,
     colorClass: "hover:bg-[#ea580c]/10 hover:text-[#ea580c] dark:hover:bg-[#fb923c]/10 dark:hover:text-[#fb923c]",
     activeClass: "text-[#ea580c] dark:text-[#fb923c] bg-[#ea580c]/15 dark:bg-[#fb923c]/15 ring-[#ea580c]/50 dark:ring-[#fb923c]/50",
   },
   {
     id: "terminal",
     icon: <Terminal className="h-[22px] w-[22px] text-[#059669] dark:text-[#34d399] shrink-0 transition-transform group-hover:scale-110" strokeWidth={2.2} />,
-    number: 7,
+    number: 6,
     colorClass: "hover:bg-[#059669]/10 hover:text-[#059669] dark:hover:bg-[#34d399]/10 dark:hover:text-[#34d399]",
     activeClass: "text-[#059669] dark:text-[#34d399] bg-[#059669]/15 dark:bg-[#34d399]/15 ring-[#059669]/50 dark:ring-[#34d399]/50",
+  },
+  {
+    id: "testimoni",
+    icon: <MessageSquareQuote className="h-[22px] w-[22px] text-[#7c3aed] dark:text-[#a78bfa] shrink-0 transition-transform group-hover:scale-110" strokeWidth={2.2} />,
+    number: 7,
+    colorClass: "hover:bg-[#7c3aed]/10 hover:text-[#7c3aed] dark:hover:bg-[#a78bfa]/10 dark:hover:text-[#a78bfa]",
+    activeClass: "text-[#7c3aed] dark:text-[#a78bfa] bg-[#7c3aed]/15 dark:bg-[#a78bfa]/15 ring-[#7c3aed]/50 dark:ring-[#a78bfa]/50",
   },
   {
     id: "kontak",
@@ -137,10 +138,17 @@ export function OSDesktopManager({
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [menuQuery, setMenuQuery] = useState("");
-  const [soundOn, setSoundOn] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return window.localStorage?.getItem("sigitos_sound") !== "off";
-  });
+  const [soundOn, setSoundOn] = useState(true);
+
+  // Preferensi suara dibaca SETELAH mount — useState initializer yang membaca
+  // localStorage membuat render pertama server vs klien berbeda (hydration mismatch).
+  useEffect(() => {
+    try {
+      setSoundOn(window.localStorage?.getItem("sigitos_sound") !== "off");
+    } catch {
+      // Storage diblokir — pakai default ON
+    }
+  }, []);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const getAppFilename = useCallback((id: AppId) => {
@@ -161,6 +169,7 @@ export function OSDesktopManager({
   const currentApp = APPS[currentIndex] || APPS[0];
 
   const switchApp = React.useCallback((id: AppId, updateUrl = true) => {
+    playOS("nav");
     setActiveApp(id);
     setIsMinimized(false);
     if (scrollContainerRef.current) {
@@ -168,7 +177,10 @@ export function OSDesktopManager({
     }
     if (updateUrl && typeof window !== "undefined") {
       const hash = id === "profil" ? "" : "#" + id;
-      const newUrl = window.location.pathname + hash;
+      // Pertahankan search params (mis. ?lang=en) — sebelumnya pathname+hash
+      // saja, sehingga setiap pindah app diam-diam menghapus locale dari URL.
+      const search = window.location.search;
+      const newUrl = window.location.pathname + search + hash;
       if (window.location.hash !== hash) {
         window.history.replaceState(null, "", newUrl || window.location.pathname);
       }
@@ -176,6 +188,7 @@ export function OSDesktopManager({
   }, []);
 
   const handleNext = React.useCallback(() => {
+    playOS("nav");
     setActiveApp((curr) => {
       const idx = APPS.findIndex((a) => a.id === curr);
       const nextIdx = (idx + 1) % APPS.length;
@@ -188,6 +201,7 @@ export function OSDesktopManager({
   }, []);
 
   const handlePrev = React.useCallback(() => {
+    playOS("nav");
     setActiveApp((curr) => {
       const idx = APPS.findIndex((a) => a.id === curr);
       const prevIdx = (idx - 1 + APPS.length) % APPS.length;
@@ -202,10 +216,23 @@ export function OSDesktopManager({
   // Keyboard navigation: Arrow Left/Right and Number keys 1-8
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        document.activeElement?.tagName === "INPUT" ||
-        document.activeElement?.tagName === "TEXTAREA"
-      ) {
+      // Jangan ganggu shortcut browser/OS: Ctrl+1..8 / Cmd+1..8 adalah switch
+      // tab di Chrome/Firefox/Edge/Safari, Alt+<key> umumnya menu window.
+      // Sebelumnya pengecekan ini tidak ada, sehingga preventDefault() di bawah
+      // menelan shortcut tab-switching pengunjung.
+      if (e.ctrlKey || e.metaKey || e.altKey) {
+        return;
+      }
+
+      // Lewati saat fokus di elemen input: selain INPUT/TEXTAREA juga SELECT
+      // (panah membuka/menutup daftar pilihan) dan contentEditable (mis.
+      // editor admin) — panah di situ navigasi kursor, bukan pindah aplikasi.
+      const active = document.activeElement;
+      const tag = active?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
+        return;
+      }
+      if (active instanceof HTMLElement && active.isContentEditable) {
         return;
       }
 
@@ -341,8 +368,27 @@ export function OSDesktopManager({
 
         {/* Center: The Active OS Application Window */}
         <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0 z-20">
+          {activeApp === "terminal" ? (
+            // Terminal merenggang penuh: tanpa chrome jendela OS (titlebar,
+            // padding body, bottom nav prev/next). Terminal menyediakan top
+            // bar, gauge, dan prompt-nya sendiri — layar CRT adalah seluruh
+            // jendela, sesuai permintaan "tampilan terminal fullscreen".
+            <div key="terminal-fullscreen" className="vt-window vt-crt-on flex flex-col h-full">
+              {!isMinimized && (
+                <OSCrtTerminal
+                  ownerName={profile.name}
+                  profile={profile}
+                  services={services}
+                  projects={projects}
+                  articles={articles}
+                  fullscreen
+                />
+              )}
+            </div>
+          ) : (
           <div
-            className={`vt-window flex flex-col h-full transition-all duration-150 animate-in fade-in-50 zoom-in-95 ${
+            key={activeApp}
+            className={`vt-window flex flex-col h-full vt-crt-on transition-all duration-150 ${
               isMaximized ? "fixed inset-2 z-50" : "flex-1"
             } ${isMinimized ? "h-auto" : ""}`}
           >
@@ -363,7 +409,10 @@ export function OSDesktopManager({
               <div className="flex items-center gap-1 shrink-0 ml-2">
                 <button
                   type="button"
-                  onClick={() => setIsMinimized(!isMinimized)}
+                  onClick={() => {
+                    playOS(isMinimized ? "maximize" : "minimize");
+                    setIsMinimized(!isMinimized);
+                  }}
                   className="vt-titlebar-btn"
                   title={isMinimized ? "Restore" : "Minimize"}
                   aria-label="Minimize"
@@ -372,7 +421,10 @@ export function OSDesktopManager({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsMaximized(!isMaximized)}
+                  onClick={() => {
+                    playOS("maximize");
+                    setIsMaximized(!isMaximized);
+                  }}
                   className="vt-titlebar-btn"
                   title={isMaximized ? "Normal" : "Maximize"}
                   aria-label="Maximize"
@@ -381,7 +433,10 @@ export function OSDesktopManager({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsMinimized(true)}
+                  onClick={() => {
+                    playOS("minimize");
+                    setIsMinimized(true);
+                  }}
                   className="vt-titlebar-btn hover:bg-rose-500 hover:text-white"
                   title="Close to taskbar"
                   aria-label="Close"
@@ -404,7 +459,7 @@ export function OSDesktopManager({
                 {activeApp === "proyek" && (
                   <FeaturedProjectsSection projects={projects} />
                 )}
-                {activeApp === "toko" && <ProductsSection products={products} />}
+                {activeApp === "toko" && <ProductsSection products={products} profile={profile} />}
                 {activeApp === "testimoni" && (
                   <TestimonialsSection testimonials={testimonials} />
                 )}
@@ -412,17 +467,6 @@ export function OSDesktopManager({
                   <ArticlesSection articles={articles} />
                 )}
                 {activeApp === "kontak" && <ContactSection profile={profile} />}
-                {activeApp === "terminal" && (
-                  <div className="max-w-4xl mx-auto py-4">
-                    <OSCrtTerminal
-                      ownerName={profile.name}
-                      profile={profile}
-                      services={services}
-                      projects={projects}
-                      articles={articles}
-                    />
-                  </div>
-                )}
               </div>
             )}
 
@@ -476,6 +520,7 @@ export function OSDesktopManager({
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
 

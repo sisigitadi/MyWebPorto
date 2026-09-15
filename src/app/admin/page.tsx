@@ -30,6 +30,7 @@ import {
   getTestimonials,
   getArticles,
 } from "@/lib/actions";
+import { isLivePublished } from "@/lib/publish";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -55,11 +56,13 @@ export default async function AdminDashboardPage() {
     profile.name ||
     "Admin";
 
-  const publishedProjects = projects.filter((p) => p.published).length;
+  // "Terbit" mengikuti aturan tayang yang sama dengan halaman publik:
+  // published=true DAN jadwal publishAt sudah lewat (bukan sekadar flag).
+  const publishedProjects = projects.filter((p) => isLivePublished(p)).length;
   const publishedServices = services.filter((s) => s.published).length;
   const publishedProducts = products.filter((p) => p.published).length;
   const publishedTestimonials = testimonials.filter((t) => t.published).length;
-  const publishedArticles = articles.filter((a) => a.published).length;
+  const publishedArticles = articles.filter((a) => isLivePublished(a)).length;
 
   const stats = [
     {
@@ -243,7 +246,7 @@ export default async function AdminDashboardPage() {
                           variant="outline"
                           className={
                             project.published
-                              ? "text-[10px] h-4 px-1.5 border-emerald-500/30 text-emerald-600 bg-emerald-50/50"
+                              ? "text-[10px] h-4 px-1.5 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/40"
                               : "text-[10px] h-4 px-1.5 border-border text-muted-foreground"
                           }
                         >
@@ -315,7 +318,7 @@ export default async function AdminDashboardPage() {
                 </div>
                 <div className="flex items-center justify-between py-1">
                   <span className="text-muted-foreground">Status Ketersediaan</span>
-                  <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-600 bg-emerald-50/50">
+                  <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/40">
                     {profile.availableForHire ? "Tersedia untuk Proyek Baru" : "Sedang Penuh"}
                   </Badge>
                 </div>

@@ -56,6 +56,12 @@ next-env.d.ts
 # deploy artifact
 deploy_package/
 deploy_package.zip
+
+# scratch scripts & log build sekali pakai (jangan masuk repo)
+/scratch/
+build_run.txt
+build_verify.txt
+fix-*.js
 .aider*
 .freebuff/
 data/local-store.json

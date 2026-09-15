@@ -3,7 +3,7 @@
 import React, { useRef } from "react";
 import Link from "next/link";
 import { ArrowRight, FolderGit2, ExternalLink } from "lucide-react";
-import { ProjectData, DUMMY_PROJECTS } from "@/lib/dummy-data";
+import { ProjectData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
 import { OSWindow } from "@/components/public/os/os-window";
 import gsap from "gsap";
@@ -22,9 +22,10 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
   const { t, language } = useTranslation();
   const sectionRef = useRef<HTMLElement>(null);
 
-  const rawProjects = projects && Array.isArray(projects) && projects.length > 0 ? projects : DUMMY_PROJECTS;
-  const filtered = rawProjects.filter((p) => p.published !== false && p.featured);
-  const featuredProjects = filtered.length > 0 ? filtered : rawProjects.slice(0, 3);
+  // Tanpa fallback dummy: tanpa proyek unggulan, tampil empty state jujur
+  const featuredProjects = ((projects && Array.isArray(projects)) ? projects : []).filter(
+    (p) => p.published !== false && p.featured
+  );
 
   useGSAP(
     () => {
@@ -80,6 +81,12 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
         </div>
 
         {/* Projects Grid */}
+        {featuredProjects.length === 0 ? (
+          <div className="text-center py-10 vt-card-inset bg-[var(--vt-card)] rounded-xs border border-dashed border-border font-mono text-xs">
+            <FolderGit2 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="font-bold text-sm text-[var(--vt-ink)]">{t.projects_empty}</p>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {featuredProjects.map((project, index) => {
             const title = (language === "en" && project.titleEn) ? project.titleEn : project.title;
@@ -162,6 +169,7 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
             );
           })}
         </div>
+        )}
       </div>
     </section>
   );

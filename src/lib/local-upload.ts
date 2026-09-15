@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { verifyAdmin } from "./actions";
+import { verifyAdmin } from "./admin-auth";
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";

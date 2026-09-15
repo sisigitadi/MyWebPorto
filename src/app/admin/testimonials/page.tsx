@@ -2,8 +2,11 @@
 
 import { useState, useEffect, useTransition } from "react";
 import Image from "next/image";
-import { DUMMY_TESTIMONIALS, TestimonialData } from "@/lib/dummy-data";
+import { Loader2 } from "lucide-react";
+import { TestimonialData } from "@/lib/dummy-data";
+import { toast } from "sonner";
 import { getTestimonials, saveTestimonial, deleteTestimonial, translateFieldAction } from "@/lib/actions";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,7 +127,8 @@ function TrashIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export default function AdminTestimonialsPage() {
-  const [testimonials, setTestimonials] = useState<TestimonialData[]>(DUMMY_TESTIMONIALS);
+  const [testimonials, setTestimonials] = useState<TestimonialData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
@@ -145,15 +149,37 @@ export default function AdminTestimonialsPage() {
   const [isTranslating, setIsTranslating] = useState(false);
 
   const fetchTestimonials = async () => {
-    const data = await getTestimonials();
-    if (data) {
-      setTestimonials(data);
+    setIsLoading(true);
+    try {
+      const data = await getTestimonials();
+      if (data) {
+        setTestimonials(data);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchTestimonials();
   }, []);
+
+  // Guard "belum disimpan": baseline direset saat sessionKey berubah — yaitu
+  // saat dialog tambah/edit dibuka atau item lain dipilih. Mengetik di form
+  // tidak mengubah sessionKey, jadi perubahan terdeteksi sebagai dirty.
+  useUnsavedChanges(
+    editingItem?.id ?? (dialogOpen ? "new" : null),
+    {
+      clientName,
+      clientRole,
+      clientRoleEn,
+      avatarUrl,
+      content,
+      contentEn,
+      rating,
+      published,
+    },
+  );
 
   const filteredTestimonials = testimonials.filter((t) => {
     const q = searchQuery.toLowerCase();
@@ -240,12 +266,20 @@ export default function AdminTestimonialsPage() {
         published,
       };
 
-      const res = await saveTestimonial(payload);
-      if (res.success) {
-        setDialogOpen(false);
-        await fetchTestimonials();
-      } else {
-        setErrorMessage(res.error || "Gagal menyimpan testimoni.");
+      try {
+        const res = await saveTestimonial(payload);
+        if (res.success) {
+          setDialogOpen(false);
+          toast.success(res.message || "Testimoni berhasil disimpan!");
+          await fetchTestimonials();
+        } else {
+          setErrorMessage(res.error || "Gagal menyimpan testimoni.");
+          toast.error(res.error || "Gagal menyimpan testimoni.");
+        }
+      } catch (err) {
+        console.error("[admin] saveTestimonial gagal:", err);
+        setErrorMessage("Gagal menghubungi server. Periksa koneksi, muat ulang halaman, lalu coba lagi.");
+        toast.error("Gagal menghubungi server. Coba simpan lagi.");
       }
     });
   };
@@ -254,13 +288,19 @@ export default function AdminTestimonialsPage() {
     if (!itemToDelete) return;
 
     startTransition(async () => {
-      const res = await deleteTestimonial(itemToDelete.id);
-      if (res.success) {
-        setDeleteAlertOpen(false);
-        setItemToDelete(null);
-        await fetchTestimonials();
-      } else {
-        alert(res.error || "Gagal menghapus testimoni.");
+      try {
+        const res = await deleteTestimonial(itemToDelete.id);
+        if (res.success) {
+          setDeleteAlertOpen(false);
+          setItemToDelete(null);
+          toast.success(res.message || "Testimoni berhasil dihapus!");
+          await fetchTestimonials();
+        } else {
+          toast.error(res.error || "Gagal menghapus testimoni.");
+        }
+      } catch (err) {
+        console.error("[admin] deleteTestimonial gagal:", err);
+        toast.error("Gagal menghubungi server. Muat ulang halaman lalu coba lagi.");
       }
     });
   };
@@ -310,7 +350,14 @@ export default function AdminTestimonialsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredTestimonials.length === 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-xs text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+                    Memuat testimoni...
+                  </TableCell>
+                </TableRow>
+              ) : filteredTestimonials.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-xs text-muted-foreground">
                     Tidak ada testimoni yang sesuai kriteria pencarian.
@@ -524,7 +571,7 @@ export default function AdminTestimonialsPage() {
               </TabsContent>
             </Tabs>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-foreground">
                   Rating Bintang
@@ -561,7 +608,7 @@ export default function AdminTestimonialsPage() {
               label="Unggah Avatar Klien"
             />
 
-            <div className="pt-3 border-t border-border flex items-center justify-between">
+            <div className="pt-3 border-t border-border flex flex-wrap items-center justify-between gap-3">
               <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-foreground">
                 <input
                   type="checkbox"
@@ -578,6 +625,7 @@ export default function AdminTestimonialsPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setDialogOpen(false)}
+                  disabled={isPending}
                   className="text-xs h-8"
                 >
                   Batal

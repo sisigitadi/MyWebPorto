@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getProjects, getArticles } from "@/lib/actions";
+import { isAdminOwnerConfigured } from "@/lib/admin-auth";
+import { isPlaceholderKey, isProduction } from "@/lib/env";
+import { getProjects, getArticles, getProducts } from "@/lib/actions";
+import { getProductSlug } from "@/lib/product-link";
 import { rateLimit, cleanupRateLimits } from "@/lib/rate-limit";
 import {
   filterOwnUrls,
   getIndexNowBaseUrl,
   submitUrlsToIndexNow,
 } from "@/lib/indexnow";
-
-const BASE_URL = getIndexNowBaseUrl();
 
 // Hardening: IndexNow harus admin-only + rate-limited
 // Limit: 5 requests per 60s per IP (diturunkan dari 10 agar lebih ketat)
@@ -29,16 +30,26 @@ function clientIp(req: NextRequest): string {
  * If no body provided, gathers all published projects, articles, and main routes.
  */
 export async function POST(req: NextRequest) {
-  // Auth gate: hanya admin yang boleh trigger IndexNow (mencegah abuse anon)
+  // Auth gate: hanya admin yang boleh trigger IndexNow (mencegah abuse anon).
+  // Fail-closed di produksi: Clerk placeholder ATAU ADMIN_CLERK_ID tidak diset -> tolak.
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  const isPlaceholder = !publishableKey || publishableKey.includes("xxxx");
-  if (!isPlaceholder) {
+  if (isPlaceholderKey(publishableKey)) {
+    if (isProduction()) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+  } else {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
-    const adminId = process.env.ADMIN_CLERK_ID;
-    if (adminId && adminId !== "user_xxxxxxxxxxxxxxxxx" && userId !== adminId) {
+    if (!isAdminOwnerConfigured()) {
+      if (isProduction()) {
+        return NextResponse.json(
+          { success: false, error: "Forbidden: ADMIN_CLERK_ID belum dikonfigurasi." },
+          { status: 403 }
+        );
+      }
+    } else if (userId !== process.env.ADMIN_CLERK_ID) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
   }
@@ -78,8 +89,12 @@ export async function POST(req: NextRequest) {
     }
 
     if (urlsToSubmit.length === 0) {
-      const [projects, articles] = await Promise.all([getProjects(), getArticles()]);
-      const host = BASE_URL.replace(/\/$/, "");
+      const [projects, articles, products] = await Promise.all([
+        getProjects(),
+        getArticles(),
+        getProducts(),
+      ]);
+      const host = getIndexNowBaseUrl();
 
       urlsToSubmit = [
         `${host}/`,
@@ -87,6 +102,8 @@ export async function POST(req: NextRequest) {
         `${host}/artikel`,
         ...projects.filter((p) => p.published).map((p) => `${host}/proyek/${p.slug}`),
         ...articles.filter((a) => a.published).map((a) => `${host}/artikel/${a.slug}`),
+        // Tidak ada katalog /toko — hanya detail per produk (slug bisa jatuh ke id).
+        ...products.filter((p) => p.published).map((p) => `${host}/toko/${getProductSlug(p)}`),
       ];
     }
 
