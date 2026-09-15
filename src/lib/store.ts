@@ -4,8 +4,9 @@
  * (UI katalog, cart, checkout, pesan WhatsApp, metadata) mengikuti.
  *
  * Nama toko dilokalkan: "Toko" untuk pengunjung Bahasa Indonesia dan
- * "Store" untuk pengunjung English. Pesan WhatsApp (cart-context) selalu
- * Bahasa Indonesia, jadi pemanggilan di sana memakai STORE_NAME mentah.
+ * "Store" untuk pengunjung English. Pesan WhatsApp (@/lib/whatsapp-order)
+ * sudah dilokalkan juga — ia memanggil storeName(isEn), bukan STORE_NAME
+ * mentah.
  */
 export const STORE_NAME = "Toko";
 export const STORE_NAME_EN = "Store";
