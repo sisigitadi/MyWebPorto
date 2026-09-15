@@ -242,6 +242,30 @@ export const auditLogs = pgTable(
   (table) => [index("audit_logs_created_idx").on(table.createdAt)]
 );
 
+/**
+ * Pengaturan aplikasi key/value — konfigurasi yang diisi dari UI admin tanpa
+ * redeploy. Saat ini menampung konfigurasi Cloud AI Sigit_Bot (provider, key,
+ * model, base URL) di baris tunggal dengan key "cloud_ai".
+ *
+ * Keamanan: value boleh berisi rahasia (API key). Module pengakses
+ * (src/lib/settings.ts) wajib mem-mask saat mengembalikan ke client, dan
+ * penulisan hanya boleh terjadi lewat server action yang memanggil verifyAdmin.
+ */
+export const settings = pgTable(
+  "settings",
+  {
+    key: text("key").primaryKey(),
+    value: jsonb("value").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("settings_updated_at_idx").on(table.updatedAt)]
+);
+
+export type Setting = typeof settings.$inferSelect;
+export type NewSetting = typeof settings.$inferInsert;
+
 export type Profile = typeof profiles.$inferSelect;
 export type NewProfile = typeof profiles.$inferInsert;
 

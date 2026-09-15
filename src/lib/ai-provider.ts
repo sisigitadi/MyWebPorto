@@ -9,6 +9,7 @@
  */
 
 import { isPlaceholderKey } from "@/lib/env";
+import { resolveCloudAIConfig, type ResolvedCloudAIConfig } from "@/lib/cloud-ai-config";
 
 export interface LiveContext {
   ownerName: string;
@@ -125,12 +126,17 @@ export interface CloudAIResult {
 }
 
 /** Panggil Gemini via REST (tanpa SDK). Tidak pernah throw. */
-export async function submitToGemini(prompt: string): Promise<CloudAIResult> {
-  const apiKey = process.env.GEMINI_API_KEY || "";
+export async function submitToGemini(
+  prompt: string,
+  options: { config?: ResolvedCloudAIConfig } = {}
+): Promise<CloudAIResult> {
+  // Key & model bisa datang dari pengaturan admin (tabel settings) atau env.
+  const cfg = options.config ?? (await resolveCloudAIConfig());
+  const apiKey = cfg.apiKey;
   if (isPlaceholderKey(apiKey)) {
     return { success: false, text: "" };
   }
-  const model = getCloudAIModel();
+  const model = cfg.model;
   try {
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,

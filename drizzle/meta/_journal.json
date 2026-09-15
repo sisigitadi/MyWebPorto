@@ -57,6 +57,13 @@
       "when": 1789431870225,
       "tag": "0007_purchase_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789499270230,
+      "tag": "0008_nice_metal_master",
+      "breakpoints": true
     }
   ]
 }

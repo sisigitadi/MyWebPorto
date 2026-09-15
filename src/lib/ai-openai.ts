@@ -14,6 +14,7 @@
  */
 
 import { isPlaceholderKey } from "@/lib/env";
+import type { ResolvedCloudAIConfig } from "@/lib/cloud-ai-config";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -52,16 +53,28 @@ export function isOpenAIEnabled(): boolean {
   return !isPlaceholderKey(process.env.OPENAI_API_KEY);
 }
 
+export interface OpenAICallOptions {
+  /**
+   * Config yang sudah di-resolve (dari pengaturan admin atau env). Bila tidak
+   * diberikan, jatuh ke env — menjaga kompatibilitas pemanggil lama.
+   */
+  config?: ResolvedCloudAIConfig;
+}
+
 /**
  * Panggil chat completions non-streaming. Menerima prompt string (dibungkus
  * user tunggal) atau array ChatMessage (system + user + riwayat).
  * Tidak pernah throw.
  */
 export async function submitToOpenAI(
-  prompt: string | ChatMessage[]
+  prompt: string | ChatMessage[],
+  options: OpenAICallOptions = {}
 ): Promise<OpenAIResult> {
-  const apiKey = process.env.OPENAI_API_KEY || "";
+  const cfg = options.config;
+  const apiKey = cfg?.apiKey || process.env.OPENAI_API_KEY || "";
   if (isPlaceholderKey(apiKey)) return { success: false, text: "" };
+  const baseUrl = cfg?.baseUrl || getOpenAIBaseUrl();
+  const model = cfg?.model || getOpenAIModel();
 
   const messages: ChatMessage[] =
     typeof prompt === "string"
@@ -76,14 +89,14 @@ export async function submitToOpenAI(
       : prompt.slice(-9);
 
   try {
-    const response = await fetch(`${getOpenAIBaseUrl()}/chat/completions`, {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: getOpenAIModel(),
+        model,
         messages,
         max_tokens: 300,
         temperature: 0.4,
@@ -112,10 +125,13 @@ export async function submitToOpenAI(
  */
 export function submitToOpenAIStream(
   messages: ChatMessage[],
-  options: OpenAIStreamOptions = {}
+  options: OpenAIStreamOptions & OpenAICallOptions = {}
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
-  const apiKey = process.env.OPENAI_API_KEY || "";
+  const cfg = options.config;
+  const apiKey = cfg?.apiKey || process.env.OPENAI_API_KEY || "";
+  const baseUrl = cfg?.baseUrl || getOpenAIBaseUrl();
+  const model = cfg?.model || getOpenAIModel();
 
   return new ReadableStream({
     async start(controller) {
@@ -131,14 +147,14 @@ export function submitToOpenAIStream(
 
       let upstream: Response;
       try {
-        upstream = await fetch(`${getOpenAIBaseUrl()}/chat/completions`, {
+        upstream = await fetch(`${baseUrl}/chat/completions`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
-            model: getOpenAIModel(),
+            model,
             // System prompt selalu di depan; riwayat percakapan menyusul.
             messages: messages.slice(-9),
             max_tokens: 300,
