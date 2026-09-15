@@ -53,7 +53,7 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
   );
 
   return (
-    <div ref={containerRef} className="py-8 md:py-14 relative overflow-hidden">
+    <div ref={containerRef} className="py-8 md:py-14 relative overflow-hidden vt-crt-on">
       <div className="max-w-6xl mx-auto px-3 sm:px-6 space-y-6">
         {/* Main Explorer Window */}
         <OSWindow

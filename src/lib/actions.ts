@@ -4,7 +4,6 @@ import fs from "fs";
 import path from "path";
 import { revalidatePath } from "next/cache";
 import { asc, desc, eq } from "drizzle-orm";
-import { auth } from "@clerk/nextjs/server";
 import { db, isDbConnected } from "@/db";
 import * as schema from "@/db/schema";
 import {
@@ -30,45 +29,24 @@ import {
   type ProfileData,
 } from "@/lib/dummy-data";
 import { translateText, isExternalTranslateEnabled } from "@/lib/translate";
-import { getProductSlug, slugifyProduct } from "@/lib/product-link";
+import { getProductSlug, normalizePurchaseType, slugifyProduct } from "@/lib/product-link";
 import { sanitizeError } from "@/lib/error-utils";
 import { logAudit } from "@/lib/audit";
-import { isPlaceholderKey, isProduction } from "@/lib/env";
-import { catalogUrl, detailUrl, submitUrlsToIndexNow } from "@/lib/indexnow";
+import { verifyAdmin } from "./admin-auth";
+import { catalogUrl, detailUrl, getIndexNowBaseUrl, submitUrlsToIndexNow } from "@/lib/indexnow";
 import { isLivePublished, normalizePublishAt } from "@/lib/publish";
-import { queryAIEngine } from "@/lib/ai-engine";
+import { queryAIEngine, type EngineContext } from "@/lib/ai-engine";
 import {
   buildCloudPrompt,
+  buildCloudMessages,
+  getCloudProvider,
   getCloudAIModel,
   isCloudAIEnabled,
   submitToGemini,
-  type LiveContext,
 } from "@/lib/ai-provider";
+import { submitToOpenAI } from "@/lib/ai-openai";
 import { rateLimit, cleanupRateLimits } from "@/lib/rate-limit";
 import { headers } from "next/headers";
-
-/**
- * Verifikasi apakah request mutasi berasal dari Admin yang terotentikasi.
- * Mencegah Broken Access Control (OWASP A01) pada Server Actions.
- * Fail-closed: di produksi tanpa kredensial asli, SELALU tolak (tanpa dev-bypass).
- */
-export async function verifyAdmin(): Promise<void> {
-  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  if (!isPlaceholderKey(publishableKey)) {
-    const { userId } = await auth();
-    if (!userId) {
-      throw new Error("Akses ditolak: Anda harus login sebagai admin untuk melakukan tindakan ini.");
-    }
-    const adminClerkId = process.env.ADMIN_CLERK_ID;
-    if (adminClerkId && adminClerkId !== "user_xxxxxxxxxxxxxxxxx" && userId !== adminClerkId) {
-      throw new Error("Akses ditolak: Akun Anda bukan administrator website ini.");
-    }
-    return;
-  }
-  if (isProduction()) {
-    throw new Error("Akses ditolak: konfigurasi autentikasi belum lengkap di lingkungan produksi.");
-  }
-}
 
 // ==========================================
 // PERSISTENT LOCAL FILE STORE (OFFLINE & BACKUP)
@@ -284,6 +262,9 @@ export async function getProfile(): Promise<ProfileData> {
           email: "x@sigitadi.id",
           phone: "6281234567890",
           location: "Indonesia",
+          cvUrl: null,
+          paymentQrUrl: null,
+          paymentBankInfo: null,
           availableForHire: true,
           skills: [
             "Next.js 15",
@@ -332,6 +313,9 @@ export async function getProfile(): Promise<ProfileData> {
       avatarUrl: res.avatarUrl?.trim() ? res.avatarUrl : baseProfile.avatarUrl,
       phone: res.phone ?? baseProfile.phone,
       location: res.location ?? baseProfile.location,
+      cvUrl: res.cvUrl ?? baseProfile.cvUrl,
+      paymentQrUrl: res.paymentQrUrl ?? baseProfile.paymentQrUrl,
+      paymentBankInfo: res.paymentBankInfo ?? baseProfile.paymentBankInfo,
       availableForHire: res.availableForHire ?? baseProfile.availableForHire,
       skills: (res.skills as string[])?.length ? (res.skills as string[]) : baseProfile.skills,
       stats: (res.stats as typeof DUMMY_PROFILE.stats)?.length
@@ -665,6 +649,7 @@ export async function saveProject(data: unknown) {
   }
   revalidatePath("/", "layout");
   revalidatePath("/proyek", "layout");
+  revalidatePath("/proyek/[slug]", "page");
   revalidatePath("/admin/projects");
   return { success: true, message: "Proyek berhasil disimpan!" };
 }
@@ -680,16 +665,8 @@ export async function deleteProject(id: string) {
   }
 
   const store = getLocalStore();
-  if (store?.projects) {
-    const updated = (store.projects as ProjectData[]).filter((p) => p.id !== id);
-    updateLocalStore("projects", updated);
-  }
 
-  const dummyIdx = DUMMY_PROJECTS.findIndex((p) => p.id === id);
-  if (dummyIdx >= 0) {
-    DUMMY_PROJECTS.splice(dummyIdx, 1);
-  }
-
+  // DB dulu: bila hapus di database gagal, local store tidak ikut terlanjur diubah.
   if (isDbConnected) {
     try {
       await db.delete(schema.projects).where(eq(schema.projects.id, id));
@@ -703,10 +680,21 @@ export async function deleteProject(id: string) {
     }
   }
 
+  if (store?.projects) {
+    const updated = (store.projects as ProjectData[]).filter((p) => p.id !== id);
+    updateLocalStore("projects", updated);
+  }
+
+  const dummyIdx = DUMMY_PROJECTS.findIndex((p) => p.id === id);
+  if (dummyIdx >= 0) {
+    DUMMY_PROJECTS.splice(dummyIdx, 1);
+  }
+
   void logAudit({ action: "delete", entity: "projects", entityId: id });
   void submitUrlsToIndexNow([catalogUrl("proyek")]);
   revalidatePath("/", "layout");
   revalidatePath("/proyek", "layout");
+  revalidatePath("/proyek/[slug]", "page");
   revalidatePath("/admin/projects");
   return { success: true, message: "Proyek berhasil dihapus!" };
 }
@@ -880,16 +868,8 @@ export async function deleteService(id: string) {
   }
 
   const store = getLocalStore();
-  if (store?.services) {
-    const updated = (store.services as ServiceData[]).filter((s) => s.id !== id);
-    updateLocalStore("services", updated);
-  }
 
-  const dummyIdx = DUMMY_SERVICES.findIndex((s) => s.id === id);
-  if (dummyIdx >= 0) {
-    DUMMY_SERVICES.splice(dummyIdx, 1);
-  }
-
+  // DB dulu: bila hapus di database gagal, local store tidak ikut terlanjur diubah.
   if (isDbConnected) {
     try {
       await db.delete(schema.services).where(eq(schema.services.id, id));
@@ -901,6 +881,16 @@ export async function deleteService(id: string) {
         error: "Gagal menghapus layanan dari database. Periksa log server untuk detail teknis.",
       };
     }
+  }
+
+  if (store?.services) {
+    const updated = (store.services as ServiceData[]).filter((s) => s.id !== id);
+    updateLocalStore("services", updated);
+  }
+
+  const dummyIdx = DUMMY_SERVICES.findIndex((s) => s.id === id);
+  if (dummyIdx >= 0) {
+    DUMMY_SERVICES.splice(dummyIdx, 1);
   }
 
   void logAudit({ action: "delete", entity: "services", entityId: id });
@@ -940,6 +930,9 @@ export async function getProducts(): Promise<ProductData[]> {
               imageUrl: pr.thumbnailUrl,
               priceLabel: pr.priceFormatted,
               ctaUrl: pr.ctaUrl || null,
+              purchaseType: pr.purchaseType ?? "whatsapp",
+              customWhatsapp: pr.customWhatsapp || null,
+              customButtonLabel: pr.customButtonLabel || null,
               published: pr.published,
               order: i + 1,
             })
@@ -958,8 +951,17 @@ export async function getProducts(): Promise<ProductData[]> {
       description: p.description,
       descriptionEn: p.descriptionEn || null,
       priceFormatted: p.priceLabel || "Gratis / Diskusi",
+      comparePriceLabel: p.comparePriceLabel || null,
+      priceAmount: typeof p.priceAmount === "number" ? p.priceAmount : null,
+      badge: p.badge || null,
+      category: p.category || null,
+      stock: typeof p.stock === "number" ? p.stock : null,
+      gallery: (Array.isArray(p.gallery) ? p.gallery : []).filter((u) => typeof u === "string" && u.trim()),
       thumbnailUrl: p.imageUrl?.trim() || "https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=600&auto=format&fit=crop",
       ctaUrl: p.ctaUrl || "#kontak",
+      purchaseType: normalizePurchaseType(p.purchaseType),
+      customWhatsapp: p.customWhatsapp?.trim() || null,
+      customButtonLabel: p.customButtonLabel?.trim() || null,
       published: p.published ?? true,
     }));
   } catch (error) {
@@ -983,17 +985,17 @@ export async function saveProduct(data: unknown) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validasi produk gagal" };
   }
 
-  // Produk boleh dibuat tanpa slug eksplisit; URL publik memakai slug turunan
-  // judul, jadi yang dijaga keunikannya adalah slug efektif itu.
-  const effectiveProductSlug = parsed.data.slug?.trim()
-    ? slugifyProduct(parsed.data.slug)
-    : slugifyProduct(parsed.data.title);
-  const productSlugConflict = await findSlugConflict("products", effectiveProductSlug, parsed.data.id);
-  if (productSlugConflict) {
-    return {
-      success: false,
-      error: slugConflictMessage("products", effectiveProductSlug, productSlugConflict),
-    };
+  // Produk boleh dibuat tanpa slug eksplisit: bila kosong, simpan NULL
+  // (URL publik jatuh ke id) sehingga tidak menabrak constraint UNIQUE slug.
+  const effectiveProductSlug = parsed.data.slug?.trim() ? slugifyProduct(parsed.data.slug) : null;
+  if (effectiveProductSlug) {
+    const productSlugConflict = await findSlugConflict("products", effectiveProductSlug, parsed.data.id);
+    if (productSlugConflict) {
+      return {
+        success: false,
+        error: slugConflictMessage("products", effectiveProductSlug, productSlugConflict),
+      };
+    }
   }
 
   // Field English dipakai apa adanya (tanpa terjemahan otomatis). Penerjemahan
@@ -1004,12 +1006,14 @@ export async function saveProduct(data: unknown) {
   const { id, ...rest } = parsed.data;
   const productData = {
     ...rest,
+    slug: effectiveProductSlug,
     titleEn: titleEn || null,
     descriptionEn: descriptionEn || null,
   };
 
   const ctaUrl = parsed.data.ctaUrl?.trim() || null;
   const targetId = id || `prod-${Date.now()}`;
+  const galleryUrls = (productData.gallery || []).filter((u) => typeof u === "string" && u.trim()).slice(0, 10);
   const dummyItem: ProductData = {
     id: targetId,
     slug: productData.slug || null,
@@ -1018,8 +1022,17 @@ export async function saveProduct(data: unknown) {
     description: productData.description,
     descriptionEn: productData.descriptionEn,
     priceFormatted: productData.priceLabel || "Gratis / Diskusi",
+    comparePriceLabel: productData.comparePriceLabel?.trim() || null,
+    priceAmount: typeof productData.priceAmount === "number" ? productData.priceAmount : null,
+    badge: productData.badge?.trim() || null,
+    category: productData.category?.trim() || null,
+    stock: typeof productData.stock === "number" ? productData.stock : null,
+    gallery: galleryUrls,
     thumbnailUrl: productData.imageUrl?.trim() || "https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=600&auto=format&fit=crop",
     ctaUrl: ctaUrl || "#kontak",
+    purchaseType: productData.purchaseType ?? "whatsapp",
+    customWhatsapp: productData.customWhatsapp?.trim() || null,
+    customButtonLabel: productData.customButtonLabel?.trim() || null,
     published: productData.published ?? true,
   };
 
@@ -1055,6 +1068,7 @@ export async function saveProduct(data: unknown) {
       const dbProductData = {
         ...productData,
         ctaUrl,
+        gallery: galleryUrls,
       };
 
       if (id) {
@@ -1093,6 +1107,10 @@ export async function saveProduct(data: unknown) {
   }
 
   void logAudit({ action: "save", entity: "products", entityId: targetId, detail: dummyItem.title });
+  // Ping hanya untuk produk publish (slug publik bisa jatuh ke id bila slug kosong).
+  if (dummyItem.published) {
+    void submitUrlsToIndexNow([detailUrl("toko", getProductSlug(dummyItem))]);
+  }
   revalidatePath("/", "layout");
   revalidatePath("/toko", "layout");
   revalidatePath("/toko/[slug]", "page");
@@ -1115,16 +1133,8 @@ export async function deleteProduct(id: string) {
 
   const store = getLocalStore();
   const deletedProduct = (store?.products as ProductData[] | undefined)?.find((p) => p.id === id);
-  if (store?.products) {
-    const updated = (store.products as ProductData[]).filter((p) => p.id !== id);
-    updateLocalStore("products", updated);
-  }
 
-  const dummyIdx = DUMMY_PRODUCTS.findIndex((p) => p.id === id);
-  if (dummyIdx >= 0) {
-    DUMMY_PRODUCTS.splice(dummyIdx, 1);
-  }
-
+  // DB dulu: bila hapus di database gagal, local store tidak ikut terlanjur diubah.
   if (isDbConnected) {
     try {
       await db.delete(schema.products).where(eq(schema.products.id, id));
@@ -1138,7 +1148,23 @@ export async function deleteProduct(id: string) {
     }
   }
 
+  if (store?.products) {
+    const updated = (store.products as ProductData[]).filter((p) => p.id !== id);
+    updateLocalStore("products", updated);
+  }
+
+  const dummyIdx = DUMMY_PRODUCTS.findIndex((p) => p.id === id);
+  if (dummyIdx >= 0) {
+    DUMMY_PRODUCTS.splice(dummyIdx, 1);
+  }
+
   void logAudit({ action: "delete", entity: "products", entityId: id, detail: deletedProduct?.title });
+  // Tidak ada halaman katalog /toko (hanya /toko/[slug]) — ping URL detail
+  // yang dihapus agar engine me-recrawl lalu menjatuhkannya, plus homepage
+  // yang menampilkan produk di section-nya.
+  if (deletedProduct) {
+    void submitUrlsToIndexNow([detailUrl("toko", getProductSlug(deletedProduct)), `${getIndexNowBaseUrl()}/`]);
+  }
   revalidatePath("/", "layout");
   revalidatePath("/toko", "layout");
   revalidatePath("/toko/[slug]", "page");
@@ -1325,16 +1351,8 @@ export async function deleteTestimonial(id: string) {
   }
 
   const store = getLocalStore();
-  if (store?.testimonials) {
-    const updated = (store.testimonials as TestimonialData[]).filter((p) => p.id !== id);
-    updateLocalStore("testimonials", updated);
-  }
 
-  const dummyIdx = DUMMY_TESTIMONIALS.findIndex((p) => p.id === id);
-  if (dummyIdx >= 0) {
-    DUMMY_TESTIMONIALS.splice(dummyIdx, 1);
-  }
-
+  // DB dulu: bila hapus di database gagal, local store tidak ikut terlanjur diubah.
   if (isDbConnected) {
     try {
       await db.delete(schema.testimonials).where(eq(schema.testimonials.id, id));
@@ -1346,6 +1364,16 @@ export async function deleteTestimonial(id: string) {
         error: "Gagal menghapus testimoni dari database. Periksa log server untuk detail teknis.",
       };
     }
+  }
+
+  if (store?.testimonials) {
+    const updated = (store.testimonials as TestimonialData[]).filter((p) => p.id !== id);
+    updateLocalStore("testimonials", updated);
+  }
+
+  const dummyIdx = DUMMY_TESTIMONIALS.findIndex((p) => p.id === id);
+  if (dummyIdx >= 0) {
+    DUMMY_TESTIMONIALS.splice(dummyIdx, 1);
   }
 
   void logAudit({ action: "delete", entity: "testimonials", entityId: id });
@@ -1371,8 +1399,10 @@ export async function getArticles(
     const list = await db.query.articles.findMany({
       orderBy: [asc(schema.articles.order), desc(schema.articles.createdAt)],
     });
-    const existingIds = new Set((list || []).map((article) => article.id));
-    const missingDefaults = DUMMY_ARTICLES.filter((article) => !existingIds.has(article.id));
+    // Auto-seed hanya saat tabel masih kosong (first-boot). Menyemai ulang
+    // artikel dummy yang hilang akan menghidupkan kembali konten yang sudah
+    // dihapus admin setiap kali instance server cold-start.
+    const missingDefaults = list.length === 0 ? DUMMY_ARTICLES : [];
 
     if (missingDefaults.length > 0) {
       try {
@@ -1595,6 +1625,8 @@ export async function saveArticle(data: unknown) {
   revalidatePath("/", "layout");
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/articles");
+  revalidatePath("/artikel", "layout");
+  revalidatePath("/artikel/[slug]", "page");
   revalidatePath(`/artikel/${articleRecord.slug}`);
   return { success: true, message: "Artikel berhasil disimpan!", article: articleRecord };
 }
@@ -1610,16 +1642,8 @@ export async function deleteArticle(id: string) {
   }
 
   const store = getLocalStore();
-  if (store?.articles) {
-    const updated = (store.articles as ArticleData[]).filter((a) => a.id !== id);
-    updateLocalStore("articles", updated);
-  }
 
-  const dummyIdx = DUMMY_ARTICLES.findIndex((a) => a.id === id);
-  if (dummyIdx >= 0) {
-    DUMMY_ARTICLES.splice(dummyIdx, 1);
-  }
-
+  // DB dulu: bila hapus di database gagal, local store tidak ikut terlanjur diubah.
   if (isDbConnected) {
     try {
       await db.delete(schema.articles).where(eq(schema.articles.id, id));
@@ -1633,11 +1657,23 @@ export async function deleteArticle(id: string) {
     }
   }
 
+  if (store?.articles) {
+    const updated = (store.articles as ArticleData[]).filter((a) => a.id !== id);
+    updateLocalStore("articles", updated);
+  }
+
+  const dummyIdx = DUMMY_ARTICLES.findIndex((a) => a.id === id);
+  if (dummyIdx >= 0) {
+    DUMMY_ARTICLES.splice(dummyIdx, 1);
+  }
+
   void logAudit({ action: "delete", entity: "articles", entityId: id });
   void submitUrlsToIndexNow([catalogUrl("artikel")]);
   revalidatePath("/", "layout");
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/articles");
+  revalidatePath("/artikel", "layout");
+  revalidatePath("/artikel/[slug]", "page");
   return { success: true, message: "Artikel berhasil dihapus!" };
 }
 
@@ -1665,6 +1701,25 @@ async function aibotIp(): Promise<string> {
 /** Status cloud AI untuk client (agar tahu perlu fallback cloud atau tidak). */
 export async function getCloudAIStatus(): Promise<{ enabled: boolean; model: string }> {
   return { enabled: isCloudAIEnabled(), model: getCloudAIModel() };
+}
+
+/**
+ * Dispatcher cloud tunggal — pilih provider sesuai AI_PROVIDER.
+ * Hanya dipakai askSigitBot (non-streaming) dan route /api/retrobot.
+ * Tidak pernah throw: gagal → {success:false} dan pemanggil jatuh ke jawaban
+ * lokal TF-IDF.
+ */
+async function submitToCloud(
+  query: string,
+  ctx: EngineContext,
+  lang: "id" | "en"
+): Promise<{ success: boolean; text: string }> {
+  const provider = getCloudProvider();
+  if (provider === "openai") {
+    // OpenAI-compatible memakai format messages; prompt tetap katalog publik.
+    return submitToOpenAI(buildCloudMessages(query, ctx, lang));
+  }
+  return submitToGemini(buildCloudPrompt(query, ctx, lang));
 }
 
 export async function askSigitBot(
@@ -1697,11 +1752,11 @@ export async function askSigitBot(
     };
   }
 
-  const local = queryAIEngine(cleanInput, lang);
-  if (local.confidence >= AIBOT_CONFIDENCE_THRESHOLD || !isCloudAIEnabled()) {
-    return { ...local, source: "local" };
-  }
-
+  // Konteks live dipakai BOTH jalur lokal (TF-IDF) dan cloud (Gemini) — sebelumnya
+  // inferensi lokal memakai KNOWLEDGE_BASE statik di ai-engine.ts, sehingga jawaban
+  // bisa drift dari data yang diatur admin (mis. email diganti di admin → bot masih
+  // menyebut yang lama). Getter di bawah tidak pernah throw (fallback ke data lokal).
+  let ctx: EngineContext;
   try {
     const [profile, services, projects, articles] = await Promise.all([
       getProfile(),
@@ -1709,10 +1764,18 @@ export async function askSigitBot(
       getProjects(),
       getArticles(),
     ]);
-    const ctx: LiveContext = {
+    ctx = {
       ownerName: profile.name,
       headline: profile.headline,
+      headlineEn: profile.headlineEn,
+      bio: profile.bio,
+      bioEn: profile.bioEn,
+      location: profile.location,
+      email: profile.email,
+      phone: profile.phone,
+      availableForHire: profile.availableForHire,
       skills: profile.skills || [],
+      socialLinks: profile.socialLinks,
       services: services.filter((s) => s.published !== false).map((s) => s.title),
       projects: projects
         .filter((p) => p.published)
@@ -1723,7 +1786,26 @@ export async function askSigitBot(
         .slice(0, 8)
         .map((a) => ({ title: a.title, slug: a.slug })),
     };
-    const cloud = await submitToGemini(buildCloudPrompt(cleanInput, ctx, lang));
+  } catch (err) {
+    console.error("askSigitBot: gagal memuat konteks live:", err instanceof Error ? err.message.slice(0, 200) : err);
+    return {
+      text:
+        lang === "en"
+          ? "I couldn't load the portfolio data right now. Please try again in a moment."
+          : "Data portfolio sedang tidak dapat dimuat. Silakan coba lagi sebentar.",
+      intent: "context_error",
+      confidence: 0.3,
+      source: "local",
+    };
+  }
+
+  const local = queryAIEngine(cleanInput, ctx, lang);
+  if (local.confidence >= AIBOT_CONFIDENCE_THRESHOLD || !isCloudAIEnabled()) {
+    return { ...local, source: "local" };
+  }
+
+  try {
+    const cloud = await submitToCloud(cleanInput, ctx, lang);
     if (cloud.success) {
       return { text: cloud.text, intent: local.intent, confidence: local.confidence, source: "cloud" };
     }

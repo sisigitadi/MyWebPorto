@@ -10,6 +10,8 @@ export interface ProfileData {
   phone: string;
   location: string;
   cvUrl?: string | null;
+  paymentQrUrl?: string | null;
+  paymentBankInfo?: string | null;
   availableForHire: boolean;
   skills: string[];
   stats: {
@@ -71,8 +73,19 @@ export interface ProductData {
   description: string;
   descriptionEn?: string | null;
   priceFormatted: string;
+  comparePriceLabel?: string | null;
+  priceAmount?: number | null;
+  badge?: string | null;
+  category?: string | null;
+  stock?: number | null;
+  gallery?: string[];
   thumbnailUrl: string;
   ctaUrl: string;
+  // Etalase: cara pembelian. "whatsapp" (atau kosong) = keranjang + WA,
+  // sisanya mengarahkan tombol ke ctaUrl (toko eksternal / referral / affiliate).
+  purchaseType?: "whatsapp" | "external" | "referral" | "affiliate" | null;
+  customWhatsapp?: string | null;
+  customButtonLabel?: string | null;
   published: boolean;
 }
 
@@ -118,6 +131,9 @@ export const DUMMY_PROFILE: ProfileData = {
   email: "x@sigitadi.id",
   phone: "6281234567890",
   location: "Indonesia",
+  cvUrl: null,
+  paymentQrUrl: null,
+  paymentBankInfo: null,
   availableForHire: true,
   skills: [
     "Next.js 15",
@@ -263,6 +279,9 @@ export const DUMMY_PRODUCTS: ProductData[] = [
       "https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=600&auto=format&fit=crop",
     ctaUrl: "https://karyakarsa.com/sigitadi/template-notion-porto",
     published: true,
+    purchaseType: "whatsapp",
+    customWhatsapp: null,
+    customButtonLabel: null,
   },
   {
     id: "prod-2",
@@ -278,6 +297,9 @@ export const DUMMY_PRODUCTS: ProductData[] = [
       "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=600&auto=format&fit=crop",
     ctaUrl: "https://karyakarsa.com/sigitadi/ebook-freelance-pemula",
     published: true,
+    purchaseType: "whatsapp",
+    customWhatsapp: null,
+    customButtonLabel: null,
   },
 ];
 

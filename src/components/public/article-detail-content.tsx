@@ -121,13 +121,8 @@ export function ArticleDetailContent({
     body: discussionBody,
   });
 
-            {/* In-Depth Article Content Body */}
-            <article className="prose prose-sm dark:prose-invert max-w-none pt-2 font-mono">
-              <FormattedText text={content} />
-            </article>
-
   return (
-    <div ref={containerRef} className="py-8 md:py-14 w-full">
+    <div ref={containerRef} className="py-8 md:py-14 w-full vt-crt-on">
       <div className="max-w-4xl mx-auto px-3 sm:px-6 space-y-6">
         {/* Navigation Bar */}
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -305,6 +300,11 @@ export function ArticleDetailContent({
               </div>
             )}
 
+            {/* In-Depth Article Content Body */}
+            <article className="prose prose-sm dark:prose-invert max-w-none pt-2 font-mono">
+              <FormattedText text={content} />
+            </article>
+
             {/* Author Footer Card */}
             <div className="p-4 rounded bg-muted/40 border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-8">
               <div className="flex items-center gap-3">
@@ -316,7 +316,7 @@ export function ArticleDetailContent({
                     {t.article_detail_author_label}
                   </span>
                   <span className="text-sm font-bold font-pixel text-foreground">
-                    {profile.name || "Sigit Wasis Subekti"}
+                    {profile.name || "Sigit Adi Irianto"}
                   </span>
                   <span className="text-xs font-mono text-muted-foreground block">
                     {profile.headline || "Full Stack & Web Specialist"}

@@ -21,16 +21,21 @@ interface ContactSectionProps {
   profile?: ProfileData;
 }
 
+// Hanya alamat kontak yang DITAMPILKAN ke pengunjung. Formspree mengabaikan
+// field _to/recipient — penerima aktual diatur per-form di dashboard Formspree,
+// jadi nilai di sini TIDAK menjamin tujuan pengiriman (lihat catatan payload).
 const FALLBACK_CONTACT_EMAIL = "x@sigitadi.id";
-const CONFIGURED_CONTACT_EMAIL =
-  (process.env.NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL || FALLBACK_CONTACT_EMAIL).trim();
+const CONTACT_RECIPIENT_EMAIL = (process.env.NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL || "").trim();
 const FORMSPREE_ENDPOINT =
   (process.env.NEXT_PUBLIC_FORMSPREE_ENDPOINT || "https://formspree.io/f/meaqbvpa").trim();
 
 export function ContactSection({ profile }: ContactSectionProps) {
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLElement>(null);
-  const contactEmail = CONFIGURED_CONTACT_EMAIL || profile?.email || FALLBACK_CONTACT_EMAIL;
+  // Urutan: env > email profil live (Admin -> Profil) > fallback statis.
+  // Sebelumnya konstanta level-modul sudah di-fallback lebih dulu sehingga
+  // email dari profil tidak pernah bisa dipakai.
+  const contactEmail = CONTACT_RECIPIENT_EMAIL || profile?.email || FALLBACK_CONTACT_EMAIL;
   const socialLinks = profile ? buildSocialLinks(profile) : [];
 
   // --- State for Formspree Mailer ---
@@ -90,11 +95,7 @@ export function ContactSection({ profile }: ContactSectionProps) {
   const handleMailerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitStatus("loading");
-    setStatusMessage(
-      language === "en"
-        ? "TRANSMITTING VIA GATEWAY PROTOCOL..."
-        : "MENGIRIMKAN DATA MELALUI PROTOKOL GATEWAY..."
-    );
+    setStatusMessage(t.contact_status_loading);
 
     try {
       const res = await fetch(FORMSPREE_ENDPOINT, {
@@ -103,6 +104,11 @@ export function ContactSection({ profile }: ContactSectionProps) {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
+        // Formspree hanya menghormati field khusus: _subject, _replyto, _gotcha,
+        // _cc/_bcc (berbayar). Field _to/to/recipient/email_to DAFTAR TIDAK
+        // DIDUKUNG — penerima ditentukan di pengaturan form (dashboard Formspree),
+        // bukan oleh payload. Mengirimnya hanya memenuhi submission dengan field
+        // sampah & memberi kesan palsu bahwa tujuan bisa diatur dari sini.
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
@@ -110,10 +116,6 @@ export function ContactSection({ profile }: ContactSectionProps) {
           _subject: formData.subject,
           message: formData.message,
           _replyto: formData.email,
-          _to: contactEmail,
-          to: contactEmail,
-          recipient: contactEmail,
-          email_to: contactEmail,
         }),
       });
 
@@ -121,27 +123,17 @@ export function ContactSection({ profile }: ContactSectionProps) {
 
       if (res.ok) {
         setSubmitStatus("success");
-        setStatusMessage(
-          language === "en"
-            ? `MESSAGE DISPATCHED! Message successfully submitted for ${contactEmail}.`
-            : `PESAN TERKIRIM! Pesan berhasil diteruskan untuk ${contactEmail}.`
-        );
+        // Jangan klaim pesan masuk ke inbox tertentu — Formspree yang menentukan
+        // penerima akhir di pengaturan form, bukan kita.
+        setStatusMessage(t.contact_status_success);
         setFormData({ name: "", email: "", subject: "", message: "" });
       } else {
         setSubmitStatus("error");
-        setStatusMessage(
-          data.error || (language === "en"
-            ? "FAILED: Unable to dispatch message. Please check your connection or contact directly."
-            : "GAGAL: Gagal mengirimkan pesan. Silakan hubungi langsung via kontak yang tersedia.")
-        );
+        setStatusMessage(data.error || t.contact_status_error);
       }
     } catch {
       setSubmitStatus("error");
-      setStatusMessage(
-        language === "en"
-          ? "NETWORK ERROR: Could not reach mail server."
-          : "NETWORK ERROR: Tidak dapat terhubung ke server pesan."
-      );
+      setStatusMessage(t.contact_status_network);
     }
   };
 
@@ -156,7 +148,7 @@ export function ContactSection({ profile }: ContactSectionProps) {
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-1.5 font-pixel text-xs text-[var(--vt-blue)]">
             <span className="h-2 w-2 rounded-full bg-[var(--vt-blue)] animate-pulse" />
-            <span>COMMUNICATION_CENTER // DIRECT DISPATCH & INBOX</span>
+            <span>{t.contact_eyebrow}</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
             {t.contact_title}
@@ -169,9 +161,9 @@ export function ContactSection({ profile }: ContactSectionProps) {
         {/* Direct Mailer Form Window */}
         <div className="sigit-contact-window w-full flex flex-col">
           <OSWindow
-            title="Sigit_Mailer.exe // Send Message"
+            title={t.contact_mailer_window_title}
             icon={<Send className="h-3.5 w-3.5 text-[#37ff9b]" />}
-            statusText={`Gateway: Formspree -> ${contactEmail}`}
+            statusText={t.contact_mailer_window_status}
             className="w-full flex-1"
             bodyClassName="p-4 sm:p-6 flex flex-col justify-between"
           >
@@ -181,7 +173,7 @@ export function ContactSection({ profile }: ContactSectionProps) {
                   <Mail className="h-4 w-4 text-[var(--vt-blue)] shrink-0 mt-0.5" />
                   <div className="min-w-0">
                     <p className="font-pixel text-[10px] sm:text-xs font-bold tracking-wide uppercase text-[var(--vt-ink)]">
-                      {language === "en" ? "Destination Inbox" : "Inbox Tujuan"}
+                      {t.contact_owner_address_title}
                     </p>
                     <p className="font-mono text-sm sm:text-base font-extrabold text-[var(--vt-ink)] break-all leading-snug">
                       {contactEmail}
@@ -190,7 +182,7 @@ export function ContactSection({ profile }: ContactSectionProps) {
                 </div>
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[var(--vt-paper)] border border-[var(--vt-edge-lo-2)] text-[10px] font-extrabold text-[var(--vt-ink)] shrink-0">
                   <ShieldCheck className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-300" />
-                  <span>{language === "en" ? "DIRECT MAILER" : "MAILER LANGSUNG"}</span>
+                  <span>{t.contact_mailer_badge}</span>
                 </div>
               </div>
 
@@ -231,7 +223,7 @@ export function ContactSection({ profile }: ContactSectionProps) {
 
                 <div className="space-y-1">
                   <Label htmlFor="sender-email" className="text-xs font-bold font-mono text-[var(--vt-ink)]">
-                    {language === "en" ? "Your Email Address *" : "Alamat Email Anda *"}
+                    {t.contact_email_field_label}
                   </Label>
                   <Input
                     id="sender-email"
@@ -239,7 +231,7 @@ export function ContactSection({ profile }: ContactSectionProps) {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder={language === "en" ? "name@domain.com" : "nama@domain.com"}
+                    placeholder={t.contact_email_field_placeholder}
                     required
                     className="vt-card-inset bg-[var(--vt-paper)] text-[var(--vt-ink)] border border-[var(--vt-edge-lo-2)] text-xs font-mono h-9 placeholder:text-[var(--vt-ink-mute)]"
                   />
@@ -289,7 +281,7 @@ export function ContactSection({ profile }: ContactSectionProps) {
                   <Send className="h-3.5 w-3.5" />
                   <span>
                     {submitStatus === "loading"
-                      ? language === "en" ? "TRANSMITTING..." : "MENGIRIMKAN..."
+                      ? t.contact_send_btn_loading
                       : t.contact_send_btn}
                   </span>
                 </button>
@@ -302,9 +294,9 @@ export function ContactSection({ profile }: ContactSectionProps) {
         {socialLinks.length > 0 && (
           <div className="sigit-contact-window w-full flex flex-col mt-6">
             <OSWindow
-              title="Sigit_Connect.exe // Social Channels"
+              title={t.contact_channels_window_title}
               icon={<Globe className="h-3.5 w-3.5 text-[#37ff9b]" />}
-              statusText={`${socialLinks.length} channel(s) ready // Direct Links`}
+              statusText={t.contact_channels_window_status.replace("{count}", String(socialLinks.length))}
               className="w-full"
             >
               <div className="flex flex-wrap gap-2">

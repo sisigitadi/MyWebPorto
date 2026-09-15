@@ -2,7 +2,7 @@
 
 import React, { useRef } from "react";
 import { ArrowRight, Mail, Briefcase, CheckCircle2 } from "lucide-react";
-import { ServiceData, ProfileData, DUMMY_SERVICES } from "@/lib/dummy-data";
+import { ServiceData, ProfileData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
 import { OSWindow } from "@/components/public/os/os-window";
 import gsap from "gsap";
@@ -21,13 +21,10 @@ export function ServicesSection({ services: propServices, profile }: ServicesSec
   const { t, language } = useTranslation();
   const sectionRef = useRef<HTMLElement>(null);
 
-  // Resilient fallback to guarantee cards are always visible even if DB returns empty
-  const rawServices =
-    propServices && Array.isArray(propServices) && propServices.length > 0
-      ? propServices
-      : DUMMY_SERVICES;
-  const publishedServices = rawServices.filter((s) => s.published !== false);
-  const services = publishedServices.length > 0 ? publishedServices : rawServices;
+  // Tanpa fallback dummy: tanpa layanan, tampil empty state jujur
+  const services = ((propServices && Array.isArray(propServices)) ? propServices : []).filter(
+    (s) => s.published !== false
+  );
 
   useGSAP(
     () => {
@@ -70,6 +67,12 @@ export function ServicesSection({ services: propServices, profile }: ServicesSec
         </div>
 
         {/* 3 Equal Columns Balanced OS Windows Grid */}
+        {services.length === 0 ? (
+          <div className="text-center py-10 vt-card-inset bg-[var(--vt-card)] rounded-xs border border-dashed border-border font-mono text-xs">
+            <Briefcase className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="font-bold text-sm text-[var(--vt-ink)]">{t.services_empty}</p>
+          </div>
+        ) : (
         <div className={`grid gap-6 ${
           services.length === 1
             ? "grid-cols-1 max-w-xl mx-auto"
@@ -142,6 +145,7 @@ export function ServicesSection({ services: propServices, profile }: ServicesSec
             );
           })}
         </div>
+        )}
       </div>
     </section>
   );

@@ -1,18 +1,17 @@
 import { Metadata } from "next";
 import { getProjects } from "@/lib/actions";
 import { safeJsonLd } from "@/lib/json-ld";
+import { localeAlternates } from "@/lib/seo";
 import { ProjectsCatalogContent } from "@/components/public/projects-catalog-content";
 
 const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
 
 export const metadata: Metadata = {
   title: "Daftar Proyek & Portofolio Karya Digital",
-  description: "Jelajahi seluruh karya, studi kasus aplikasi web full-stack, sistem berbasis AI, dan solusi digital yang dikembangkan oleh Sigit Adi Pranoto.",
-  alternates: {
-    canonical: `${baseUrl}/proyek`,
-  },
+  description: "Jelajahi seluruh karya, studi kasus aplikasi web full-stack, sistem berbasis AI, dan solusi digital yang dikembangkan oleh Sigit Adi Irianto.",
+  alternates: localeAlternates(`${baseUrl}/proyek`),
   openGraph: {
-    title: "Daftar Proyek & Portofolio Karya Digital — Sigit Adi Pranoto",
+    title: "Daftar Proyek & Portofolio Karya Digital — Sigit Adi Irianto",
     description: "Jelajahi portofolio lengkap pengembangan web dan solusi teknologi modern.",
     url: `${baseUrl}/proyek`,
     type: "website",
@@ -20,7 +19,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Daftar Proyek & Portofolio — Sigit Adi Pranoto",
+    title: "Daftar Proyek & Portofolio — Sigit Adi Irianto",
     description: "Katalog portofolio aplikasi web modern dan integrasi sistem AI.",
     images: [`${baseUrl}/opengraph-image`],
   },
