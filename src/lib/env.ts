@@ -18,6 +18,13 @@ const EnvSchema = z.object({
   NEXT_PUBLIC_FORMSPREE_ENDPOINT: z.string().optional().or(z.literal("")),
   INDEXNOW_KEY: z.string().optional().or(z.literal("")),
   ENABLE_EXTERNAL_TRANSLATE: z.string().optional().or(z.literal("")),
+  // Cloud AI Sigit_Bot: off (default) | gemini | openai (OpenAI-compatible)
+  AI_PROVIDER: z.string().optional().or(z.literal("")),
+  GEMINI_API_KEY: z.string().optional().or(z.literal("")),
+  AI_MODEL: z.string().optional().or(z.literal("")),
+  OPENAI_API_KEY: z.string().optional().or(z.literal("")),
+  OPENAI_BASE_URL: z.string().optional().or(z.literal("")),
+  OPENAI_MODEL: z.string().optional().or(z.literal("")),
 });
 
 export type AppEnv = z.infer<typeof EnvSchema>;
@@ -60,6 +67,12 @@ export function getEnv(): AppEnv {
     NEXT_PUBLIC_FORMSPREE_ENDPOINT: "",
     INDEXNOW_KEY: "",
     ENABLE_EXTERNAL_TRANSLATE: "",
+    AI_PROVIDER: "",
+    GEMINI_API_KEY: "",
+    AI_MODEL: "",
+    OPENAI_API_KEY: "",
+    OPENAI_BASE_URL: "",
+    OPENAI_MODEL: "",
   };
 }
 

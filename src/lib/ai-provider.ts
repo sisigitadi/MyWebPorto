@@ -2,7 +2,8 @@
  * Cloud AI provider (opsional, opt-in) — server-only, jangan import dari client.
  *
  * Default: OFF — Sigit_Bot berjalan lokal via TF-IDF (`ai-engine.ts`, nol egress).
- * Aktif hanya bila: AI_PROVIDER=gemini + GEMINI_API_KEY terisi non-placeholder.
+ * Aktif bila AI_PROVIDER=gemini + GEMINI_API_KEY, atau AI_PROVIDER=openai +
+ * OPENAI_API_KEY (OpenAI-compatible; lihat juga ai-openai.ts).
  * Prompt hanya berisi data KATALOG PUBLIK (profil ringkas, judul layanan/proyek/
  * artikel) — tidak pernah PII, secret, atau isi database mentah. Lihat SECURITY.md.
  */
@@ -14,17 +15,37 @@ export interface LiveContext {
   headline: string;
   skills: string[];
   services: string[];
-  projects: { title: string; slug: string }[];
-  articles: { title: string; slug: string }[];
+  // slug boleh hilang: `buildCloudPrompt` memakai judul saja, dan pengirim
+  // (EngineContext di ai-engine.ts) mengizinkan slug null untuk data lama.
+  projects: { title: string; slug?: string | null }[];
+  articles: { title: string; slug?: string | null }[];
+}
+
+/**
+ * Provider cloud yang aktif: "off" (default, 100% lokal), "gemini", atau
+ * "openai" (OpenAI-compatible — lihat ai-openai.ts, mendukung base URL ubahan).
+ */
+export type CloudProvider = "off" | "gemini" | "openai";
+
+export function getCloudProvider(): CloudProvider {
+  const provider = (process.env.AI_PROVIDER || "off").toLowerCase();
+  if (provider === "gemini" || provider === "openai") return provider;
+  return "off";
 }
 
 export function isCloudAIEnabled(): boolean {
-  const provider = (process.env.AI_PROVIDER || "off").toLowerCase();
-  if (provider !== "gemini") return false;
-  return !isPlaceholderKey(process.env.GEMINI_API_KEY);
+  const provider = getCloudProvider();
+  if (provider === "gemini") return !isPlaceholderKey(process.env.GEMINI_API_KEY);
+  if (provider === "openai") return !isPlaceholderKey(process.env.OPENAI_API_KEY);
+  return false;
 }
 
 export function getCloudAIModel(): string {
+  // OpenAI-compatible punya daftar model sendiri (gpt-4o-mini, deepseek-chat,
+  // llama-3.3-70b, …) — tidak bisa memakai default Gemini.
+  if (getCloudProvider() === "openai") {
+    return (process.env.OPENAI_MODEL || "gpt-4o-mini").trim();
+  }
   return process.env.AI_MODEL || "gemini-2.5-flash";
 }
 
@@ -57,6 +78,47 @@ export function buildCloudPrompt(query: string, ctx: LiveContext, lang: "id" | "
   ].join("\n");
 }
 
+/**
+ * Versi messages (system + user) untuk API chat-style (OpenAI-compatible).
+ * Isi prompt identik dengan buildCloudPrompt — hanya format yang berbeda —
+ * agar jawaban kedua provider konsisten.
+ */
+export function buildCloudMessages(
+  query: string,
+  ctx: LiveContext,
+  lang: "id" | "en"
+): { role: "system" | "user"; content: string }[] {
+  const q = query.trim().slice(0, 500);
+  const skills = ctx.skills.slice(0, 12).join(", ");
+  const services = ctx.services.slice(0, 8).join("; ");
+  const projects = ctx.projects
+    .slice(0, 8)
+    .map((p) => p.title)
+    .join("; ");
+  const articles = ctx.articles
+    .slice(0, 8)
+    .map((a) => a.title)
+    .join("; ");
+  const langLine =
+    lang === "en"
+      ? "Answer in English, concise (max 5 sentences), professional tone."
+      : "Jawab dalam Bahasa Indonesia, ringkas (maksimal 5 kalimat), nada profesional.";
+  const system = [
+    `You are Sigit_Bot, AI assistant for ${ctx.ownerName}'s portfolio website (${ctx.headline}).`,
+    `Public catalog — skills: ${skills}.`,
+    `Services: ${services}.`,
+    `Projects: ${projects}.`,
+    `Articles: ${articles}.`,
+    "Only answer questions about the owner, skills, services, projects, articles, or hiring contact. For anything else, politely redirect to those topics.",
+    langLine,
+  ].join("\n");
+  return [
+    { role: "system", content: system },
+    { role: "user", content: q },
+  ];
+}
+
+/** Hasil panggilan cloud (gemini/openai). success=false → fallback lokal. */
 export interface CloudAIResult {
   success: boolean;
   text: string;
