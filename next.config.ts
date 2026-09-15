@@ -84,8 +84,16 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              // Clerk memerlukan 'unsafe-inline' untuk hydration; 'unsafe-eval' hanya untuk dev — dihapus di prod
-              "script-src 'self' 'unsafe-inline' https://*.clerk.accounts.dev https://clerk.com",
+              // Clerk memerlukan 'unsafe-inline' untuk hydration.
+              // 'unsafe-eval' WAJIB hanya di dev: runtime React Fast Refresh
+              // (next/dist/compiled/@next/react-refresh-utils) mengevaluasi
+              // string sebagai JS. Tanpanya, eksekusi client chunk melempar
+              // EvalError → React tidak pernah hydrate → efek boot loader
+              // (setTimeout 5s) tidak pernah berjalan → overlay BIOS diam
+              // selamanya ("hang di loading / tidak masuk menu"). Dihapus di prod.
+              `script-src 'self' 'unsafe-inline'${
+                process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""
+              } https://*.clerk.accounts.dev https://clerk.com`,
               "worker-src 'self' blob:",
               "style-src 'self' 'unsafe-inline'",
               "font-src 'self' data:",

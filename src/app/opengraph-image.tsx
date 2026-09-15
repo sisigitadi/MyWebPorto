@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { getProfile } from "@/lib/actions";
 
 export const runtime = "nodejs";
-export const alt = "Sigit Adi Pranoto — Portofolio & Workstation";
+export const alt = "Sigit Adi Irianto — Portofolio & Workstation";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

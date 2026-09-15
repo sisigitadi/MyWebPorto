@@ -10,14 +10,18 @@
 
 import { isPlaceholderKey } from "@/lib/env";
 
-const DEFAULT_KEY = "e5b871c984924b179571fcfdca565780";
-
+/**
+ * Key IndexNow dibaca dari env INDEXNOW_KEY (sudah terisi di .env.local/Vercel).
+ * Sengaja TIDAK ada default hardcoded: tanpa env, submit dilewati diam-diam —
+ * mencegah key lama dipakai terus setelah rotasi dan memisahkan concerns
+ * dengan token verifikasi Bing di layout.
+ */
 export function getIndexNowBaseUrl(): string {
   return (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
 }
 
 export function getIndexNowKey(): string {
-  return process.env.INDEXNOW_KEY || DEFAULT_KEY;
+  return process.env.INDEXNOW_KEY || "";
 }
 
 /** Hanya URL http(s) absolut di host sendiri yang boleh disubmit. */

@@ -28,4 +28,28 @@ describe("buildLlmsTxt", () => {
     });
     expect(out.match(/\/proyek\/p\d+/g)?.length).toBeLessThanOrEqual(20);
   });
+
+  it("memasukkan section toko bila ada produk publish", () => {
+    const out = buildLlmsTxt({
+      baseUrl: "https://sigitadi.id",
+      profile: { name: "Sigit Adi", headline: "AI Engineer", bio: "Membangun web.", skills: [] },
+      services: [],
+      projects: [],
+      articles: [],
+      products: [{ title: "Jasa Audit Web", slug: "audit-web", summary: "Audit keamanan." }],
+    });
+    expect(out).toContain("## Toko");
+    expect(out).toContain("[Jasa Audit Web](https://sigitadi.id/toko/audit-web)");
+  });
+
+  it("tidak menampilkan section toko bila tidak ada produk", () => {
+    const out = buildLlmsTxt({
+      baseUrl: "https://sigitadi.id",
+      profile: { name: "Sigit Adi", headline: "AI Engineer", bio: "Membangun web.", skills: [] },
+      services: [],
+      projects: [],
+      articles: [],
+    });
+    expect(out).not.toContain("## Toko");
+  });
 });
