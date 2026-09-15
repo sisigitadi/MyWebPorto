@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Minus, Square, X, LucideIcon } from "lucide-react";
+import { playOS } from "@/lib/os-sound";
 
 interface OSWindowProps {
   id?: string;
@@ -12,6 +13,8 @@ interface OSWindowProps {
   className?: string;
   bodyClassName?: string;
   initialMinimized?: boolean;
+  /** Bila diisi, tombol X menutup window sungguhan (bukan sekadar minimize). */
+  onClose?: () => void;
 }
 
 export function OSWindow({
@@ -23,6 +26,7 @@ export function OSWindow({
   className = "",
   bodyClassName = "",
   initialMinimized = false,
+  onClose,
 }: OSWindowProps) {
   const [isMinimized, setIsMinimized] = useState(initialMinimized);
   const [isMaximized, setIsMaximized] = useState(false);
@@ -51,7 +55,10 @@ export function OSWindow({
         <div className="flex items-center gap-1 shrink-0 ml-2">
           <button
             type="button"
-            onClick={() => setIsMinimized(!isMinimized)}
+            onClick={() => {
+              playOS(isMinimized ? "maximize" : "minimize");
+              setIsMinimized(!isMinimized);
+            }}
             className="vt-titlebar-btn"
             title={isMinimized ? "Kembalikan" : "Perkecil"}
             aria-label="Minimize window"
@@ -60,7 +67,10 @@ export function OSWindow({
           </button>
           <button
             type="button"
-            onClick={() => setIsMaximized(!isMaximized)}
+            onClick={() => {
+              playOS("maximize");
+              setIsMaximized(!isMaximized);
+            }}
             className="vt-titlebar-btn"
             title={isMaximized ? "Ukuran Normal" : "Perbesar"}
             aria-label="Maximize window"
@@ -69,7 +79,11 @@ export function OSWindow({
           </button>
           <button
             type="button"
-            onClick={() => setIsMinimized(true)}
+            onClick={() => {
+              playOS(onClose ? "windowClose" : "minimize");
+              if (onClose) onClose();
+              else setIsMinimized(true);
+            }}
             className="vt-titlebar-btn hover:bg-rose-500 hover:text-white"
             title="Tutup"
             aria-label="Close window"

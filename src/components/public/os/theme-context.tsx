@@ -26,12 +26,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    const saved = localStorage.getItem("sigit-os-theme") as OSTheme | null;
-    if (saved && ["retro90s", "dark", "tokyo", "vscode"].includes(saved)) {
-      setThemeState(saved);
-      document.documentElement.setAttribute("data-theme", saved);
-      syncDarkClass(saved);
-    } else {
+    try {
+      const saved = localStorage.getItem("sigit-os-theme") as OSTheme | null;
+      if (saved && ["retro90s", "dark", "tokyo", "vscode"].includes(saved)) {
+        setThemeState(saved);
+        document.documentElement.setAttribute("data-theme", saved);
+        syncDarkClass(saved);
+      } else {
+        document.documentElement.setAttribute("data-theme", "retro90s");
+        syncDarkClass("retro90s");
+      }
+    } catch {
+      // Storage diblokir (private mode/kebijakan) — tetap pakai tema default
       document.documentElement.setAttribute("data-theme", "retro90s");
       syncDarkClass("retro90s");
     }
@@ -39,7 +45,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = (newTheme: OSTheme) => {
     setThemeState(newTheme);
-    localStorage.setItem("sigit-os-theme", newTheme);
+    try {
+      localStorage.setItem("sigit-os-theme", newTheme);
+    } catch {
+      // Storage diblokir — tema tetap berubah untuk sesi ini
+    }
     document.documentElement.setAttribute("data-theme", newTheme);
     syncDarkClass(newTheme);
   };

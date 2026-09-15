@@ -34,16 +34,8 @@ export function HeroSection({ profile, onOpenContact }: HeroSectionProps) {
     { scope: heroRef }
   );
 
-  const getTranslatedStatLabel = (label: string) => {
-    if (language === "id") return label;
-    const map: Record<string, string> = {
-      "Tahun Pengalaman": "Years of Experience",
-      "Proyek Selesai": "Projects Completed",
-      "Kepuasan Klien": "Client Rating",
-      "Mitra Kolaborasi": "Partners",
-    };
-    return map[label] || label;
-  };
+  // Label EN diambil dari field labelEn yang dikelola admin (schema stats).
+  // Bila belum diisi, fallback ke label asli — sama pola dengan services/projects.
 
   return (
     <section
@@ -56,7 +48,7 @@ export function HeroSection({ profile, onOpenContact }: HeroSectionProps) {
         <div className="sigit-hero-window w-full flex flex-col">
           <OSWindow
             title="Sigit_Profile.exe // Developer Details"
-            icon={<User className="h-3.5 w-3.5 text-[#ffd400]" />}
+            icon={<User className="h-3.5 w-3.5 text-[var(--vt-amber)]" />}
             className="h-full"
             bodyClassName="flex flex-col justify-between space-y-4 sm:space-y-6 p-4 sm:p-6"
           >
@@ -69,7 +61,7 @@ export function HeroSection({ profile, onOpenContact }: HeroSectionProps) {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#34d399] opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-[#10b981]"></span>
                   </span>
-                  <span className="tracking-wide">System Online // Remote - Onsite // Full Time - Freelance - Project</span>
+                  <span className="tracking-wide">{t.hero_available_badge}</span>
                 </div>
               )}
 
@@ -97,18 +89,18 @@ export function HeroSection({ profile, onOpenContact }: HeroSectionProps) {
                 {bio}
               </p>
 
-              {/* Stats Grid inside Profile - Single Line */}
-              <div className="grid grid-cols-4 gap-1.5 sm:gap-2 mb-2">
+              {/* Stats Grid inside Profile — 2 kolom di ponsel, 4 di layar lebih besar */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2 mb-2">
                 {profile.stats.map((stat, idx) => (
                   <div
                     key={idx}
-                    className="vt-card-inset px-1.5 py-2 rounded-xs bg-[var(--vt-chrome)] border border-[#5a5750] text-center"
+                    className="vt-card-inset px-1.5 py-2 rounded-xs bg-[var(--vt-chrome)] border border-[var(--vt-edge-lo)] text-center"
                   >
                     <div className="text-xs sm:text-base font-extrabold font-mono text-[var(--vt-ink)] truncate">
                       {stat.value}
                     </div>
                     <div className="text-[8px] sm:text-[10px] font-mono text-muted-foreground uppercase tracking-wider truncate mt-0.5">
-                      {getTranslatedStatLabel(stat.label)}
+                      {language === "en" ? (stat.labelEn || stat.label) : stat.label}
                     </div>
                   </div>
                 ))}

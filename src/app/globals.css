@@ -54,6 +54,10 @@
   --input: 40 6% 70%;
   --ring: 245 64% 51%;
   --border-hover: 245 64% 51%;
+  --accent: 240 8% 85%;
+  --accent-foreground: 240 18% 10%;
+  --destructive: 0 74% 43%;
+  --destructive-foreground: 0 0% 100%;
   --radius: 0.25rem;
 }
 
@@ -96,6 +100,10 @@
   --input: 240 10% 25%;
   --ring: 235 100% 74%;
   --border-hover: 235 100% 74%;
+  --accent: 240 10% 20%;
+  --accent-foreground: 240 15% 94%;
+  --destructive: 0 72% 50%;
+  --destructive-foreground: 0 0% 100%;
   --radius: 0.25rem;
 }
 
@@ -137,6 +145,10 @@
   --input: 235 25% 24%;
   --ring: 222 89% 72%;
   --border-hover: 222 89% 72%;
+  --accent: 235 20% 22%;
+  --accent-foreground: 230 75% 85%;
+  --destructive: 355 68% 48%;
+  --destructive-foreground: 0 0% 100%;
   --radius: 0.25rem;
 }
 
@@ -179,6 +191,10 @@
   --input: 0 0% 25%;
   --ring: 201 100% 40%;
   --border-hover: 201 100% 40%;
+  --accent: 0 0% 22%;
+  --accent-foreground: 0 0% 83%;
+  --destructive: 0 70% 47%;
+  --destructive-foreground: 0 0% 100%;
   --radius: 0.25rem;
 }
 
@@ -677,8 +693,8 @@ body {
 }
 
 /* ========================================================
-   BOTTOM TASKBAR & WINDOW SWITCHER
-   ======================================================== */
+    BOTTOM TASKBAR & WINDOW SWITCHER
+    ======================================================== */
 .vt-taskbar {
   background: var(--vt-chrome);
   box-shadow:
@@ -761,5 +777,175 @@ body {
   .vt-scrollbar::-webkit-scrollbar {
     width: 3px;
     height: 3px;
+  }
+}
+
+/* ========================================================
+   TRANSISI JADUL ALA CRT / WINDOWS 9X
+   ======================================================== */
+/* Flicker nyala CRT singkat: dipakai saat pindah aplikasi
+   desktop maupun membuka halaman detail — pengganti spinner
+   loading (loading hanya boleh tampil di boot awal). */
+@keyframes vt-crt-on {
+  0% {
+    opacity: 0.15;
+    transform: scaleY(0.985) translateY(2px);
+    filter: brightness(1.6) saturate(0.6);
+  }
+  30% {
+    opacity: 1;
+    transform: scaleY(1.004);
+  }
+  45% {
+    filter: brightness(0.9);
+  }
+  60% {
+    filter: brightness(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: brightness(1);
+  }
+}
+
+.vt-crt-on {
+  animation: vt-crt-on 200ms steps(8, end) 1;
+}
+
+/* Salam lawas untuk dialog/jendela yang baru terbuka */
+@keyframes vt-window-pop {
+  0% {
+    transform: scale(0.96);
+    filter: brightness(1.25);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+.vt-window-pop {
+  animation: vt-window-pop 140ms steps(5, end) 1;
+}
+
+/* ============================================================
+   RetroBot — animasi avatar pixel-art (idle/thinking/talking).
+   Semua loop halus & berfrekuensi rendah; ikut teredam oleh blok
+   prefers-reduced-motion di bawah (WCAG 2.3.3).
+   ============================================================ */
+
+/* Bobbing ringan: robot melayang naik-turun (standby). */
+@keyframes rb-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+.rb-bob {
+  animation: rb-bob 2.4s ease-in-out infinite;
+}
+
+/* Kedip mata: mata mengecil jadi garis tipis sejenak tiap ~4s. */
+@keyframes rb-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  96% { transform: scaleY(0.1); }
+}
+.rb-blink {
+  animation: rb-blink 4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* LED antena berdenyut (cahaya "online"). */
+@keyframes rb-led {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.rb-led {
+  animation: rb-led 1.6s ease-in-out infinite;
+}
+.rb-led-fast {
+  animation-duration: 0.5s;
+}
+
+/* Jam pasir Win95 berputar saat thinking. */
+@keyframes rb-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.rb-spin {
+  animation: rb-spin 1s linear infinite;
+}
+
+/* Mulut "bicara": buka-tutup 2 step (retro, bukan smooth). */
+@keyframes rb-mouth {
+  0% { transform: scaleY(1); }
+  100% { transform: scaleY(0.3); }
+}
+.rb-mouth {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Cursor blok kedip untuk efek mesin tik. */
+@keyframes rb-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.rb-cursor {
+  animation: rb-cursor 0.7s steps(1) infinite;
+}
+
+/* Gelembung sapaan: muncul sekali dengan sedikit overshoot. */
+@keyframes rb-pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  70% { transform: scale(1.03); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.rb-pop {
+  animation: rb-pop 220ms ease-out 1;
+}
+
+/* prefers-reduced-motion: matikan SEMUA animasi infinite (WCAG 2.3.3).
+   Sebelumnya hanya vt-crt-on/vt-window-pop (one-shot) yang dimatikan, padahal
+   yang berisiko bagi pengguna sensitif vestibular/fotosensitif justru loop
+   tanpa henti: flicker CRT (opacity 0.85-1.0), sapuan cahaya, marquee, dan
+   utility Tailwind animate-ping/pulse/spin. Animasi satu kali (transisi masuk)
+   tetap diizinkan karena menyampaikan feedback singkat, bukan rangsangan dari
+   gerakan terus-menerus. */
+@media (prefers-reduced-motion: reduce) {
+  .vt-crt-on,
+  .vt-window-pop,
+  /* Loop tanpa henti dari tema SigitOS */
+  .vt-crt-panel::before,
+  .vt-crt-panel::after,
+  .vt-marquee-track,
+  .vt-marquee-rev,
+  /* Loop avatar RetroBot (bobbing, kedip mata, LED, jam pasir, cursor) */
+  .rb-bob,
+  .rb-blink,
+  .rb-led,
+  .rb-spin,
+  .rb-cursor,
+  .vt-btn-sweep::before,
+  /* Utility animasi Tailwind (ping/pulse/spin/bounce) */
+  .animate-ping,
+  .animate-pulse,
+  .animate-spin,
+  .animate-bounce {
+    animation: none;
+  }
+
+  /* Transisi gerak halus juga diredam — scroll-behavior:smooth tetap boleh
+     karena bukan animasi yang berulang, tapi perpindahan window 3D yang
+     memiringkan viewport bisa memicu motion sickness. */
+  .vt-btn,
+  .vt-btn-chrome,
+  .vt-btn-pink,
+  .vt-window {
+    transition: none;
+  }
+
+  html {
+    scroll-behavior: auto;
   }
 }
