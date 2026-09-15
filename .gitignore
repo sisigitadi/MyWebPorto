@@ -65,3 +65,12 @@ fix-*.js
 .aider*
 .freebuff/
 data/local-store.json
+
+# scratch & probe sekali pakai (screenshot debug, pencarian stack, dll)
+scripts/_shot*.png
+scripts/_shot.mjs
+scripts/_probe-*.mjs
+scripts/find-*.mjs
+
+# media hasil upload runtime (ephemeral di serverless; tidak direferensikan kode)
+public/uploads/
