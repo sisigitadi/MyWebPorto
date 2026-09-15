@@ -266,7 +266,7 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
                     {/* WhatsApp Direct Order Button */}
                     {(product.customWhatsapp || profile?.phone) && (
                       <a
-                        href={buildSingleProductWhatsAppUrl(product.customWhatsapp || profile?.phone || '', product)}
+                        href={buildSingleProductWhatsAppUrl(product.customWhatsapp || profile?.phone || '', product, isEn ? "en" : "id")}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="vt-btn vt-btn-chrome w-full justify-center items-center gap-2 py-2 px-4 text-xs font-bold font-mono text-foreground hover:bg-muted cursor-pointer"

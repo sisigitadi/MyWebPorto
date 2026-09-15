@@ -361,7 +361,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                             {/* Instant WhatsApp Order Button */}
                             {(product.customWhatsapp || profile?.phone) && (
                               <a
-                                href={buildSingleProductWhatsAppUrl(product.customWhatsapp || profile?.phone || '', product)}
+                                href={buildSingleProductWhatsAppUrl(product.customWhatsapp || profile?.phone || '', product, language === "en" ? "en" : "id")}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="vt-btn vt-btn-chrome px-3 py-2 text-xs font-bold text-foreground justify-center items-center gap-1.5 group cursor-pointer"

@@ -78,7 +78,7 @@ export function CartDialog({ profile }: CartDialogProps) {
     if (!customer.name || !customer.phone) return;
 
     const inv = `INV-${Date.now().toString().slice(-6)}`;
-    const waUrl = buildWhatsAppOrderUrl(profile?.phone, customer, items, totalAmount, inv);
+    const waUrl = buildWhatsAppOrderUrl(profile?.phone, customer, items, totalAmount, inv, isEn ? "en" : "id");
     if (!waUrl) {
       toast.error(
         isEn

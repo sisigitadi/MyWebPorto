@@ -18,6 +18,7 @@
 import React, {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -57,8 +58,12 @@ export function RetroBot() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const avatarRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const dragRef = useRef<{ dx: number; dy: number } | null>(null);
+  // Posisi panel dihitung dari rect avatar (mengikuti robot ke mana pun ia
+  // di-drag). Disimpan agar panel tidak melompat saat re-render.
+  const [panelGeo, setPanelGeo] = useState<React.CSSProperties>({});
 
   const isEn = language === "en";
 
@@ -311,8 +316,10 @@ export function RetroBot() {
         const moved = Math.hypot(ev.clientX - startX, ev.clientY - startY);
         dragRef.current = null;
         if (moved < 6) {
-          // Klik murni → buka panel.
-          openPanel();
+          // Klik murni → toggle panel. Avatar tetap tampil saat panel terbuka,
+          // jadi klik kedua menutupnya (sebelumnya avatar justru hilang).
+          if (isOpen) closePanel();
+          else openPanel();
         }
       };
       btn.addEventListener("pointermove", handleMove);
@@ -321,7 +328,7 @@ export function RetroBot() {
       // listener agar tidak bocor; anggap klik murni agar tetap bisa buka panel.
       btn.addEventListener("pointercancel", handleUp);
     },
-    [openPanel]
+    [openPanel, closePanel, isOpen]
   );
 
   const quickPrompts = [
@@ -335,25 +342,101 @@ export function RetroBot() {
     ? { left: position.x, top: position.y, right: "auto", bottom: "auto" }
     : undefined;
 
+  /**
+   * Panel mengikuti robot: posisi dihitung dari rect avatar yang sebenarnya
+   * (bukan dipaku pojok kanan-bawah), sehingga muncul di sekitar robot ke
+   * mana pun ia di-drag. Flip sisi bila tidak muat di viewport.
+   */
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      if (Object.keys(panelGeo).length) setPanelGeo({});
+      return;
+    }
+    const el = avatarRef.current;
+    if (!el) return;
+
+    const PANEL_W = 320; // w-80
+    const MAX_W = 384; // max-w-sm
+    const GAP = 10; // jarak panel ke avatar
+    const M = 8; // margin pinggir layar
+
+    const place = () => {
+      const r = el.getBoundingClientRect();
+      if (!r.width && !r.height) return;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const isNarrow = vw < 640;
+      // Layar sempit memakai hampir seluruh lebar (sesuai perilaku lama).
+      const w = Math.min(isNarrow ? vw - 2 * M : PANEL_W, MAX_W);
+
+      // Horizontal: pinggir kanan panel sejajar kanan avatar; geser/flip
+      // bila menyentuh tepi layar.
+      let left = r.right - w;
+      if (left < M) left = Math.min(r.left, vw - M - w);
+      left = Math.max(M, Math.min(vw - M - w, left));
+
+      // Vertikal: utamanya di ATAS avatar (robot terlihat di bawah panel).
+      // Bila ruang atas terlalu sempit, panel muncul di bawah robot.
+      const roomAbove = r.top - GAP - M;
+      const roomBelow = vh - r.bottom - GAP - M;
+      const maxH = Math.min(0.7 * vh, Math.max(roomAbove, roomBelow));
+      const style: React.CSSProperties = {
+        left,
+        width: w,
+        maxWidth: MAX_W,
+        maxHeight: Math.max(160, maxH),
+      };
+      if (roomAbove >= roomBelow) {
+        // tumbuh ke atas dari atas avatar
+        style.bottom = vh - r.top + GAP;
+        style.top = "auto";
+        style.maxHeight = Math.max(160, Math.min(0.7 * vh, roomAbove));
+      } else {
+        style.top = r.bottom + GAP;
+        style.bottom = "auto";
+        style.maxHeight = Math.max(160, Math.min(0.7 * vh, roomBelow));
+      }
+      setPanelGeo(style);
+    };
+
+    place();
+    // Robot bisa di-drag saat panel terbuka → posisi panel ikut berubah.
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+    // panelGeo sengaja di luar deps: place() menulisnya setiap kali, jadi
+    // memasukkannya akan membuat loop render tanpa henti.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, position]);
+
   return (
     <div className="fixed inset-0 z-50 pointer-events-none select-none" aria-hidden={isOpen ? "false" : "true"}>
-      {/* Panel chat (expanded) */}
+      {/* Panel chat (expanded) — mengikuti posisi avatar (panelGeo) */}
       {isOpen && (
         <div
-          className="absolute bottom-3 right-3 sm:bottom-5 sm:right-5 w-[calc(100vw-1.5rem)] sm:w-80 max-w-sm pointer-events-auto"
+          // Container luar memegang maxHeight (dari panelGeo) + overflow-hidden;
+          // inner flex-1 min-h-0 menyusut mengikuti ruang yang tersedia, jadi
+          // kolom pesanlah yang ter-scroll, bukan footer/input yang terpotong.
+          className="absolute pointer-events-auto flex flex-col overflow-hidden"
+          style={panelGeo}
           role="dialog"
           aria-label={t.retrobot_window_title}
         >
-          <div className="vt-window vt-window-pop flex flex-col shadow-2xl border-2 border-[var(--vt-edge-lo-2)] max-h-[70vh]">
+          <div className="vt-window vt-window-pop flex-1 min-h-0 flex flex-col shadow-2xl border-2 border-[var(--vt-edge-lo-2)] max-h-[70vh]">
             {/* Titlebar */}
             <div className="vt-titlebar flex items-center justify-between gap-2 px-2 py-1.5">
-              <div className="flex items-center gap-1.5 min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0 flex-1">
                 <RetroBotAvatar mood={mood} size={20} className="shrink-0" />
+                {/* Tanpa truncate: teks status ("Neural Engine v2.6 // ...")
+                    dipotong dan tidak terbaca sebelumnya. Biarkan wrap penuh. */}
                 <div className="min-w-0">
-                  <div className="font-pixel text-[10px] sm:text-[11px] font-bold text-[var(--vt-ink)] truncate">
+                  <div className="font-pixel text-[10px] sm:text-[11px] font-bold text-[var(--vt-ink)]">
                     {t.retrobot_window_title}
                   </div>
-                  <div className="font-mono text-[8px] text-[var(--vt-ink)] opacity-70 truncate">
+                  <div className="font-mono text-[8px] text-[var(--vt-ink)] opacity-70">
                     {t.retrobot_window_status}
                   </div>
                 </div>
@@ -430,8 +513,8 @@ export function RetroBot() {
                     disabled={isStreaming}
                     className="vt-btn vt-btn-chrome px-2 py-0.5 text-[9px] font-bold flex items-center gap-1 cursor-pointer disabled:opacity-40"
                   >
-                    <Sparkles className="h-2.5 w-2.5" />
-                    <span className="truncate max-w-[120px]">{q}</span>
+                    <Sparkles className="h-2.5 w-2.5 shrink-0" />
+                    <span>{q}</span>
                   </button>
                 ))}
               </div>
@@ -475,7 +558,7 @@ export function RetroBot() {
               >
                 {source === "cloud" ? t.retrobot_source_cloud : t.retrobot_source_local}
               </span>
-              <span className="font-mono text-[8px] text-[var(--vt-ink)] opacity-60 text-right truncate">
+              <span className="font-mono text-[8px] text-[var(--vt-ink)] opacity-60 text-right">
                 {t.retrobot_disclaimer}
               </span>
             </div>
@@ -483,46 +566,54 @@ export function RetroBot() {
         </div>
       )}
 
-      {/* Avatar standby (collapsed) — di luar panel, selalu terlihat */}
-      {!isOpen && (
-        <div
-          className="absolute bottom-16 right-3 sm:bottom-20 sm:right-5 pointer-events-auto"
-          style={posStyle || undefined}
-        >
-          {/* Gelembung sapaan sekali tampil (bisa di-dismiss) */}
-          {showGreeting && (
-            <div className="rb-pop absolute bottom-full right-0 mb-2 w-48 vt-window p-2 shadow-lg">
-              <button
-                type="button"
-                onClick={dismissGreeting}
-                aria-label={t.retrobot_close}
-                className="absolute top-0.5 right-0.5 vt-btn vt-btn-chrome h-5 w-5 p-0 flex items-center justify-center cursor-pointer"
-              >
-                <X className="h-2.5 w-2.5" />
-              </button>
-              <p className="font-mono text-[9px] text-[var(--vt-ink)] leading-relaxed pr-4">
-                {t.retrobot_greeting}
-              </p>
-            </div>
-          )}
+      {/* Avatar standby — selalu terlihat, juga saat panel terbuka. Sebelumnya
+          ia dibungkus {!isOpen} sehingga robot "hilang" saat panel muncul dan
+          tidak bisa diklik lagi untuk menutup. Ref ini dipakai panel untuk
+          menghitung posisi (mengikuti robot ke mana pun ia di-drag). */}
+      <div
+        ref={avatarRef}
+        className="absolute bottom-16 right-3 sm:bottom-20 sm:right-5 pointer-events-auto"
+        style={posStyle || undefined}
+      >
+        {/* Gelembung sapaan sekali tampil (bisa di-dismiss); sembunyi saat panel
+            terbuka agar tidak menumpuk di atas panel. */}
+        {showGreeting && !isOpen && (
+          <div className="rb-pop absolute bottom-full right-0 mb-2 w-48 vt-window p-2 shadow-lg">
+            <button
+              type="button"
+              onClick={dismissGreeting}
+              aria-label={t.retrobot_close}
+              className="absolute top-0.5 right-0.5 vt-btn vt-btn-chrome h-5 w-5 p-0 flex items-center justify-center cursor-pointer"
+            >
+              <X className="h-2.5 w-2.5" />
+            </button>
+            <p className="font-mono text-[9px] text-[var(--vt-ink)] leading-relaxed pr-4">
+              {t.retrobot_greeting}
+            </p>
+          </div>
+        )}
 
-          <button
-            type="button"
-            onPointerDown={onPointerDown}
-            title={t.retrobot_tooltip}
-            aria-label={t.retrobot_tooltip}
-            // touch-action-none wajib: tanpa itu browser mengambil alih gestur
-            // sentuh untuk scroll → pointerup tidak pernah sampai → panel tidak
-            // terbuka di mobile (pointercancel menggantikannya).
-            // Tanpa border/kotak (vt-card-inset) — avatar mengambang bebas.
-            className="group relative p-1 cursor-pointer hover:scale-105 active:scale-95 transition-transform touch-action-none"
-          >
-            <RetroBotAvatar mood={mood} size={56} />
-            {/* Cincin status online: ring lembut, bukan border keras */}
-            <span className="absolute top-0.5 right-0.5 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-[var(--vt-paper)] animate-pulse" />
-          </button>
-        </div>
-      )}
+        <button
+          type="button"
+          onPointerDown={onPointerDown}
+          title={t.retrobot_tooltip}
+          aria-label={t.retrobot_tooltip}
+          // touch-action-none wajib: tanpa itu browser mengambil alih gestur
+          // sentuh untuk scroll → pointerup tidak pernah sampai → panel tidak
+          // terbuka di mobile (pointercancel menggantikannya).
+          // Tanpa border/kotak (vt-card-inset) — avatar mengambang bebas.
+          className="group relative p-1 cursor-pointer hover:scale-105 active:scale-95 transition-transform touch-action-none"
+        >
+          <RetroBotAvatar mood={mood} size={56} />
+          {/* Cincin status online: ring lembut, bukan border keras */}
+          <span className="absolute top-0.5 right-0.5 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-[var(--vt-paper)] animate-pulse" />
+          {/* Penanda state aktif: avatar " menyala" saat panel terbuka, jadi
+              pengunjung tahu robot bisa diklik lagi untuk menutup. */}
+          {isOpen && (
+            <span className="absolute inset-0 rounded-full ring-2 ring-primary/70 animate-pulse pointer-events-none" />
+          )}
+        </button>
+      </div>
     </div>
   );
 }

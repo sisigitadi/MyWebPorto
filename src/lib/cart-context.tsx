@@ -2,21 +2,20 @@
 
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from "react";
 import type { ProductData } from "@/lib/dummy-data";
-import { STORE_NAME } from "@/lib/store";
 import { maxStockFor, isOutOfStock } from "@/lib/cart-stock";
+import type { CustomerOrderInfo } from "@/lib/whatsapp-order";
 
 export interface CartItem {
   product: ProductData;
   quantity: number;
 }
 
-export interface CustomerOrderInfo {
-  name: string;
-  phone: string;
-  emailOrAddress: string;
-  notes?: string;
-  paymentMethod: "qris" | "bank" | "wa_direct";
-}
+// CustomerOrderInfo dan builder pesan WhatsApp kini hidup di
+// @/lib/whatsapp-order — modul .ts murni agar bisa diuji langsung dengan
+// vitest (lingkungan node tidak bisa parse JSX). Re-export di sini agar
+// pemanggil lama (import { buildWhatsAppOrderUrl } from "@/lib/cart-context")
+// tetap kompatibel.
+export type { CustomerOrderInfo };
 
 interface CartContextValue {
   items: CartItem[];
@@ -166,85 +165,4 @@ export function useCart() {
   return ctx;
 }
 
-/**
- * Format currency IDR
- */
-export function formatIdr(amount: number): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
-/**
- * Helper to generate pre-filled WhatsApp Checkout URL.
- * Mengembalikan string kosong bila nomor admin belum diatur — pemanggil
- * wajib menahan submit daripada mengirim order ke nomor placeholder.
- */
-export function buildWhatsAppOrderUrl(
-  phone: string | undefined,
-  customer: CustomerOrderInfo,
-  items: CartItem[],
-  totalAmount: number,
-  invoiceNo?: string
-): string {
-  if (!phone || !phone.trim()) return "";
-  const cleanPhone = phone.replace(/\D/g, "");
-  const inv = invoiceNo || `ORD-${Date.now().toString().slice(-6)}`;
-
-  const paymentLabel =
-    customer.paymentMethod === "qris"
-      ? "QRIS (Scan Barcode)"
-      : customer.paymentMethod === "bank"
-      ? "Transfer Bank Manual"
-      : "Konfirmasi via WhatsApp";
-
-  const lines = [
-    `*PESANAN BARU — ${STORE_NAME.toUpperCase()} [${inv}]*`,
-    `Halo, saya ingin melakukan pemesanan produk:`,
-    "",
-    `*Daftar Produk:*`,
-    ...items.map((item, idx) => {
-      const priceStr = item.product.priceAmount
-        ? formatIdr(item.product.priceAmount * item.quantity)
-        : item.product.priceFormatted;
-      return `${idx + 1}. *${item.product.title}* x${item.quantity} (${priceStr})`;
-    }),
-    "",
-    totalAmount > 0 ? `*Total Pembayaran:* ${formatIdr(totalAmount)}` : `*Total:* Sesuai Penawaran`,
-    `*Metode Pembayaran:* ${paymentLabel}`,
-    "",
-    `*Informasi Pemesan:*`,
-    `• Nama: ${customer.name}`,
-    `• No. WA / Telp: ${customer.phone}`,
-    `• Alamat / Email: ${customer.emailOrAddress}`,
-    customer.notes ? `• Catatan: ${customer.notes}` : "",
-    "",
-    `Mohon info instruksi selanjutnya. Terima kasih!`,
-  ].filter(Boolean);
-
-  const text = lines.join("\n");
-  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
-}
-
-/**
- * Helper to generate instant single-product WhatsApp Order URL.
- * Mengembalikan string kosong bila nomor admin belum diatur.
- */
-export function buildSingleProductWhatsAppUrl(
-  phone: string | undefined,
-  product: ProductData
-): string {
-  if (!phone || !phone.trim()) return "";
-  const cleanPhone = phone.replace(/\D/g, "");
-  const price = product.priceFormatted || "Gratis / Diskusi";
-  const text = [
-    `Halo, saya tertarik untuk memesan produk di ${STORE_NAME}:`,
-    `*${product.title}* (${price})`,
-    "",
-    `Apakah produk ini masih tersedia? Mohon info detail pembayarannya. Terima kasih!`,
-  ].join("\n");
-
-  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
-}
+export { formatIdr, buildWhatsAppOrderUrl, buildSingleProductWhatsAppUrl } from "@/lib/whatsapp-order";
