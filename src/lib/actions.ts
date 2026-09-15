@@ -41,9 +41,7 @@ import { buildCloudPrompt, buildCloudMessages, submitToGemini } from "@/lib/ai-p
 import {
   resolveCloudAIConfig,
   saveCloudAIConfig,
-  getCloudAIConfigForAdmin,
   type StoredCloudAIConfig,
-  type AdminCloudAIView,
 } from "@/lib/cloud-ai-config";
 import { submitToOpenAI } from "@/lib/ai-openai";
 import { rateLimit, cleanupRateLimits } from "@/lib/rate-limit";
@@ -1829,17 +1827,10 @@ export async function askSigitBot(
 }
 
 /**
- * Baca konfigurasi Cloud AI untuk form /admin/system. Key hanya dikembalikan
- * dalam bentuk ter-mask — tidak pernah mentah ke client.
- */
-export async function readCloudAIConfigAction(): Promise<AdminCloudAIView> {
-  await verifyAdmin();
-  return getCloudAIConfigForAdmin();
-}
-
-/**
  * Simpan konfigurasi Cloud AI dari form /admin/system. Wajib admin terotentikasi.
- * apiKey kosong = pertahankan key yang ada (lihat saveCloudAIConfig).
+ * Pembacaan dilakukan langsung oleh server component /admin/system lewat
+ * getCloudAIConfigForAdmin() — tidak butuh action wrapper, dan key tidak pernah
+ * mentah ke client. apiKey kosong = pertahankan key yang ada (saveCloudAIConfig).
  */
 export async function saveCloudAIConfigAction(input: StoredCloudAIConfig): Promise<{ ok: true } | { ok: false; error: string }> {
   await verifyAdmin();
