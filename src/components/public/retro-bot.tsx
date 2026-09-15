@@ -433,10 +433,14 @@ export function RetroBot() {
                 {/* Tanpa truncate: teks status ("Neural Engine v2.6 // ...")
                     dipotong dan tidak terbaca sebelumnya. Biarkan wrap penuh. */}
                 <div className="min-w-0">
-                  <div className="font-pixel text-[10px] sm:text-[11px] font-bold text-[var(--vt-ink)]">
+                  {/* Jangan override warna ke --vt-ink: titlebar .vt-titlebar
+                      punya background gradient navy gelap dengan teks putih
+                      (--vt-titlebar-ink). --vt-ink hampir hitam → gelap di atas
+                      gelap, tidak terbaca. Biarkan mewarisi warna titlebar. */}
+                  <div className="font-pixel text-[10px] sm:text-[11px] font-bold text-white">
                     {t.retrobot_window_title}
                   </div>
-                  <div className="font-mono text-[8px] text-[var(--vt-ink)] opacity-70">
+                  <div className="font-mono text-[8px] text-white/80">
                     {t.retrobot_window_status}
                   </div>
                 </div>
@@ -534,7 +538,7 @@ export function RetroBot() {
                 maxLength={500}
                 disabled={isStreaming}
                 aria-label={t.retrobot_placeholder}
-                className="flex-1 min-w-0 bg-[var(--vt-paper)] border-2 border-[var(--vt-edge-lo-2)] px-2 py-1 text-[11px] font-mono text-[var(--vt-ink)] placeholder:text-[var(--vt-ink)] placeholder:opacity-40 focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                className="flex-1 min-w-0 bg-[var(--vt-paper)] border-2 border-[var(--vt-edge-lo-2)] px-2 py-1 text-[11px] font-mono text-[var(--vt-ink)] placeholder:text-[var(--vt-ink)] placeholder:opacity-50 focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
               />
               <button
                 type="submit"
@@ -558,7 +562,7 @@ export function RetroBot() {
               >
                 {source === "cloud" ? t.retrobot_source_cloud : t.retrobot_source_local}
               </span>
-              <span className="font-mono text-[8px] text-[var(--vt-ink)] opacity-60 text-right">
+              <span className="font-mono text-[8px] text-[var(--vt-ink)] opacity-80 text-right">
                 {t.retrobot_disclaimer}
               </span>
             </div>

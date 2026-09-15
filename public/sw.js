@@ -3,7 +3,9 @@
  * Versi cache: naikkan bila strategi berubah agar SW lama tergantikan. */
 const CACHE_VERSION = "sigitos-v1";
 const OFFLINE_URL = "/offline";
-const CORE_ASSETS = [OFFLINE_URL, "/icons/icon-192.png", "/manifest.webmanifest"];
+// /manifest.webmanifest dihapus: situs tidak lagi installable (pwa install
+// dimatikan), tetapi fallback offline tetap aktif lewat service worker ini.
+const CORE_ASSETS = [OFFLINE_URL, "/icons/icon-192.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

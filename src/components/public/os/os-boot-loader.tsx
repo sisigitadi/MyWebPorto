@@ -47,8 +47,11 @@ export function OSBootLoader() {
   };
 
   useEffect(() => {
-    // Cek sesi — jika sudah boot, hilangkan overlay segera tanpa animasi
-    const hasBooted = sessionStorage.getItem("sigitos_booted_session");
+    // Cek kunjungan pertama — jika sudah pernah boot (browser ini), hilangkan
+    // overlay segera tanpa animasi. Memakai localStorage, bukan sessionStorage,
+    // agar animasi 5 detik hanya muncul sekali seumur kunjungan; sebelumnya
+    // setiap tab baru / ketik ulang URL memulai ulang BIOS-nya.
+    const hasBooted = localStorage.getItem("sigitos_booted");
     if (hasBooted) {
       setBootVisible(false);
       return;
@@ -116,7 +119,7 @@ export function OSBootLoader() {
 
   const handleComplete = () => {
     setIsFading(true);
-    sessionStorage.setItem("sigitos_booted_session", "true");
+    localStorage.setItem("sigitos_booted", "true");
     // Chime "masuk desktop" ala startup jadul — sopan dan singkat
     playOS("boot");
     setTimeout(() => {
