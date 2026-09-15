@@ -47,12 +47,15 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUpload } from "@/components/admin/image-upload";
-import { DUMMY_PRODUCTS, ProductData } from "@/lib/dummy-data";
+import { ProductData } from "@/lib/dummy-data";
 import { getProducts, saveProduct, deleteProduct, translateFieldAction } from "@/lib/actions";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { getProductSlug, slugifyProduct } from "@/lib/product-link";
+import { toast } from "sonner";
 
 export default function AdminProductsPage() {
-  const [products, setProducts] = useState<ProductData[]>(DUMMY_PRODUCTS);
+  const [products, setProducts] = useState<ProductData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
@@ -69,20 +72,61 @@ export default function AdminProductsPage() {
   const [formDescription, setFormDescription] = useState("");
   const [formDescriptionEn, setFormDescriptionEn] = useState("");
   const [formPriceFormatted, setFormPriceFormatted] = useState("");
+  const [formComparePrice, setFormComparePrice] = useState("");
+  const [formPriceAmount, setFormPriceAmount] = useState("");
+  const [formBadge, setFormBadge] = useState("");
+  const [formCategory, setFormCategory] = useState("");
+  const [formStock, setFormStock] = useState("");
+  const [formGallery, setFormGallery] = useState<string[]>([]);
   const [formThumbnail, setFormThumbnail] = useState("");
   const [formCtaUrl, setFormCtaUrl] = useState("");
   const [formPublished, setFormPublished] = useState(true);
+  const [formPurchaseType, setFormPurchaseType] = useState<"whatsapp" | "external" | "referral" | "affiliate">("whatsapp");
+  const [formCustomWhatsapp, setFormCustomWhatsapp] = useState("");
+  const [formCustomButtonLabel, setFormCustomButtonLabel] = useState("");
 
   const fetchProducts = async () => {
-    const data = await getProducts();
-    if (data) {
-      setProducts(data);
+    setIsLoading(true);
+    try {
+      const data = await getProducts();
+      if (data) {
+        setProducts(data);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  // Guard "belum disimpan": baseline direset saat sessionKey berubah — yaitu
+  // saat dialog tambah/edit dibuka atau item lain dipilih. Mengetik di form
+  // tidak mengubah sessionKey, jadi perubahan terdeteksi sebagai dirty.
+  useUnsavedChanges(
+    selectedProduct?.id ?? (dialogOpen ? "new" : null),
+    {
+      formTitle,
+      formSlug,
+      formTitleEn,
+      formDescription,
+      formDescriptionEn,
+      formPriceFormatted,
+      formComparePrice,
+      formPriceAmount,
+      formBadge,
+      formCategory,
+      formStock,
+      formGallery,
+      formThumbnail,
+      formCtaUrl,
+      formPublished,
+      formPurchaseType,
+      formCustomWhatsapp,
+      formCustomButtonLabel,
+    },
+  );
 
   const filteredProducts = products.filter(
     (p) =>
@@ -101,9 +145,18 @@ export default function AdminProductsPage() {
     setFormDescription("");
     setFormDescriptionEn("");
     setFormPriceFormatted("Gratis");
+    setFormComparePrice("");
+    setFormPriceAmount("");
+    setFormBadge("");
+    setFormCategory("");
+    setFormStock("");
+    setFormGallery([]);
     setFormThumbnail("https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop");
     setFormCtaUrl("");
     setFormPublished(true);
+    setFormPurchaseType("whatsapp");
+    setFormCustomWhatsapp("");
+    setFormCustomButtonLabel("");
     setDialogOpen(true);
   };
 
@@ -117,9 +170,18 @@ export default function AdminProductsPage() {
     setFormDescription(product.description);
     setFormDescriptionEn(product.descriptionEn || "");
     setFormPriceFormatted(product.priceFormatted);
+    setFormComparePrice(product.comparePriceLabel || "");
+    setFormPriceAmount(product.priceAmount !== null && product.priceAmount !== undefined ? String(product.priceAmount) : "");
+    setFormBadge(product.badge || "");
+    setFormCategory(product.category || "");
+    setFormStock(product.stock !== null && product.stock !== undefined ? String(product.stock) : "");
+    setFormGallery(product.gallery || []);
     setFormThumbnail(product.thumbnailUrl);
     setFormCtaUrl(product.ctaUrl);
     setFormPublished(product.published);
+    setFormPurchaseType(product.purchaseType ?? "whatsapp");
+    setFormCustomWhatsapp(product.customWhatsapp || "");
+    setFormCustomButtonLabel(product.customButtonLabel || "");
     setDialogOpen(true);
   };
 
@@ -162,16 +224,33 @@ export default function AdminProductsPage() {
         descriptionEn: formDescriptionEn,
         imageUrl: formThumbnail,
         priceLabel: formPriceFormatted,
+        comparePriceLabel: formComparePrice.trim() || undefined,
+        priceAmount: formPriceAmount.trim() === "" ? undefined : formPriceAmount.trim(),
+        badge: formBadge.trim() || undefined,
+        category: formCategory.trim() || undefined,
+        stock: formStock.trim() === "" ? undefined : formStock.trim(),
+        gallery: formGallery,
         ctaUrl: formCtaUrl.trim() || undefined,
         published: formPublished,
+        purchaseType: formPurchaseType,
+        customWhatsapp: formCustomWhatsapp.trim() || undefined,
+        customButtonLabel: formCustomButtonLabel.trim() || undefined,
       };
 
-      const res = await saveProduct(payload);
-      if (res.success) {
-        setDialogOpen(false);
-        await fetchProducts();
-      } else {
-        setErrorMessage(res.error || "Gagal menyimpan produk.");
+      try {
+        const res = await saveProduct(payload);
+        if (res.success) {
+          setDialogOpen(false);
+          toast.success(res.message || "Produk berhasil disimpan!");
+          await fetchProducts();
+        } else {
+          setErrorMessage(res.error || "Gagal menyimpan produk.");
+          toast.error(res.error || "Gagal menyimpan produk.");
+        }
+      } catch (err) {
+        console.error("[admin] saveProduct gagal:", err);
+        setErrorMessage("Gagal menghubungi server. Periksa koneksi, muat ulang halaman, lalu coba lagi.");
+        toast.error("Gagal menghubungi server. Coba simpan lagi.");
       }
     });
   };
@@ -180,11 +259,19 @@ export default function AdminProductsPage() {
     if (!selectedProduct) return;
 
     startTransition(async () => {
-      const res = await deleteProduct(selectedProduct.id);
-      if (res.success) {
-        setDeleteAlertOpen(false);
-        setSelectedProduct(null);
-        await fetchProducts();
+      try {
+        const res = await deleteProduct(selectedProduct.id);
+        if (res.success) {
+          setDeleteAlertOpen(false);
+          setSelectedProduct(null);
+          toast.success(res.message || "Produk berhasil dihapus!");
+          await fetchProducts();
+        } else {
+          toast.error(res.error || "Gagal menghapus produk.");
+        }
+      } catch (err) {
+        console.error("[admin] deleteProduct gagal:", err);
+        toast.error("Gagal menghubungi server. Muat ulang halaman lalu coba lagi.");
       }
     });
   };
@@ -192,12 +279,12 @@ export default function AdminProductsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--vt-edge-lo-2)] pb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--vt-ink)]">
             Katalog Produk Digital & Template
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-[var(--vt-ink-mute)]">
             Kelola boilerplate kode, ebook teknis, dan asset digital berbayar maupun gratis yang Anda tawarkan.
           </p>
         </div>
@@ -210,26 +297,26 @@ export default function AdminProductsPage() {
       {/* Filter & Search */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="relative w-full sm:w-80">
-          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[var(--vt-ink-mute)]" />
           <Input
             placeholder="Cari nama produk atau deskripsi..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8 text-xs h-9"
+            className="pl-8 text-xs h-9 bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
           />
         </div>
 
-        <div className="text-xs text-muted-foreground">
+        <div className="text-xs text-[var(--vt-ink-mute)]">
           Total: <strong>{products.length}</strong> produk digital
         </div>
       </div>
 
       {/* Table */}
-      <Card className="overflow-hidden">
+       <Card className="overflow-hidden bg-[var(--vt-card)] border-[var(--vt-edge-lo-2)]">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/40 hover:bg-muted/40">
+                 <TableRow className="bg-[var(--vt-card)] hover:bg-[var(--vt-edge-hi-2)]">
                 <TableHead className="w-[320px] text-xs font-semibold">Produk</TableHead>
                 <TableHead className="text-xs font-semibold">Harga</TableHead>
                 <TableHead className="text-xs font-semibold">Status</TableHead>
@@ -237,7 +324,14 @@ export default function AdminProductsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProducts.length === 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-32 text-center text-muted-foreground text-xs">
+                    <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+                    Memuat produk...
+                  </TableCell>
+                </TableRow>
+              ) : filteredProducts.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="h-32 text-center text-muted-foreground text-xs">
                     Tidak ada produk digital yang ditemukan.
@@ -248,7 +342,7 @@ export default function AdminProductsPage() {
                   <TableRow key={product.id} className="hover:bg-muted/30">
                     <TableCell className="py-3">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-16 relative rounded-md overflow-hidden bg-muted shrink-0 border border-border">
+                        <div className="h-10 w-16 relative rounded-md overflow-hidden bg-muted/50 shrink-0 border border-[var(--vt-edge-lo-2)]">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={product.thumbnailUrl}
@@ -257,16 +351,16 @@ export default function AdminProductsPage() {
                           />
                         </div>
                         <div className="space-y-0.5 max-w-sm">
-                          <p className="text-xs font-semibold text-foreground line-clamp-1">
+                           <p className="text-xs font-semibold text-[var(--vt-ink)] line-clamp-1">
                             {product.title}
                           </p>
                           {product.titleEn && (
-                            <p className="text-[10px] text-muted-foreground line-clamp-1 flex items-center gap-1">
+                               <p className="text-[10px] text-[var(--vt-ink-mute)] line-clamp-1 flex items-center gap-1">
                               <span className="text-[9px] bg-muted px-1 rounded border font-mono">EN</span>
                               <span>{product.titleEn}</span>
                             </p>
                           )}
-                          <p className="text-[11px] text-muted-foreground line-clamp-1">
+                           <p className="text-[11px] text-[var(--vt-ink-mute)] line-clamp-1">
                             {product.description}
                           </p>
                         </div>
@@ -295,7 +389,7 @@ export default function AdminProductsPage() {
                             asChild
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            className="h-8 w-8 text-[var(--vt-ink)] hover:bg-[var(--vt-edge-hi-2)]"
                             title="Buka Tautan Pembelian"
                           >
                             <Link href={product.ctaUrl} target="_blank">
@@ -307,7 +401,7 @@ export default function AdminProductsPage() {
                           asChild
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          className="h-8 w-8 text-[var(--vt-ink)] hover:bg-[var(--vt-edge-hi-2)]"
                           title="Preview Halaman Produk"
                         >
                           <Link href={`/toko/${getProductSlug(product)}`}>
@@ -318,7 +412,7 @@ export default function AdminProductsPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => openEditDialog(product)}
-                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          className="h-8 w-8 text-[var(--vt-ink)] hover:bg-[var(--vt-edge-hi-2)]"
                           title="Sunting Produk"
                         >
                           <Pencil className="h-3.5 w-3.5" />
@@ -346,10 +440,10 @@ export default function AdminProductsPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold">
+                         <DialogTitle className="text-base font-semibold text-[var(--vt-ink)]">
               {isEditing ? "Sunting Data Produk Digital" : "Tambah Produk Digital Baru"}
             </DialogTitle>
-            <DialogDescription className="text-xs">
+            <DialogDescription className="text-xs text-[var(--vt-ink-mute)]">
               Katalog produk digital yang dipajang di halaman muka portofolio Anda.
             </DialogDescription>
           </DialogHeader>
@@ -363,7 +457,7 @@ export default function AdminProductsPage() {
 
           <form onSubmit={handleSaveProduct} className="space-y-4 pt-2">
             <Tabs defaultValue="id" className="w-full">
-              <TabsList className="grid grid-cols-2 mb-3">
+               <TabsList className="grid grid-cols-2 mb-3 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)]">
                 <TabsTrigger value="id" className="text-xs gap-1.5">
                   <span>🇮🇩</span> Bahasa Indonesia
                 </TabsTrigger>
@@ -377,7 +471,7 @@ export default function AdminProductsPage() {
 
               <TabsContent value="id" className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="title" className="text-xs font-medium">
+                  <Label htmlFor="title" className="text-xs font-medium text-[var(--vt-ink)]">
                     Nama Produk Digital (ID) *
                   </Label>
                   <Input
@@ -390,12 +484,12 @@ export default function AdminProductsPage() {
                       setFormTitle(nextTitle);
                       if (!isEditing) setFormSlug(slugifyProduct(nextTitle));
                     }}
-                    className="text-xs"
+                    className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="desc" className="text-xs font-medium">
+                  <Label htmlFor="desc" className="text-xs font-medium text-[var(--vt-ink)]">
                     Deskripsi Singkat & Fitur Utama (ID) *
                   </Label>
                   <Textarea
@@ -405,13 +499,13 @@ export default function AdminProductsPage() {
                     placeholder="Template production-ready dengan otentikasi, database, dan payment gateway..."
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
-                    className="text-xs"
+                    className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
                   />
                 </div>
               </TabsContent>
 
               <TabsContent value="en" className="space-y-4">
-                <div className="flex items-center justify-between bg-muted/40 p-2.5 rounded-md border border-border/60">
+                 <div className="flex items-center justify-between bg-[var(--vt-card)] p-2.5 rounded-md border border-[var(--vt-edge-lo-2)]">
                   <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                     <Globe className="h-3.5 w-3.5 text-primary" />
                     <span>Kosongkan bila mode EN cukup memakai teks Indonesia</span>
@@ -434,7 +528,7 @@ export default function AdminProductsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="titleEn" className="text-xs font-medium">
+                  <Label htmlFor="titleEn" className="text-xs font-medium text-[var(--vt-ink)]">
                     Nama Produk Digital (EN)
                   </Label>
                   <Input
@@ -442,7 +536,7 @@ export default function AdminProductsPage() {
                     placeholder="e.g. Next.js 15 SaaS Starter Boilerplate"
                     value={formTitleEn}
                     onChange={(e) => setFormTitleEn(e.target.value)}
-                    className="text-xs"
+                    className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
                   />
                 </div>
 
@@ -456,13 +550,13 @@ export default function AdminProductsPage() {
                     placeholder="Production-ready template with auth, database, and payments..."
                     value={formDescriptionEn}
                     onChange={(e) => setFormDescriptionEn(e.target.value)}
-                    className="text-xs"
+                    className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
                   />
                 </div>
               </TabsContent>
             </Tabs>
 
-            <div className="space-y-2 border-t border-border/60 pt-4">
+            <div className="space-y-2 border-t border-[var(--vt-edge-lo-2)] pt-4">
               <Label htmlFor="slug" className="text-xs font-medium">
                 Slug URL Produk *
               </Label>
@@ -474,14 +568,14 @@ export default function AdminProductsPage() {
                 onChange={(e) => setFormSlug(slugifyProduct(e.target.value))}
                 className="text-xs font-mono"
               />
-              <p className="text-[10px] text-muted-foreground font-mono">
-                Link share: /toko/{formSlug || "slug-produk"}
+               <p className="text-[10px] text-[var(--vt-ink-mute)] font-mono">
+                  Link share: /toko/{formSlug || "slug-produk"}
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/60">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[var(--vt-edge-lo-2)]">
               <div className="space-y-2">
-                <Label htmlFor="price" className="text-xs font-medium">
+                <Label htmlFor="price" className="text-xs font-medium text-[var(--vt-ink)]">
                   Label Harga (ID/EN) *
                 </Label>
                 <Input
@@ -490,26 +584,142 @@ export default function AdminProductsPage() {
                   placeholder="Rp 199.000 / $19"
                   value={formPriceFormatted}
                   onChange={(e) => setFormPriceFormatted(e.target.value)}
-                  className="text-xs"
+                  className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="ctaUrl" className="text-xs font-medium">
-                  URL Checkout / Download
+                <Label htmlFor="comparePrice" className="text-xs font-medium text-[var(--vt-ink)]">
+                  Harga Coret (opsional)
+                </Label>
+                <Input
+                  id="comparePrice"
+                  placeholder="Rp 299.000"
+                  value={formComparePrice}
+                  onChange={(e) => setFormComparePrice(e.target.value)}
+                  className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="priceAmount" className="text-xs font-medium text-[var(--vt-ink)]">
+                  Nominal Rp (angka, untuk keranjang)
+                </Label>
+                <Input
+                  id="priceAmount"
+                  type="number"
+                  min={0}
+                  placeholder="199000 (kosong = hubungi)"
+                  value={formPriceAmount}
+                  onChange={(e) => setFormPriceAmount(e.target.value)}
+                  className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="stock" className="text-xs font-medium text-[var(--vt-ink)]">
+                  Stok (kosong = digital/tanpa batas)
+                </Label>
+                <Input
+                  id="stock"
+                  type="number"
+                  min={0}
+                  placeholder="10"
+                  value={formStock}
+                  onChange={(e) => setFormStock(e.target.value)}
+                  className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="badge" className="text-xs font-medium text-[var(--vt-ink)]">
+                  Badge (mis. Baru, Terlaris)
+                </Label>
+                <Input
+                  id="badge"
+                  placeholder="Terlaris"
+                  value={formBadge}
+                  onChange={(e) => setFormBadge(e.target.value)}
+                  className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="category" className="text-xs font-medium text-[var(--vt-ink)]">
+                  Kategori
+                </Label>
+                <Input
+                  id="category"
+                  placeholder="Template, E-Book, Jasa"
+                  value={formCategory}
+                  onChange={(e) => setFormCategory(e.target.value)}
+                  className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="purchaseType" className="text-xs font-medium text-[var(--vt-ink)]">
+                  Tipe Penjualan *
+                </Label>
+                <select
+                  id="purchaseType"
+                  value={formPurchaseType}
+                  onChange={(e) =>
+                    setFormPurchaseType(e.target.value as "whatsapp" | "external" | "referral" | "affiliate")
+                  }
+                  className="flex h-9 w-full rounded-md border border-[var(--vt-edge-lo-2)] bg-[var(--vt-paper)] px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="whatsapp">WhatsApp Langsung</option>
+                  <option value="external">Toko Online / Platform Eksternal</option>
+                  <option value="referral">Link Referral</option>
+                  <option value="affiliate">Link Affiliate</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ctaUrl" className="text-xs font-medium text-[var(--vt-ink)]">
+                  URL Tujuan (Jika eksternal/referral/affiliate)
                 </Label>
                 <Input
                   id="ctaUrl"
-                  placeholder="https://lynk.id/sigit/..."
-                  value={formCtaUrl}
+                  placeholder="https://shopee.co.id/..."
+                  value={formCtaUrl || ''}
                   onChange={(e) => setFormCtaUrl(e.target.value)}
-                  className="text-xs"
+                  className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
+                  disabled={formPurchaseType === "whatsapp"}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="customWhatsapp" className="text-xs font-medium text-[var(--vt-ink)]">
+                  No. WA Khusus (Jika WhatsApp)
+                </Label>
+                <Input
+                  id="customWhatsapp"
+                  placeholder="6281234567890 (kosongkan u/ profil utama)"
+                  value={formCustomWhatsapp || ''}
+                  onChange={(e) => setFormCustomWhatsapp(e.target.value)}
+                  className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
+                  disabled={formPurchaseType !== "whatsapp"}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="customButtonLabel" className="text-xs font-medium text-[var(--vt-ink)]">
+                  Teks Tombol Kustom (Opsional)
+                </Label>
+                <Input
+                  id="customButtonLabel"
+                  placeholder="Mis: Beli di Shopee"
+                  value={formCustomButtonLabel || ''}
+                  onChange={(e) => setFormCustomButtonLabel(e.target.value)}
+                  className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-medium block mb-2">Gambar Produk</Label>
+              <Label className="text-xs font-medium text-[var(--vt-ink)] block mb-2">Gambar Produk</Label>
               <ImageUpload
                 value={formThumbnail}
                 onChange={(url) => setFormThumbnail(url)}
@@ -517,13 +727,47 @@ export default function AdminProductsPage() {
               />
             </div>
 
-            <div className="pt-3 border-t border-border flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-foreground">
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-[var(--vt-ink)] block mb-2">
+                Galeri Tambahan ({formGallery.length}/10)
+              </Label>
+              {formGallery.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {formGallery.map((url) => (
+                    <div key={url} className="relative h-14 w-14 rounded overflow-hidden border border-[var(--vt-edge-lo-2)] bg-muted shrink-0">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt="Galeri" className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setFormGallery((prev) => prev.filter((u) => u !== url))}
+                        className="absolute top-0.5 right-0.5 h-5 w-5 rounded-full bg-black/70 text-white text-[10px] leading-none cursor-pointer"
+                        title="Hapus gambar ini"
+                        aria-label="Hapus gambar galeri"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {formGallery.length < 10 && (
+                <ImageUpload
+                  value=""
+                  onChange={(url) => {
+                    if (url) setFormGallery((prev) => (prev.includes(url) || prev.length >= 10 ? prev : [...prev, url]));
+                  }}
+                  label="Tambah ke Galeri"
+                />
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-[var(--vt-edge-lo-2)] flex flex-wrap items-center justify-between gap-3">
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-[var(--vt-ink)]">
                 <input
                   type="checkbox"
                   checked={formPublished}
                   onChange={(e) => setFormPublished(e.target.checked)}
-                  className="rounded border-border"
+                  className="rounded border-[var(--vt-edge-lo-2)]"
                 />
                 <span>Tampilkan di Publik</span>
               </label>
@@ -534,6 +778,7 @@ export default function AdminProductsPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setDialogOpen(false)}
+                  disabled={isPending}
                   className="text-xs h-8"
                 >
                   Batal
@@ -555,15 +800,16 @@ export default function AdminProductsPage() {
             <AlertDialogTitle className="text-base font-semibold">
               Hapus Produk Digital?
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs text-muted-foreground">
+            <AlertDialogDescription className="text-xs text-[var(--vt-ink-mute)]">
               Apakah Anda yakin ingin menghapus produk <strong>{selectedProduct?.title}</strong>? Data yang dihapus tidak dapat dipulihkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="text-xs h-8">Batal</AlertDialogCancel>
+            <AlertDialogCancel className="text-xs h-8" disabled={isPending}>Batal</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteProduct}
-              className="text-xs h-8 bg-rose-600 hover:bg-rose-700 text-white"
+              disabled={isPending}
+              className="text-xs h-8 bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isPending ? "Menghapus..." : "Ya, Hapus Produk"}
             </AlertDialogAction>

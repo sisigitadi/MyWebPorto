@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getProductSlug, slugifyProduct } from "@/lib/product-link";
+import { getProductSlug, normalizePurchaseType, slugifyProduct } from "@/lib/product-link";
 
 describe("slugifyProduct", () => {
   it("menormalisasi judul menjadi slug ramah URL", () => {
@@ -21,5 +21,22 @@ describe("getProductSlug", () => {
   it("fallback ke title lalu id", () => {
     expect(getProductSlug({ id: "prod-2", title: "Template Portofolio", slug: "" })).toBe("template-portofolio");
     expect(getProductSlug({ id: "prod-3", title: "!!!", slug: "" })).toBe("prod-3");
+  });
+});
+
+describe("normalizePurchaseType", () => {
+  it("menerima nilai purchase_type yang valid apa adanya", () => {
+    expect(normalizePurchaseType("whatsapp")).toBe("whatsapp");
+    expect(normalizePurchaseType("external")).toBe("external");
+    expect(normalizePurchaseType("referral")).toBe("referral");
+    expect(normalizePurchaseType("affiliate")).toBe("affiliate");
+  });
+
+  it("meringkas nilai tak dikenal dari database ke whatsapp", () => {
+    // Drizzle mengetik kolom text sebagai string; data lama/kotor bisa berisi apa saja.
+    expect(normalizePurchaseType("cod" as string)).toBe("whatsapp");
+    expect(normalizePurchaseType(null)).toBe("whatsapp");
+    expect(normalizePurchaseType(undefined)).toBe("whatsapp");
+    expect(normalizePurchaseType("")).toBe("whatsapp");
   });
 });
