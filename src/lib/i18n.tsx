@@ -65,10 +65,6 @@ export interface Translations {
   hero_contact_heading: string;
   hero_window_title: string;
   hero_status_text: string;
-  hero_stat_exp: string;
-  hero_stat_projects: string;
-  hero_stat_rating: string;
-  hero_stat_partners: string;
 
   // Services Section
   services_eyebrow: string;
@@ -91,6 +87,9 @@ export interface Translations {
   projects_empty: string;
   projects_live_demo: string;
   projects_repo: string;
+  products_empty: string;
+  services_empty: string;
+  testimonials_empty: string;
 
   // Project Detail Page
   detail_back_all: string;
@@ -164,17 +163,109 @@ export interface Translations {
   contact_message_label: string;
   contact_message_placeholder: string;
   contact_send_btn: string;
+  contact_send_btn_loading: string;
+  // Status report form pengiriman (sebelumnya hardcoded English)
+  contact_status_loading: string;
+  contact_status_success: string;
+  contact_status_error: string;
+  contact_status_network: string;
+  // Chrome jendela OS (sebelumnya hardcoded English)
+  contact_mailer_window_title: string;
+  contact_mailer_window_status: string;
+  contact_owner_address_title: string;
+  contact_mailer_badge: string;
+  contact_email_field_label: string;
+  contact_email_field_placeholder: string;
+  contact_channels_window_title: string;
+  contact_channels_window_status: string;
 
   // Terminal CRT
-  terminal_title: string;
+  terminal_status_boot: string;
+  terminal_status_ready: string;
+  terminal_console_cleared: string;
+  terminal_help_header: string;
+  terminal_help_freeform: string;
+  terminal_help_no_entry: string;
+  // Bantuan per-perintah (help <cmd>)
   terminal_help_skills: string;
   terminal_help_projects: string;
-  terminal_help_ai: string;
+  terminal_help_services: string;
   terminal_help_contact: string;
-  terminal_help_clear: string;
-  terminal_help_about: string;
-  terminal_unknown_cmd: string;
-  terminal_about_text: string;
+  terminal_help_open: string;
+  terminal_help_theme: string;
+  terminal_help_lang: string;
+  terminal_help_cv: string;
+  terminal_help_github: string;
+  terminal_help_email: string;
+  // Daftar perintah di `help`
+  terminal_cmd_help: string;
+  terminal_cmd_whoami: string;
+  terminal_cmd_date: string;
+  terminal_cmd_echo: string;
+  terminal_cmd_pwd: string;
+  terminal_cmd_ls: string;
+  terminal_cmd_skills: string;
+  terminal_cmd_projects: string;
+  terminal_cmd_services: string;
+  terminal_cmd_articles: string;
+  terminal_cmd_contact: string;
+  terminal_cmd_cv: string;
+  terminal_cmd_github: string;
+  terminal_cmd_email: string;
+  terminal_cmd_open: string;
+  terminal_cmd_theme: string;
+  terminal_cmd_lang: string;
+  terminal_cmd_neofetch: string;
+  terminal_cmd_history: string;
+  terminal_cmd_clear: string;
+  terminal_cmd_reboot: string;
+  // Header & feedback perintah
+  terminal_skills_header: string;
+  terminal_skills_manage: string;
+  terminal_contact_header: string;
+  terminal_contact_none: string;
+  terminal_contact_opening: string;
+  terminal_projects_header: string;
+  terminal_projects_opening: string;
+  terminal_services_header: string;
+  terminal_services_opening: string;
+  terminal_articles_opening: string;
+  terminal_opening_app: string; // {app}
+  terminal_unknown_app: string; // {app}
+  terminal_cv_opening: string; // {url}
+  terminal_cv_unavailable: string;
+  terminal_github_opening: string; // {url}
+  terminal_github_unconfigured: string;
+  terminal_email_opening: string;
+  terminal_email_unconfigured: string;
+  // UI chrome terminal
+  terminal_input_placeholder: string;
+  terminal_input_label: string;
+  terminal_voice_input: string;
+  terminal_tts: string;
+  terminal_log_label: string;
+  terminal_log_busy: string;
+  terminal_input_hint: string;
+
+  // RetroBot — widget asisten retro mengambang (standby)
+  retrobot_tooltip: string;
+  retrobot_window_title: string;
+  retrobot_window_status: string;
+  retrobot_greeting: string;
+  retrobot_placeholder: string;
+  retrobot_send: string;
+  retrobot_thinking: string;
+  retrobot_quick_1: string;
+  retrobot_quick_2: string;
+  retrobot_quick_3: string;
+  retrobot_quick_4: string;
+  retrobot_offline: string;
+  retrobot_rate_limited: string;
+  retrobot_disclaimer: string;
+  retrobot_clear: string;
+  retrobot_close: string;
+  retrobot_source_local: string;
+  retrobot_source_cloud: string;
 
   // Footer
   footer_brand_desc: string;
@@ -247,10 +338,6 @@ const translations: Record<Language, Translations> = {
     hero_contact_heading: "Hubungi Saya",
     hero_window_title: "Sigit_Profile.exe // Detail Pengembang",
     hero_status_text: "Status: Siap menerima proyek & konsultasi sistem",
-    hero_stat_exp: "Tahun Pengalaman",
-    hero_stat_projects: "Proyek Selesai",
-    hero_stat_rating: "Kepuasan Klien",
-    hero_stat_partners: "Mitra Kolaborasi",
 
     // Services Section
     services_eyebrow: "Layanan & Keahlian",
@@ -273,6 +360,9 @@ const translations: Record<Language, Translations> = {
     projects_page_subtitle:
       "Eksplorasi solusi digital yang saya kembangkan untuk menjawab tantangan nyata bisnis, komunitas, dan institusi pendidikan.",
     projects_empty: "Belum ada proyek yang dipublikasikan.",
+    products_empty: "Belum ada produk yang dipublikasikan.",
+    services_empty: "Belum ada layanan yang dipublikasikan.",
+    testimonials_empty: "Belum ada testimoni yang dipublikasikan.",
     projects_live_demo: "Demo Langsung",
     projects_repo: "Repositori",
 
@@ -336,7 +426,7 @@ const translations: Record<Language, Translations> = {
     article_detail_related_title: "Artikel Terkait Lainnya",
 
     // Contact Section
-    contact_eyebrow: "Hubungi Saya",
+    contact_eyebrow: "PUSAT_KOMUNIKASI // KIRIM LANGSUNG & INBOX",
     contact_title: "Mari Berdiskusi & Berkolaborasi",
     contact_subtitle:
       "Punya ide proyek, kebutuhan pembuatan website bisnis, atau ingin berkonsultasi mengenai solusi digital? Hubungi saya langsung melalui formulir atau email di bawah ini.",
@@ -357,17 +447,112 @@ const translations: Record<Language, Translations> = {
     contact_message_placeholder:
       "Ceritakan kebutuhan proyek atau pertanyaan Anda di sini...",
     contact_send_btn: "Kirim Pesan",
+    contact_send_btn_loading: "MENGIRIMKAN...",
+    contact_status_loading: "MENGIRIMKAN DATA MELALUI PROTOKOL GATEWAY...",
+    contact_status_success:
+      "PESAN TERKIRIM! Pesan Anda telah dikirim melalui gateway Formspree — balasan akan dikirim ke alamat email yang Anda isi.",
+    contact_status_error:
+      "GAGAL: Gagal mengirimkan pesan. Silakan hubungi langsung via kontak yang tersedia.",
+    contact_status_network: "NETWORK ERROR: Tidak dapat terhubung ke server pesan.",
+    contact_mailer_window_title: "Sigit_Mailer.exe // Kirim Pesan",
+    contact_mailer_window_status: "Gateway: Formspree // Mailer",
+    contact_owner_address_title: "Alamat Kontak Pemilik",
+    contact_mailer_badge: "MAILER LANGSUNG",
+    contact_email_field_label: "Alamat Email Anda *",
+    contact_email_field_placeholder: "nama@domain.com",
+    contact_channels_window_title: "Sigit_Connect.exe // Saluran Sosial",
+    contact_channels_window_status: "{count} saluran siap // Link Langsung",
 
     // Terminal CRT
-    terminal_title: "CRT TERMINAL MONITOR // TTY-1",
-    terminal_help_skills: "Tampilkan daftar keahlian teknologi",
-    terminal_help_projects: "Buka katalog proyek unggulan",
-    terminal_help_ai: "Showoff keahlian AI Agent & Sistem Otomasi",
-    terminal_help_contact: "Kirim pesan ke Sigit",
-    terminal_help_clear: "Bersihkan layar terminal",
-    terminal_help_about: "Ringkasan profil pengembang",
-    terminal_unknown_cmd: "Perintah tidak dikenali: '{cmd}'. Ketik 'help' untuk panduan.",
-    terminal_about_text: "{name} adalah Web Developer & Systems Architect yang berfokus pada kecepatan, estetika, dan keandalan sistem.",
+    terminal_status_boot:
+      "STATUS: Sigit_Bot siap! Ketik 'help' untuk daftar perintah, atau tanyakan apa saja seputar Sigit Adi.",
+    terminal_status_ready:
+      "READY: Ketik 'help' atau tanyakan apa saja seputar Sigit Adi & MyWebPorto.",
+    terminal_console_cleared: "Console dibersihkan. Sigit_Bot Neural Engine aktif.",
+    terminal_help_header: "PERINTAH SISTEM & QUERY SIGIT_BOT:",
+    terminal_help_freeform:
+      "  * Atau ketik bebas pertanyaan ke Sigit_Bot (cth: 'siapa sigit', 'biaya hire')",
+    terminal_help_no_entry: "Tidak ada bantuan untuk '{topic}'.",
+    // Bantuan per-perintah (help <cmd>)
+    terminal_help_skills: "skills  - Tampilkan daftar keahlian dari profil",
+    terminal_help_projects: "projects - Buka katalog proyek",
+    terminal_help_services: "services - Buka daftar layanan",
+    terminal_help_contact: "contact - Tampilkan & buka saluran kontak",
+    terminal_help_open: "open <app> - Buka aplikasi (profil, proyek, toko, dll)",
+    terminal_help_theme: "theme <retro|dark|tokyo|vscode|random> - Ganti tema",
+    terminal_help_lang: "lang <id|en> - Ganti bahasa",
+    terminal_help_cv: "cv      - Buka CV pemilik",
+    terminal_help_github: "github  - Buka GitHub pemilik",
+    terminal_help_email: "email   - Tampilkan & tulis email",
+    // Daftar perintah di `help`
+    terminal_cmd_help: "Bantuan perintah",
+    terminal_cmd_whoami: "Info pemilik",
+    terminal_cmd_date: "Tanggal & waktu sekarang",
+    terminal_cmd_echo: "Cetak teks",
+    terminal_cmd_pwd: "Direktori saat ini",
+    terminal_cmd_ls: "Daftar aplikasi",
+    terminal_cmd_skills: "Keahlian teknis (live)",
+    terminal_cmd_projects: "Buka katalog proyek",
+    terminal_cmd_services: "Buka layanan",
+    terminal_cmd_articles: "Buka artikel",
+    terminal_cmd_contact: "Saluran kontak",
+    terminal_cmd_cv: "Buka CV pemilik",
+    terminal_cmd_github: "Buka GitHub pemilik",
+    terminal_cmd_email: "Tulis email ke pemilik",
+    terminal_cmd_open: "Buka aplikasi desktop",
+    terminal_cmd_theme: "Ganti tema OS (random tersedia)",
+    terminal_cmd_lang: "Ganti bahasa",
+    terminal_cmd_neofetch: "Info sistem",
+    terminal_cmd_history: "Riwayat perintah",
+    terminal_cmd_clear: "Bersihkan layar",
+    terminal_cmd_reboot: "Restart kernel",
+    // Header & feedback perintah
+    terminal_skills_header: "KEAHLIAN TEKNIS (dari profil):",
+    terminal_skills_manage: "Kelola keahlian lewat Admin -> Profil -> Keahlian.",
+    terminal_contact_header: "SALURAN KONTAK:",
+    terminal_contact_none: "  (belum ada tautan sosial)",
+    terminal_contact_opening: "Membuka Kontak...",
+    terminal_projects_header: "PROYEK (dari data):",
+    terminal_projects_opening: "Membuka jendela Proyek...",
+    terminal_services_header: "LAYANAN (dari data):",
+    terminal_services_opening: "Membuka jendela Layanan...",
+    terminal_articles_opening: "Membuka Artikel...",
+    terminal_opening_app: "Membuka {app}...",
+    terminal_unknown_app: "Aplikasi tidak dikenal: {app}",
+    terminal_cv_opening: "Membuka CV: {url}",
+    terminal_cv_unavailable: "CV belum tersedia.",
+    terminal_github_opening: "Membuka GitHub: {url}",
+    terminal_github_unconfigured: "Tautan GitHub belum dikonfigurasi.",
+    terminal_email_opening: "Membuka aplikasi email...",
+    terminal_email_unconfigured: "Email belum dikonfigurasi.",
+    // UI chrome terminal
+    terminal_input_placeholder: "Ketik 'help' atau tanyakan apa saja...",
+    terminal_input_label: "Pertanyaan atau perintah untuk Sigit_Bot",
+    terminal_voice_input: "Input suara",
+    terminal_tts: "Bacakan jawaban",
+    terminal_log_label: "Riwayat output Sigit_Bot",
+    terminal_log_busy: "Sigit_Bot sedang memproses pertanyaan Anda…",
+    terminal_input_hint: "Ketik 'help' untuk daftar perintah. Jawaban dibacakan otomatis di area riwayat di atas.",
+
+    // RetroBot — widget asisten retro mengambang (standby)
+    retrobot_tooltip: "Tanya Sigit_Bot — asisten retro portofolio ini",
+    retrobot_window_title: "Sigit_Bot.ai // Standby",
+    retrobot_window_status: "Neural Engine v2.6 // Tanya apa saja",
+    retrobot_greeting: "Halo! Saya Sigit_Bot. Tanyakan apa saja seputar profil, keahlian, proyek, atau layanan.",
+    retrobot_placeholder: "Tulis pertanyaan Anda…",
+    retrobot_send: "Kirim",
+    retrobot_thinking: "Sigit_Bot berpikir…",
+    retrobot_quick_1: "Siapa pemilik portofolio ini?",
+    retrobot_quick_2: "Keahlian apa saja?",
+    retrobot_quick_3: "Proyek unggulan?",
+    retrobot_quick_4: "Cara menghubungi?",
+    retrobot_offline: "Sistem offline — coba tanyakan tentang keahlian, proyek, atau kontak.",
+    retrobot_rate_limited: "Batas pertanyaan tercapai. Tunggu sebentar sebelum bertanya lagi.",
+    retrobot_disclaimer: "AI dapat keliru — selalu konfirmasi via kontak resmi.",
+    retrobot_clear: "Bersihkan",
+    retrobot_close: "Tutup",
+    retrobot_source_local: "LOKAL",
+    retrobot_source_cloud: "CLOUD",
 
     // Footer
     footer_brand_desc:
@@ -439,10 +624,6 @@ const translations: Record<Language, Translations> = {
     hero_contact_heading: "Contact Me",
     hero_window_title: "Sigit_Profile.exe // Developer Details",
     hero_status_text: "Status: Available for hire & freelance development",
-    hero_stat_exp: "Years Experience",
-    hero_stat_projects: "Projects Completed",
-    hero_stat_rating: "Client Rating",
-    hero_stat_partners: "Partners",
 
     // Services Section
     services_eyebrow: "Services & Capabilities",
@@ -465,6 +646,9 @@ const translations: Record<Language, Translations> = {
     projects_page_subtitle:
       "Exploring digital solutions engineered to solve real challenges for businesses, communities, and educational institutions.",
     projects_empty: "No published projects found.",
+    products_empty: "No published products yet.",
+    services_empty: "No published services yet.",
+    testimonials_empty: "No published testimonials yet.",
     projects_live_demo: "Live Demo",
     projects_repo: "Repository",
 
@@ -528,7 +712,7 @@ const translations: Record<Language, Translations> = {
     article_detail_related_title: "More Related Articles",
 
     // Contact Section
-    contact_eyebrow: "Contact Me",
+    contact_eyebrow: "COMMUNICATION_CENTER // DIRECT DISPATCH & INBOX",
     contact_title: "Let's Connect & Collaborate",
     contact_subtitle:
       "Have a project idea, business website needs, or want to consult on digital solutions? Reach out directly via email or the form below.",
@@ -549,17 +733,112 @@ const translations: Record<Language, Translations> = {
     contact_message_placeholder:
       "Describe your project requirements or inquiries here...",
     contact_send_btn: "Send Message",
+    contact_send_btn_loading: "TRANSMITTING...",
+    contact_status_loading: "TRANSMITTING VIA GATEWAY PROTOCOL...",
+    contact_status_success:
+      "MESSAGE DISPATCHED! Your message has been sent through the Formspree gateway — you'll get a reply at the email address you provided.",
+    contact_status_error:
+      "FAILED: Unable to dispatch message. Please check your connection or contact directly.",
+    contact_status_network: "NETWORK ERROR: Could not reach mail server.",
+    contact_mailer_window_title: "Sigit_Mailer.exe // Send Message",
+    contact_mailer_window_status: "Gateway: Formspree // Mailer",
+    contact_owner_address_title: "Owner Contact Address",
+    contact_mailer_badge: "DIRECT MAILER",
+    contact_email_field_label: "Your Email Address *",
+    contact_email_field_placeholder: "name@domain.com",
+    contact_channels_window_title: "Sigit_Connect.exe // Social Channels",
+    contact_channels_window_status: "{count} channel(s) ready // Direct Links",
 
     // Terminal CRT
-    terminal_title: "CRT TERMINAL MONITOR // TTY-1",
-    terminal_help_skills: "Display list of technical skills",
-    terminal_help_projects: "Open featured projects catalog",
-    terminal_help_ai: "Showcase AI Agent & Automation Systems",
-    terminal_help_contact: "Send message to Sigit",
-    terminal_help_clear: "Clear the terminal screen",
-    terminal_help_about: "Developer profile summary",
-    terminal_unknown_cmd: "Command not recognized: '{cmd}'. Type 'help' for guide.",
-    terminal_about_text: "{name} is a Web Developer & Systems Architect focused on speed, aesthetics, and system reliability.",
+    terminal_status_boot:
+      "STATUS: Sigit_Bot is ready! Type 'help' for commands, or chat naturally with Sigit_Bot.",
+    terminal_status_ready:
+      "READY: Type 'help' or ask any natural question about Sigit Adi & MyWebPorto.",
+    terminal_console_cleared: "Console cleared. Sigit_Bot Neural Engine online.",
+    terminal_help_header: "SYSTEM COMMANDS & SIGIT_BOT QUERIES:",
+    terminal_help_freeform:
+      "  * Or type any question to Sigit_Bot (e.g.: 'who is sigit', 'hire cost')",
+    terminal_help_no_entry: "No help entry for '{topic}'.",
+    // Per-command help (help <cmd>)
+    terminal_help_skills: "skills  - Show the list of skills from the profile",
+    terminal_help_projects: "projects - Open the projects catalog",
+    terminal_help_services: "services - Open the list of services",
+    terminal_help_contact: "contact - Show & open contact channels",
+    terminal_help_open: "open <app> - Open an app (profile, projects, store, etc.)",
+    terminal_help_theme: "theme <retro|dark|tokyo|vscode|random> - Change theme",
+    terminal_help_lang: "lang <id|en> - Change language",
+    terminal_help_cv: "cv      - Open the owner's CV",
+    terminal_help_github: "github  - Open the owner's GitHub",
+    terminal_help_email: "email   - Show & compose an email",
+    // Command list shown by `help`
+    terminal_cmd_help: "Command help",
+    terminal_cmd_whoami: "Owner info",
+    terminal_cmd_date: "Current date & time",
+    terminal_cmd_echo: "Print text",
+    terminal_cmd_pwd: "Current directory",
+    terminal_cmd_ls: "List applications",
+    terminal_cmd_skills: "Technical skills (live)",
+    terminal_cmd_projects: "Open projects catalog",
+    terminal_cmd_services: "Open services",
+    terminal_cmd_articles: "Open articles",
+    terminal_cmd_contact: "Contact channels",
+    terminal_cmd_cv: "Open the owner's CV",
+    terminal_cmd_github: "Open the owner's GitHub",
+    terminal_cmd_email: "Email the owner",
+    terminal_cmd_open: "Open a desktop app",
+    terminal_cmd_theme: "Change OS theme (random available)",
+    terminal_cmd_lang: "Change language",
+    terminal_cmd_neofetch: "System info",
+    terminal_cmd_history: "Command history",
+    terminal_cmd_clear: "Clear the screen",
+    terminal_cmd_reboot: "Restart the kernel",
+    // Command headers & feedback
+    terminal_skills_header: "TECHNICAL SKILLS (live from profile):",
+    terminal_skills_manage: "Manage skills via Admin -> Profile -> Keahlian.",
+    terminal_contact_header: "CONTACT CHANNELS:",
+    terminal_contact_none: "  (no social links configured)",
+    terminal_contact_opening: "Opening Contact...",
+    terminal_projects_header: "FEATURED PROJECTS (live):",
+    terminal_projects_opening: "Opening Projects window...",
+    terminal_services_header: "SERVICES (live):",
+    terminal_services_opening: "Opening Services window...",
+    terminal_articles_opening: "Opening Articles...",
+    terminal_opening_app: "Opening {app}...",
+    terminal_unknown_app: "Unknown app: {app}",
+    terminal_cv_opening: "Opening CV: {url}",
+    terminal_cv_unavailable: "CV not available yet.",
+    terminal_github_opening: "Opening GitHub: {url}",
+    terminal_github_unconfigured: "GitHub link not configured.",
+    terminal_email_opening: "Opening mail app...",
+    terminal_email_unconfigured: "Email not configured.",
+    // Terminal UI chrome
+    terminal_input_placeholder: "Type 'help' or ask anything...",
+    terminal_input_label: "Question or command for Sigit_Bot",
+    terminal_voice_input: "Voice input",
+    terminal_tts: "Read answers aloud",
+    terminal_log_label: "Sigit_Bot output history",
+    terminal_log_busy: "Sigit_Bot is processing your question…",
+    terminal_input_hint: "Type 'help' for the command list. Replies are announced automatically in the history area above.",
+
+    // RetroBot — floating retro assistant widget (standby)
+    retrobot_tooltip: "Ask Sigit_Bot — the retro assistant for this portfolio",
+    retrobot_window_title: "Sigit_Bot.ai // Standby",
+    retrobot_window_status: "Neural Engine v2.6 // Ask anything",
+    retrobot_greeting: "Hello! I'm Sigit_Bot. Ask me anything about the profile, skills, projects, or services.",
+    retrobot_placeholder: "Type your question…",
+    retrobot_send: "Send",
+    retrobot_thinking: "Sigit_Bot is thinking…",
+    retrobot_quick_1: "Who owns this portfolio?",
+    retrobot_quick_2: "What are the skills?",
+    retrobot_quick_3: "Featured projects?",
+    retrobot_quick_4: "How to get in touch?",
+    retrobot_offline: "System offline — try asking about skills, projects, or contact instead.",
+    retrobot_rate_limited: "Question limit reached. Please wait a moment before asking again.",
+    retrobot_disclaimer: "AI can be wrong — always confirm via official contact.",
+    retrobot_clear: "Clear",
+    retrobot_close: "Close",
+    retrobot_source_local: "LOCAL",
+    retrobot_source_cloud: "CLOUD",
 
     // Footer
     footer_brand_desc:
@@ -573,6 +852,25 @@ const translations: Record<Language, Translations> = {
 };
 
 const STORAGE_KEY = "sigit_portfolio_lang";
+// Locale dibawa di URL supaya link bisa dibagikan dalam bahasa yang dipilih
+// dan Google bisa menemukan varian EN (lihat alternates.languages di metadata).
+const URL_PARAM = "lang";
+
+function readUrlLang(): Language | null {
+  if (typeof window === "undefined") return null;
+  const param = new URLSearchParams(window.location.search).get(URL_PARAM);
+  return param === "id" || param === "en" ? param : null;
+}
+
+function writeUrlLang(lang: Language) {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  if (url.searchParams.get(URL_PARAM) === lang) return; // tidak ada perubahan
+  // Pertahankan param & hash lain; replaceState (bukan pushState) agar toggle
+  // bahasa tidak mengisi history — tombol Kembali tetap ke halaman sebelumnya.
+  url.searchParams.set(URL_PARAM, lang);
+  window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+}
 
 interface LanguageContextType {
   language: Language;
@@ -589,9 +887,23 @@ const LanguageContext = createContext<LanguageContextType>({
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>("id");
 
-  // Reliable initial detection with localStorage precedence
+  // Detection precedence: ?lang= di URL > localStorage > preferensi browser.
+  // URL menang karena link yang dibagikan harus mendarat di bahasa yang sama.
   useEffect(() => {
     try {
+      const urlLang = readUrlLang();
+      if (urlLang) {
+        setLanguageState(urlLang);
+        if (typeof document !== "undefined") {
+          document.documentElement.lang = urlLang;
+        }
+        // Persist supaya navigasi ke halaman tanpa ?lang= tetap konsisten.
+        try {
+          localStorage.setItem(STORAGE_KEY, urlLang);
+        } catch {}
+        return;
+      }
+
       const stored = localStorage.getItem(STORAGE_KEY) as Language | null;
       if (stored === "id" || stored === "en") {
         setLanguageState(stored);
@@ -646,6 +958,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     if (typeof document !== "undefined") {
       document.documentElement.lang = newLang;
     }
+    writeUrlLang(newLang);
   }, []);
 
   return (

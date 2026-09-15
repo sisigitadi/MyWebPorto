@@ -1,6 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { isPlaceholderKey, isProduction } from "@/lib/env";
+import { isAdminOwnerConfigured } from "@/lib/admin-auth";
 
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 
@@ -21,11 +22,17 @@ export default clerkMiddleware(async (auth, req) => {
   if (isAdminRoute(req)) {
     await auth.protect();
 
-    const adminClerkId = process.env.ADMIN_CLERK_ID;
     const { userId } = await auth();
 
-    // Single-owner gate: non-admin dapat 404 (bukan 403) agar tidak leak keberadaan /admin
-    if (adminClerkId && adminClerkId !== "user_xxxxxxxxxxxxxxxxx" && userId !== adminClerkId) {
+    // Single-owner gate: non-admin dapat 404 (bukan 403) agar tidak leak keberadaan /admin.
+    // Fail-closed di produksi: tanpa ADMIN_CLERK_ID yang valid, admin ditolak total
+    // (jangan fail-open ke semua user Clerk yang bisa mendaftar).
+    if (!isAdminOwnerConfigured()) {
+      if (isProduction()) {
+        console.warn(`[middleware] ADMIN_CLERK_ID belum diset — admin ditolak: route=${req.nextUrl.pathname}`);
+        return new NextResponse("Halaman Tidak Ditemukan", { status: 404 });
+      }
+    } else if (userId !== process.env.ADMIN_CLERK_ID) {
       // Audit log tanpa PII berlebih — cukup catat percobaan akses ditolak
       console.warn(`[middleware] non-admin access denied: route=${req.nextUrl.pathname} userId=${userId ?? "anon"}`);
       return new NextResponse("Halaman Tidak Ditemukan", { status: 404 });
