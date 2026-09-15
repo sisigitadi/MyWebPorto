@@ -1,6 +1,6 @@
 {
-  "id": "9489aded-198f-4ea7-a5f7-4f665cf08c9f",
-  "prevId": "3a720373-e988-4231-a7ec-51b168689165",
+  "id": "dec29bc3-8936-41db-b29b-181c4312d62b",
+  "prevId": "ea739c33-0522-4443-a29b-472373d9081a",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -89,6 +89,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": 0
+        },
+        "publish_at": {
+          "name": "publish_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "updated_at": {
           "name": "updated_at",
@@ -309,6 +315,43 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "compare_price_label": {
+          "name": "compare_price_label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "price_amount": {
+          "name": "price_amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "badge": {
+          "name": "badge",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stock": {
+          "name": "stock",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gallery": {
+          "name": "gallery",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
         }
       },
       "indexes": {
@@ -447,6 +490,18 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "payment_qr_url": {
+          "name": "payment_qr_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "payment_bank_info": {
+          "name": "payment_bank_info",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -570,6 +625,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": 0
+        },
+        "publish_at": {
+          "name": "publish_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "updated_at": {
           "name": "updated_at",

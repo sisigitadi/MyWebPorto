@@ -26,15 +26,36 @@
     {
       "idx": 3,
       "version": "7",
-      "when": 1789313434581,
-      "tag": "0004_audit_logs",
+      "when": 1789100000000,
+      "tag": "0003_product_slugs",
       "breakpoints": true
     },
     {
       "idx": 4,
       "version": "7",
+      "when": 1789313434581,
+      "tag": "0004_audit_logs",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
       "when": 1789382510471,
       "tag": "0005_publish_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789387032434,
+      "tag": "0006_shop",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789431870225,
+      "tag": "0007_purchase_fields",
       "breakpoints": true
     }
   ]

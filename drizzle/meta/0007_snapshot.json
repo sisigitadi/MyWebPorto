@@ -1,6 +1,6 @@
 {
-  "id": "9489aded-198f-4ea7-a5f7-4f665cf08c9f",
-  "prevId": "3a720373-e988-4231-a7ec-51b168689165",
+  "id": "8514bb90-7eb5-4757-83b8-332af48319df",
+  "prevId": "dec29bc3-8936-41db-b29b-181c4312d62b",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -89,6 +89,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": 0
+        },
+        "publish_at": {
+          "name": "publish_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "updated_at": {
           "name": "updated_at",
@@ -276,8 +282,64 @@
           "primaryKey": false,
           "notNull": false
         },
+        "compare_price_label": {
+          "name": "compare_price_label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "price_amount": {
+          "name": "price_amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "badge": {
+          "name": "badge",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stock": {
+          "name": "stock",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gallery": {
+          "name": "gallery",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
         "cta_url": {
           "name": "cta_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "purchase_type": {
+          "name": "purchase_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'whatsapp'"
+        },
+        "custom_whatsapp": {
+          "name": "custom_whatsapp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "custom_button_label": {
+          "name": "custom_button_label",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -409,6 +471,18 @@
         },
         "cv_url": {
           "name": "cv_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "payment_qr_url": {
+          "name": "payment_qr_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "payment_bank_info": {
+          "name": "payment_bank_info",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -570,6 +644,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": 0
+        },
+        "publish_at": {
+          "name": "publish_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         },
         "updated_at": {
           "name": "updated_at",

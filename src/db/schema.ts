@@ -23,13 +23,16 @@ export const profiles = pgTable(
     phone: text("phone"),
     location: text("location"),
     cvUrl: text("cv_url"),
+    // Pembayaran manual toko (QRIS + info transfer), dikelola dari /admin/profile
+    paymentQrUrl: text("payment_qr_url"),
+    paymentBankInfo: text("payment_bank_info"),
     availableForHire: boolean("available_for_hire").notNull().default(true),
     skills: jsonb("skills")
       .$type<string[]>()
       .notNull()
       .default([]),
     stats: jsonb("stats")
-      .$type<{ label: string; value: string }[]>()
+      .$type<{ label: string; labelEn?: string | null; value: string }[]>()
       .notNull()
       .default([]),
     socialLinks: jsonb("social_links")
@@ -133,7 +136,18 @@ export const products = pgTable(
     descriptionEn: text("description_en"),
     imageUrl: text("image_url").notNull(),
     priceLabel: text("price_label"),
+    // Harga coret (label) + nominal Rupiah untuk keranjang (null = tanya/hubungi)
+    comparePriceLabel: text("compare_price_label"),
+    priceAmount: integer("price_amount"),
+    // Etalase toko: badge, kategori, stok (null = digital/tanpa batas), galeri
+    badge: text("badge"),
+    category: text("category"),
+    stock: integer("stock"),
+    gallery: jsonb("gallery").$type<string[]>().notNull().default([]),
     ctaUrl: text("cta_url"),
+    purchaseType: text("purchase_type").notNull().default("whatsapp"),
+    customWhatsapp: text("custom_whatsapp"),
+    customButtonLabel: text("custom_button_label"),
     published: boolean("published").notNull().default(true),
     order: integer("order").notNull().default(0),
     updatedAt: timestamp("updated_at", { withTimezone: true })
