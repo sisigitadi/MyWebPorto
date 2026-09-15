@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfile, getServices, getProjects, getArticles } from "@/lib/actions";
 import { queryAIEngine, type EngineContext } from "@/lib/ai-engine";
-import {
-  buildCloudMessages,
-  isCloudAIEnabled,
-  getCloudAIModel,
-  getCloudProvider,
-} from "@/lib/ai-provider";
+import { buildCloudMessages } from "@/lib/ai-provider";
 import { submitToOpenAIStream } from "@/lib/ai-openai";
+import { resolveCloudAIConfig, isCloudAIConfigEnabled } from "@/lib/cloud-ai-config";
 import { rateLimit, cleanupRateLimits } from "@/lib/rate-limit";
 
 // Hardening: endpoint publik (pengunjung anon) — rate-limit ketat, input dibatasi,
@@ -131,7 +127,10 @@ export async function POST(req: NextRequest) {
   }
 
   const local = queryAIEngine(text, ctx, lang);
-  const cloudEnabled = isCloudAIEnabled();
+  // Config efektif (pengaturan admin menimpa env) — di-resolve sekali di luar
+  // stream agar key/model konsisten untuk seluruh permintaan ini.
+  const cloudCfg = await resolveCloudAIConfig();
+  const cloudEnabled = await isCloudAIConfigEnabled();
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
@@ -163,8 +162,8 @@ export async function POST(req: NextRequest) {
       // Eskalasi cloud (streaming).
       emit("meta", {
         source: "cloud",
-        model: getCloudAIModel(),
-        provider: getCloudProvider(),
+        model: cloudCfg.model,
+        provider: cloudCfg.provider,
         intent: local.intent,
         confidence: local.confidence,
       });
@@ -179,7 +178,7 @@ export async function POST(req: NextRequest) {
 
       let sentAny = false;
       try {
-        const upstream = submitToOpenAIStream(messages);
+        const upstream = submitToOpenAIStream(messages, { config: cloudCfg });
         const reader = upstream.getReader();
         const decoder = new TextDecoder();
         let buffer = "";

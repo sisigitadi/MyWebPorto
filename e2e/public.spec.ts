@@ -37,11 +37,9 @@ test("feed RSS dan llms.txt tersedia", async ({ request }) => {
   expect(llmsText).toContain("/#kontak");
 });
 
-test("PWA: manifest, ikon, dan halaman offline", async ({ request }) => {
-  const manifest = await request.get("/manifest.webmanifest");
-  expect(manifest.status()).toBe(200);
-  expect(await manifest.text()).toContain("icon-512.png");
-
+test("fallback offline & ikon tersedia (pwa install dimatikan)", async ({ request }) => {
+  // manifest.webmanifest sengaja dihapus — browser tidak lagi menawarkan
+  // "Install app". Halaman /offline tetap ada (di-cache service worker).
   const icon = await request.get("/icons/icon-192.png");
   expect(icon.status()).toBe(200);
 

@@ -35,15 +35,16 @@ import { logAudit } from "@/lib/audit";
 import { verifyAdmin } from "./admin-auth";
 import { catalogUrl, detailUrl, getIndexNowBaseUrl, submitUrlsToIndexNow } from "@/lib/indexnow";
 import { isLivePublished, normalizePublishAt } from "@/lib/publish";
+import { isPlaceholderKey } from "@/lib/env";
 import { queryAIEngine, type EngineContext } from "@/lib/ai-engine";
+import { buildCloudPrompt, buildCloudMessages, submitToGemini } from "@/lib/ai-provider";
 import {
-  buildCloudPrompt,
-  buildCloudMessages,
-  getCloudProvider,
-  getCloudAIModel,
-  isCloudAIEnabled,
-  submitToGemini,
-} from "@/lib/ai-provider";
+  resolveCloudAIConfig,
+  saveCloudAIConfig,
+  getCloudAIConfigForAdmin,
+  type StoredCloudAIConfig,
+  type AdminCloudAIView,
+} from "@/lib/cloud-ai-config";
 import { submitToOpenAI } from "@/lib/ai-openai";
 import { rateLimit, cleanupRateLimits } from "@/lib/rate-limit";
 import { headers } from "next/headers";
@@ -1698,9 +1699,17 @@ async function aibotIp(): Promise<string> {
   }
 }
 
-/** Status cloud AI untuk client (agar tahu perlu fallback cloud atau tidak). */
+/**
+ * Status cloud AI untuk client (agar tahu perlu fallback cloud atau tidak).
+ * Sekarang lewat resolveCloudAIConfig: pengaturan admin (tabel settings) bisa
+ * menimpa env — jadi status ini mencerminkan config efektif, bukan hanya env.
+ */
 export async function getCloudAIStatus(): Promise<{ enabled: boolean; model: string }> {
-  return { enabled: isCloudAIEnabled(), model: getCloudAIModel() };
+  const cfg = await resolveCloudAIConfig();
+  return {
+    enabled: cfg.provider !== "off" && !isPlaceholderKey(cfg.apiKey),
+    model: cfg.model,
+  };
 }
 
 /**
@@ -1714,12 +1723,14 @@ async function submitToCloud(
   ctx: EngineContext,
   lang: "id" | "en"
 ): Promise<{ success: boolean; text: string }> {
-  const provider = getCloudProvider();
-  if (provider === "openai") {
+  // Resolve sekali di sini agar key/model/base URL konsisten untuk panggilan ini
+  // (pengaturan admin atau env — lihat cloud-ai-config.ts).
+  const cfg = await resolveCloudAIConfig();
+  if (cfg.provider === "openai") {
     // OpenAI-compatible memakai format messages; prompt tetap katalog publik.
-    return submitToOpenAI(buildCloudMessages(query, ctx, lang));
+    return submitToOpenAI(buildCloudMessages(query, ctx, lang), { config: cfg });
   }
-  return submitToGemini(buildCloudPrompt(query, ctx, lang));
+  return submitToGemini(buildCloudPrompt(query, ctx, lang), { config: cfg });
 }
 
 export async function askSigitBot(
@@ -1800,7 +1811,9 @@ export async function askSigitBot(
   }
 
   const local = queryAIEngine(cleanInput, ctx, lang);
-  if (local.confidence >= AIBOT_CONFIDENCE_THRESHOLD || !isCloudAIEnabled()) {
+  // Config efektif (pengaturan admin > env) — resolve sekali untuk kedua cek.
+  const cloudCfg = await resolveCloudAIConfig();
+  if (local.confidence >= AIBOT_CONFIDENCE_THRESHOLD || cloudCfg.provider === "off" || isPlaceholderKey(cloudCfg.apiKey)) {
     return { ...local, source: "local" };
   }
 
@@ -1813,4 +1826,32 @@ export async function askSigitBot(
     console.error("askSigitBot cloud fallback gagal:", err instanceof Error ? err.message.slice(0, 200) : err);
   }
   return { ...local, source: "local" };
+}
+
+/**
+ * Baca konfigurasi Cloud AI untuk form /admin/system. Key hanya dikembalikan
+ * dalam bentuk ter-mask — tidak pernah mentah ke client.
+ */
+export async function readCloudAIConfigAction(): Promise<AdminCloudAIView> {
+  await verifyAdmin();
+  return getCloudAIConfigForAdmin();
+}
+
+/**
+ * Simpan konfigurasi Cloud AI dari form /admin/system. Wajib admin terotentikasi.
+ * apiKey kosong = pertahankan key yang ada (lihat saveCloudAIConfig).
+ */
+export async function saveCloudAIConfigAction(input: StoredCloudAIConfig): Promise<{ ok: true } | { ok: false; error: string }> {
+  await verifyAdmin();
+  try {
+    await saveCloudAIConfig(input);
+    await logAudit({ action: "update", entity: "settings", entityId: "cloud_ai", detail: `provider=${input.provider || "off"}` });
+    revalidatePath("/admin/system");
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: sanitizeError(err),
+    };
+  }
 }

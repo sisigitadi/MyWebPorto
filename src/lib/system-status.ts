@@ -4,15 +4,21 @@ import fs from "fs";
 import path from "path";
 import { db, isDbConnected } from "@/db";
 import { getEnvIssues, isDeployReady, type EnvIssue } from "@/lib/env";
-import { getCloudAIModel, isCloudAIEnabled } from "@/lib/ai-provider";
 import { getBunnyConfig, isBunnyConfigured } from "@/lib/storage";
+import { resolveCloudAIConfig } from "@/lib/cloud-ai-config";
 import { verifyAdmin } from "./admin-auth";
 
-function cloudAIDetail(): string {
-  if (!isCloudAIEnabled()) {
-    return "OFF (default) — Sigit_Bot 100% lokal TF-IDF, nol egress. Aktifkan via AI_PROVIDER=gemini + GEMINI_API_KEY.";
+async function cloudAIDetail(): Promise<string> {
+  // Config efektif = pengaturan admin (tabel settings) menimpa env. Sebelumnya
+  // hanya mengecek env, jadi panel ini bisa melaporkan "OFF" padahal admin sudah
+  // memasang key lewat form — gunakan resolveCloudAIConfig agar konsisten.
+  const cfg = await resolveCloudAIConfig();
+  if (cfg.provider === "off" || !cfg.apiKey) {
+    return "OFF (default) — Sigit_Bot 100% lokal TF-IDF, nol egress. Aktifkan via AI_PROVIDER=gemini + GEMINI_API_KEY, atau isi form Cloud AI di bawah (tabel settings).";
   }
-  return `ON — Gemini ${getCloudAIModel()} sebagai fallback confidence rendah + konteks katalog live. Rate-limit publik 10/5 mnt/IP.`;
+  const src = cfg.source === "admin" ? "pengaturan admin" : "env";
+  const providerLabel = cfg.provider === "openai" ? "OpenAI-compatible" : "Gemini";
+  return `ON — ${providerLabel} ${cfg.model} sebagai fallback confidence rendah + konteks katalog live (sumber: ${src}). Rate-limit publik 10/5 mnt/IP.`;
 }
 
 function storageDetail(): string {
@@ -252,7 +258,7 @@ export async function getSystemStatus(): Promise<SystemStatus> {
         ? "Terkonfigurasi."
         : "Belum dikonfigurasi — form kontak tidak terkirim.",
       storage: storageDetail(),
-      cloudAI: cloudAIDetail(),
+      cloudAI: await cloudAIDetail(),
     },
     observability: {
       tracing: {

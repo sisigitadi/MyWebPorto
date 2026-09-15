@@ -65,6 +65,7 @@ fix-*.js
 .aider*
 .freebuff/
 data/local-store.json
+data/local-settings.json
 
 # scratch & probe sekali pakai (screenshot debug, pencarian stack, dll)
 scripts/_shot*.png

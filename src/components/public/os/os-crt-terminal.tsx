@@ -84,6 +84,15 @@ const THEME_ALIASES: Record<string, OSTheme> = {
   code: "vscode",
 };
 
+/**
+ * Penanda baris placeholder ("sedang memproses..."). Memakai zero-width space
+ * (U+200B) bukan teks, karena teksnya diterjemahkan — menyaring berdasarkan
+ * string ID/EN akan pecah saat bahasa diganti. Penanda ini stabil.
+ */
+const PLACEHOLDER_MARK = "​";
+const isPlaceholderLine = (line: string) => line.includes(PLACEHOLDER_MARK);
+const markPlaceholder = (line: string) => `${line}${PLACEHOLDER_MARK}`;
+
 function switchApp(appId: string) {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("switch-os-app", { detail: appId }));
@@ -101,13 +110,13 @@ export function OSCrtTerminal({
   const { t, language, setLanguage } = useTranslation();
   const { setTheme } = useOSTheme();
   const [logs, setLogs] = useState<string[]>([
-    "BIOS-ROM v4.51 (C) 1998-2026 SIGIT CORP.",
-    "CPU: AMD Ryzen 64-Bit System Architecture | RAM: 65536KB OK",
-    "INIT: Loading SigitOS Machine Learning Subsystem [ONLINE]",
-    "SYSTEM: Sigit_Bot.ai Neural Assistant v2.6 initialized.",
-    "NEURAL: Client-side NLP & Intent Vector Engine loaded (TF-IDF)",
-    "STACK: Next.js 15.5 + React 19 + TypeScript + Neon PostgreSQL",
-    `AUTH: Developer session verified for '${ownerName}'`,
+    t.terminal_log_bios,
+    t.terminal_log_cpu,
+    t.terminal_log_init,
+    t.terminal_log_system,
+    t.terminal_log_neural,
+    t.terminal_log_stack,
+    t.terminal_log_auth.replace("{owner}", ownerName),
     t.terminal_status_boot,
   ]);
   const [commandInput, setCommandInput] = useState("");
@@ -339,15 +348,15 @@ export function OSCrtTerminal({
     return [
       `${profile.name}@sigitos`,
       "-------------------",
-      `OS: SigitOS Retro v2.6 (Next.js 15.5)`,
+      t.terminal_neofetch_os,
       `Host: ${profile.location || "Indonesia"}`,
-      `Kernel: React 19 + TypeScript`,
-      `Uptime: always online`,
-      `Shell: Sigit_Bot.ai (client-side NLP)`,
-      `Skills: ${profile.skills?.length ?? 0} items`,
-      `Projects: ${projects.filter((p) => p.published).length}`,
-      `Articles: ${articles.filter((a) => a.published).length}`,
-      `Theme: ${typeof window !== "undefined" ? "active" : "-"}`,
+      t.terminal_neofetch_kernel,
+      t.terminal_neofetch_uptime,
+      t.terminal_neofetch_shell,
+      t.terminal_neofetch_skills.replace("{n}", String(profile.skills?.length ?? 0)),
+      t.terminal_neofetch_projects.replace("{n}", String(projects.filter((p) => p.published).length)),
+      t.terminal_neofetch_articles.replace("{n}", String(articles.filter((a) => a.published).length)),
+      t.terminal_neofetch_theme,
     ];
   };
 
@@ -416,7 +425,8 @@ export function OSCrtTerminal({
     }
 
     if (command === "reboot") {
-      sessionStorage.removeItem("sigitos_booted_session");
+      // Bilang boot loader untuk memutar ulang animasi BIOS (reboot sungguhan).
+      localStorage.removeItem("sigitos_booted");
       window.location.reload();
       return;
     }
@@ -513,16 +523,16 @@ export function OSCrtTerminal({
         const pool: OSTheme[] = ["retro90s", "dark", "tokyo", "vscode"];
         const picked = pool[Math.floor(Math.random() * pool.length)];
         setTheme(picked);
-        appendLogs([...newLogs, `Theme -> ${picked} (random)`]);
+        appendLogs([...newLogs, t.terminal_theme_random.replace("{theme}", picked)]);
         setCommandInput("");
         return;
       }
       const theme = THEME_ALIASES[argLower];
       if (theme) {
         setTheme(theme);
-        appendLogs([...newLogs, `Theme -> ${theme}`]);
+        appendLogs([...newLogs, t.terminal_theme_applied.replace("{theme}", theme)]);
       } else {
-        appendLogs([...newLogs, "Usage: theme <retro90s|dark|tokyo|vscode>"]);
+        appendLogs([...newLogs, t.terminal_theme_usage]);
       }
       setCommandInput("");
       return;
@@ -531,10 +541,10 @@ export function OSCrtTerminal({
     if (command === "lang") {
       const next = arg.toLowerCase() === "en" ? "en" : arg.toLowerCase() === "id" ? "id" : language;
       if (next === language) {
-        appendLogs([...newLogs, `Language is already ${next.toUpperCase()}`]);
+        appendLogs([...newLogs, t.terminal_lang_same.replace("{lang}", next.toUpperCase())]);
       } else {
         setLanguage(next);
-        appendLogs([...newLogs, `Language -> ${next.toUpperCase()}`]);
+        appendLogs([...newLogs, t.terminal_lang_applied.replace("{lang}", next.toUpperCase())]);
       }
       setCommandInput("");
       return;
@@ -604,20 +614,22 @@ export function OSCrtTerminal({
 
     setIsInferencing(true);
     stopSpeaking();
-    appendLogs([...newLogs, "SIGIT_BOT: [Inferencing neural weights...]"]);
+    appendLogs([...newLogs, markPlaceholder(t.terminal_log_inferencing)]);
 
     inferTimeoutRef.current = setTimeout(async () => {
       const result = queryAIEngine(raw, aiContext, language);
       if (result.confidence < 0.55 && cloudOn) {
-        if (isCurrent()) appendLogs(["SIGIT_BOT: [Consulting cloud model...]"]);
+        if (isCurrent()) appendLogs([markPlaceholder(t.terminal_log_cloud)]);
         try {
           const cloud = await askSigitBot(raw, language);
           if (!isCurrent()) return done(); // query baru sudah mengambil alih
           if (cloud.source === "cloud") {
             const outputLines = cloud.text.split("\n");
             setLogs((prev) => [
-              ...prev.filter((l) => !l.includes("[Inferencing neural weights") && !l.includes("[Consulting cloud")),
-              `[Sigit_Bot.ai Cloud | Gemini | Intent: ${cloud.intent}]`,
+              ...prev.filter((l) => !isPlaceholderLine(l)),
+              t.terminal_cloud_tag
+                .replace("{provider}", "Gemini")
+                .replace("{intent}", cloud.intent),
               ...outputLines,
             ]);
             playOS("notify");
@@ -632,7 +644,7 @@ export function OSCrtTerminal({
       if (!isCurrent()) return done(); // hasil usang jangan ditumpangkan
       const outputLines = result.text.split("\n");
       setLogs((prev) => [
-        ...prev.filter((l) => !l.includes("[Inferencing neural weights") && !l.includes("[Consulting cloud")),
+        ...prev.filter((l) => !isPlaceholderLine(l)),
         `[Sigit_Bot.ai | Confidence: ${(result.confidence * 100).toFixed(0)}% | Intent: ${result.intent}]`,
         ...outputLines,
       ]);
@@ -673,9 +685,9 @@ export function OSCrtTerminal({
 
   const handleResetLogs = () => {
     setLogs([
-      "SYSTEM REBOOTED...",
-      "INIT: SigitOS Kernel v2.6 loaded successfully.",
-      "SIGIT_BOT: Neural Engine v2.6 online.",
+      t.terminal_log_rebooted,
+      t.terminal_log_kernel,
+      t.terminal_log_engine_online,
       t.terminal_status_ready,
     ]);
   };
@@ -691,7 +703,18 @@ export function OSCrtTerminal({
     }
   };
 
-  const suggestions = ["help", "skills", "proyek", "whoami", "neofetch", "siapa sigit adi?"];
+  // Label sugesti diterjemahkan, tapi 5 dari 6 adalah nama perintah sungguhan
+  // (parser hanya mengenal "help"/"skills"/"proyek"/…), jadi namanya sama di
+  // kedua bahasa — lihat catatan di i18n.tsx. Hanya pertanyaan bebas yang
+  // diterjemahkan penuh.
+  const suggestions = [
+    t.terminal_sugg_1,
+    t.terminal_sugg_2,
+    t.terminal_sugg_3,
+    t.terminal_sugg_4,
+    t.terminal_sugg_5,
+    t.terminal_sugg_6,
+  ];
 
   return (
     <div
@@ -704,36 +727,36 @@ export function OSCrtTerminal({
         <div className="flex items-center gap-2">
           <TerminalIcon className="h-3.5 w-3.5 text-[#37ff9b]" />
           <span className="font-bold tracking-wider text-[#37ff9b] flex items-center gap-1.5 flex-wrap">
-            <span>CRT TERMINAL // SIGIT_BOT.AI MONITOR</span>
+            <span>{t.terminal_topbar_title}</span>
             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-950/90 text-[9px] text-emerald-400 border border-emerald-500/40 rounded-xs">
               <Bot className="h-2.5 w-2.5 text-sky-400" />
-              SIGIT_BOT ONLINE
+              {t.terminal_bot_online}
             </span>
             <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-emerald-950/80 text-[9px] text-emerald-400 border border-emerald-500/40 rounded-xs">
               <Sparkles className="h-2.5 w-2.5 text-amber-300" />
-              NEURAL READY
+              {t.terminal_neural_ready}
             </span>
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-[10px] text-[#37ff9b]/70 font-pixel hidden sm:inline">9600 BAUD</span>
+          <span className="text-[10px] text-[#37ff9b]/70 font-pixel hidden sm:inline">{t.terminal_baud}</span>
           <button
             type="button"
             onClick={handleCopy}
             className="hover:text-white transition-colors flex items-center gap-1 text-[10px] cursor-pointer"
-            title="Copy output"
+            title={t.terminal_copy_title}
           >
             <Copy className="h-2.5 w-2.5" />
-            <span>{copied ? "COPIED" : "COPY"}</span>
+            <span>{copied ? t.terminal_copied : t.terminal_copy}</span>
           </button>
           <button
             type="button"
             onClick={handleResetLogs}
             className="hover:text-white transition-colors flex items-center gap-1 text-[10px] cursor-pointer"
-            title="Reset Terminal"
+            title={t.terminal_reset_title}
           >
             <RotateCcw className="h-2.5 w-2.5" />
-            <span>RESET</span>
+            <span>{t.terminal_reset}</span>
           </button>
         </div>
       </div>
@@ -744,9 +767,9 @@ export function OSCrtTerminal({
           <div className="flex justify-between mb-0.5">
             <span className="flex items-center gap-1">
               <Cpu className="h-2.5 w-2.5 text-[#37ff9b]" />
-              SIGIT_BOT NLP
+              {t.terminal_gauge_nlp}
             </span>
-            <span>{isInferencing ? "100%" : "3%"}</span>
+            <span>{isInferencing ? t.terminal_gauge_nlp_load : t.terminal_gauge_nlp_idle}</span>
           </div>
           <div className="vt-crt-bar">
             <div className={`vt-crt-fill transition-all duration-300 ${isInferencing ? "w-[100%] bg-amber-400" : "w-[3%]"}`} />
@@ -754,8 +777,8 @@ export function OSCrtTerminal({
         </div>
         <div>
           <div className="flex justify-between mb-0.5">
-            <span>RAM (64MB)</span>
-            <span>OK (42MB)</span>
+            <span>{t.terminal_gauge_ram}</span>
+            <span>{t.terminal_gauge_ram_value}</span>
           </div>
           <div className="vt-crt-bar">
             <div className="vt-crt-fill w-[65%]" />
@@ -763,8 +786,8 @@ export function OSCrtTerminal({
         </div>
         <div>
           <div className="flex justify-between mb-0.5">
-            <span>DB PING</span>
-            <span>12ms [ONLINE]</span>
+            <span>{t.terminal_gauge_db}</span>
+            <span>{t.terminal_gauge_db_value}</span>
           </div>
           <div className="vt-crt-bar">
             <div className="vt-crt-fill w-[25%]" />
@@ -774,7 +797,7 @@ export function OSCrtTerminal({
 
       {/* Quick Prompt Suggestion Chips */}
       <div className="flex flex-wrap items-center gap-1.5 mb-2.5 pt-1 text-[10px] font-mono shrink-0">
-        <span className="text-[#37ff9b]/70 select-none text-[9px] uppercase">Ask Sigit_Bot:</span>
+        <span className="text-[#37ff9b]/70 select-none text-[9px] uppercase">{t.terminal_ask_label}</span>
         {suggestions.map((s) => (
           <button
             key={s}
@@ -813,7 +836,8 @@ export function OSCrtTerminal({
                 ? "text-white font-bold"
                 : log.includes("[Sigit_Bot.ai")
                 ? "text-amber-300 font-semibold"
-                : log.includes("[OK]") || log.includes("[ONLINE]")
+                // "[AKTIF]" = "[ONLINE]" versi ID — log diterjemahkan sekarang.
+                : log.includes("[OK]") || log.includes("[ONLINE]") || log.includes("[AKTIF]")
                 ? "text-[#37ff9b]"
                 : log.includes("AUTH") || log.includes("NEURAL") || log.includes("SIGIT_BOT")
                 ? "text-[#ffd400]"
@@ -831,7 +855,7 @@ export function OSCrtTerminal({
       <form onSubmit={handleCommandSubmit} className="mt-3 flex items-center gap-2 shrink-0">
         <span className="text-[#37ff9b] font-bold select-none font-mono shrink-0 flex items-center gap-1">
           <Bot className="h-3 w-3 text-sky-400" />
-          <span>sigit_bot:~#</span>
+          <span>{t.terminal_prompt}</span>
         </span>
         <input
           type="text"
@@ -882,7 +906,7 @@ export function OSCrtTerminal({
           className="vt-btn vt-btn-chrome px-3 py-1 text-[10px] font-mono font-bold flex items-center gap-1 cursor-pointer"
         >
           <CornerDownLeft className="h-2.5 w-2.5 text-primary" />
-          <span>ENTER</span>
+          <span>{t.terminal_enter}</span>
         </button>
       </form>
       <p id="sigitbot-hint" className="sr-only">

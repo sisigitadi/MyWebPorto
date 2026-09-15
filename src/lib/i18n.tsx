@@ -246,6 +246,63 @@ export interface Translations {
   terminal_log_label: string;
   terminal_log_busy: string;
   terminal_input_hint: string;
+  // Chrome terminal yang dulu hardcoded — kini ikut bahasa (seperti TTS)
+  terminal_topbar_title: string;
+  terminal_bot_online: string;
+  terminal_neural_ready: string;
+  terminal_baud: string;
+  terminal_copy: string;
+  terminal_copied: string;
+  terminal_reset: string;
+  terminal_reset_title: string;
+  terminal_copy_title: string;
+  terminal_ask_label: string;
+  terminal_enter: string;
+  terminal_prompt: string;
+  // Gauge sumber daya (NLP / RAM / DB)
+  terminal_gauge_nlp: string;
+  terminal_gauge_nlp_load: string;
+  terminal_gauge_nlp_idle: string;
+  terminal_gauge_ram: string;
+  terminal_gauge_ram_value: string;
+  terminal_gauge_db: string;
+  terminal_gauge_db_value: string;
+  // Log boot & status mesin
+  terminal_log_bios: string;
+  terminal_log_cpu: string;
+  terminal_log_init: string;
+  terminal_log_system: string;
+  terminal_log_neural: string;
+  terminal_log_stack: string;
+  terminal_log_auth: string; // {owner}
+  terminal_log_rebooted: string;
+  terminal_log_kernel: string;
+  terminal_log_engine_online: string;
+  terminal_log_inferencing: string;
+  terminal_log_cloud: string;
+  terminal_cloud_tag: string; // {provider} {intent}
+  // Feedback perintah theme/lang (dulu hardcoded EN)
+  terminal_theme_applied: string; // {theme}
+  terminal_theme_random: string; // {theme}
+  terminal_theme_usage: string;
+  terminal_lang_same: string; // {lang}
+  terminal_lang_applied: string; // {lang}
+  // neofetch
+  terminal_neofetch_os: string;
+  terminal_neofetch_kernel: string;
+  terminal_neofetch_uptime: string;
+  terminal_neofetch_shell: string;
+  terminal_neofetch_skills: string; // {n}
+  terminal_neofetch_projects: string; // {n}
+  terminal_neofetch_articles: string; // {n}
+  terminal_neofetch_theme: string;
+  // Saran cepat (chip)
+  terminal_sugg_1: string;
+  terminal_sugg_2: string;
+  terminal_sugg_3: string;
+  terminal_sugg_4: string;
+  terminal_sugg_5: string;
+  terminal_sugg_6: string;
 
   // RetroBot — widget asisten retro mengambang (standby)
   retrobot_tooltip: string;
@@ -533,6 +590,61 @@ const translations: Record<Language, Translations> = {
     terminal_log_label: "Riwayat output Sigit_Bot",
     terminal_log_busy: "Sigit_Bot sedang memproses pertanyaan Anda…",
     terminal_input_hint: "Ketik 'help' untuk daftar perintah. Jawaban dibacakan otomatis di area riwayat di atas.",
+    // Chrome terminal (dulu hardcoded EN — kini ikut bahasa seperti TTS)
+    terminal_topbar_title: "CRT TERMINAL // SIGIT_BOT.AI MONITOR",
+    terminal_bot_online: "SIGIT_BOT AKTIF",
+    terminal_neural_ready: "NEURAL SIAP",
+    terminal_baud: "9600 BAUD",
+    terminal_copy: "SALIN",
+    terminal_copied: "TERSALIN",
+    terminal_reset: "RESET",
+    terminal_reset_title: "Reset Terminal",
+    terminal_copy_title: "Salin output",
+    terminal_ask_label: "Tanya Sigit_Bot:",
+    terminal_enter: "ENTER",
+    terminal_prompt: "sigit_bot:~#",
+    terminal_gauge_nlp: "SIGIT_BOT NLP",
+    terminal_gauge_nlp_load: "100%",
+    terminal_gauge_nlp_idle: "3%",
+    terminal_gauge_ram: "RAM (64MB)",
+    terminal_gauge_ram_value: "OK (42MB)",
+    terminal_gauge_db: "PING DB",
+    terminal_gauge_db_value: "12ms [AKTIF]",
+    terminal_log_bios: "BIOS-ROM v4.51 (C) 1998-2026 SIGIT CORP.",
+    terminal_log_cpu: "CPU: AMD Ryzen 64-Bit System Architecture | RAM: 65536KB OK",
+    terminal_log_init: "INIT: Memuat SigitOS Machine Learning Subsystem [AKTIF]",
+    terminal_log_system: "SYSTEM: Asisten Neural Sigit_Bot.ai v2.6 siap digunakan.",
+    terminal_log_neural: "NEURAL: Client-side NLP & Intent Vector Engine dimuat (TF-IDF)",
+    terminal_log_stack: "STACK: Next.js 15.5 + React 19 + TypeScript + Neon PostgreSQL",
+    terminal_log_auth: "AUTH: Sesi developer terverifikasi untuk '{owner}'",
+    terminal_log_rebooted: "SISTEM DIRESTART...",
+    terminal_log_kernel: "INIT: SigitOS Kernel v2.6 berhasil dimuat.",
+    terminal_log_engine_online: "SIGIT_BOT: Neural Engine v2.6 aktif.",
+    terminal_log_inferencing: "SIGIT_BOT: [Menghitung bobot neural...]",
+    terminal_log_cloud: "SIGIT_BOT: [Berkonsultasi dengan model cloud...]",
+    terminal_cloud_tag: "[Sigit_Bot.ai Cloud | {provider} | Niat: {intent}]",
+    terminal_theme_applied: "Tema -> {theme}",
+    terminal_theme_random: "Tema -> {theme} (acak)",
+    terminal_theme_usage: "Penggunaan: theme <retro90s|dark|tokyo|vscode>",
+    terminal_lang_same: "Bahasa sudah {lang}",
+    terminal_lang_applied: "Bahasa -> {lang}",
+    terminal_neofetch_os: "OS: SigitOS Retro v2.6 (Next.js 15.5)",
+    terminal_neofetch_kernel: "Kernel: React 19 + TypeScript",
+    terminal_neofetch_uptime: "Uptime: selalu online",
+    terminal_neofetch_shell: "Shell: Sigit_Bot.ai (NLP client-side)",
+    terminal_neofetch_skills: "Keahlian: {n} item",
+    terminal_neofetch_projects: "Proyek: {n}",
+    terminal_neofetch_articles: "Artikel: {n}",
+    terminal_neofetch_theme: "Tema: aktif",
+    // 1-5 adalah perintah sungguhan (parser hanya mengenal nama perintah ini),
+    // jadi namanya sama di kedua bahasa. Hanya sugg_6 (pertanyaan bebas) yang
+    // diterjemahkan — mesin NLP memahami bahasa natural keduanya.
+    terminal_sugg_1: "help",
+    terminal_sugg_2: "skills",
+    terminal_sugg_3: "proyek",
+    terminal_sugg_4: "whoami",
+    terminal_sugg_5: "neofetch",
+    terminal_sugg_6: "siapa sigit adi?",
 
     // RetroBot — widget asisten retro mengambang (standby)
     retrobot_tooltip: "Tanya Sigit_Bot — asisten retro portofolio ini",
@@ -819,6 +931,61 @@ const translations: Record<Language, Translations> = {
     terminal_log_label: "Sigit_Bot output history",
     terminal_log_busy: "Sigit_Bot is processing your question…",
     terminal_input_hint: "Type 'help' for the command list. Replies are announced automatically in the history area above.",
+    // Terminal chrome (previously hardcoded EN — now follows the language, like TTS)
+    terminal_topbar_title: "CRT TERMINAL // SIGIT_BOT.AI MONITOR",
+    terminal_bot_online: "SIGIT_BOT ONLINE",
+    terminal_neural_ready: "NEURAL READY",
+    terminal_baud: "9600 BAUD",
+    terminal_copy: "COPY",
+    terminal_copied: "COPIED",
+    terminal_reset: "RESET",
+    terminal_reset_title: "Reset Terminal",
+    terminal_copy_title: "Copy output",
+    terminal_ask_label: "Ask Sigit_Bot:",
+    terminal_enter: "ENTER",
+    terminal_prompt: "sigit_bot:~#",
+    terminal_gauge_nlp: "SIGIT_BOT NLP",
+    terminal_gauge_nlp_load: "100%",
+    terminal_gauge_nlp_idle: "3%",
+    terminal_gauge_ram: "RAM (64MB)",
+    terminal_gauge_ram_value: "OK (42MB)",
+    terminal_gauge_db: "DB PING",
+    terminal_gauge_db_value: "12ms [ONLINE]",
+    terminal_log_bios: "BIOS-ROM v4.51 (C) 1998-2026 SIGIT CORP.",
+    terminal_log_cpu: "CPU: AMD Ryzen 64-Bit System Architecture | RAM: 65536KB OK",
+    terminal_log_init: "INIT: Loading SigitOS Machine Learning Subsystem [ONLINE]",
+    terminal_log_system: "SYSTEM: Sigit_Bot.ai Neural Assistant v2.6 initialized.",
+    terminal_log_neural: "NEURAL: Client-side NLP & Intent Vector Engine loaded (TF-IDF)",
+    terminal_log_stack: "STACK: Next.js 15.5 + React 19 + TypeScript + Neon PostgreSQL",
+    terminal_log_auth: "AUTH: Developer session verified for '{owner}'",
+    terminal_log_rebooted: "SYSTEM REBOOTED...",
+    terminal_log_kernel: "INIT: SigitOS Kernel v2.6 loaded successfully.",
+    terminal_log_engine_online: "SIGIT_Bot: Neural Engine v2.6 online.",
+    terminal_log_inferencing: "SIGIT_BOT: [Inferencing neural weights...]",
+    terminal_log_cloud: "SIGIT_BOT: [Consulting cloud model...]",
+    terminal_cloud_tag: "[Sigit_Bot.ai Cloud | {provider} | Intent: {intent}]",
+    terminal_theme_applied: "Theme -> {theme}",
+    terminal_theme_random: "Theme -> {theme} (random)",
+    terminal_theme_usage: "Usage: theme <retro90s|dark|tokyo|vscode>",
+    terminal_lang_same: "Language is already {lang}",
+    terminal_lang_applied: "Language -> {lang}",
+    terminal_neofetch_os: "OS: SigitOS Retro v2.6 (Next.js 15.5)",
+    terminal_neofetch_kernel: "Kernel: React 19 + TypeScript",
+    terminal_neofetch_uptime: "Uptime: always online",
+    terminal_neofetch_shell: "Shell: Sigit_Bot.ai (client-side NLP)",
+    terminal_neofetch_skills: "Skills: {n} items",
+    terminal_neofetch_projects: "Projects: {n}",
+    terminal_neofetch_articles: "Articles: {n}",
+    terminal_neofetch_theme: "Theme: active",
+    // 1-5 are real commands (the parser only knows these command names), so
+    // they stay identical in both languages. Only sugg_6 (freeform question) is
+    // translated — the NLP engine understands natural language in both.
+    terminal_sugg_1: "help",
+    terminal_sugg_2: "skills",
+    terminal_sugg_3: "projects",
+    terminal_sugg_4: "whoami",
+    terminal_sugg_5: "neofetch",
+    terminal_sugg_6: "who is sigit adi?",
 
     // RetroBot — floating retro assistant widget (standby)
     retrobot_tooltip: "Ask Sigit_Bot — the retro assistant for this portfolio",

@@ -111,12 +111,9 @@ export const metadata: Metadata = {
       "msvalidate.01": bingVerification,
     },
   },
-  manifest: "/manifest.webmanifest",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "SigitOS",
-  },
+  // PWA install dimatikan: manifest & appleWebApp dihapus agar browser tidak
+  // lagi menawarkan "Install app". Service worker + halaman /offline tetap
+  // aktif sebagai fallback saat pengunjung kehilangan koneksi.
   icons: {
     icon: [
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
