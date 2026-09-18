@@ -2,7 +2,7 @@
 
 Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
-## [Unreleased] (dev)
+## [v2.10.0] - 2026-09-18
 
 ### Changed — Default speaker Terminal ON (2026-09-18)
 - Changed: state `ttsOn` di `os-crt-terminal.tsx` kini inisial `true` —
