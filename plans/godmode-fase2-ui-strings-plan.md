@@ -25,7 +25,7 @@ Ini melepas commit Fase 1 dari atas branch dan meletakkan ulang commit Fase 2 di
 - **Tidak ada migrasi schema**, tidak ada env baru, tidak ada dependency npm baru.
 - Modul yang diimpor oleh komponen client **dilarang** mengimpor `fs`/`drizzle`/`@/db` — pola meta/config split wajib.
 - `ui-strings-meta.ts` **dilarang** mengimpor `@/lib/i18n` (file itu `"use client"`; meta diimpor oleh modul server).
-- `i18n.tsx` hanya boleh mengimpor **type** dari `ui-strings-meta.ts` (erased at compile time, tidak menarik server code).
+- `i18n.tsx` hanya boleh mengimpor **type dan data murni** dari `ui-strings-meta.ts` (`UIStringsOverlay`, `EDITABLE_KEYS`) — type import ter-erase saat compile, dan `EDITABLE_KEYS` murni data tanpa dependensi server; keduanya aman. Yang dilarang adalah mengimpor `ui-strings-config.ts` (server-only: `fs`/drizzle/db) ke context client.
 - `verifyAdmin()` wajib di setiap mutation; `logAudit` + `revalidatePath` setelah simpan.
 - Commit message diawali `@ ` (konvensi repo, lihat `git log --oneline`).
 
@@ -415,6 +415,18 @@ describe("describeUIStrings", () => {
     expect(describeUIStrings(s, "id")).toContain(String(EDITABLE_KEYS.length));
   });
 });
+
+describe("EDITABLE_KEYS vs translations (jaga-jaga typo)", () => {
+  // Setiap key di EDITABLE_KEYS HARUS key asli di translations — kalau tidak,
+  // overlay untuk key itu tidak akan pernah dipakai (merge di provider
+  // membaca translations[lang][key]) dan God Mode diam-diam tidak bekerja.
+  it("semua key ada di translations.id dan translations.en", () => {
+    for (const def of EDITABLE_KEYS) {
+      expect(translations.id).toHaveProperty(def.key);
+      expect(translations.en).toHaveProperty(def.key);
+    }
+  });
+});
 ```
 
 - [ ] **Step 2: Jalankan test — harus gagal**
@@ -532,13 +544,17 @@ export async function saveUIStrings(input: unknown): Promise<void> {
       if (typeof value !== "string") {
         throw new Error(`Teks UI tidak valid: nilai key "${key}" bukan teks.`);
       }
-      const cleaned = sanitizeStringValue(value);
-      if (cleaned !== value) {
-        // Admin harus melihat hasil bersih di form, bukan disimpan diam-diam.
+      // Tag HTML / char kontrol ditolak keras (admin harus melihat sendiri
+      // teksnya bersih di form). Pemeriksaan dilakukan eksplisit pada karakter,
+      // BUKAN dengan membandingkan value vs hasil sanitasi — perbandingan itu
+      // juga menolak whitespace yang justru BOLEH dirapikan (lihat test
+      // "whitespace dirapikan").
+      if (/[<>]/.test(value) || /[ -]/.test(value)) {
         throw new Error(
           `Teks UI tidak valid: nilai key "${key}" mengandung tag HTML atau karakter terlarang.`
         );
       }
+      const cleaned = sanitizeStringValue(value);
       const max = maxLengthForKey(key);
       if (cleaned.length > max) {
         throw new Error(`Teks UI tidak valid: nilai key "${key}" terlalu panjang (maks. ${max} karakter).`);
@@ -554,7 +570,7 @@ export async function saveUIStrings(input: unknown): Promise<void> {
 /** Ringkasan untuk UI admin: jumlah key disunting vs total. */
 export function describeUIStrings(strings: UIStrings, _lang: "id" | "en"): string {
   const edited = Object.keys(strings.id).length + Object.keys(strings.en).length;
-  return `${edited}/${EDITABLE_KEYS.length * 2} slot disunting`;
+  return `${edited}/${EDITABLE_KEYS.length} key disunting (${EDITABLE_KEYS.length * 2} slot)`;
 }
 ```
 
