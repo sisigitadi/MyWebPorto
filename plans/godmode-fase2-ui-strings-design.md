@@ -59,9 +59,10 @@ Isi:
 - `EDITABLE_KEY_SET: Set<StringKey>` — allowlist untuk O(1) lookup.
 - `UI_STRING_LANGS = ["id", "en"] as const`.
 - `MAX_KEY_LENGTH` (mis. 200) — batas keras umum sebelum cek per-key.
-- `sanitizeStringValue(raw, maxLength): string` — pure, tanpa side effect:
+- `sanitizeStringValue(raw): string` — pure, tanpa side effect, **tidak
+  memotong** (penolakan panjang adalah tugas `saveUIStrings`, lihat §2):
   trim → collapse whitespace → buang tag `<…>` → buang char kontrol
-  (`\x00`–`\x1f`, `\x7f`) → potong ke `maxLength`.
+  (`\x00`–`\x1f`, `\x7f`).
 
 ### 2. `src/lib/ui-strings-config.ts` (server-only)
 
@@ -80,7 +81,8 @@ Isi (mirror `os-apps-config.ts`):
     sembarang bisa menyentuh area UI di luar maksud editor),
   - value bukan string → tolak,
   - value setelah sanitasi melebihi `maxLength` → tolak (admin lihat counter,
-    tidak ada alasan melampauinya),
+    tidak ada alasan melampauinya; sanitasi sendiri tidak memotong, supaya
+    pelanggaran panjang benar-benar ditolak, bukan diam-diam dipendekkan),
   - value whitespace-only → diperlakukan sebagai "hapus override" (tidak
     disimpan untuk key itu),
   - save hanya menulis overlay final (sudah tersanitasi), bukan input mentah.
