@@ -2,13 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import {
-  Monitor,
-  Shield,
-  Calendar,
-  Globe,
-  LogIn,
-} from "lucide-react";
+import { Monitor, Shield, Calendar, Globe } from "lucide-react";
 import { useUser, UserButton } from "@clerk/nextjs";
 import { useOSTheme, OSTheme } from "./theme-context";
 import { useTranslation } from "@/lib/i18n";
@@ -137,7 +131,13 @@ export function OSMenubar({ profile }: OSMenubarProps) {
             <span className="hidden sm:inline">{fullDate}</span>
           </div>
 
-          {/* User Button / Admin link */}          {isLoaded && isSignedIn ? (
+          {/* User Button / Admin link.
+              UI publik sengaja TIDAK menampilkan pintu masuk login apapun
+              untuk pengunjung belum-login (tombol "Masuk" lama sudah dihapus):
+              halaman utama tidak boleh mengiklankan panel admin. Pemilik
+              masuk dengan membuka /sign-in langsung (bookmark / ketik URL).
+              Setelah login, link Admin + avatar Clerk muncul di sini. */}{" "}
+          {isLoaded && isSignedIn ? (
             <div className="flex items-center gap-1.5 ml-1">
               <Link
                 href="/admin"
@@ -156,18 +156,6 @@ export function OSMenubar({ profile }: OSMenubarProps) {
                 <UserButton />
               </div>
             </div>
-          ) : isLoaded && !isSignedIn ? (
-            // Pintu masuk login. Sebelumnya tidak ADA cara terlihat menuju
-            // /sign-in di seluruh UI publik — link Admin hanya muncul setelah
-            // login, jadi pemilik tidak bisa masuk sama sekali.
-            <Link
-              href="/sign-in"
-              className="group inline-flex items-center vt-btn vt-btn-chrome px-2 py-0.5 sm:py-1 text-[11px] sm:text-[13px] font-bold text-foreground hover:-translate-y-0.5 transition-all hover:text-amber-500 shadow-sm ml-1"
-              title="Masuk ke Panel Admin"
-            >
-              <LogIn className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary group-hover:scale-110 mr-1 transition-all" />
-              <span>Masuk</span>
-            </Link>
           ) : null}
         </div>
       </div>
