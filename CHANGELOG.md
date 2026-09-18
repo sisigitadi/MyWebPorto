@@ -2,6 +2,57 @@
 
 Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
+## [v2.11.0] - 2026-09-19
+
+### Added — God Mode Fase 1: atur aplikasi SigitOS dari admin (2026-09-19)
+- Added: halaman baru **`/admin/appearance`** — centang aplikasi yang ditampilkan
+  ke pengunjung dan atur urutannya, tanpa menyentuh kode atau redeploy.
+  Perubahan langsung tayang di homepage: taskbar, sidebar ikon desktop, Start
+  Menu, command palette (Ctrl+K), jalan pintas angka 1–8, dan urutan section
+  mode mobile.
+- Added: `src/lib/os-apps-config.ts` (server-only) menyimpan konfigurasi di
+  tabel `settings` key `os_apps` — pola yang sama dengan Cloud AI config.
+  Disimpan hanya `{id, enabled, order}`; ikon/warna tetap di kode.
+- Added: `src/lib/os-apps-meta.ts` sebagai sumber kebenaran tunggal untuk id,
+  urutan default, dan label/nama file app (sebelumnya duplikat di tiga tempat:
+  `appHumanLabel`, `getAppFilename`, `getAppFilenameById`). Dipisah dari
+  modul server agar aman diimpor komponen client tanpa menyeret drizzle/`fs`
+  ke bundle browser.
+- Added: server action `saveOSAppsAction` — `verifyAdmin()` + validasi Zod +
+  `logAudit` + `revalidatePath("/")`.
+- Added: pengaman berlapis. Id asing dari form admin **ditolak keras** (pesan
+  jelas); entri rusak di DB **dilewati**, bukan menggagalkan seluruh config;
+  urutan selalu di-rapikan jadi 0..N-1; **minimal satu app harus aktif** —
+  config yang melanggar jatuh ke default 8 app, situs tidak pernah kosong.
+- Added: komponen client memberi respons pada perubahan config tanpa remount —
+  app aktif yang dimatikan admin dilepas dari navigasi (taskbar, palette,
+  jalan pintas, deep-link hash, event `switch-os-app` dari RetroBot/hero) dan
+  jendela yang sedang terbuka otomatis pindah ke app aktif pertama.
+- Added: pengujian — `tests/os-apps-config.test.ts` (13 test, lapisan data +
+  semua jalur pengaman) dan `e2e/os-apps-config.spec.ts` (4 test, utas penuh
+  settings → props → DOM via `npm run test:e2e:godmode`; config dipakai dengan
+  dev server tanpa `DATABASE_URL` sehingga memakai fallback file lokal dan
+  tidak menyentuh data DB bersama).
+
+### Changed — Urutan section mobile tidak lagi hardcode (2026-09-19)
+- Changed: konstanta `SCROLL_SECTIONS` dihapus. Urutan section single-page
+  scroll mobile sekarang diturunkan dari konfigurasi yang sama dengan taskbar
+  dan Start Menu — sebelumnya daftar ini ditulis terpisah sehingga bisa
+  berbeda dengan urutan desktop (sumber double-maintenance).
+- Changed: `titlebar` window desktop memakai nomor urut app aktif (mis.
+  `[1/3]`), bukan angka statis `number` di `APPS` — konsisten dengan urutan
+  yang diatur admin.
+
+### Fixed — Test flaky karena berbagi file settings (2026-09-19)
+- Fixed: `tests/cloud-ai-config.test.ts` dan `tests/os-apps-config.test.ts`
+  sama-sama membaca-tulis `data/local-settings.json` (backend fallback saat
+  tidak ada DB) dan dijadwalkan di worker berbeda — `beforeEach` satu menghapus
+  persis saat yang lain menulis, sehingga config "hilang" acak dan
+  `os-apps-config` kadang jatuh ke default tanpa sebab. `vitest.config.mts`
+  kini menempatkan kedua file di project `shared-fs` dengan
+  `fileParallelism: false`; test file lain tetap berjalan paralel penuh.
+  Verifikasi: 3x run berturut-turut 113/113 lulus, sebelumnya gagal ~1 dari 3.
+
 ## [v2.10.0] - 2026-09-18
 
 ### Fixed — Regresi a11y di Lighthouse CI (2026-09-18)

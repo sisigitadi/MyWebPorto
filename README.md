@@ -32,6 +32,7 @@ Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager int
 - **Sistem & Logs** di `/admin/system`: kelayakan deploy (validasi env terpusat), tracing `x-request-id`, dan audit log mutasi.
 - **Media Library** di `/admin/media`: daftar gambar di Bunny Storage (bila terkonfigurasi) dengan hapus.
 - **Konfigurasi Cloud AI** di `/admin/system`: pilih provider (Gemini / OpenAI-compatible), isi API key + base URL, **ambil daftar model otomatis** dari endpoint provider, atur **prompt & cara menjabarkan** (concise / detailed / friendly). Disimpan di tabel `settings` (key `cloud_ai`), nilai efektif dapat dari admin *atau* env.
+- **God Mode — Tampilan & App OS** di `/admin/appearance`: atur aplikasi SigitOS yang ditampilkan ke pengunjung (centang aktif) dan urutannya (tombol panah), tanpa kode/redeploy. Mengendalikan taskbar, sidebar ikon desktop, Start Menu, command palette, jalan pintas angka, dan urutan section mobile. Disimpan di tabel `settings` (key `os_apps`); minimal satu app harus aktif, config rusak kembali ke default. Fase pertama dari roadmap God Mode; editor teks UI menyusul.
 - **Manajemen tautan sosial**: isi Telegram, Instagram, TikTok, YouTube, Facebook, Discord, Slack, Reddit, Medium, GitHub, LinkedIn, X, Portofolio — tampil otomatis di Kontak.exe, footer & menubar hanya jika terisi.
 - **Editor chip** untuk tag artikel & tech stack proyek (tambah/hapus per item, bukan hardcode).
 - **Content editor** dengan toolbar sintaks (H2/H3/quote/kode) + pratinjau WYSIWYG via renderer publik bersama.
@@ -78,6 +79,7 @@ src/
 |   |   |-- artikel/       # Katalog + detail artikel
 |   |   `-- toko/[slug]/    # Detail produk shareable
 |   |-- admin/             # Panel admin terproteksi (single-owner)
+|   |   |-- appearance/    # God Mode: app SigitOS aktif + urutan (settings.os_apps)
 |   |   |-- system/        # Kelayakan deploy + audit logs + Cloud AI config
 |   |   `-- media/         # Media Library (Bunny Storage)
 |   |-- sign-in/           # Login Clerk
@@ -287,13 +289,14 @@ Buka `http://localhost:3000`.
 ## Pengujian
 
 ```bash
-npm run test       # unit test Vitest
-npm run test:e2e   # E2E Playwright area publik
-npx tsc --noEmit   # typecheck
-npm run lint       # ESLint (flat config)
+npm run test            # unit test Vitest
+npm run test:e2e        # E2E Playwright area publik
+npm run test:e2e:godmode # E2E God Mode (dev server tanpa DATABASE_URL → fallback file lokal)
+npx tsc --noEmit        # typecheck
+npm run lint            # ESLint (flat config)
 ```
 
-Unit test Vitest mencakup 13 file / 100 test: AI engine (TF-IDF), provider & config Cloud AI, daftar model, validasi env, IndexNow, helper slug produk, logika publish/schedule, validasi storage (magic bytes), stok keranjang, builder pesan WhatsApp, dan unsaved-changes guard. CI (`.github/workflows/ci.yml`) menjalankan **lint + typecheck + unit test + build** otomatis di setiap PR ke `main` — jadikan *required status check* sebelum merge.
+Unit test Vitest mencakup 14 file / 113 test: AI engine (TF-IDF), provider & config Cloud AI, daftar model, validasi env, IndexNow, helper slug produk, logika publish/schedule, validasi storage (magic bytes), stok keranjang, builder pesan WhatsApp, unsaved-changes guard, dan config app SigitOS (`settings.os_apps`). E2E `test:e2e:godmode` memverifikasi utas penuh config → props → DOM. CI (`.github/workflows/ci.yml`) menjalankan **lint + typecheck + unit test + build** otomatis di setiap PR ke `main` — jadikan *required status check* sebelum merge.
 
 ## Database
 
@@ -406,3 +409,4 @@ Karena upload saat ini memakai `public/uploads`, penyimpanan gambar tidak persis
 - Field Inggris diisi manual, lewat tombol Terjemahkan, atau dibiarkan kosong (mode EN lalu memakai teks Indonesia).
 - Produk adalah katalog + **checkout WhatsApp** (keranjang ringan di `localStorage`, pesan dirakit oleh `src/lib/whatsapp-order.ts`). Tidak ada payment gateway — pembayaran tetap manual di luar aplikasi.
 - Admin adalah single-owner CMS, bukan sistem multi-user publik.
+- **God Mode** adalah upaya bertahap memindahkan konfigurasi hardcode ke tabel `settings` agar bisa diatur dari admin tanpa redeploy. Fase 1 (app SigitOS: aktif + urutan, `/admin/appearance`) sudah jalan. Fase 2 (editor teks UI, overlay di atas default i18n), Fase 3 (feature flag global), dan Fase 4 (draft/preview + undo) menyusul — tiap fase satu PR terpisah. Prinsip: lapisan DB adalah *overlay*, bukan pengganti — DB kosong/korup harus tetap jatuh ke default di kode.
