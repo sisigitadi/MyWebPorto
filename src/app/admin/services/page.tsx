@@ -225,7 +225,7 @@ export default function AdminServicesPage() {
       {/* Services Table */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="admin-table">
             <TableHeader>
               <TableRow className="bg-muted/40 hover:bg-muted/40">
                 <TableHead className="w-16 text-center text-xs font-semibold">Urutan</TableHead>
@@ -267,7 +267,7 @@ export default function AdminServicesPage() {
                     <TableCell className="py-3 text-xs text-muted-foreground max-w-md line-clamp-2">
                       {service.description}
                     </TableCell>
-                    <TableCell className="py-3">
+                    <TableCell className="py-3 admin-cell-meta">
                       <Badge
                         variant={service.published ? "secondary" : "outline"}
                         className="text-[10px] py-0 px-2 font-normal"
@@ -275,7 +275,7 @@ export default function AdminServicesPage() {
                         {service.published ? "Aktif" : "Draf"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-3 text-right">
+                    <TableCell className="py-3 text-right admin-cell-actions">
                       <div className="flex items-center justify-end gap-1">
                         <Button
                           variant="ghost"

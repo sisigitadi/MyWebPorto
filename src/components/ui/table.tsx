@@ -5,6 +5,10 @@ const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
 >(({ className, ...props }, ref) => (
+  // overflow-x-auto di sini & wrapper "overflow-x-auto" di halaman admin
+  // redundan; keduanya tetap aman. Kelas admin-table (globals.css) mengubah
+  // tabel jadi kartu bertumpuk di layar kecil, sehingga scroll horizontal
+  // tidak lagi diperlukan di mobile.
   <div className="relative w-full overflow-auto">
     <table
       ref={ref}

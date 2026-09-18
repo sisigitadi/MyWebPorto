@@ -22,12 +22,29 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Send, X, Trash2, Sparkles } from "lucide-react";
+import {
+  Send,
+  X,
+  Trash2,
+  Sparkles,
+  MapPin,
+} from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { playOS } from "@/lib/os-sound";
 import { RetroBotAvatar, type RetroBotMood } from "./retro-bot-avatar";
 
 type Source = "local" | "cloud" | null;
+
+/** Id aplikasi SigitOS yang sedang dibuka pengunjung (lihat os-desktop-manager). */
+type OsAppId =
+  | "profil"
+  | "layanan"
+  | "proyek"
+  | "toko"
+  | "testimoni"
+  | "artikel"
+  | "kontak"
+  | "terminal";
 
 interface Message {
   id: string;
@@ -36,10 +53,123 @@ interface Message {
   text: string;
   streaming?: boolean;
   source?: Source;
+  /** Aplikasi SigitOS yang bisa dibuka dari pesan ini (jalan pintas). */
+  navTo?: string;
+  navLabel?: string;
 }
 
 const STORAGE_DISMISSED = "sigitos_bot_greeting_dismissed";
 const MAX_HISTORY_SEND = 4;
+
+/**
+ * Partikel ledakan saat jawaban tiba: 8 titik cyan/violet melayang ke luar.
+ * Arah & jarak diatur via CSS custom property (--bx/--by) di keyframe.
+ */
+const BURST_PARTICLES = [
+  { color: "#43e8cf", x: "14px", y: "-12px" },
+  { color: "#7c5cff", x: "-14px", y: "-10px" },
+  { color: "#43e8cf", x: "18px", y: "4px" },
+  { color: "#ff3e9a", x: "-18px", y: "6px" },
+  { color: "#7c5cff", x: "8px", y: "16px" },
+  { color: "#43e8cf", x: "-8px", y: "-18px" },
+  { color: "#ffd400", x: "16px", y: "-4px" },
+  { color: "#7c5cff", x: "-16px", y: "14px" },
+];
+
+/** Hovertip acak (muncul saat kursor di atas avatar, panel tertutup). */
+const HOVER_TIPS_ID = [
+  "Klik aku untuk bertanya!",
+  "Mau tahu proyek Sigit? Tanya aku!",
+  "Aku bisa jelaskan keahlian Sigit.",
+  "Butuh bantuan? Klik aku!",
+  "Sigit_Bot siap melayani.",
+];
+const HOVER_TIPS_EN = [
+  "Click me to ask a question!",
+  "Want to know Sigit's projects? Ask me!",
+  "I can explain Sigit's skills.",
+  "Need help? Click me!",
+  "Sigit_Bot at your service.",
+];
+
+/**
+ * Quick prompt per aplikasi SigitOS. Dipilih agar selalu relevan dengan
+ * halaman yang sedang dibuka pengunjung (interaktivitas kontekstual).
+ */
+const TASKBAR_MATCH: Record<string, string[]> = {
+  profil: ["profil", "profile"],
+  layanan: ["layanan", "services"],
+  proyek: ["proyek", "projects"],
+  toko: ["toko", "store"],
+  testimoni: ["testimoni", "reviews"],
+  artikel: ["artikel", "articles"],
+  kontak: ["kontak", "contact"],
+  terminal: ["terminal"],
+};
+
+/** Label tombol jalan pintas (pesan nav di dalam chat). */
+const NAV_LABELS_ID: Record<string, string> = {
+  profil: "Buka Profil.exe",
+  layanan: "Buka Layanan.exe",
+  proyek: "Buka Proyek.exe",
+  toko: "Buka Toko.zip",
+  testimoni: "Buka Testimoni.txt",
+  artikel: "Buka Artikel.doc",
+  kontak: "Buka Kontak.exe",
+  terminal: "Buka Terminal.bat",
+};
+const NAV_LABELS_EN: Record<string, string> = {
+  profil: "Open Profile.exe",
+  layanan: "Open Services.exe",
+  proyek: "Open Projects.exe",
+  toko: "Open Store.zip",
+  testimoni: "Open Reviews.txt",
+  artikel: "Open Articles.doc",
+  kontak: "Open Contact.exe",
+  terminal: "Open Terminal.bat",
+};
+
+const APP_QUICK_PROMPTS: Record<
+  string,
+  { id: string; en: string }[]
+> = {
+  profil: [
+    { id: "Siapa Sigit Adi Irianto?", en: "Who is Sigit Adi Irianto?" },
+    { id: "Apa keahlian utamanya?", en: "What are the main skills?" },
+    { id: "Apakah tersedia untuk proyek baru?", en: "Available for new projects?" },
+  ],
+  layanan: [
+    { id: "Layanan apa saja yang ditawarkan?", en: "What services are offered?" },
+    { id: "Berapa estimasi biaya pembuatan web?", en: "What's the estimated cost for a website?" },
+    { id: "Apakah bisa integrasi AI/automation?", en: "Can you integrate AI/automation?" },
+  ],
+  proyek: [
+    { id: "Proyek unggulan apa saja?", en: "What are the featured projects?" },
+    { id: "Tech stack yang dipakai?", en: "What tech stack is used?" },
+    { id: "Ceritakan proyek favorit", en: "Tell me about the favorite project" },
+  ],
+  toko: [
+    { id: "Produk digital apa saja yang dijual?", en: "What digital products are sold?" },
+    { id: "Bagaimana cara memesan?", en: "How do I order?" },
+    { id: "Apakah ada garansi/dukungan?", en: "Is there a warranty/support?" },
+  ],
+  testimoni: [
+    { id: "Apa kata klien tentang Sigit?", en: "What do clients say about Sigit?" },
+    { id: "Proyek dengan testimoni terbaik?", en: "Project with the best testimonial?" },
+  ],
+  artikel: [
+    { id: "Topik artikel apa saja?", en: "What article topics are there?" },
+    { id: "Artikel tentang AI terbaru?", en: "Latest article about AI?" },
+  ],
+  kontak: [
+    { id: "Bagaimana cara menghubungi Sigit?", en: "How can I contact Sigit?" },
+    { id: "Berapa lama waktu respons?", en: "How long is the response time?" },
+  ],
+  terminal: [
+    { id: "Perintah apa saja di terminal?", en: "What commands are in the terminal?" },
+    { id: "Apa itu SigitOS?", en: "What is SigitOS?" },
+  ],
+};
 
 function uid(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -55,6 +185,16 @@ export function RetroBot() {
   const [source, setSource] = useState<Source>(null);
   const [showGreeting, setShowGreeting] = useState(false);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
+  /** Aplikasi SigitOS yang sedang aktif (untuk prompt & jawaban sadar halaman). */
+  const [currentApp, setCurrentApp] = useState<OsAppId | null>(null);
+  /** Ledakan partikel saat jawaban tiba (sekali per jawaban). */
+  const [burstId, setBurstId] = useState(0);
+  /** Getaran singkat avatar saat pengguna mengirim pesan ("startle"). */
+  const [nudge, setNudge] = useState(false);
+  /** Hovertip kecil: pesan acak saat kursor di atas avatar. */
+  const [hoverTip, setHoverTip] = useState<string | null>(null);
+  /** Pemilih tip hover berikutnya (bergantian setiap hover). */
+  const hoverIdxRef = useRef(0);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -89,6 +229,40 @@ export function RetroBot() {
     return () => abortRef.current?.abort();
   }, []);
 
+  // Sadari aplikasi SigitOS mana yang sedang dibuka pengunjung. Sumber:
+  //  - event "switch-os-app" yang dipancarkan os-desktop-manager/terminal/hero,
+  //  - #hash langsung (mis. pengunjung membuka /#proyek dari luar).
+  // Dipakai untuk quick prompt kontekstual & menambahkan konteks halaman ke
+  // pertanyaan yang dikirim ke /api/retrobot.
+  useEffect(() => {
+    const aliasMap: Record<string, OsAppId> = {
+      profil: "profil", profile: "profil", hero: "profil", about: "profil",
+      layanan: "layanan", services: "layanan",
+      proyek: "proyek", projects: "proyek",
+      toko: "toko", produk: "toko", store: "toko", products: "toko",
+      testimoni: "testimoni", testimonials: "testimoni", reviews: "testimoni",
+      artikel: "artikel", articles: "artikel", blog: "artikel",
+      kontak: "kontak", contact: "kontak",
+      terminal: "terminal",
+    };
+    const fromHash = (): OsAppId | null => {
+      const hash = window.location.hash.replace("#", "").toLowerCase();
+      return (hash && aliasMap[hash]) || null;
+    };
+    setCurrentApp(fromHash());
+    const onSwitch = (e: Event) => {
+      const detail = (e as CustomEvent<OsAppId>).detail;
+      if (detail) setCurrentApp(detail);
+    };
+    const onHash = () => setCurrentApp(fromHash());
+    window.addEventListener("switch-os-app", onSwitch as EventListener);
+    window.addEventListener("hashchange", onHash);
+    return () => {
+      window.removeEventListener("switch-os-app", onSwitch as EventListener);
+      window.removeEventListener("hashchange", onHash);
+    };
+  }, []);
+
   const dismissGreeting = useCallback(() => {
     setShowGreeting(false);
     try {
@@ -118,6 +292,37 @@ export function RetroBot() {
     playOS("click");
   }, []);
 
+  /**
+   * Deteksi niat navigasi dari teks pengguna (untuk nav chip di percakapan).
+   *
+   * Hanya dipicu bila kata kuncinya spesifik (mis. "proyek", "layanan",
+   * "kontak") — bukan kata umum seperti "siapa"/"nama"/"harga" yang sebelumnya
+   * memicu chip salah ("Buka Profil.exe" untuk "nama istrinya siapa?").
+   * Juga tidak menawarkan halaman yang sedang dibuka pengunjung.
+   *
+   * HARUS dideklarasikan sebelum sendMessage: sendMessage memanggilnya dan
+   * memasukkannya ke dependency array useCallback. Deklarasi setelahnya
+   * menyebabkan TDZ ReferenceError saat render.
+   */
+  const detectNavIntent = useCallback(
+    (text: string): OsAppId | null => {
+      const q = text.toLowerCase();
+      const pick = (appId: OsAppId, kws: string[]): OsAppId | null =>
+        kws.some((k) => q.includes(k)) ? appId : null;
+      const intent =
+        pick("proyek", ["proyek", "project", "portofolio", "portfolio"]) ||
+        pick("layanan", ["layanan", "service", "jasa"]) ||
+        pick("kontak", ["kontak", "contact", "hubungi", "whatsapp"]) ||
+        pick("toko", ["toko", "store", "produk digital", "beli", "order"]) ||
+        pick("artikel", ["artikel", "article", "blog", "tulisan"]) ||
+        pick("testimoni", ["testimoni", "review", "ulasan", "klien"]) ||
+        null;
+      if (!intent || intent === currentApp) return null;
+      return intent;
+    },
+    [currentApp]
+  );
+
   /** Kirim pertanyaan ke /api/retrobot dan konsumsi SSE. */
   const sendMessage = useCallback(
     async (raw: string) => {
@@ -127,6 +332,9 @@ export function RetroBot() {
       setInput("");
       playOS("click");
       setMood("thinking");
+      // Getaran reaktif: avatar "terkejut" saat pengguna mengirim pesan.
+      setNudge(true);
+      window.setTimeout(() => setNudge(false), 500);
 
       const history = messages
         .filter((m) => !m.streaming)
@@ -135,9 +343,26 @@ export function RetroBot() {
 
       const userMsg: Message = { id: uid(), role: "user", text };
       const botId = uid();
+      // Niat navigasi: tawarkan jalan pintas ke jendela yang relevan sebagai
+      // pesan pertama (sebelum jawaban AI mengalir).
+      const navApp = detectNavIntent(text);
+      const navMsg: Message | null = navApp
+        ? {
+            id: uid(),
+            role: "assistant",
+            text: isEn
+              ? `I can open that page for you:`
+              : `Saya bisa bukakan halaman itu untuk Anda:`,
+            navTo: navApp,
+            navLabel: isEn
+              ? NAV_LABELS_EN[navApp]
+              : NAV_LABELS_ID[navApp],
+          }
+        : null;
       setMessages((prev) => [
         ...prev,
         userMsg,
+        ...(navMsg ? [navMsg] : []),
         { id: botId, role: "assistant", text: "", streaming: true },
       ]);
       setIsStreaming(true);
@@ -150,7 +375,12 @@ export function RetroBot() {
         const res = await fetch("/api/retrobot", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text, lang: isEn ? "en" : "id", history }),
+          body: JSON.stringify({
+            text,
+            lang: isEn ? "en" : "id",
+            history,
+            app: currentApp,
+          }),
           signal: controller.signal,
         });
 
@@ -223,6 +453,9 @@ export function RetroBot() {
                 )
               );
               setMood("idle");
+              // Ledakan partikel: rayakan jawaban yang tiba (sekali per jawaban).
+              setBurstId((n) => n + 1);
+              window.setTimeout(() => setBurstId(0), 800);
             }
           }
         }
@@ -264,7 +497,7 @@ export function RetroBot() {
         abortRef.current = null;
       }
     },
-    [isStreaming, messages, isEn, t]
+    [isStreaming, messages, isEn, t, currentApp, detectNavIntent]
   );
 
   const handleQuickPrompt = useCallback(
@@ -273,6 +506,41 @@ export function RetroBot() {
       void sendMessage(q);
     },
     [isStreaming, sendMessage]
+  );
+
+  /**
+   * Arahkan pengunjung ke aplikasi SigitOS lain: pindahkan avatar ke ikon
+   * taskbar aplikasi target (animasi "bergerak menuju taskbar"), lalu buka
+   * jendela tersebut via event switch-os-app yang sama dipakai terminal/hero.
+   * Bila panel belum dibuka, hanya animasi singkat lalu buka panel.
+   */
+  const navigateToApp = useCallback(
+    (appId: string) => {
+      if (typeof window === "undefined") return;
+      playOS("nav");
+      // Cari tombol taskbar aplikasi target (os-desktop-manager merender
+      // aria-label = nama file, mis. "Proyek.exe").
+      const btn = Array.from(
+        document.querySelectorAll<HTMLButtonElement>("button[aria-label]")
+      ).find((b) => {
+        const label = b.getAttribute("aria-label") || "";
+        return TASKBAR_MATCH[appId]?.some((kw) => label.toLowerCase().includes(kw));
+      });
+      if (btn) {
+        const r = btn.getBoundingClientRect();
+        // Avatar "melayang" ke ikon taskbar: set posisi tepat di atas ikon.
+        setPosition({
+          x: Math.max(8, r.left + r.width / 2 - 28),
+          y: Math.max(8, r.top - 64),
+        });
+        btn.classList.add("rb-taskbar-glow");
+        window.setTimeout(() => btn.classList.remove("rb-taskbar-glow"), 1600);
+      }
+      // Buka jendela aplikasi (os-desktop-manager mendengarkan event ini).
+      window.dispatchEvent(new CustomEvent("switch-os-app", { detail: appId }));
+      if (!isOpen) openPanel();
+    },
+    [isOpen, openPanel]
   );
 
   const handleSubmit = useCallback(
@@ -331,12 +599,15 @@ export function RetroBot() {
     [openPanel, closePanel, isOpen]
   );
 
-  const quickPrompts = [
-    t.retrobot_quick_1,
-    t.retrobot_quick_2,
-    t.retrobot_quick_3,
-    t.retrobot_quick_4,
-  ];
+  /**
+   * Quick prompt kontekstual: berbeda per aplikasi SigitOS yang sedang dibuka,
+   * jadi selalu relevan dengan halaman yang dilihat pengunjung.
+   */
+  const quickPrompts = currentApp
+    ? APP_QUICK_PROMPTS[currentApp].map((q) => (isEn ? q.en : q.id))
+    : [t.retrobot_quick_1, t.retrobot_quick_2, t.retrobot_quick_3, t.retrobot_quick_4];
+
+  const contextHint = currentApp ? t[`retrobot_context_${currentApp}`] : null;
 
   const posStyle = position
     ? { left: position.x, top: position.y, right: "auto", bottom: "auto" }
@@ -355,8 +626,8 @@ export function RetroBot() {
     const el = avatarRef.current;
     if (!el) return;
 
-    const PANEL_W = 320; // w-80
-    const MAX_W = 384; // max-w-sm
+    const PANEL_W = 360; // w-[22rem]
+    const MAX_W = 448; // max-w-md
     const GAP = 10; // jarak panel ke avatar
     const M = 8; // margin pinggir layar
 
@@ -413,7 +684,11 @@ export function RetroBot() {
   }, [isOpen, position]);
 
   return (
-    <div className="fixed inset-0 z-50 pointer-events-none select-none" aria-hidden={isOpen ? "false" : "true"}>
+    // aria-hidden hanya saat panel TERTUTUP: container ini hanya wadah untuk
+    // avatar & panel; bila panel terbuka, isinya harus dapat diakses screen
+    // reader. Sebelumnya aria-hidden selalu true → fokus di dalam panel
+    // disembunyikan dari AT (warning "Blocked aria-hidden").
+    <div className="fixed inset-0 z-50 pointer-events-none select-none" aria-hidden={isOpen ? undefined : "true"}>
       {/* Panel chat (expanded) — mengikuti posisi avatar (panelGeo) */}
       {isOpen && (
         <div
@@ -425,7 +700,7 @@ export function RetroBot() {
           role="dialog"
           aria-label={t.retrobot_window_title}
         >
-          <div className="vt-window vt-window-pop flex-1 min-h-0 flex flex-col shadow-2xl border-2 border-[var(--vt-edge-lo-2)] max-h-[70vh]">
+          <div className="vt-window vt-window-pop rb-panel-in flex-1 min-h-0 flex flex-col shadow-2xl border-2 border-[var(--vt-edge-lo-2)] max-h-[70vh]">
             {/* Titlebar */}
             <div className="vt-titlebar flex items-center justify-between gap-2 px-2 py-1.5">
               <div className="flex items-center gap-1.5 min-w-0 flex-1">
@@ -478,13 +753,19 @@ export function RetroBot() {
                   {t.retrobot_greeting}
                 </div>
               )}
+              {messages.length === 0 && contextHint && (
+                <div className="flex items-start gap-1.5 px-1 text-[9px] leading-snug text-[var(--vt-ink)] opacity-80">
+                  <MapPin className="h-2.5 w-2.5 shrink-0 mt-0.5" />
+                  <span>{contextHint}</span>
+                </div>
+              )}
               {messages.map((m) => (
                 <div
                   key={m.id}
                   className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[88%] px-2.5 py-1.5 text-[11px] leading-relaxed whitespace-pre-line break-words ${
+                    className={`min-w-0 max-w-[92%] px-2.5 py-1.5 text-[11px] leading-relaxed whitespace-pre-line break-words overflow-wrap-anywhere ${
                       m.role === "user"
                         ? "vt-btn vt-btn-blue text-white"
                         : "vt-card-inset text-[var(--vt-ink)]"
@@ -493,6 +774,17 @@ export function RetroBot() {
                     {m.text}
                     {m.streaming && (
                       <span className="rb-cursor inline-block w-1.5 h-3 ml-0.5 bg-current align-middle" />
+                    )}
+                    {m.navTo && (
+                      <button
+                        type="button"
+                        onClick={() => m.navTo && navigateToApp(m.navTo)}
+                        disabled={isStreaming}
+                        className="mt-1.5 vt-btn vt-btn-chrome px-2 py-0.5 text-[9px] font-bold flex items-center gap-1 cursor-pointer disabled:opacity-40"
+                      >
+                        <MapPin className="h-2.5 w-2.5 shrink-0" />
+                        <span>{m.navLabel}</span>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -576,9 +868,60 @@ export function RetroBot() {
           menghitung posisi (mengikuti robot ke mana pun ia di-drag). */}
       <div
         ref={avatarRef}
-        className="absolute bottom-16 right-3 sm:bottom-20 sm:right-5 pointer-events-auto"
+        // transition-all: saat navigateToApp() memindahkan avatar ke ikon
+        // taskbar, ia "melayang" ke sana, bukan teleport (interaktivitas).
+        className="absolute bottom-16 right-3 sm:bottom-20 sm:right-5 pointer-events-auto transition-all duration-500 ease-out"
         style={posStyle || undefined}
+        onMouseEnter={() => {
+          if (isOpen) return;
+          const tips = isEn ? HOVER_TIPS_EN : HOVER_TIPS_ID;
+          setHoverTip(tips[hoverIdxRef.current % tips.length]);
+          hoverIdxRef.current += 1;
+        }}
+        onMouseLeave={() => setHoverTip(null)}
       >
+        {/* Cincin pemindai berputar (idle) — efek radar retro di sekeliling
+            avatar. Disembunyikan saat thinking (digantikan denyut radar). */}
+        {mood === "idle" && (
+          <span className="rb-scan-ring" aria-hidden="true" />
+        )}
+        {/* Denyut radar membesar saat thinking (mencari sinyal jawaban). */}
+        {mood === "thinking" && (
+          <>
+            <span className="rb-ping-out" aria-hidden="true" />
+            <span
+              className="rb-ping-out"
+              aria-hidden="true"
+              style={{ animationDelay: "0.7s" }}
+            />
+          </>
+        )}
+        {/* Ledakan partikel kecil saat jawaban tiba (sekali per jawaban). */}
+        {burstId > 0 && (
+          <span key={burstId} className="pointer-events-none absolute inset-0" aria-hidden="true">
+            {BURST_PARTICLES.map((p, idx) => (
+              <span
+                key={idx}
+                className="rb-burst-p"
+                style={{
+                  background: p.color,
+                  ["--bx" as string]: p.x,
+                  ["--by" as string]: p.y,
+                }}
+              />
+            ))}
+          </span>
+        )}
+        {/* Hovertip kecil: pesan acak muncul saat kursor di atas avatar
+            (hanya saat panel tertutup, agar tidak menumpuk greeting). */}
+        {hoverTip && !isOpen && (
+          <div className="rb-tip-in absolute bottom-full right-0 mb-2 w-40 vt-window p-1.5 shadow-lg">
+            <p className="font-mono text-[9px] text-[var(--vt-ink)] leading-relaxed">
+              {hoverTip}
+            </p>
+          </div>
+        )}
+
         {/* Gelembung sapaan sekali tampil (bisa di-dismiss); sembunyi saat panel
             terbuka agar tidak menumpuk di atas panel. */}
         {showGreeting && !isOpen && (
@@ -606,7 +949,9 @@ export function RetroBot() {
           // sentuh untuk scroll → pointerup tidak pernah sampai → panel tidak
           // terbuka di mobile (pointercancel menggantikannya).
           // Tanpa border/kotak (vt-card-inset) — avatar mengambang bebas.
-          className="group relative p-1 cursor-pointer hover:scale-105 active:scale-95 transition-transform touch-action-none"
+          className={`group relative p-1 cursor-pointer hover:scale-105 active:scale-95 transition-transform touch-action-none ${
+            nudge ? "rb-nudge" : ""
+          }`}
         >
           <RetroBotAvatar mood={mood} size={56} />
           {/* Cincin status online: ring lembut, bukan border keras */}

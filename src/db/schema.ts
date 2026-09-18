@@ -27,6 +27,10 @@ export const profiles = pgTable(
     paymentQrUrl: text("payment_qr_url"),
     paymentBankInfo: text("payment_bank_info"),
     availableForHire: boolean("available_for_hire").notNull().default(true),
+    // Label badge "Full-time // Freelance // Konsultasi Proyek" di Hero.
+    // Dikelola dari Kelola Pribadi (admin). Bisa dikosongkan → fallback i18n.
+    availabilityBadge: text("availability_badge"),
+    availabilityBadgeEn: text("availability_badge_en"),
     skills: jsonb("skills")
       .$type<string[]>()
       .notNull()

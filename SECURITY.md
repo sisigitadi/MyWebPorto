@@ -23,6 +23,8 @@ Dokumen ini menjelaskan **postur keamanan**, langkah hardening yang diterapkan, 
 | `socialLinks`, URL, slug, upload | Injection / XSS (A03) | Zod `safeUrlSchema` + max-length + slug regex + magic-bytes + `safeJsonLd` |
 | Header / CSP / HSTS | Misconfiguration (A05) | Header ketat di `next.config.ts` (HSTS 2 tahun, CSP, COOP/CORP, Permissions-Policy) |
 | `POST /api/indexnow` | Abuse / SSRF / DoS | Admin-only + rate-limit 5/60s/IP + host allowlist + max 100 URLs + payload 10KB |
+| `POST /api/retrobot` | Abuse / prompt injection / egress data | Publik + rate-limit 20/5mnt/IP + input 500 char + history 4 turn + prompt hanya katalog publik |
+| Tabel `settings` (key `cloud_ai`) | Kebocoran API key cloud | Penulisan admin-only via `verifyAdmin()` + masking di `settings.ts` + tidak dikirim ke klien |
 | Upload `public/uploads` | Stored XSS / RCE | SVG blacklist, ekstensi dari MIME, timestamp+random filename |
 | Translate (Google/MyMemory) | Privacy egress | Opt-in per field, `ENABLE_EXTERNAL_TRANSLATE=false` mematikan total |
 | Session / CSRF | Session hijack | Clerk httpOnly session, `bodySizeLimit 25MB`, CSRF via same-origin |
@@ -97,22 +99,31 @@ Header lengkap di `next.config.ts:25`:
 - **Tidak ada auto-translate saat save.** Tombol `Terjemahkan (ID→EN)` opt-in per field → `translateFieldAction` + `verifyAdmin()`.
 - `ENABLE_EXTERNAL_TRANSLATE=false` → `translateText()` throw, UI minta isi manual.
 - Kolom EN kosong = fallback ke teks ID (tidak trigger egress).
-- **Sigit_Bot hybrid (default lokal):** `askSigitBot` publik tanpa login, dibatasi rate-limit 10/5 mnt/IP, input 500 char, output 300 token. Cloud (Gemini) hanya bila `AI_PROVIDER=gemini` + key valid DAN confidence lokal < 0,55. Prompt hanya berisi katalog publik (nama, headline, skill, judul layanan/proyek/artikel) — tanpa PII/secret. Aktifkan hanya dengan key server-side (`GEMINI_API_KEY`, tidak pernah ke klien).
+- **Sigit_Bot / RetroBot hybrid (default lokal):** `askSigitBot` (terminal) publik tanpa login, dibatasi rate-limit **10 req/5 mnt/IP**, input 500 char, output 300 token. Endpoint streaming `POST /api/retrobot` (SSE) publik, rate-limit **20 req/5 mnt/IP**, body 10KB, history maks 4 pasang turn. Cloud hanya bila provider aktif **dan** confidence lokal < 0,55. Prompt hanya berisi katalog publik (nama, headline, skill, judul layanan/proyek/artikel) + nama halaman SigitOS yang sedang dibuka — tanpa PII/secret.
+
+### 3.7 Rahasia Cloud AI (tabel `settings`)
+- Konfigurasi Cloud AI (provider, API key, base URL, model, system prompt, gaya jawaban) disimpan di tabel `settings` key `cloud_ai` (migrasi `0008`), **atau** di env server (`AI_PROVIDER`, `GEMINI_API_KEY`, `OPENAI_*`). Pengaturan admin menimpa env per-field.
+- **API key tidak pernah dikirim ke klien.** `src/lib/settings.ts` mem-mask nilai saat mengembalikan config ke UI admin (hingga indikator `••••` + panjang), dan `AdminCloudAIView` hanya menampilkan status masked. Penulisan hanya lewat server action `saveCloudAIConfig` yang memanggil `verifyAdmin()`.
+- Pengambilan daftar model (`listCloudModelsAction`) adalah server action admin-only; key yang dikirim ke provider tidak pernah di-log ke klien. Jika key kosong di form, action jatuh ke key env yang tersimpan.
+- `AI_PROVIDER` default `off` — tanpa key valid, semua pertanyaan dilayani mesin lokal (`ai-engine.ts`) tanpa egress apa pun.
 
 ---
 
 ## 4. Checklist Hardening Pra-Deploy (Wajib)
 
 - [ ] `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` & `CLERK_SECRET_KEY` = **live** (bukan `pk_test_xxxx`), `ADMIN_CLERK_ID` terisi valid.
+  - **Wajib `pk_live_`** — `pk_test_` memakai domain `*.clerk.accounts.dev` yang me-redirect **Googlebot ke handshake Clerk di setiap rute** (termasuk `/robots.txt` & `/sitemap.xml`). Google melaporkannya sebagai **"Redirect error"** dan halaman tidak terindeks. Jika GSC melaporkan redirect error, ini penyebab pertama yang harus diperiksa.
 - [ ] `DATABASE_URL` prod (Neon `sslmode=require`), sudah `npm run db:push`.
 - [ ] `NEXT_PUBLIC_APP_URL` = domain prod (tanpa trailing slash).
 - [ ] `INDEXNOW_KEY` ganti dari default `e5b871c...` (di `.env`, jangan commit).
 - [ ] Storage gambar: **jangan** andalkan `public/uploads` di Vercel — pakai Bunny/R2/S3 (lihat README & `DEPLOYMENT.md`).
 - [ ] `ENABLE_EXTERNAL_TRANSLATE` sesuai kebijakan privasi (set `false` jika egress dilarang).
-- [ ] `npm run lint && npm run build` pass (0 error, 0 warning).
+- [ ] `npm run lint && npm run build` pass (0 error, 0 warning); `npx tsc --noEmit` 0 error; `npm run test` hijau.
 - [ ] `npm audit --audit-level=high` cek; `postcss`/`esbuild` vuln saat ini dari `next@15` — tunggu upstream fix, jangan `npm audit fix --force` ke `next@16` tanpa uji.
+- [ ] Bila Cloud AI diaktifkan: `AI_PROVIDER` + key di env server **atau** di form `/admin/system` (tabel `settings`); pastikan UI admin menampilkan key sebagai masked, dan `AI_PROVIDER=off` bila tidak dipakai.
 - [ ] Header CSP tidak blokir UI (cek DevTools → Console → CSP violations).
-- [ ] Uji `/admin` dengan akun non-owner → harus 404; `POST /api/indexnow` tanpa login → 401.
+- [ ] Uji `/admin` dengan akun non-owner → harus 404; `POST /api/indexnow` tanpa login → 401; `POST /api/retrobot` melebihi 20×/5 mnt → 429.
+- [ ] **Kesehatan SEO (Google Search Console)**: `/robots.txt`, `/sitemap.xml`, `/feed.xml`, `/llms.txt` harus `200` (bukan `3xx`). Redirect di rute ini = penyebab "Redirect error" di GSC. Verifikasi: `curl -sI -o /dev/null -w "%{http_code}\n" https://sigitadi.id/robots.txt`.
 
 ---
 

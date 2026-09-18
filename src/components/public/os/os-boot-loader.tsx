@@ -6,9 +6,15 @@ import { playOS } from "@/lib/os-sound";
 
 export function OSBootLoader() {
   const { language } = useTranslation();
-  // Hardening flash: tetap tampilkan overlay hitam selama hidrasi awal agar
-  // profil SSR tidak berkedip sebelum boot-check. Jika sudah pernah boot di sesi ini,
-  // effect di bawah akan menyembunyikan overlay dalam 1 frame.
+  // Boot hanya muncul saat pengguna membuka aplikasi pertama kali atau
+  // membuka link dari tab baru — BUKAN setiap kali halaman direfresh.
+  //
+  // mounted: overlay hanya dirender SETELAH hydrasi di klien. Sebelumnya
+  // server merender markup overlay penuh (sessionStorage tidak ada di server
+  // → bootVisible true) → pengguna melihat flash hitam ~400ms di SETIAP refresh
+  // meskipun flag sudah ada. Dengan gate ini, SSR tidak pernah memancarkan
+  // overlay; klien menampilkan animasi hanya bila benar-benar boot pertama.
+  const [mounted, setMounted] = useState(false);
   const [bootVisible, setBootVisible] = useState(true);
   const [isFading, setIsFading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -47,15 +53,21 @@ export function OSBootLoader() {
   };
 
   useEffect(() => {
-    // Cek kunjungan pertama — jika sudah pernah boot (browser ini), hilangkan
-    // overlay segera tanpa animasi. Memakai localStorage, bukan sessionStorage,
-    // agar animasi 5 detik hanya muncul sekali seumur kunjungan; sebelumnya
-    // setiap tab baru / ketik ulang URL memulai ulang BIOS-nya.
-    const hasBooted = localStorage.getItem("sigitos_booted");
+    // Boot hanya muncul saat pengguna membuka aplikasi pertama kali atau
+    // membuka link dari tab baru — BUKAN setiap kali halaman direfresh.
+    //
+    // Strategi: sessionStorage di-clear saat tab ditutup, sehingga:
+    //  - Tab baru / link dari luar → flag belum ada → animasi BIOS jalan.
+    //  - Refresh di tab yang sama → flag masih ada → boot dilewati instan.
+    //  - Navigasi internal antar halaman publik → flag ada → tetap dilewati.
+    const hasBooted = sessionStorage.getItem("sigitos_booted_session");
     if (hasBooted) {
+      // Sudah boot di sesi tab ini → tidak ada animasi, tidak ada beep.
       setBootVisible(false);
+      setMounted(true);
       return;
     }
+    setMounted(true);
 
     playRetroBeep(750, 0.1);
 
@@ -119,7 +131,7 @@ export function OSBootLoader() {
 
   const handleComplete = () => {
     setIsFading(true);
-    localStorage.setItem("sigitos_booted", "true");
+    sessionStorage.setItem("sigitos_booted_session", "true");
     // Chime "masuk desktop" ala startup jadul — sopan dan singkat
     playOS("boot");
     setTimeout(() => {
@@ -127,7 +139,9 @@ export function OSBootLoader() {
     }, 600);
   };
 
-  if (!bootVisible) return null;
+  // Jangan render apapun di server (mencegah flash hitam SSR saat refresh) dan
+  // jangan render di klien bila sudah boot di sesi tab ini.
+  if (!mounted || !bootVisible) return null;
 
   return (
     <div

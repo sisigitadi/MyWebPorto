@@ -117,16 +117,16 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-8">
       {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-xl border border-border bg-card p-6 sm:p-8">
+      <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5 sm:p-6 md:p-8">
         <div className="max-w-3xl space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border border-border bg-muted/40 text-foreground">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
             <span>Panel Administrasi MyWebPorto</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-foreground break-words">
             Selamat Datang, {displayName}
           </h1>
-          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed break-words">
             Kelola data portofolio, pameran produk digital, keahlian layanan, dan ulasan kepuasan klien Anda secara langsung dan terstruktur dari satu pusat kendali.
           </p>
         </div>
@@ -308,17 +308,17 @@ export default async function AdminDashboardPage() {
               </div>
 
               <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between py-1 border-b border-border/60">
-                  <span className="text-muted-foreground">Email Kontak</span>
-                  <span className="font-medium text-foreground truncate max-w-[180px]">{profile.email || user?.primaryEmailAddress?.emailAddress}</span>
+                <div className="flex items-center justify-between gap-3 py-1 border-b border-border/60">
+                  <span className="text-muted-foreground shrink-0">Email Kontak</span>
+                  <span className="font-medium text-foreground text-right break-all min-w-0 max-w-[60%]">{profile.email || user?.primaryEmailAddress?.emailAddress}</span>
                 </div>
-                <div className="flex items-center justify-between py-1 border-b border-border/60">
-                  <span className="text-muted-foreground">Lokasi</span>
-                  <span className="font-medium text-foreground">{profile.location}</span>
+                <div className="flex items-center justify-between gap-3 py-1 border-b border-border/60">
+                  <span className="text-muted-foreground shrink-0">Lokasi</span>
+                  <span className="font-medium text-foreground text-right break-words min-w-0">{profile.location}</span>
                 </div>
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-muted-foreground">Status Ketersediaan</span>
-                  <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/40">
+                <div className="flex items-center justify-between gap-3 py-1">
+                  <span className="text-muted-foreground shrink-0">Status Ketersediaan</span>
+                  <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/40 text-right">
                     {profile.availableForHire ? "Tersedia untuk Proyek Baru" : "Sedang Penuh"}
                   </Badge>
                 </div>

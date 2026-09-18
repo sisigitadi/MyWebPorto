@@ -119,16 +119,86 @@ export function OSCrtTerminal({
     t.terminal_log_auth.replace("{owner}", ownerName),
     t.terminal_status_boot,
   ]);
+
+  // Sinkronisasi bahasa: baris log statis (banner BIOS, status boot, header
+  // bantuan, dll.) diterjemahkan penuh, tapi karena mereka disimpan di state
+  // (bukan derived), mengganti bahasa tidak mengubahnya. Tanpa effect ini,
+  // teks terminal tetap bahasa lama setelah toggle ID/EN. Baris hasil query
+  // bot sengaja tidak diterjemahkan ulang — jawaban itu sudah dihasilkan dalam
+  // satu bahasa; menerjemahkan teks bebas akan menimbulkan teks campuran.
+  const prevBootLogsRef = useRef<string[] | null>(null);
+  useEffect(() => {
+    const bootLogs = [
+      t.terminal_log_bios,
+      t.terminal_log_cpu,
+      t.terminal_log_init,
+      t.terminal_log_system,
+      t.terminal_log_neural,
+      t.terminal_log_stack,
+      t.terminal_log_auth.replace("{owner}", ownerName),
+      t.terminal_status_boot,
+    ];
+    const prev = prevBootLogsRef.current;
+    prevBootLogsRef.current = bootLogs;
+    if (!prev || prev.length !== bootLogs.length) return;
+    // Peta teks bahasa lama → bahasa baru untuk tiap baris statis.
+    const translate = new Map<string, string>();
+    let changed = false;
+    for (let i = 0; i < bootLogs.length; i++) {
+      if (prev[i] !== bootLogs[i]) {
+        translate.set(prev[i], bootLogs[i]);
+        changed = true;
+      }
+    }
+    if (!changed) return;
+    setLogs((prevLogs) =>
+      prevLogs.map((line) => {
+        if (isPlaceholderLine(line)) return line;
+        return translate.has(line) ? (translate.get(line) as string) : line;
+      })
+    );
+  }, [t, ownerName]);
   const [commandInput, setCommandInput] = useState("");
   const [isInferencing, setIsInferencing] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [copied, setCopied] = useState(false);
   const [cloudOn, setCloudOn] = useState(false);
-  const [ttsOn, setTtsOn] = useState(false);
+  // Default ON: speaker terminal aktif sejak halaman dimuat. speechSynthesis
+  // tetap butuh gesture pengguna sebelum memutar suara (kebijakan autoplay
+  // browser), tapi speak() hanya dipanggil setelah user mengetik perintah,
+  // jadi gesture tersebut sudah ada.
+  const [ttsOn, setTtsOn] = useState(true);
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
+
+  // Bahasa UI terbaru. speak() dipanggil dari dalam setTimeout yang menangkap
+  // versi render lama (stale closure) — tanpa ref, voice bisa tertinggal di
+  // bahasa sebelum toggle ID/EN, terlihat bagi pengguna seperti voice "tertukar".
+  const languageRef = useRef(language);
+  useEffect(() => {
+    languageRef.current = language;
+  }, [language]);
+
+  // Cache daftar suara TTS. synth.getVoices() memuat secara asynchronous di
+  // banyak browser (array kosong pada panggilan pertama). Tanpa menunggu event
+  // voiceschanged, pemilihan voice kembali null → browser memakai voice default
+  // (umumnya en-US) → teks Indonesia dibaca dengan voice English.
+  const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const synth = window.speechSynthesis;
+    const load = () => {
+      const list = synth.getVoices();
+      if (list.length) voicesRef.current = list;
+    };
+    load();
+    synth.addEventListener?.("voiceschanged", load);
+    return () => {
+      synth.removeEventListener?.("voiceschanged", load);
+    };
+  }, []);
 
   // Konteks live untuk engine NLP — dirakit dari props SSR (profil, layanan,
   // proyek, artikel) yang diterima jendela ini, bukan dari tabel hardcode di
@@ -178,8 +248,15 @@ export function OSCrtTerminal({
     if (inferTimeoutRef.current) clearTimeout(inferTimeoutRef.current);
   }, []);
 
+  // Auto-scroll ke baris terakhir. Hanya menggulir KONTAINER LOG-nya sendiri
+  // (role="log" adalah parent dari logEndRef) — BUKAN scrollIntoView.
+  // scrollIntoView menggulir SEMUA leluhur scrollable: di mode section mobile
+  // (terminal kini inline di tengah dokumen), setiap perubahan logs — termasuk
+  // 8 baris boot saat mount — akan menarik seluruh halaman ke section terminal
+  // dan pengguna tidak bisa scroll dengan tenang.
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const box = logEndRef.current?.parentElement;
+    if (box) box.scrollTop = box.scrollHeight;
   }, [logs]);
 
   // Tanyakan sekali apakah cloud AI opt-in aktif (default OFF).
@@ -201,17 +278,26 @@ export function OSCrtTerminal({
       const synth = window.speechSynthesis;
       synth.cancel();
 
-      // Ikuti bahasa UI: pilih voice yang benar-benar mendukung id-ID/en-US
-      const targetLang = language === "en" ? "en-US" : "id-ID";
+      // Ikuti bahasa UI: pilih voice yang benar-benar mendukung id-ID/en-US.
+      // Memakai ref agar bahasa selalu yang terbaru (lihat catatan deklarasi).
+      const targetLang = languageRef.current === "en" ? "en-US" : "id-ID";
       const langPrefix = targetLang.slice(0, 2).toLowerCase();
       const pickVoice = (): SpeechSynthesisVoice | null => {
-        const voices = synth.getVoices();
+        const voices = voicesRef.current.length ? voicesRef.current : synth.getVoices();
         if (!voices.length) return null;
+        // 1) Cocok persis (id-ID / en-US)
         const exact = voices.find(
           (v) => v.lang.replace("_", "-").toLowerCase() === targetLang.toLowerCase()
         );
         if (exact) return exact;
-        return voices.find((v) => v.lang.toLowerCase().startsWith(langPrefix)) ?? null;
+        // 2) Awalan bahasa (id-*, en-*)
+        const prefix = voices.find((v) => v.lang.toLowerCase().startsWith(langPrefix));
+        if (prefix) return prefix;
+        // 3) Fallback: voice yang BUKAN bahasa lain — jangan asal pakai voice
+        //    default browser (biasanya en-US) untuk teks Indonesia. Bila tidak
+        //    ada voice bahasa target, kembalikan null dan biarkan utter.lang
+        //    yang menentukan; mesin TTS akan memilih voice yang cocok.
+        return null;
       };
 
       // Bersihkan simbol/penanda agar dibaca sebagai kalimat wajar
@@ -233,6 +319,9 @@ export function OSCrtTerminal({
       const voice = pickVoice();
       for (const chunk of chunks) {
         const utter = new SpeechSynthesisUtterance(chunk);
+        // utter.lang wajib diatur PERTAMA: bila voice bahasa target tidak
+        // tersedia di perangkat, browser memakainya untuk memilih pengganti
+        // yang tepat. Tanpa ini, voice default (en-US) dipakai untuk teks ID.
         utter.lang = targetLang;
         if (voice) utter.voice = voice;
         // Sedikit "robot" tapi tetap jelas: tempo normal, pitch sedikit rendah
@@ -426,7 +515,7 @@ export function OSCrtTerminal({
 
     if (command === "reboot") {
       // Bilang boot loader untuk memutar ulang animasi BIOS (reboot sungguhan).
-      localStorage.removeItem("sigitos_booted");
+      sessionStorage.removeItem("sigitos_booted_session");
       window.location.reload();
       return;
     }

@@ -173,7 +173,7 @@ export async function getSystemStatus(): Promise<SystemStatus> {
       ]);
       latencyMs = Date.now() - start;
       reachable = true;
-      dbDetail = `Terhubung (${latencyMs} ms). Migrasi: drizzle/0000–0003, termasuk 0003_product_slugs.sql.`;
+      dbDetail = `Terhubung (${latencyMs} ms). Migrasi: drizzle/0000–0008 (termasuk 0003_product_slugs, 0004_audit_logs, 0005_publish_at, 0006_shop, 0007_purchase_fields, 0008_settings).`;
     } catch (err) {
       latencyMs = Date.now() - start;
       dbDetail = `Gagal dijangkau: ${err instanceof Error ? err.message.slice(0, 160) : "unknown"}. Cek sslmode=require + npm run db:push.`;

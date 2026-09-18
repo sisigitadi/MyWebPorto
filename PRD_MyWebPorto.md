@@ -47,13 +47,12 @@ MyWebPorto adalah website portofolio pribadi berbasis Next.js 15 yang menggabung
 
 ### Di Luar Scope Saat Ini
 
-- Checkout, keranjang belanja, invoice, dan payment gateway.
+- **Payment gateway** — checkout diakhiri di pesan WhatsApp; tidak ada pembayaran online.
 - Marketplace multi-penjual.
 - Akun publik untuk pengunjung.
 - Role-based access control kompleks.
 - Komentar artikel.
 - Newsletter.
-- Upload media persisten ke object storage produksi.
 
 ## 3. Halaman dan Routing
 
@@ -65,8 +64,11 @@ MyWebPorto adalah website portofolio pribadi berbasis Next.js 15 yang menggabung
 | `/proyek` | Katalog Proyek | Menampilkan semua proyek yang `published = true`. |
 | `/proyek/[slug]` | Detail Proyek | Menampilkan studi kasus proyek, tech stack, demo, repo, dan CTA. |
 | `/toko/[slug]` | Detail Produk | Menampilkan detail produk digital, harga, metadata, dan CTA checkout/download. |
-| `/artikel` | Katalog Artikel | Menampilkan semua artikel yang `published = true`. |
+| `/artikel` | Katalog Artikel | Menampilkan semua artikel yang `published = true` dan `publishAt` sudah lewat (atau null). |
 | `/artikel/[slug]` | Detail Artikel | Menampilkan artikel teknis lengkap, metadata, tag, dan profil penulis. |
+| `/feed.xml` | RSS | Feed artikel dengan autodiscovery. |
+| `/llms.txt` | llms.txt | Ringkasan situs dinamis untuk AI crawler. |
+| `/offline` | Offline PWA | Halaman fallback service worker. |
 | `/sign-in` | Login | Login pemilik melalui Clerk. |
 | `/sign-up` | Sign Up | Halaman sign up Clerk bila dibutuhkan oleh konfigurasi auth. |
 
@@ -74,13 +76,15 @@ MyWebPorto adalah website portofolio pribadi berbasis Next.js 15 yang menggabung
 
 | Rute | Nama | Fungsi |
 | --- | --- | --- |
-| `/admin` | Dashboard | Ringkasan jumlah konten dan status publikasi. |
+| `/admin` | Dashboard | Ringkasan jumlah konten, status publikasi, dan Visitor Analytics. |
 | `/admin/profile` | Kelola Profil | Edit nama, headline, bio, avatar, kontak, skill, statistik, sosial media, CV, dan status available for hire. |
-| `/admin/projects` | Kelola Proyek | Tambah, ubah, hapus, publish, featured, urutkan, dan kelola data proyek. |
-| `/admin/articles` | Kelola Artikel | Tambah, ubah, hapus, publish, featured, tag, cover, dan konten artikel bilingual. |
+| `/admin/projects` | Kelola Proyek | Tambah, ubah, hapus, publish, featured, urutkan, jadwal tayang, dan kelola data proyek. |
+| `/admin/articles` | Kelola Artikel | Tambah, ubah, hapus, publish, featured, jadwal tayang, tag, cover, dan konten artikel bilingual. |
 | `/admin/services` | Kelola Layanan | Tambah, ubah, hapus, publish, dan urutkan layanan. |
-| `/admin/products` | Kelola Produk | Tambah, ubah, hapus, publish, harga tampilan, gambar, dan CTA produk. |
+| `/admin/products` | Kelola Produk | Tambah, ubah, hapus, publish, harga coret + nominal, stok, badge, kategori, galeri, dan CTA produk. |
 | `/admin/testimonials` | Kelola Testimoni | Tambah, ubah, hapus, publish, rating, avatar, dan identitas klien. |
+| `/admin/media` | Media Library | Daftar gambar di Bunny Storage (bila terkonfigurasi) dengan hapus. |
+| `/admin/system` | Sistem & Logs | Kelayakan deploy (validasi env), tracing `x-request-id`, audit log mutasi, dan konfigurasi Cloud AI. |
 
 ## 4. Fitur Utama
 
@@ -92,7 +96,9 @@ Kebutuhan:
 
 - Menampilkan profil, kontak, layanan, proyek, produk, testimoni, dan artikel.
 - Menyediakan terminal/CRT interaction sebagai elemen identitas.
-- Menyediakan asisten AI Sigit_Bot yang berjalan dari mesin NLP/ML lokal (`src/lib/ai-engine.ts`).
+- Menyediakan asisten AI Sigit_Bot yang menjalankan mesin NLP/ML lokal (`src/lib/ai-engine.ts`), dengan fallback cloud opt-in (`src/lib/ai-provider.ts`, `src/lib/ai-openai.ts`) bila provider dikonfigurasi dan confidence lokal rendah.
+- Menyediakan RetroBot — asisten melayang yang sadar halaman (tahu app SigitOS mana yang sedang dibuka) dan memandu navigasi lewat nav chip di percakapan.
+- Mendukung 4 tema (Retro 90s default, Dark, Tokyo Night, VS Code) yang dipertahankan di `localStorage`.
 - Tetap menyediakan konten SSR tersembunyi untuk SEO dan aksesibilitas.
 - Memakai data yang sama dengan halaman katalog dan admin.
 
@@ -130,8 +136,9 @@ Kebutuhan:
 
 Kebutuhan:
 
-- Produk berfungsi sebagai katalog, bukan checkout.
-- Produk dapat memiliki `priceLabel` dan `ctaUrl`.
+- Produk berfungsi sebagai katalog + checkout WhatsApp (bukan payment gateway).
+- Produk dapat memiliki `priceLabel` (label tampilan), `comparePriceLabel` (harga coret), `priceAmount` (nominal Rupiah untuk keranjang; null = tanya/hubungi), `badge`, `category`, `stock` (null = digital/tanpa batas), dan `gallery`.
+- Keranjang belanja (`cart-context.tsx`) persisten di `localStorage`; checkout merakit pesan WhatsApp via `whatsapp-order.ts` dengan data pelanggan dan total.
 - Produk unpublished tidak tampil di publik.
 - Gambar produk wajib tersedia untuk item yang dibuat melalui form.
 - Produk memiliki slug stabil yang dapat dikelola dari admin dan dinormalisasi lewat `src/lib/product-link.ts`.
@@ -192,7 +199,7 @@ Setiap artikel memiliki slug unik, judul bilingual, summary bilingual, konten te
 
 Catatan implementasi:
 
-- Jika Clerk key belum tersedia atau masih placeholder, middleware mengizinkan akses admin untuk development.
+- Jika Clerk key belum tersedia atau masih placeholder, middleware mengizinkan akses admin untuk development **di luar produksi** — di produksi tanpa kredensial asli, admin 404 (fail-closed, lihat `src/middleware.ts`).
 - Jika Clerk aktif, rute `/admin/*` wajib login.
 - Jika `ADMIN_CLERK_ID` diset dan user login tidak cocok, sistem mengembalikan 404.
 
@@ -248,7 +255,8 @@ File utama: `src/lib/local-upload.ts`.
 
 Kondisi saat ini:
 
-- Upload disimpan ke `public/uploads`.
+- **Bunny Storage bila terkonfigurasi** (`BUNNY_STORAGE_ZONE_NAME` + `BUNNY_STORAGE_API_KEY`) — persisten, wajib di Vercel/serverless. Media Library `/admin/media` menampilkan dan menghapus gambar di storage ini.
+- Jika Bunny tidak terkonfigurasi, upload disimpan ke `public/uploads` (lokal — filesystem ephemeral di serverless).
 - Nama file dibuat unik dengan timestamp dan random bytes.
 - Tipe gambar yang diterima: JPG, PNG, WEBP, GIF, AVIF, BMP. **SVG tidak diizinkan** karena dapat memuat `<script>`/event handler (XSS saat disajikan dari origin sendiri).
 - Isi berkas diverifikasi lewat magic bytes, bukan hanya `Content-Type` kiriman klien.
@@ -328,13 +336,23 @@ Field utama:
 Field utama:
 
 - `id`
+- `slug`
 - `title`
 - `titleEn`
 - `description`
 - `descriptionEn`
 - `imageUrl`
+- `gallery` (array)
 - `priceLabel`
+- `comparePriceLabel` (harga coret)
+- `priceAmount` (nominal Rupiah untuk keranjang; null = tanya/hubungi)
+- `badge`
+- `category`
+- `stock` (null = digital/tanpa batas)
 - `ctaUrl`
+- `purchaseType` (`whatsapp` default)
+- `customWhatsapp`
+- `customButtonLabel`
 - `published`
 - `order`
 - `createdAt`
@@ -373,8 +391,28 @@ Field utama:
 - `tags`
 - `featured`
 - `published`
+- `publishAt` (jadwal tayang; null = langsung tayang bila published; masa depan = tersembunyi publik)
 - `order`
 - `createdAt`
+- `updatedAt`
+
+### audit_logs
+
+- `id`
+- `action`
+- `entity`
+- `entityId`
+- `actor`
+- `detail`
+- `createdAt`
+
+### settings
+
+Key/value JSON untuk konfigurasi tanpa redeploy. Saat ini menampung konfigurasi Cloud AI di key `cloud_ai` (provider, apiKey, baseUrl, model, systemPrompt, answerStyle).
+
+- `key` (PK)
+- `value` (jsonb — **boleh berisi rahasia**, wajib di-mask saat dikembalikan ke client)
+- `updatedAt`
 - `updatedAt`
 
 ## 8. SEO dan Aksesibilitas

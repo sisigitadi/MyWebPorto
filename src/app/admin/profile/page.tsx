@@ -143,6 +143,8 @@ export default function AdminProfilePage() {
           paymentQrUrl: profile.paymentQrUrl || undefined,
           paymentBankInfo: profile.paymentBankInfo || undefined,
           availableForHire: profile.availableForHire,
+          availabilityBadge: profile.availabilityBadge,
+          availabilityBadgeEn: profile.availabilityBadgeEn,
           skills: profile.skills,
           stats: profile.stats,
           socialLinks: profile.socialLinks,
@@ -446,29 +448,70 @@ export default function AdminProfilePage() {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-border flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold text-foreground">
-                    Status Ketersediaan Proyek (Available for Hire)
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    Aktifkan jika Anda sedang menerima tawaran proyek freelance atau full-time.
-                  </p>
+              <div className="pt-3 border-t border-border flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">
+                      Status Ketersediaan Proyek (Available for Hire)
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Aktifkan jika Anda sedang menerima tawaran proyek freelance atau full-time.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant={profile.availableForHire ? "default" : "outline"}
+                    size="sm"
+                    onClick={() =>
+                      setProfile({
+                        ...profile,
+                        availableForHire: !profile.availableForHire,
+                      })
+                    }
+                    className="text-xs h-8"
+                  >
+                    {profile.availableForHire ? "Tersedia (Aktif)" : "Sedang Penuh (Nonaktif)"}
+                  </Button>
                 </div>
-                <Button
-                  type="button"
-                  variant={profile.availableForHire ? "default" : "outline"}
-                  size="sm"
-                  onClick={() =>
-                    setProfile({
-                      ...profile,
-                      availableForHire: !profile.availableForHire,
-                    })
-                  }
-                  className="text-xs h-8"
-                >
-                  {profile.availableForHire ? "Tersedia (Aktif)" : "Sedang Penuh (Nonaktif)"}
-                </Button>
+
+                {/* Label badge ketersediaan — teks hijau di Hero Section profile.
+                    Kosongkan untuk memakai teks bawaan bahasa (i18n). */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="availabilityBadge" className="text-xs font-medium">
+                      Label Badge Ketersediaan (ID)
+                    </Label>
+                    <Input
+                      id="availabilityBadge"
+                      value={profile.availabilityBadge || ""}
+                      onChange={(e) =>
+                        setProfile({ ...profile, availabilityBadge: e.target.value })
+                      }
+                      className="text-xs font-mono"
+                      placeholder="Contoh: Full-time // Freelance // Konsultasi Proyek"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Tampil di badge hijau Hero. Kosongkan untuk teks bawaan.
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="availabilityBadgeEn" className="text-xs font-medium">
+                      Label Badge Ketersediaan (EN)
+                    </Label>
+                    <Input
+                      id="availabilityBadgeEn"
+                      value={profile.availabilityBadgeEn || ""}
+                      onChange={(e) =>
+                        setProfile({ ...profile, availabilityBadgeEn: e.target.value })
+                      }
+                      className="text-xs font-mono"
+                      placeholder="e.g. Full-time // Freelance // Project Consulting"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Bila kosong, mode EN memakai label ID.
+                    </p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

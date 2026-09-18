@@ -323,7 +323,7 @@ export default function AdminArticlesPage() {
         </div>
 
         <div className="rounded-md border border-border overflow-x-auto">
-          <Table>
+          <Table className="admin-table">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[80px]">Cover</TableHead>
@@ -392,7 +392,7 @@ export default function AdminArticlesPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="admin-cell-meta">
                       {article.published ? (
                         <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[11px]">
                           Terbit
@@ -403,7 +403,7 @@ export default function AdminArticlesPage() {
                         </Badge>
                       )}
                       {isScheduled(article) && (
-                        <Badge variant="outline" className="ml-1 text-amber-600 dark:text-amber-400 border-amber-500/40 text-[11px]">
+                        <Badge variant="outline" className="text-amber-600 dark:text-amber-400 border-amber-500/40 text-[11px]">
                           Terjadwal
                         </Badge>
                       )}
@@ -418,7 +418,7 @@ export default function AdminArticlesPage() {
                         })}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right admin-cell-actions">
                       <div className="flex items-center justify-end gap-1">
                         <Link
                           href={`/artikel/${article.slug}`}

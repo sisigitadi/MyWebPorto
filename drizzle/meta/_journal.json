@@ -64,6 +64,13 @@
       "when": 1789499270230,
       "tag": "0008_nice_metal_master",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789645486507,
+      "tag": "0009_narrow_magneto",
+      "breakpoints": true
     }
   ]
 }

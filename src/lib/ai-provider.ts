@@ -50,8 +50,19 @@ export function getCloudAIModel(): string {
   return process.env.AI_MODEL || "gemini-2.5-flash";
 }
 
-/** Susun prompt ringkas dari konteks publik + pertanyaan user (dipotong aman). */
-export function buildCloudPrompt(query: string, ctx: LiveContext, lang: "id" | "en"): string {
+/**
+ * Susun prompt ringkas dari konteks publik + pertanyaan user (dipotong aman).
+ *
+ * `custom` (opsional): persona/instruksi tambahan dari pengaturan admin
+ * (Sigit_Bot → Prompt & Gaya Jawaban). Bila diisi, instruksi default diganti
+ * dengan milik admin; bila kosong, jatuh ke persona default.
+ */
+export function buildCloudPrompt(
+  query: string,
+  ctx: LiveContext,
+  lang: "id" | "en",
+  custom?: { systemPrompt?: string; answerStyle?: "concise" | "detailed" | "friendly" }
+): string {
   const q = query.trim().slice(0, 500);
   const skills = ctx.skills.slice(0, 12).join(", ");
   const services = ctx.services.slice(0, 8).join("; ");
@@ -63,20 +74,48 @@ export function buildCloudPrompt(query: string, ctx: LiveContext, lang: "id" | "
     .slice(0, 8)
     .map((a) => a.title)
     .join("; ");
-  const langLine =
-    lang === "en"
-      ? "Answer in English, concise (max 5 sentences), professional tone."
-      : "Jawab dalam Bahasa Indonesia, ringkas (maksimal 5 kalimat), nada profesional.";
+  const langLine = styleLine(lang, custom?.answerStyle);
+  const customBlock = custom?.systemPrompt?.trim()
+    ? `\n${custom.systemPrompt.trim().slice(0, 2000)}`
+    : defaultPersonaLine(ctx, lang);
   return [
     `You are Sigit_Bot, AI assistant for ${ctx.ownerName}'s portfolio website (${ctx.headline}).`,
+    customBlock,
     `Public catalog — skills: ${skills}.`,
     `Services: ${services}.`,
     `Projects: ${projects}.`,
     `Articles: ${articles}.`,
-    "Only answer questions about the owner, skills, services, projects, articles, or hiring contact. For anything else, politely redirect to those topics.",
+    "Only answer questions about the owner, skills, services, projects, articles, hiring contact, or general technology topics. For anything else, politely redirect to those topics.",
     langLine,
     `Visitor question: ${q}`,
   ].join("\n");
+}
+
+/** Baris instruksi bahasa + gaya jawaban (dipakai prompt & messages). */
+function styleLine(
+  lang: "id" | "en",
+  style?: "concise" | "detailed" | "friendly"
+): string {
+  const s = style || "concise";
+  if (lang === "en") {
+    if (s === "detailed")
+      return "Answer in English, structured and informative (3-6 short paragraphs or bullets), professional tone.";
+    if (s === "friendly")
+      return "Answer in English, warm and friendly tone, concise (max 5 sentences).";
+    return "Answer in English, concise (max 5 sentences), professional tone.";
+  }
+  if (s === "detailed")
+    return "Jawab dalam Bahasa Indonesia, terstruktur dan informatif (3-6 paragraf/poin pendek), nada profesional.";
+  if (s === "friendly")
+    return "Jawab dalam Bahasa Indonesia, nada hangat dan ramah, ringkas (maksimal 5 kalimat).";
+  return "Jawab dalam Bahasa Indonesia, ringkas (maksimal 5 kalimat), nada profesional.";
+}
+
+/** Persona default bila admin tidak mengisi Prompt di pengaturan Cloud AI. */
+function defaultPersonaLine(ctx: LiveContext, lang: "id" | "en"): string {
+  return lang === "en"
+    ? `Persona: helpful, knowledgeable assistant for ${ctx.ownerName}'s portfolio. You may also answer general technology questions (web development, AI, tools, best practices).`
+    : `Persona: asisten yang membantu dan berpengetahuan untuk portofolio ${ctx.ownerName}. Anda juga boleh menjawab pertanyaan teknologi umum (pengembangan web, AI, tools, best practice).`;
 }
 
 /**
@@ -87,7 +126,8 @@ export function buildCloudPrompt(query: string, ctx: LiveContext, lang: "id" | "
 export function buildCloudMessages(
   query: string,
   ctx: LiveContext,
-  lang: "id" | "en"
+  lang: "id" | "en",
+  custom?: { systemPrompt?: string; answerStyle?: "concise" | "detailed" | "friendly" }
 ): { role: "system" | "user"; content: string }[] {
   const q = query.trim().slice(0, 500);
   const skills = ctx.skills.slice(0, 12).join(", ");
@@ -100,17 +140,18 @@ export function buildCloudMessages(
     .slice(0, 8)
     .map((a) => a.title)
     .join("; ");
-  const langLine =
-    lang === "en"
-      ? "Answer in English, concise (max 5 sentences), professional tone."
-      : "Jawab dalam Bahasa Indonesia, ringkas (maksimal 5 kalimat), nada profesional.";
+  const langLine = styleLine(lang, custom?.answerStyle);
+  const customBlock = custom?.systemPrompt?.trim()
+    ? `\n${custom.systemPrompt.trim().slice(0, 2000)}`
+    : defaultPersonaLine(ctx, lang);
   const system = [
     `You are Sigit_Bot, AI assistant for ${ctx.ownerName}'s portfolio website (${ctx.headline}).`,
+    customBlock,
     `Public catalog — skills: ${skills}.`,
     `Services: ${services}.`,
     `Projects: ${projects}.`,
     `Articles: ${articles}.`,
-    "Only answer questions about the owner, skills, services, projects, articles, or hiring contact. For anything else, politely redirect to those topics.",
+    "Only answer questions about the owner, skills, services, projects, articles, hiring contact, or general technology topics. For anything else, politely redirect to those topics.",
     langLine,
   ].join("\n");
   return [

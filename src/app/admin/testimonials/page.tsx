@@ -339,7 +339,7 @@ export default function AdminTestimonialsPage() {
       {/* Testimonials Table */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="admin-table">
             <TableHeader>
               <TableRow className="bg-muted/40 hover:bg-muted/40">
                 <TableHead className="text-xs font-semibold">Klien</TableHead>
@@ -409,7 +409,7 @@ export default function AdminTestimonialsPage() {
                         &#34;{item.content}&#34;
                       </p>
                     </TableCell>
-                    <TableCell className="py-3">
+                    <TableCell className="py-3 admin-cell-meta">
                       <Badge
                         variant="outline"
                         className={`text-[10px] font-medium ${
@@ -421,7 +421,7 @@ export default function AdminTestimonialsPage() {
                         {item.published ? "Diterbitkan" : "Draft"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-3 text-right">
+                    <TableCell className="py-3 text-right admin-cell-actions">
                       <div className="flex items-center justify-end gap-1">
                         <Button
                           variant="ghost"

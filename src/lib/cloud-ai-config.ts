@@ -23,6 +23,13 @@ export interface StoredCloudAIConfig {
   apiKey?: string;
   model?: string;
   baseUrl?: string;
+  /**
+   * Instruksi/persona tambahan untuk Sigit_Bot (opsional). Disisipkan ke system
+   * prompt bila diisi; bila kosong, pakai persona default (lihat ai-provider.ts).
+   */
+  systemPrompt?: string;
+  /** Gaya jawaban: "concise" (default) | "detailed" | "friendly". */
+  answerStyle?: "concise" | "detailed" | "friendly";
 }
 
 export interface ResolvedCloudAIConfig {
@@ -30,6 +37,8 @@ export interface ResolvedCloudAIConfig {
   apiKey: string;
   model: string;
   baseUrl: string;
+  systemPrompt: string;
+  answerStyle: "concise" | "detailed" | "friendly";
   /** Asal nilai efektif — ditampilkan di UI agar admin tahu mana yang dipakai. */
   source: "admin" | "env";
 }
@@ -59,13 +68,19 @@ export async function resolveCloudAIConfig(): Promise<ResolvedCloudAIConfig> {
     (provider === "openai" ? process.env.OPENAI_MODEL : process.env.AI_MODEL) ||
     (provider === "openai" ? "gpt-4o-mini" : "gemini-2.5-flash")
   ).trim();
+  const systemPrompt = (stored?.systemPrompt || "").trim();
+  const styleRaw = (stored?.answerStyle || "").toLowerCase();
+  const answerStyle: "concise" | "detailed" | "friendly" =
+    styleRaw === "detailed" || styleRaw === "friendly" ? styleRaw : "concise";
 
   return {
     provider,
     apiKey,
     model,
     baseUrl,
-    source: stored && (stored.provider || stored.apiKey || stored.model || stored.baseUrl) ? "admin" : "env",
+    systemPrompt,
+    answerStyle,
+    source: stored && (stored.provider || stored.apiKey || stored.model || stored.baseUrl || stored.systemPrompt) ? "admin" : "env",
   };
 }
 
@@ -83,6 +98,8 @@ export interface AdminCloudAIView {
   maskedKey: string;
   model: string;
   baseUrl: string;
+  systemPrompt: string;
+  answerStyle: "concise" | "detailed" | "friendly";
   source: "admin" | "env";
 }
 
@@ -101,6 +118,8 @@ export async function getCloudAIConfigForAdmin(): Promise<AdminCloudAIView> {
     maskedKey: maskKey(cfg.apiKey),
     model: cfg.model,
     baseUrl: cfg.baseUrl,
+    systemPrompt: cfg.systemPrompt,
+    answerStyle: cfg.answerStyle,
     source: cfg.source,
   };
 }
@@ -119,8 +138,15 @@ export async function saveCloudAIConfig(input: StoredCloudAIConfig): Promise<voi
   const model = (input.model || "").trim().slice(0, 64);
   const baseUrl = (input.baseUrl || "").trim().slice(0, 256).replace(/\/+$/, "");
   const apiKey = (input.apiKey || "").trim().slice(0, 256);
+  // systemPrompt dibatasi 2000 char (cukup untuk persona + konteks; prompt
+  // penuh katalog publik tetap dibangun server-side, lihat ai-provider.ts).
+  const systemPrompt = (input.systemPrompt || "").trim().slice(0, 2000);
+  const styleRaw = (input.answerStyle || "").toLowerCase();
+  const answerStyle: "concise" | "detailed" | "friendly" =
+    styleRaw === "detailed" || styleRaw === "friendly" ? styleRaw : "concise";
 
-  const next: StoredCloudAIConfig = { provider, model, baseUrl };
+  const next: StoredCloudAIConfig = { provider, model, baseUrl, answerStyle };
+  if (systemPrompt) next.systemPrompt = systemPrompt;
   if (apiKey) {
     // Hanya simpan key baru bila diisi; string kosong = jangan ubah.
     next.apiKey = apiKey;
