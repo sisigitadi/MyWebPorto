@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useInsertionEffect,
+  useRef,
+  useCallback,
+} from "react";
 import {
   User,
   Briefcase,
@@ -446,10 +452,7 @@ export function OSDesktopManager({
   }, [viewMode, scrollToSection, switchApp]);
 
   // Ref callback container scroll: selain menyimpan ref, daftarkan elemen ini
-  // sebagai scroller GSAP ScrollTrigger. Ref callback React berjalan pada fase
-  // commit SEBELUM useLayoutEffect anak-anak (useGSAP di tiap section), jadi
-  // semua ScrollTrigger yang dibuat section membaca scroller yang benar —
-  // container internal ini di mobile, container window di desktop.
+  // sebagai scroller GSAP ScrollTrigger.
   const bindMobileScroller = React.useCallback((el: HTMLDivElement | null) => {
     mobileScrollRef.current = el;
     setGsapScroller(el);
@@ -459,6 +462,31 @@ export function OSDesktopManager({
     scrollContainerRef.current = el;
     setGsapScroller(el);
   }, []);
+
+  // PENTING — urutan commit React vs GSAP:
+  // ScrollTrigger membaca scroller dari ScrollTrigger.defaults() saat trigger
+  // DIBUAT (lihat _setDefaults(vars, _defaults) di ScrollTrigger.js). Trigger
+  // section dibuat di useGSAP = useLayoutEffect. React menjalankan layout
+  // effect ANAK sebelum INDUK, sementara ref callback container (induk) baru
+  // berjalan di akhir fase layout — terlambat. Akibatnya di produksi (tanpa
+  // double-invoke StrictMode dev) semua trigger section terikat ke window/
+  // document, yang tidak pernah scroll di mode ini → toggleActions "play"
+  // tidak pernah memicu → kartu menetap di opacity 0 (gsap.from) → section
+  // tampak "blank putih" setelah judul+deskripsi.
+  //
+  // useInsertionEffect berjalan di fase mutation — sebelum SELURUH layout
+  // effect — dan saat ia jalan node container sudah terpasang di DOM. Ref
+  // belum terisi di fase ini, jadi kita ambil elemen lewat atribut data yang
+  // spesifik per mode (tidak ambigu saat kedua mode transit pada resize).
+  useInsertionEffect(() => {
+    if (!mounted) return;
+    const sel =
+      viewMode === "mobile"
+        ? "[data-gsap-scroller='mobile']"
+        : "[data-gsap-scroller='desktop']";
+    const el = document.querySelector(sel);
+    if (el instanceof HTMLDivElement) setGsapScroller(el);
+  }, [viewMode, mounted]);
 
   // Jembatan lintas-mode: event "switch-os-app" (dari RetroBot, hero CONTACT,
   // terminal) → desktop switchApp, mobile scrollToSection.
@@ -549,6 +577,7 @@ export function OSDesktopManager({
       <div className="flex-1 w-full h-full flex flex-col overflow-hidden relative select-none">
         <div
           ref={bindMobileScroller}
+          data-gsap-scroller="mobile"
           // Sama seperti body window mode desktop (lihat bawah): kanvas section
           // harus --vt-paper + --vt-ink. Tanpa ini, background jatuh ke
           // body{--vt-desktop} (navy gelap) → judul section ber-teks --vt-ink
@@ -842,6 +871,7 @@ export function OSDesktopManager({
             {!isMinimized && (
               <div
                 ref={bindDesktopScroller}
+                data-gsap-scroller="desktop"
                 className="flex-1 overflow-y-auto vt-scrollbar bg-[var(--vt-paper)] text-[var(--vt-ink)] p-2 sm:p-3 md:p-6"
               >
                 {activeApp === "profil" && <HeroSection profile={profile} />}
