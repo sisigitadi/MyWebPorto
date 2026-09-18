@@ -168,6 +168,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
               <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
               <select
                 value={sortBy}
+                aria-label={language === "en" ? "Sort products" : "Urutkan produk"}
                 onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
                 className="bg-[var(--vt-paper)] border border-[var(--vt-edge-lo-2)] rounded-xs px-2.5 py-1.5 text-xs outline-none font-bold text-[var(--vt-ink)] cursor-pointer"
               >

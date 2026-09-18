@@ -4,6 +4,20 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [v2.10.0] - 2026-09-18
 
+### Fixed — Regresi a11y di Lighthouse CI (2026-09-18)
+- Fixed: **`aria-hidden-focus`** — container lapisan RetroBot
+  (`fixed inset-0 z-50`) memakai `aria-hidden="true"` saat panel tertutup,
+  padahal tombol avatar (aria-label tooltip) & tombol dismiss greeting tetap
+  **focusable** di dalamnya (WCAG 1.4.2). `aria-hidden` dihapus dari container;
+  dekorasi (scan ring, radar ping, burst partikel) sudah punya `aria-hidden`
+  sendiri; panel terbuka punya `role="dialog"` + `aria-label`.
+- Fixed: **`color-contrast`** badge "ACTIVE"/"AKTIF" di services section —
+  `text-emerald-600` di atas `--vt-paper` ≈3.0:1 (butuh 4.5:1 untuk teks
+  kecil). Diganti `text-emerald-800` (≈7:1, AAA).
+- Fixed: **`select-name`** — sort select katalog toko & theme select menubar
+  tak punya accessible name (atribut `title` saja tidak memenuhi audit).
+  Keduanya dapat `aria-label` (localized).
+
 ### Changed — Default speaker Terminal ON (2026-09-18)
 - Changed: state `ttsOn` di `os-crt-terminal.tsx` kini inisial `true` —
   speaker (text-to-speech) Terminal aktif sejak halaman dimuat. Tombol
