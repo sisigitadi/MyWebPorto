@@ -104,6 +104,7 @@ export function OSMenubar({ profile }: OSMenubarProps) {
           <div className="block relative">
             <select
               value={theme}
+              aria-label={t.os_theme_tooltip}
               onChange={(e) => setTheme(e.target.value as OSTheme)}
               className="vt-btn vt-btn-chrome px-1.5 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-[13px] font-bold appearance-none cursor-pointer bg-transparent text-[var(--vt-ink)] hover:-translate-y-0.5 hover:text-indigo-500 transition-all shadow-sm max-w-[70px] xs:max-w-[76px] sm:max-w-none truncate"
               title={t.os_theme_tooltip}

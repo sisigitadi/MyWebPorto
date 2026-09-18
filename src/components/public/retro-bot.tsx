@@ -684,11 +684,13 @@ export function RetroBot() {
   }, [isOpen, position]);
 
   return (
-    // aria-hidden hanya saat panel TERTUTUP: container ini hanya wadah untuk
-    // avatar & panel; bila panel terbuka, isinya harus dapat diakses screen
-    // reader. Sebelumnya aria-hidden selalu true → fokus di dalam panel
-    // disembunyikan dari AT (warning "Blocked aria-hidden").
-    <div className="fixed inset-0 z-50 pointer-events-none select-none" aria-hidden={isOpen ? undefined : "true"}>
+    // Tanpa aria-hidden di container: tombol avatar (aria-label tooltip) &
+    // tombol dismiss greeting tetap focusable di dalam layer ini saat panel
+    // tertutup — aria-hidden="true" pada ancestor focusable melanggar WCAG
+    // (audit Lighthouse aria-hidden-focus). Dekorasi (scan ring, radar ping,
+    // burst partikel) sudah punya aria-hidden sendiri; panel terbuka punya
+    // role="dialog" + aria-label.
+    <div className="fixed inset-0 z-50 pointer-events-none select-none">
       {/* Panel chat (expanded) — mengikuti posisi avatar (panelGeo) */}
       {isOpen && (
         <div
