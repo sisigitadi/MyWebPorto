@@ -3,6 +3,7 @@
 Dokumen ini menjelaskan **postur keamanan**, langkah hardening yang diterapkan, threat model, dan cara melaporkan kerentanan pada **MyWebPorto**.
 
 > **Versi hardening:** 2026-09-12 (v2) — mencakup CSP v2, validasi max-length, rate-limit admin-only IndexNow, header COOP/CORP, dan sanitasi error v2.
+> **Dokumen terakhir diperbarui:** 2026-09-18 — koreksi §3.2 CSP (domain Clerk dari publishable key), checklist §4 redirect-loop `SIGN_IN_URL`, audit §5 via `scripts/check-clerk-login.mjs`. Lihat §7.
 
 ---
 
@@ -19,7 +20,7 @@ Dokumen ini menjelaskan **postur keamanan**, langkah hardening yang diterapkan, 
 
 | Aset | Ancaman Utama | Kontrol |
 |------|---------------|---------|
-| `/admin/*`, Server Actions CRUD | Broken Access Control (A01) | Clerk + `ADMIN_CLERK_ID` single-owner + `verifyAdmin()` di **semua** mutasi |
+| `/admin/*`, Server Actions CRUD | Broken Access Control (A01) | Clerk + `ADMIN_CLERK_ID` single-owner + `verifyAdmin()` di **semua** mutasi; non-admin 404; `SIGN_IN_URL` wajib `/sign-in` (lihat §4) |
 | `socialLinks`, URL, slug, upload | Injection / XSS (A03) | Zod `safeUrlSchema` + max-length + slug regex + magic-bytes + `safeJsonLd` |
 | Header / CSP / HSTS | Misconfiguration (A05) | Header ketat di `next.config.ts` (HSTS 2 tahun, CSP, COOP/CORP, Permissions-Policy) |
 | `POST /api/indexnow` | Abuse / SSRF / DoS | Admin-only + rate-limit 5/60s/IP + host allowlist + max 100 URLs + payload 10KB |
@@ -49,14 +50,16 @@ Out of scope: infra pihak ketiga (Clerk, Vercel, Neon, Bunny, Formspree), social
   - **Max-length** di semua field (headline 200, bio 5000, title 150, slug 100, content 50000, dll.) untuk cegah DoS via payload raksasa.
   - **Slug regex** `^[a-z0-9]+(?:-[a-z0-9]+)*$` — cegah path traversal / `../`.
   - `techStacks` max 30, `tags` max 20, `skills` max 50.
-- **CSP ketat** (`next.config.ts:25`):
+- **CSP ketat** (`next.config.ts`):
   - `default-src 'self'`
-  - `script-src 'self' 'unsafe-inline' https://*.clerk.accounts.dev https://clerk.com` — **`unsafe-eval` dihapus** (hanya diperlukan di dev).
+  - `script-src 'self' 'unsafe-inline' <domain Clerk> https://*.clerk.accounts.dev https://clerk.com` — **domain Clerk diturunkan dari publishable key saat build** (lihat catatan di bawah), bukan hardcode. **`unsafe-eval` dihapus** (hanya diperlukan di dev).
   - `worker-src 'self' blob:` — Clerk butuh blob worker.
   - `style-src 'self' 'unsafe-inline'` (Tailwind), `font-src 'self' data:` (next/font self-host).
   - `img-src 'self' data: https: blob:`.
-  - `connect-src` terbatas ke IndexNow, Clerk, Formspree.
-  - `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'self'`, `upgrade-insecure-requests`.
+  - `connect-src` terbatas ke IndexNow, Clerk, Formspree, visitor-tracker.
+  - `frame-src 'self' <domain Clerk> https://challenges.cloudflare.com` — Clerk butuh iframe handshake OAuth.
+  - `object-src 'none'`, `base-uri 'self'`, `form-action 'self' https://formspree.io`, `frame-ancestors 'self'`, `report-uri` → visitor-tracker (`/csp-report`), `upgrade-insecure-requests`.
+  - **Catatan domain Clerk (pernah menyebabkan bug):** publishable key berformat `pk_<live|test>_<base64 domain Frontend API>`. Pada akun dengan **custom domain**, domainnya BUKAN `*.clerk.accounts.dev` (mis. `clerk.sigitadi.id`). Hardcode hanya wildcard itu membuat `clerk.browser.js` diblokir CSP → komponen `<SignIn />` tidak pernah render ("tidak ada pilihan login"). Bug ini **tidak terlihat di dev** karena key dev memang cocok wildcard. Bagian base64 juga sering membawa sufiks non-host (mis. `$`) yang membuat source CSP tidak valid → browser mengabaikannya → script tetap diblokir; karena itu hanya karakter host yang valid yang diambil. Verifikasi dengan browser asli, bukan cek string (lihat `scripts/check-clerk-login.mjs`).
 - **Upload** (`src/lib/local-upload.ts`):
   - SVG **blacklist** (inline `<script>`).
   - **Magic-bytes** diverifikasi (JPEG/PNG/WEBP/GIF/AVIF/BMP).
@@ -68,7 +71,7 @@ Out of scope: infra pihak ketiga (Clerk, Vercel, Neon, Bunny, Formspree), social
 - **Error sanitasi** (`src/lib/error-utils.ts:6`): allowlist pesan aman + `slice(0,500)` + `console.error` mask internal.
 
 ### 3.3 OWASP A05 — Security Misconfiguration
-Header lengkap di `next.config.ts:25`:
+Header lengkap di `next.config.ts` (`headers()`, baris 38):
 - `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload` (2 tahun)
 - `X-Content-Type-Options: nosniff`
 - `X-Frame-Options: SAMEORIGIN`
@@ -113,6 +116,11 @@ Header lengkap di `next.config.ts:25`:
 
 - [ ] `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` & `CLERK_SECRET_KEY` = **live** (bukan `pk_test_xxxx`), `ADMIN_CLERK_ID` terisi valid.
   - **Wajib `pk_live_`** — `pk_test_` memakai domain `*.clerk.accounts.dev` yang me-redirect **Googlebot ke handshake Clerk di setiap rute** (termasuk `/robots.txt` & `/sitemap.xml`). Google melaporkannya sebagai **"Redirect error"** dan halaman tidak terindeks. Jika GSC melaporkan redirect error, ini penyebab pertama yang harus diperiksa.
+  - **Domain CSP diturunkan dari key ini** — key live dengan custom domain (mis. `clerk.sigitadi.id`) menghasilkan source CSP yang berbeda dari key dev. Lihat §3.2 catatan domain Clerk.
+- [ ] **`NEXT_PUBLIC_CLERK_SIGN_IN_URL` / `SIGN_UP_URL` = `/sign-in` / `/sign-up`** — BUKAN `/admin`.
+  - Variabel ini adalah **halaman login** (tujuan *sebelum* otentikasi). Jika diisi `/admin`, `auth.protect()` mengalihkan user belum-login ke `/admin`, yang balik memicu proteksi → **redirect loop tak terbatas** (`ERR_TOO_MANY_REDIRECTS`) di `/admin/*`.
+  - Tujuan *setelah* login adalah variabel terpisah: `CLERK_SIGN_IN_FORCE_REDIRECT_URL` / `FALLBACK_REDIRECT_URL` = `/admin` (memang benar `/admin` di sini).
+  - **Jebakan diagnostik:** curl ke `/admin` mengembalikan **404** (bukan redirect) karena `auth.protect()` memperlakukan client non-browser berbeda. Gejala aslinya hanya terlihat di **browser asli** — tes dengan header `Sec-Fetch-Mode: navigate` + `Sec-Fetch-Dest: document`, atau langsung pakai Playwright. Jangan diagnosa redirect loop ini dengan curl polos.
 - [ ] `DATABASE_URL` prod (Neon `sslmode=require`), sudah `npm run db:push`.
 - [ ] `NEXT_PUBLIC_APP_URL` = domain prod (tanpa trailing slash).
 - [ ] `INDEXNOW_KEY` ganti dari default `e5b871c...` (di `.env`, jangan commit).
@@ -135,7 +143,11 @@ npm outdated
 npm run lint && npm run build
 # Cek header prod
 curl -I https://domainanda.com/ | grep -i -E "strict|csp|x-frame|permissions"
+# Verifikasi Clerk: OAuth aktif, portal, CSP tidak blokir script (browser asli)
+node scripts/check-clerk-login.mjs
 ```
+
+`scripts/check-clerk-login.mjs` membandingkan instance Clerk di `.env.local` vs situs live (publishable key), mengecek `oauth_google`/password aktif, akses Account Portal, lalu merender `/sign-in` & `/sign-up` di **browser asli** untuk memastikan tidak ada request Clerk yang diblokir CSP. Jalankan setiap kali mengubah key Clerk, domain, atau header CSP.
 
 ---
 
@@ -151,6 +163,7 @@ curl -I https://domainanda.com/ | grep -i -E "strict|csp|x-frame|permissions"
 
 | Tanggal | Perubahan |
 |---------|-----------|
+| 2026-09-18 | **Koreksi dokumentasi** (bukan perubahan kode): §3.2 CSP `script-src` diperbaiki — domain Clerk diturunkan dari publishable key saat build (bukan hardcode `*.clerk.accounts.dev`); §4 tambah checklist `NEXT_PUBLIC_CLERK_SIGN_IN_URL` ≠ `/admin` (redirect loop) + catatan curl menyesatkan; §5 tambah `scripts/check-clerk-login.mjs` |
 | 2026-09-12 v2 | CSP hapus `unsafe-eval`, tambah COOP/CORP, Cache-Control admin/api, validation max-length+slug regex, IndexNow admin-only (5/60s) + max 100 URLs, error sanitasi allowlist diperluas, middleware `x-request-id` |
 | 2026-09-11 v1 | CSP awal, magic-bytes upload, safeJsonLd, rate-limit 10/60s, verifyAdmin, sanitizeError |
 
