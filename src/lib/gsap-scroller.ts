@@ -16,12 +16,22 @@
  * benar tanpa mengubah satu baris pun di komponen section.
  *
  * Alur lengkap saat mode berganti:
- *  1. ref callback container baru terpanggil → setGsapScroller(el)
- *     → update module state + ScrollTrigger.defaults() + refresh().
- *  2. Mode lama unmount → ref callback null → container lama dicabut (jika
+ *  1. useInsertionEffect os-desktop-manager (fase mutation) →
+ *     setGsapScroller(el) → ScrollTrigger.defaults({ scroller }) TERPASANG
+ *     sebelum fase layout dimulai. Ref belum siap di fase mutation, jadi
+ *     elemennya dicari lewat atribut [data-gsap-scroller].
+ *  2. useGSAP section (useLayoutEffect, fase layout) menjalankan gsap.from
+ *     → trigger baru membaca defaults → terikat ke container yang benar.
+ *  3. ref callback container (fase layout, setelah anak-anak) →
+ *     setGsapScroller(el) lagi (idempoten) + menjaga tracking untuk unmount.
+ *  4. Mode lama unmount → ref callback null → container lama dicabut (jika
  *     masih mencatat dirinya).
- *  3. useGSAP section (useLayoutEffect) berjalan SETELAH ref commit →
- *     otomatis mewarisi scroller terbaru dari defaults.
+ *
+ * CATATAN: ref callback induk TIDAK boleh jadi satu-satunya titik registrasi.
+ * React menjalankan layout effect ANAK sebelum INDUK, jadi bila hanya daftar
+ * di ref, trigger section (anak) sudah dibuat lebih dulu dengan scroller
+ * window — di produksi (tanpa double-invoke StrictMode) tidak pernah
+ * diperbaiki dan kartu menetap di opacity 0.
  */
 
 import { gsap } from "gsap";
