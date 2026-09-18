@@ -1239,10 +1239,19 @@ function clearSettings(): void {
 }
 
 /**
- * Section kontak (id="kontak") selalu ada di DOM — textContent bisa dibaca
- * terlepas dari visibility jendela OS. ?lang= menentukan bahasa render;
- * cachebust mem-bypass route cache 60 detik (di produksi cache dimurnikan
- * oleh revalidatePath("/", "layout") di saveUIStringsAction).
+ * Viewport MOBILE wajib: di mode desktop (<768px kebalikannya), os-desktop-manager
+ * hanya merender section app AKTIF (line ~906: `{activeApp === "kontak" && …}`),
+ * jadi #kontak tidak ada di DOM kecuali jendela kontak sedang terbuka. Di mode
+ * mobile (<768px) SELURUH section dirender dalam satu dokumen scroll
+ * (scrollSections.map, line ~600-644) — #kontak selalu ada.
+ */
+test.use({ viewport: { width: 375, height: 740 } });
+
+/**
+ * Section kontak (id="kontak") selalu ada di DOM mode mobile — textContent
+ * bisa dibaca terlepas dari boot overlay 5 detik. ?lang= menentukan bahasa
+ * render; cachebust mem-bypass route cache 60 detik (di produksi cache
+ * dimurnikan oleh revalidatePath("/", "layout") di saveUIStringsAction).
  */
 let urlSeq = 0;
 function freshUrl(lang: "id" | "en"): string {
@@ -1293,7 +1302,12 @@ test.describe("God Mode: settings.ui_strings mengendalikan teks publik", () => {
 Run: `npm run test:e2e:godmode`
 Expected: PASS 3 test (plus 4 test Fase 1 yang ikut berjalan — konfigurasi yang sama).
 
-Bila `#kontak` tidak ditemukan dalam DOM (mis. section hanya dirender saat app aktif), ganti selector ke elemen yang selalu ada: taskbar mengandung label `aria-label`; bila perlu, targetkan `page.locator("text=…")` pada teks yang dipakai di menubar (mis. `os_start_contact`). Catat selector pengganti yang dipakai di komentar spec.
+Bila `#kontak` tidak ditemukan dalam DOM, periksa: (1) viewport test benar <768px
+(lihat catatan `test.use` di atas — mode desktop hanya merender app aktif);
+(2) kontak tidak sedang dimatikan di settings.os_apps (default: aktif). Bila
+viewport mobile pun tidak mempan, fallback: buka app kontak via taskbar mobile
+(satu ikon section aktif) atau Start Menu desktop, lalu baca teks dari
+`[data-app-id="kontak"]`.
 
 - [ ] **Step 4: Commit**
 
