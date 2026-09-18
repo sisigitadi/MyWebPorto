@@ -24,23 +24,23 @@ export function OSMenubar({ profile }: OSMenubarProps) {
   const [shortDate, setShortDate] = useState("");
   const [fullDate, setFullDate] = useState("");
 
-  // Tanggal format dd/mm/yyyy
+  // Tanggal format dd/mm/yyyy (mobile: dd/mm/yy — lihat catatan render di
+  // bawah kenapa tahun 4 digit tidak muat di layar sempit).
   useEffect(() => {
     const updateDate = () => {
       const now = new Date();
       const dd = String(now.getDate()).padStart(2, "0");
       const mm = String(now.getMonth() + 1).padStart(2, "0");
       const yyyy = now.getFullYear();
-      const formatted = `${dd}/${mm}/${yyyy}`;
-      setShortDate(formatted);
-      setFullDate(formatted);
+      setShortDate(`${dd}/${mm}/${String(yyyy).slice(2)}`);
+      setFullDate(`${dd}/${mm}/${yyyy}`);
     };
     updateDate();
   }, []);
 
   return (
     <header className="sticky top-0 z-50 w-full bg-[var(--vt-chrome)] border-b-2 border-[#5a5750] shadow-[0_2px_8px_rgba(0,0,0,0.35)] select-none">
-      <div className="max-w-7xl mx-auto px-1.5 sm:px-4 flex items-center justify-between h-10 sm:h-12 md:h-14 gap-1 sm:gap-2 md:gap-4">
+      <div className="max-w-7xl mx-auto px-1.5 sm:px-4 flex items-center justify-between h-10 sm:h-12 md:h-14 gap-1 sm:gap-2 md:gap-4 overflow-x-auto vt-menubar-scroll">
         {/* Left Side: Retro System OS Branding & Status */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           <div
@@ -91,10 +91,12 @@ export function OSMenubar({ profile }: OSMenubarProps) {
           <button
             type="button"
             onClick={() => setLanguage(language === "id" ? "en" : "id")}
-            className="group vt-btn vt-btn-chrome px-2 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-[13px] font-bold text-[var(--vt-ink)] flex items-center gap-1 sm:gap-1.5 cursor-pointer hover:-translate-y-0.5 hover:text-sky-500 transition-all shadow-sm"
+            className="group vt-btn vt-btn-chrome px-1.5 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-[13px] font-bold text-[var(--vt-ink)] flex items-center gap-1 sm:gap-1.5 cursor-pointer hover:-translate-y-0.5 hover:text-sky-500 transition-all shadow-sm"
             title={t.os_lang_tooltip}
           >
-            <Globe className="h-3.5 w-3.5 sm:h-4.5 sm:w-4.5 text-primary group-hover:scale-110 group-hover:rotate-12 transition-all" />
+            {/* Ikon globe disembunyikan di mobile: header kanan sempit (language
+              + theme + tanggal di <400px), label "ID"/"EN" saja sudah jelas. */}
+            <Globe className="hidden sm:block h-3.5 w-3.5 sm:h-4.5 sm:w-4.5 text-primary group-hover:scale-110 group-hover:rotate-12 transition-all" />
             <span>{language.toUpperCase()}</span>
           </button>
 
@@ -103,7 +105,7 @@ export function OSMenubar({ profile }: OSMenubarProps) {
             <select
               value={theme}
               onChange={(e) => setTheme(e.target.value as OSTheme)}
-              className="vt-btn vt-btn-chrome px-2 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-[13px] font-bold appearance-none cursor-pointer bg-transparent text-[var(--vt-ink)] hover:-translate-y-0.5 hover:text-indigo-500 transition-all shadow-sm max-w-[92px] sm:max-w-none truncate"
+              className="vt-btn vt-btn-chrome px-1.5 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-[13px] font-bold appearance-none cursor-pointer bg-transparent text-[var(--vt-ink)] hover:-translate-y-0.5 hover:text-indigo-500 transition-all shadow-sm max-w-[70px] xs:max-w-[76px] sm:max-w-none truncate"
               title={t.os_theme_tooltip}
             >
               <option value="retro90s" className="bg-[var(--vt-chrome)] text-foreground">90s Retro</option>
@@ -115,7 +117,7 @@ export function OSMenubar({ profile }: OSMenubarProps) {
 
           {/* Digital Date (dd/mm/yyyy) */}
           <div
-            className="group vt-card-inset px-2 sm:px-3 py-0.5 sm:py-1 bg-[var(--vt-paper)] font-pixel text-[11px] sm:text-[13px] tracking-wider text-[var(--vt-ink)] font-bold flex items-center gap-1.5 shadow-inner shrink-0 hover:bg-emerald-50 transition-colors dark:hover:bg-emerald-950/30 cursor-default"
+            className="group vt-card-inset px-1.5 sm:px-3 py-0.5 sm:py-1 bg-[var(--vt-paper)] font-pixel text-[11px] sm:text-[13px] tracking-wider text-[var(--vt-ink)] font-bold hidden xs:flex items-center gap-1 sm:gap-1.5 shadow-inner shrink-0 hover:bg-emerald-50 transition-colors dark:hover:bg-emerald-950/30 cursor-default"
             title="Tanggal Hari Ini"
           >
             <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary group-hover:scale-110 group-hover:text-emerald-500 transition-all" />
@@ -124,12 +126,16 @@ export function OSMenubar({ profile }: OSMenubarProps) {
               mismatch: SSR memakai "13/09/2026", client mengisi tanggal asli
               → React warning + event handler bisa terputus, terlihat seperti
               "hang di loading / tidak masuk menu". */}
+            {/* Mobile: dd/mm/yy. Header kanan menampung language + theme +
+              tanggal di ruang sempit; tahun 4 digit ("17/09/2026") membuat
+              total lebar melebihi viewport sehingga angka tahun terpotong /
+              tidak terlihat. Tahun 2 digit tetap informatif (retro clock)
+              dan title attribute menyimpan tanggal lengkap. */}
             <span className="sm:hidden">{shortDate}</span>
             <span className="hidden sm:inline">{fullDate}</span>
           </div>
 
-          {/* User Button / Admin link */}
-          {isLoaded && isSignedIn ? (
+          {/* User Button / Admin link */}          {isLoaded && isSignedIn ? (
             <div className="flex items-center gap-1.5 ml-1">
               <Link
                 href="/admin"
@@ -139,7 +145,12 @@ export function OSMenubar({ profile }: OSMenubarProps) {
                 <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary group-hover:scale-110 mr-1 transition-all" />
                 <span>Admin</span>
               </Link>
-              <div className="hover:scale-110 transition-transform">
+              {/* UserButton (avatar Clerk) disembunyikan di mobile. Sebelumnya
+                  blok ini selalu tampil dan menambah ~113px di kanan header,
+                  sehingga header overflow horizontal → tanggal "17/09/2026"
+                  terpotong dan angka tahun tidak terlihat. Akses admin di
+                  mobile tetap bisa lewat /admin langsung. */}
+              <div className="hidden sm:block hover:scale-110 transition-transform">
                 <UserButton />
               </div>
             </div>

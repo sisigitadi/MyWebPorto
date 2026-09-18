@@ -226,6 +226,10 @@
   --font-pixel: var(--font-silkscreen), monospace;
   --font-mono: var(--font-azeret-mono), monospace;
   --font-display: var(--font-unbounded), var(--font-space-grotesk), sans-serif;
+
+  /* Breakpoint xs (360px): dipakai menubar untuk menyembunyikan tanggal di
+     layar sangat sempit. Tailwind v4 tidak punya xs bawaan. */
+  --breakpoint-xs: 360px;
 }
 
 html {
@@ -383,6 +387,18 @@ body {
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
+/* Utility `hidden` Tailwind (display:none) kalah dari .vt-btn di atas
+   karena spesifisitas sama tapi CSS ini dimuat setelah Tailwind — akibatnya
+   tombol "Admin" tetap tampil di mobile dan menambah ~113px di kanan header,
+   membuat header overflow horizontal dan tanggal "17/09/2026" terpotong.
+   Naikkan spesifisitas khusus mobile; di sm+ Tailwind `sm:inline-flex`
+   harus tetap menang. */
+@media (max-width: 639px) {
+  .vt-btn.hidden {
+    display: none;
+  }
+}
+
 .vt-btn-chrome {
   background: var(--vt-chrome);
   color: var(--vt-ink);
@@ -397,6 +413,23 @@ body {
 .vt-btn-chrome,
 .vt-btn-chrome span {
   color: var(--vt-ink);
+}
+
+/* Gelembung pengguna RetroBot & aksen biru. Sebelumnya kelas ini dipakai di
+   retro-bot.tsx TANPA definisi CSS → gelembung pengguna transparan dan teks
+   putih di atas --vt-card (tidak terbaca di tema terang). */
+.vt-btn-blue {
+  background: var(--vt-blue);
+  color: #ffffff;
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.55),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.35),
+    2px 2px 0 var(--vt-drop-btn);
+}
+
+.vt-btn-blue,
+.vt-btn-blue span {
+  color: #ffffff;
 }
 
 .vt-btn-chrome:hover {
@@ -739,6 +772,16 @@ body {
   background: var(--vt-edge-hi-2);
 }
 
+/* Sama seperti .vt-btn.hidden di atas: `display:inline-flex` di kelas ini
+   mengalahkan utility Tailwind `hidden`, sehingga tombol taskbar non-aktif
+   tetap tampil di mobile. Batasi ke mobile saja — di sm+ `sm:flex` Tailwind
+   harus tetap menang agar semua 8 tombol tampil di desktop. */
+@media (max-width: 639px) {
+  .vt-taskbar-tab.hidden {
+    display: none;
+  }
+}
+
 .vt-status-banner {
   background: var(--vt-paper);
   color: var(--vt-ink);
@@ -777,6 +820,108 @@ body {
   .vt-scrollbar::-webkit-scrollbar {
     width: 3px;
     height: 3px;
+  }
+}
+
+/* ========================================================
+   MOBILE SECTION NAV RAIL (os-section-nav-bar.tsx)
+   ========================================================
+   Tab horizontal scrollable dengan label manusiawi. Muncul HANYA di
+   mobile (lg:hidden) — desktop tetap memakai dock ikon kiri SigitOS.
+   Mengikuti NN/g "Tabs, Used Right": indikator aktif tegas, tab idle
+   tetap kontras, posisi tab list di atas panel. */
+.vt-section-rail {
+  background: var(--vt-chrome);
+  border-bottom: 1px solid var(--vt-edge-lo);
+  box-shadow: inset 0 -1px 0 var(--vt-edge-hi);
+}
+
+/* Menubar (os-menubar.tsx): di mobile, header bisa overflow horizontal
+   (banyak kontrol di kanan). Bungkus dengan scrollbar tipis tak terlihat
+   sebagai pertahanan terakhir agar tanggal tidak pernah terpotong. */
+.vt-menubar-scroll {
+  scrollbar-width: none;
+}
+.vt-menubar-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* ========================================================
+   SCROLL CONTINUATION FADE (os-scroll-fade.tsx)
+   ========================================================
+   Gradien + chevron di tepi bawah body window. Memberi sinyal bahwa
+   konten masih berlanjut ke bawah (memerangi illusion of completeness).
+   Dekoratif semata — pointer-events-none & aria-hidden. */
+.vt-scroll-fade {
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--vt-paper) 92%, transparent),
+    color-mix(in srgb, var(--vt-paper) 0%, transparent)
+  );
+}
+
+.vt-scroll-fade-chevron {
+  font-size: 0.7rem;
+  line-height: 1;
+  color: var(--vt-blue);
+  opacity: 0.85;
+  text-shadow: 0 1px 0 var(--vt-edge-hi);
+}
+
+/* ========================================================
+   ADMIN MOBILE LAYOUT
+   ========================================================
+   Di layar kecil, tabel data admin (proyek/layanan/produk/testimoni/artikel)
+   dipaksa menjadi kartu bertumpuk: tiap baris jadi blok, sel non-esensial
+   disembunyikan, dan tombol aksi menjadi dua baris rapi — bukan satu baris
+   panjang yang terpotong di kanan. */
+@media (max-width: 767px) {
+  .admin-table thead {
+    display: none;
+  }
+
+  .admin-table,
+  .admin-table tbody,
+  .admin-table tr,
+  .admin-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .admin-table tr {
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--card);
+  }
+
+  .admin-table td {
+    border: 0;
+    padding: 0.4rem 0;
+    text-align: left !important;
+  }
+
+  /* Sel aksi (tombol) jadi baris terpisah yang rapi, rata kiri */
+  .admin-table td.admin-cell-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding-top: 0.6rem;
+    border-top: 1px dashed var(--border);
+  }
+
+  .admin-table td.admin-cell-actions > * {
+    margin: 0;
+  }
+
+  /* Sel sekunder (mis. badge status, unggulan) menyusun ke kanan secara natural */
+  .admin-table td.admin-cell-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
   }
 }
 
@@ -827,6 +972,45 @@ body {
 
 .vt-window-pop {
   animation: vt-window-pop 140ms steps(5, end) 1;
+}
+
+/* ============================================================
+   Transisi antar halaman (SPA feel).
+   Diputar via template.tsx route group (public) yang remount di
+   setiap navigasi: konten halaman baru fade + geser 8px turun ke
+   tempatnya. Pendek & halus — cukup memberi kontinuitas visual
+   tanpa terasa lambat. respects prefers-reduced-motion (lihat
+   blok media query di bawah).
+   ============================================================ */
+@keyframes vt-page-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Tanpa fill-mode "both": setelah animasi selesai, elemen kembali ke gaya
+   dasar (tanpa transform). Transform yang menempel permanen akan menciptakan
+   containing block dan merusak posisi descendant position:fixed (start menu,
+   window maximize) — jangan ditambahkan fill forwards di sini. */
+.vt-page-in {
+  animation: vt-page-in 240ms ease-out 1;
+}
+
+/* Blok progress loading ala CHKDSK Win9x: tiap segmen menyala bergantian
+   (loop halus, ikut dimatikan prefers-reduced-motion). Dipakai loading.tsx
+   route group (public). */
+@keyframes vt-loading-block {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+
+.vt-loading-block {
+  animation: vt-loading-block 0.9s ease-in-out infinite;
 }
 
 /* ============================================================
@@ -905,6 +1089,107 @@ body {
   animation: rb-pop 220ms ease-out 1;
 }
 
+/* RetroBot "bergerak menuju taskbar": ditekan saat robot mengarahkan
+   pengunjung ke aplikasi lain. Ikon taskbar target berdenyut biru. */
+@keyframes rb-taskbar-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 47, 214, 0); }
+  40% { box-shadow: 0 0 0 5px rgba(59, 47, 214, 0.45); }
+}
+.rb-taskbar-glow {
+  animation: rb-taskbar-glow 0.8s ease-in-out 2;
+  border-radius: 3px;
+}
+
+/* ============================================================
+   RetroBot — efek atraktif baru (semua loop halus, ikut teredam
+   oleh blok prefers-reduced-motion di bawah; WCAG 2.3.3).
+   ============================================================ */
+
+/* 1) Cincin pemindai berputar di sekeliling avatar (idle).
+   Garis tipis cyan yang berputar perlahan seperti radar retro. */
+@keyframes rb-scan-ring {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.rb-scan-ring {
+  position: absolute;
+  inset: -5px;
+  border-radius: 9999px;
+  pointer-events: none;
+  /* Hanya seperempat lingkaran yang terlihat (conic-gradient dengan
+     tiga perempat transparan) → terlihat seperti sapuan radar. */
+  background: conic-gradient(
+    from 0deg,
+    rgba(67, 232, 207, 0) 0deg,
+    rgba(67, 232, 207, 0) 270deg,
+    rgba(67, 232, 207, 0.55) 350deg,
+    rgba(67, 232, 207, 0) 360deg
+  );
+  -webkit-mask: radial-gradient(circle, transparent 58%, black 62%);
+  mask: radial-gradient(circle, transparent 58%, black 62%);
+  animation: rb-scan-ring 3.2s linear infinite;
+}
+
+/* 2) Denyut radar saat thinking: gelombang membesar dari avatar. */
+@keyframes rb-ping-out {
+  0% { transform: scale(0.7); opacity: 0.7; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+.rb-ping-out {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid rgba(67, 232, 207, 0.6);
+  pointer-events: none;
+  animation: rb-ping-out 1.4s ease-out infinite;
+}
+
+/* 3) Ledakan partikel saat jawaban tiba (burst kecil ke luar). */
+@keyframes rb-burst {
+  0% { transform: translate(0, 0) scale(0.4); opacity: 1; }
+  100% { transform: translate(var(--bx), var(--by)) scale(0); opacity: 0; }
+}
+.rb-burst-p {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 9999px;
+  pointer-events: none;
+  animation: rb-burst 0.7s ease-out 1 forwards;
+}
+
+/* 4) Gelembung "hovertip" kecil saat hover avatar: pesan acak. */
+@keyframes rb-tip-in {
+  0% { transform: translateY(6px) scale(0.9); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.rb-tip-in {
+  animation: rb-tip-in 0.18s ease-out 1;
+}
+
+/* 5) Panel "muncul" dengan sedikit bounce retro (steps, bukan smooth). */
+@keyframes rb-panel-in {
+  0% { transform: scale(0.92) translateY(8px); opacity: 0; }
+  60% { transform: scale(1.02) translateY(-2px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); }
+}
+.rb-panel-in {
+  animation: rb-panel-in 0.22s steps(6, end) 1;
+}
+
+/* 6) Avatar bergetar singkat saat menerima pesan (reactive "startle"). */
+@keyframes rb-nudge {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  25% { transform: rotate(-7deg) translateY(-2px); }
+  60% { transform: rotate(5deg) translateY(-1px); }
+}
+.rb-nudge {
+  animation: rb-nudge 0.45s ease-in-out 1;
+}
+
 /* prefers-reduced-motion: matikan SEMUA animasi infinite (WCAG 2.3.3).
    Sebelumnya hanya vt-crt-on/vt-window-pop (one-shot) yang dimatikan, padahal
    yang berisiko bagi pengguna sensitif vestibular/fotosensitif justru loop
@@ -920,18 +1205,25 @@ body {
   .vt-crt-panel::after,
   .vt-marquee-track,
   .vt-marquee-rev,
-  /* Loop avatar RetroBot (bobbing, kedip mata, LED, jam pasir, cursor) */
+  /* Loop avatar RetroBot (bobbing, kedip mata, LED, jam pasir, cursor,
+     cincin pemindai, denyut radar) */
   .rb-bob,
   .rb-blink,
   .rb-led,
   .rb-spin,
   .rb-cursor,
+  .rb-scan-ring,
+  .rb-ping-out,
   .vt-btn-sweep::before,
   /* Utility animasi Tailwind (ping/pulse/spin/bounce) */
   .animate-ping,
   .animate-pulse,
   .animate-spin,
-  .animate-bounce {
+  .animate-bounce,
+  /* Mobile section rail + scroll fade (animasi hint) */
+  .vt-scroll-fade-chevron,
+  /* Blok progress loading (loop) */
+  .vt-loading-block {
     animation: none;
   }
 
@@ -941,8 +1233,15 @@ body {
   .vt-btn,
   .vt-btn-chrome,
   .vt-btn-pink,
-  .vt-window {
+  .vt-window,
+  .vt-page-in {
     transition: none;
+  }
+
+  /* Animasi transisi halaman (vt-page-in) juga dimatikan untuk pengguna
+     sensitif gerakan: konten langsung tampil tanpa fade/geser. */
+  .vt-page-in {
+    animation: none;
   }
 
   html {

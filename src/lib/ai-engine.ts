@@ -337,7 +337,13 @@ export function queryAIEngine(
     };
   }
 
-  const lang = detectLanguage(cleanInput, preferredLang);
+  // Bahasa jawaban mengikuti bahasa UI (preferredLang), BUKAN teks pertanyaan.
+  // Sebelumnya memakai detectLanguage(cleanInput, preferredLang) yang mendeteksi
+  // bahasa dari teks pertanyaan — jadi saat UI = EN tapi user bertanya dalam
+  // Bahasa Indonesia ("siapa sigit adi?"), jawaban tetap keluar dalam Bahasa
+  // Indonesia. detectLanguage hanya dipakai untuk saran terjemahan otomatis di
+  // form admin, bukan untuk menentukan bahasa jawaban bot.
+  const lang = preferredLang;
   const tokens = tokenize(cleanInput);
 
   let bestMatch: IntentDef | null = null;

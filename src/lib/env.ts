@@ -100,6 +100,20 @@ export function getEnvIssues(env: AppEnv = getEnv()): EnvIssue[] {
       severity: "warning",
       message: "Key placeholder — middleware bypass (dev only). Wajib key live + ADMIN_CLERK_ID valid sebelum deploy.",
     });
+  } else if (
+    env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
+    env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith("pk_test_")
+  ) {
+    // SEO KRITIS: pk_test_ memakai domain *.clerk.accounts.dev. Browser tanpa
+    // cookie dev-browser (termasuk Googlebot) diredirect ke handshake Clerk
+    // untuk SETIAP rute — termasuk /robots.txt & /sitemap.xml. Google melihat
+    // ini sebagai "Redirect error" dan halaman jadi tidak terindeks.
+    issues.push({
+      key: "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+      severity: "error",
+      message:
+        "Masih pk_test_ (development). Domain clerk.accounts.dev me-redirect Googlebot ke handshake Clerk di SEMUA rute (termasuk /robots.txt & /sitemap.xml) → 'Redirect error' di Google Search Console. Ganti ke pk_live_ + CLERK_SECRET_KEY live.",
+    });
   }
   if (isPlaceholder(env.ADMIN_CLERK_ID)) {
     issues.push({

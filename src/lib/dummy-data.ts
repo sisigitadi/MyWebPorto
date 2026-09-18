@@ -13,6 +13,8 @@ export interface ProfileData {
   paymentQrUrl?: string | null;
   paymentBankInfo?: string | null;
   availableForHire: boolean;
+  availabilityBadge?: string | null;
+  availabilityBadgeEn?: string | null;
   skills: string[];
   stats: {
     label: string;
@@ -135,6 +137,8 @@ export const DUMMY_PROFILE: ProfileData = {
   paymentQrUrl: null,
   paymentBankInfo: null,
   availableForHire: true,
+  availabilityBadge: null,
+  availabilityBadgeEn: null,
   skills: [
     "Next.js 15",
     "React 19",

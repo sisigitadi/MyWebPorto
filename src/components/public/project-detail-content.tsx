@@ -263,21 +263,9 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
               </div>
             </div>
 
-            {/* Bottom Back — fallback saat sudah scroll paling bawah fullscreen */}
-            <div className="flex justify-center gap-2 pt-4">
-              <Button asChild size="sm" className="vt-btn vt-btn-chrome h-8 px-4 font-mono text-xs font-bold gap-1.5">
-                <Link href="/proyek">
-                  <ArrowLeft className="h-3.5 w-3.5" />
-                  <span>{t.detail_back_all}</span>
-                </Link>
-              </Button>
-              <Button asChild size="sm" variant="outline" className="h-8 px-4 font-mono text-xs gap-1.5">
-                <Link href="/#proyek">
-                  <Monitor className="h-3.5 w-3.5" />
-                  <span>Desktop</span>
-                </Link>
-              </Button>
-            </div>
+            {/* NOTE: tombol kembali bawah dihapus — sticky nav bar di atas sudah
+                menyediakan "Kembali ke Desktop OS" + "Kembali ke Semua Proyek",
+                jadi duplikat di sini hanya tambahan visual tanpa fungsi baru. */}
           </div>
         </OSWindow>
       </div>

@@ -41,11 +41,11 @@ import { buildCloudPrompt, buildCloudMessages, submitToGemini } from "@/lib/ai-p
 import {
   resolveCloudAIConfig,
   saveCloudAIConfig,
-  getCloudAIConfigForAdmin,
   type StoredCloudAIConfig,
-  type AdminCloudAIView,
+  type CloudProvider,
 } from "@/lib/cloud-ai-config";
 import { submitToOpenAI } from "@/lib/ai-openai";
+import { listCloudModels } from "@/lib/ai-models";
 import { rateLimit, cleanupRateLimits } from "@/lib/rate-limit";
 import { headers } from "next/headers";
 
@@ -267,6 +267,8 @@ export async function getProfile(): Promise<ProfileData> {
           paymentQrUrl: null,
           paymentBankInfo: null,
           availableForHire: true,
+          availabilityBadge: null,
+          availabilityBadgeEn: null,
           skills: [
             "Next.js 15",
             "React 19",
@@ -318,6 +320,8 @@ export async function getProfile(): Promise<ProfileData> {
       paymentQrUrl: res.paymentQrUrl ?? baseProfile.paymentQrUrl,
       paymentBankInfo: res.paymentBankInfo ?? baseProfile.paymentBankInfo,
       availableForHire: res.availableForHire ?? baseProfile.availableForHire,
+      availabilityBadge: res.availabilityBadge?.trim() ? res.availabilityBadge : null,
+      availabilityBadgeEn: res.availabilityBadgeEn?.trim() ? res.availabilityBadgeEn : null,
       skills: (res.skills as string[])?.length ? (res.skills as string[]) : baseProfile.skills,
       stats: (res.stats as typeof DUMMY_PROFILE.stats)?.length
         ? (res.stats as typeof DUMMY_PROFILE.stats)
@@ -350,6 +354,8 @@ export async function updateProfile(data: unknown) {
   // dan hanya dijalankan bila admin menekan tombol "Terjemahkan (ID → EN)".
   const headlineEn = parsed.data.headlineEn?.trim() || null;
   const bioEn = parsed.data.bioEn?.trim() || null;
+  const availabilityBadge = parsed.data.availabilityBadge?.trim() || null;
+  const availabilityBadgeEn = parsed.data.availabilityBadgeEn?.trim() || null;
 
   // Bersihkan socialLinks: hapus field yang kosong/null agar tidak tersimpan di DB
   const cleanSocialLinks = { ...parsed.data.socialLinks };
@@ -363,6 +369,8 @@ export async function updateProfile(data: unknown) {
     id: "owner",
     headlineEn: headlineEn || null,
     bioEn: bioEn || null,
+    availabilityBadge,
+    availabilityBadgeEn: availabilityBadgeEn || availabilityBadge,
     socialLinks: cleanSocialLinks,
   };
 
@@ -1726,11 +1734,13 @@ async function submitToCloud(
   // Resolve sekali di sini agar key/model/base URL konsisten untuk panggilan ini
   // (pengaturan admin atau env — lihat cloud-ai-config.ts).
   const cfg = await resolveCloudAIConfig();
+  // Persona & gaya jawaban kustom dari pengaturan admin (bila diisi).
+  const custom = { systemPrompt: cfg.systemPrompt, answerStyle: cfg.answerStyle };
   if (cfg.provider === "openai") {
     // OpenAI-compatible memakai format messages; prompt tetap katalog publik.
-    return submitToOpenAI(buildCloudMessages(query, ctx, lang), { config: cfg });
+    return submitToOpenAI(buildCloudMessages(query, ctx, lang, custom), { config: cfg });
   }
-  return submitToGemini(buildCloudPrompt(query, ctx, lang), { config: cfg });
+  return submitToGemini(buildCloudPrompt(query, ctx, lang, custom), { config: cfg });
 }
 
 export async function askSigitBot(
@@ -1829,17 +1839,10 @@ export async function askSigitBot(
 }
 
 /**
- * Baca konfigurasi Cloud AI untuk form /admin/system. Key hanya dikembalikan
- * dalam bentuk ter-mask — tidak pernah mentah ke client.
- */
-export async function readCloudAIConfigAction(): Promise<AdminCloudAIView> {
-  await verifyAdmin();
-  return getCloudAIConfigForAdmin();
-}
-
-/**
  * Simpan konfigurasi Cloud AI dari form /admin/system. Wajib admin terotentikasi.
- * apiKey kosong = pertahankan key yang ada (lihat saveCloudAIConfig).
+ * Pembacaan dilakukan langsung oleh server component /admin/system lewat
+ * getCloudAIConfigForAdmin() — tidak butuh action wrapper, dan key tidak pernah
+ * mentah ke client. apiKey kosong = pertahankan key yang ada (saveCloudAIConfig).
  */
 export async function saveCloudAIConfigAction(input: StoredCloudAIConfig): Promise<{ ok: true } | { ok: false; error: string }> {
   await verifyAdmin();
@@ -1853,5 +1856,34 @@ export async function saveCloudAIConfigAction(input: StoredCloudAIConfig): Promi
       ok: false,
       error: sanitizeError(err),
     };
+  }
+}
+
+/**
+ * Ambi daftar model yang tersedia di provider (untuk auto-fill form Cloud AI).
+ * Wajib admin terotentikasi. Key dikirim dari form HANYA untuk panggilan ini
+ * (tidak disimpan di sini); bila form mengirim key kosong, pakai key yang
+ * sudah tersimpan agar admin bisa refresh daftar model tanpa mengetik ulang.
+ */
+export async function listCloudModelsAction(
+  provider: CloudProvider,
+  apiKey: string,
+  baseUrl: string
+): Promise<{ ok: true; models: string[] } | { ok: false; error: string }> {
+  await verifyAdmin();
+  try {
+    let key = (apiKey || "").trim();
+    let base = (baseUrl || "").trim();
+    // Key kosong di form = "pakai yang tersimpan" (sama seperti saveCloudAIConfig).
+    if (!key || !base) {
+      const cfg = await resolveCloudAIConfig();
+      if (!key) key = cfg.apiKey;
+      if (!base) base = cfg.baseUrl;
+    }
+    const result = await listCloudModels(provider, key, base);
+    if (result.error) return { ok: false, error: result.error };
+    return { ok: true, models: result.models };
+  } catch (err) {
+    return { ok: false, error: sanitizeError(err) };
   }
 }

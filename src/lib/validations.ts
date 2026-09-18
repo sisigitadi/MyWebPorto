@@ -43,6 +43,8 @@ export const ProfileSchema = z.object({
   paymentQrUrl: imageOrUrlSchema.optional().or(z.literal("")),
   paymentBankInfo: z.string().max(1000, "Info pembayaran maksimal 1000 karakter").optional().or(z.literal("")),
   availableForHire: z.boolean().default(true),
+  availabilityBadge: z.string().max(120, "Label ketersediaan maksimal 120 karakter").optional().or(z.literal("")),
+  availabilityBadgeEn: z.string().max(120, "Label ketersediaan EN maksimal 120 karakter").optional().or(z.literal("")),
   skills: z.array(z.string().max(50, "Skill maksimal 50 karakter")).max(50, "Maksimal 50 skills").default([]),
   stats: z
     .array(

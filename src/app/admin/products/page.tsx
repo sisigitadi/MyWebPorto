@@ -314,7 +314,7 @@ export default function AdminProductsPage() {
       {/* Table */}
        <Card className="overflow-hidden bg-[var(--vt-card)] border-[var(--vt-edge-lo-2)]">
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="admin-table">
             <TableHeader>
                  <TableRow className="bg-[var(--vt-card)] hover:bg-[var(--vt-edge-hi-2)]">
                 <TableHead className="w-[320px] text-xs font-semibold">Produk</TableHead>
@@ -373,7 +373,7 @@ export default function AdminProductsPage() {
                       </span>
                     </TableCell>
 
-                    <TableCell className="py-3">
+                    <TableCell className="py-3 admin-cell-meta">
                       <Badge
                         variant={product.published ? "secondary" : "outline"}
                         className="text-[10px] py-0 px-2 font-normal"
@@ -382,7 +382,7 @@ export default function AdminProductsPage() {
                       </Badge>
                     </TableCell>
 
-                    <TableCell className="py-3 text-right">
+                    <TableCell className="py-3 text-right admin-cell-actions">
                       <div className="flex items-center justify-end gap-1">
                         {product.ctaUrl && (
                           <Button

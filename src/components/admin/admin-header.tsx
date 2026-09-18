@@ -32,7 +32,7 @@ export function AdminHeader({ onToggleSidebar, dbConnected }: AdminHeaderProps) 
 
   return (
     <header className="vt-raised sticky top-0 lg:static shrink-0 z-30 h-14 sm:h-16 w-full border-b-2 border-[var(--vt-edge-lo-2)] flex items-center justify-between gap-2 px-2 sm:px-4">
-      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
         <button
           type="button"
           className="vt-btn vt-btn-chrome lg:hidden h-9 w-9 shrink-0 p-0"
@@ -67,11 +67,24 @@ export function AdminHeader({ onToggleSidebar, dbConnected }: AdminHeaderProps) 
           )
         )}
 
+        {/* Indikator status DB ringkas untuk mobile (hanya titik warna) */}
+        {dbConnected !== undefined && (
+          <div
+            className={`md:hidden h-2.5 w-2.5 rounded-full shrink-0 ${
+              dbConnected
+                ? "bg-emerald-500 animate-pulse"
+                : "bg-rose-500"
+            }`}
+            title={dbConnected ? "Neon DB: Connected" : "Neon DB: Offline (fallback lokal)"}
+            aria-label={dbConnected ? "Database terhubung" : "Database offline"}
+          />
+        )}
+
         <Link
           href="/"
           target="_blank"
           rel="noopener noreferrer"
-          className="vt-btn vt-btn-chrome hidden sm:inline-flex h-8 px-2.5 text-[11px] font-mono font-bold gap-1.5"
+          className="vt-btn vt-btn-chrome hidden sm:inline-flex h-8 px-2.5 text-[11px] font-mono font-bold gap-1.5 shrink-0"
         >
           <ExternalLink className="h-3.5 w-3.5" />
           <span>Lihat Web</span>
@@ -89,7 +102,7 @@ export function AdminHeader({ onToggleSidebar, dbConnected }: AdminHeaderProps) 
         ) : (
           <Link
             href="/sign-in"
-            className="vt-btn vt-btn-chrome h-8 px-2.5 text-[11px] font-mono font-bold gap-1.5"
+            className="vt-btn vt-btn-chrome h-8 px-2.5 text-[11px] font-mono font-bold gap-1.5 shrink-0"
           >
             <LogOut className="h-3.5 w-3.5" />
             <span>Masuk Akun</span>

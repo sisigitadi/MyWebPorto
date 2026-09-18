@@ -36,14 +36,23 @@ Perintah ini akan secara otomatis:
    BUNNY_STORAGE_ZONE_NAME=nama-storage-zone
    BUNNY_STORAGE_API_KEY=xxxx
    BUNNY_CDN_HOSTNAME=namazone.b-cdn.net
+   # Cloud AI Sigit_Bot (opsional — default OFF, mesin lokal)
+   AI_PROVIDER=off
+   GEMINI_API_KEY=
+   AI_MODEL=
+   OPENAI_API_KEY=
+   OPENAI_BASE_URL=https://api.openai.com/v1
+   OPENAI_MODEL=
    PORT=3000
    ```
 
-Catatan: variabel `BUNNY_STORAGE_*` bersifat opsional dan belum terhubung ke kode. Upload gambar saat ini disimpan lokal ke `public/uploads`. Jika `NEXT_PUBLIC_APP_URL` kosong, canonical URL fallback ke `https://sigitadi.id`.
+Catatan: variabel `BUNNY_STORAGE_*` opsional — bila zone + API key terisi, upload gambar otomatis masuk ke Bunny Storage (persisten, wajib di Vercel/serverless); jika kosong, upload jatuh ke `public/uploads`. Variabel Cloud AI juga dapat diisi lewat form **Cloud AI** di `/admin/system` (disimpan di tabel `settings`) tanpa redeploy. Jika `NEXT_PUBLIC_APP_URL` kosong, canonical URL fallback ke `https://sigitadi.id`.
+
+> **WAJIB di produksi: Clerk key live, bukan `pk_test_`.** PUBLISHABLE_KEY harus `pk_live_...` (bukan `pk_test_...`) dan SECRET_KEY `sk_live_...`. Lihat "Pemecahan Masalah Google Search Console" di README — `pk_test_` memakai domain `*.clerk.accounts.dev` yang me-redirect Googlebot ke handshake Clerk di **semua** rute (termasuk `/robots.txt`), terbaca sebagai "Redirect error" di GSC dan halaman tidak terindeks. Peringatan Vercel "Remove the public framework prefix" aman diabaikan untuk `pk_` (publishable by design); `sk_` wajib tetap server-only.
 
 ### Langkah 3: Konfigurasi Environment dan Database
 
-Edit `deploy_package/.env` dengan `NEXT_PUBLIC_APP_URL`, Clerk production keys, `ADMIN_CLERK_ID`, `DATABASE_URL`, Formspree endpoint, dan `NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL=x@sigitadi.id`. Terapkan schema/migration database sebelum menjalankan aplikasi, termasuk migration slug produk.
+Edit `deploy_package/.env` dengan `NEXT_PUBLIC_APP_URL`, Clerk production keys, `ADMIN_CLERK_ID`, `DATABASE_URL`, Formspree endpoint, dan `NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL=x@sigitadi.id`. Terapkan schema/migration database sebelum menjalankan aplikasi: seluruh migrasi `drizzle/0000`–`0009` (termasuk `0003_product_slugs`, `0004_audit_logs`, `0005_publish_at`, `0006_shop`, `0007_purchase_fields`, `0008_settings`, `0009_narrow_magneto` untuk `availability_badge`).
 
 ### Langkah 4: Jalankan Aplikasi di Server
 

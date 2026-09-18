@@ -31,6 +31,29 @@ interface ChatTurn {
 }
 
 /**
+ * Konteks halaman untuk model cloud: aplikasi SigitOS yang sedang dibuka
+ * pengunjung. Membantu jawaban tetap relevan dengan apa yang dilihatnya.
+ * String pendek (satu baris) agar tidak boros token.
+ */
+function appContextLine(app: string, lang: "id" | "en"): string {
+  const known: Record<string, string> = {
+    profil: lang === "en" ? "Profile" : "Profil",
+    layanan: lang === "en" ? "Services" : "Layanan",
+    proyek: lang === "en" ? "Projects" : "Proyek",
+    toko: lang === "en" ? "Store" : "Toko",
+    testimoni: lang === "en" ? "Reviews" : "Testimoni",
+    artikel: lang === "en" ? "Articles" : "Artikel",
+    kontak: lang === "en" ? "Contact" : "Kontak",
+    terminal: "Terminal",
+  };
+  const label = known[app.toLowerCase()];
+  if (!label) return "";
+  return lang === "en"
+    ? `[Context: the visitor is currently viewing the "${label}" page of this portfolio.]`
+    : `[Konteks: pengunjung sedang membuka halaman "${label}" dari portofolio ini.]`;
+}
+
+/**
  * POST /api/retrobot
  * Body: { text: string, lang?: "id"|"en", history?: ChatTurn[] }
  *
@@ -56,6 +79,7 @@ export async function POST(req: NextRequest) {
   let text = "";
   let lang: "id" | "en" = "id";
   let history: ChatTurn[] = [];
+  let app = "";
   try {
     const rawBody = await req.text();
     if (rawBody.length > MAX_BODY_BYTES) {
@@ -66,9 +90,11 @@ export async function POST(req: NextRequest) {
         text?: unknown;
         lang?: unknown;
         history?: unknown;
+        app?: unknown;
       };
       text = String(body.text ?? "").trim().slice(0, MAX_INPUT_CHARS);
       if (body.lang === "en") lang = "en";
+      app = String(body.app ?? "").trim().slice(0, 32);
       const hist = Array.isArray(body.history) ? body.history : [];
       history = hist
         .filter(
@@ -169,12 +195,19 @@ export async function POST(req: NextRequest) {
       });
 
       // Urutan chat: system → riwayat (user/assistant bergantian) → user saat ini.
-      const [sys, user] = buildCloudMessages(text, ctx, lang);
+      const [sys, user] = buildCloudMessages(text, ctx, lang, {
+        systemPrompt: cloudCfg.systemPrompt,
+        answerStyle: cloudCfg.answerStyle,
+      });
+      // Konteks halaman: aplikasi SigitOS yang sedang dibuka pengunjung, agar
+      // jawaban relevan (mis. "proyek" → sebut proyek unggulan).
+      const appLine = appContextLine(app, lang);
       const messages = [
         sys,
         ...history.map((h) => ({ role: h.role, content: h.content })),
+        appLine ? { role: "user" as const, content: appLine } : null,
         user,
-      ];
+      ].filter((m): m is { role: "user" | "system"; content: string } => m !== null);
 
       let sentAny = false;
       try {

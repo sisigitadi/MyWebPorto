@@ -107,6 +107,35 @@ describe("saveCloudAIConfig (validasi + prioritas admin)", () => {
     expect(cfg.model).toBe("gemini-2.0-flash");
     expect(cfg.apiKey).toBe("AIzaKeepMe123456");
   });
+
+  it("menyimpan systemPrompt & answerStyle kustom admin", async () => {
+    await saveCloudAIConfig({
+      provider: "gemini",
+      apiKey: "AIzaRealKey1234567890",
+      model: "gemini-2.5-flash",
+      systemPrompt: "Kamu adalah Sigit_Bot. Jawab ramah dalam Bahasa Indonesia.",
+      answerStyle: "detailed",
+    });
+    const cfg = await resolveCloudAIConfig();
+    expect(cfg.systemPrompt).toBe("Kamu adalah Sigit_Bot. Jawab ramah dalam Bahasa Indonesia.");
+    expect(cfg.answerStyle).toBe("detailed");
+  });
+
+  it("answerStyle invalid jatuh ke concise (fail-closed)", async () => {
+    await saveCloudAIConfig({
+      provider: "gemini",
+      apiKey: "AIzaRealKey1234567890",
+      answerStyle: "verbose" as unknown as StoredCloudAIConfig["answerStyle"],
+    });
+    expect((await resolveCloudAIConfig()).answerStyle).toBe("concise");
+  });
+
+  it("systemPrompt kosong = persona default (tidak ada string kosong)", async () => {
+    await saveCloudAIConfig({ provider: "gemini", apiKey: "AIzaRealKey1234567890" });
+    const cfg = await resolveCloudAIConfig();
+    expect(cfg.systemPrompt).toBe("");
+    expect(cfg.answerStyle).toBe("concise");
+  });
 });
 
 describe("maskKey", () => {

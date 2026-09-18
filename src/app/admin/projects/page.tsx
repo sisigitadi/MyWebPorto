@@ -329,7 +329,7 @@ export default function AdminProjectsPage() {
       {/* Projects Table */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="admin-table">
             <TableHeader>
               <TableRow className="bg-muted/40 hover:bg-muted/40">
                 <TableHead className="w-16 text-xs font-semibold">Cover</TableHead>
@@ -403,7 +403,7 @@ export default function AdminProjectsPage() {
                       </div>
                     </TableCell>
 
-                    <TableCell className="py-3">
+                    <TableCell className="py-3 admin-cell-meta">
                       <Badge
                         variant={project.published ? "secondary" : "outline"}
                         className="text-[10px] py-0 px-2 font-normal"
@@ -411,7 +411,7 @@ export default function AdminProjectsPage() {
                         {project.published ? "Publik" : "Draf"}
                       </Badge>
                       {isScheduled(project) && (
-                        <Badge variant="outline" className="ml-1 text-[10px] py-0 px-2 font-normal border-amber-500/50 text-amber-600 dark:text-amber-400">
+                        <Badge variant="outline" className="text-[10px] py-0 px-2 font-normal border-amber-500/50 text-amber-600 dark:text-amber-400">
                           Terjadwal
                         </Badge>
                       )}
@@ -427,7 +427,7 @@ export default function AdminProjectsPage() {
                       )}
                     </TableCell>
 
-                    <TableCell className="py-3 text-right">
+                    <TableCell className="py-3 text-right admin-cell-actions">
                       <div className="flex items-center justify-end gap-1">
                         <Button
                           asChild

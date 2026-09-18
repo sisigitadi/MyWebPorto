@@ -124,11 +124,14 @@ export function TestimonialsSection({ testimonials: propTestimonials }: Testimon
                         </div>
                       )}
                     </div>
-                    <div className="min-w-0">
-                      <p className="font-mono text-sm font-bold text-[var(--vt-ink)] truncate">
+                    {/* min-w-0 + flex-1 agar teks bisa wrap di ruang sempit.
+                        Sebelumnya memakai truncate → nama panjang (mis.
+                        "Budi Santoso Pratama") terpotong di ponsel. */}
+                    <div className="min-w-0 flex-1">
+                      <p className="font-mono text-sm font-bold text-[var(--vt-ink)] break-words leading-snug">
                         {testi.clientName}
                       </p>
-                      <p className="font-mono text-xs font-bold text-[var(--vt-ink-soft)] truncate">
+                      <p className="font-mono text-xs font-bold text-[var(--vt-ink-soft)] break-words leading-snug">
                         {role}
                       </p>
                     </div>

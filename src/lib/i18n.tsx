@@ -51,6 +51,8 @@ export interface Translations {
   os_nav_next_tooltip: string;
   os_window_title: string;
   os_status_online: string;
+  // Continuation signifier (panah ↓ di tepi bawah body window)
+  os_swipe_hint: string;
 
   // Boot Loader
   boot_skip_btn: string;
@@ -323,6 +325,15 @@ export interface Translations {
   retrobot_close: string;
   retrobot_source_local: string;
   retrobot_source_cloud: string;
+  retrobot_context_profil: string;
+  retrobot_context_layanan: string;
+  retrobot_context_proyek: string;
+  retrobot_context_toko: string;
+  retrobot_context_testimoni: string;
+  retrobot_context_artikel: string;
+  retrobot_context_kontak: string;
+  retrobot_context_terminal: string;
+  retrobot_hint_label: string;
 
   // Footer
   footer_brand_desc: string;
@@ -380,6 +391,7 @@ const translations: Record<Language, Translations> = {
     os_nav_next_tooltip: "Tekan Panah Kanan (→)",
     os_window_title: "SigitOS Desktop Manager - Sistem Portofolio Interaktif",
     os_status_online: "ONLINE",
+    os_swipe_hint: "Geser ← → untuk pindah bagian",
 
     // Boot Loader
     boot_skip_btn: "[ESC / Lewati Boot]",
@@ -665,6 +677,15 @@ const translations: Record<Language, Translations> = {
     retrobot_close: "Tutup",
     retrobot_source_local: "LOKAL",
     retrobot_source_cloud: "CLOUD",
+    retrobot_context_profil: "Kamu sedang membuka Profil.exe — tanyakan tentang Sigit, keahlian, atau pengalaman.",
+    retrobot_context_layanan: "Kamu sedang membuka Layanan.exe — tanyakan layanan web development atau AI/automation.",
+    retrobot_context_proyek: "Kamu sedang membuka Proyek.exe — tanyakan proyek unggulan atau tech stack-nya.",
+    retrobot_context_toko: "Kamu sedang membuka Toko.zip — tanyakan produk digital atau cara memesan.",
+    retrobot_context_testimoni: "Kamu sedang membuka Testimoni.txt — tanyakan pendapat klien tentang Sigit.",
+    retrobot_context_artikel: "Kamu sedang membuka Artikel.doc — tanyakan topik artikel teknis yang tersedia.",
+    retrobot_context_kontak: "Kamu sedang membuka Kontak.exe — tanyakan cara menghubungi atau bekerja sama.",
+    retrobot_context_terminal: "Kamu sedang membuka Terminal.bat — ketik 'help' untuk daftar perintah.",
+    retrobot_hint_label: "Sedang membuka:",
 
     // Footer
     footer_brand_desc:
@@ -721,6 +742,7 @@ const translations: Record<Language, Translations> = {
     os_nav_next_tooltip: "Press Right Arrow (→)",
     os_window_title: "SigitOS Desktop Manager - Interactive Portfolio System",
     os_status_online: "ONLINE",
+    os_swipe_hint: "Swipe ← → to switch section",
 
     // Boot Loader
     boot_skip_btn: "[ESC / Skip Boot]",
@@ -1006,6 +1028,15 @@ const translations: Record<Language, Translations> = {
     retrobot_close: "Close",
     retrobot_source_local: "LOCAL",
     retrobot_source_cloud: "CLOUD",
+    retrobot_context_profil: "You're viewing Profile.exe — ask about Sigit, skills, or experience.",
+    retrobot_context_layanan: "You're viewing Services.exe — ask about web development or AI/automation services.",
+    retrobot_context_proyek: "You're viewing Projects.exe — ask about featured projects or their tech stack.",
+    retrobot_context_toko: "You're viewing Store.zip — ask about digital products or how to order.",
+    retrobot_context_testimoni: "You're viewing Reviews.txt — ask what clients say about Sigit.",
+    retrobot_context_artikel: "You're viewing Articles.doc — ask about available tech article topics.",
+    retrobot_context_kontak: "You're viewing Contact.exe — ask how to reach out or collaborate.",
+    retrobot_context_terminal: "You're viewing Terminal.bat — type 'help' for the command list.",
+    retrobot_hint_label: "Viewing:",
 
     // Footer
     footer_brand_desc:

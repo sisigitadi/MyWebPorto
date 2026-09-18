@@ -9,14 +9,13 @@ import {
   MessageSquareQuote,
   Mail,
   Terminal,
-  ChevronLeft,
   ChevronRight,
+  ArrowUp,
   Maximize2,
   Minimize2,
   Volume2,
   VolumeX,
   X,
-  HardDrive,
   Palette,
   RotateCcw,
   Globe,
@@ -35,6 +34,8 @@ import { ArticlesSection } from "@/components/public/articles-section";
 import { ContactSection } from "@/components/public/contact-section";
 import { OSCrtTerminal } from "@/components/public/os/os-crt-terminal";
 import { OSCommandPalette, PaletteAction } from "@/components/public/os/os-command-palette";
+import { ScrollFade } from "@/components/public/os/os-scroll-fade";
+import { setGsapScroller } from "@/lib/gsap-scroller";
 
 interface OSDesktopManagerProps {
   profile: ProfileData;
@@ -61,6 +62,21 @@ interface AppItem {
   colorClass: string;
   activeClass: string;
 }
+
+// Label manusiawi (bukan "Profil.exe") untuk tab navigasi mobile.
+const appHumanLabel = (id: AppId, lang: "id" | "en"): string => {
+  switch (id) {
+    case "profil": return lang === "en" ? "Profile" : "Profil";
+    case "layanan": return lang === "en" ? "Services" : "Layanan";
+    case "proyek": return lang === "en" ? "Projects" : "Proyek";
+    case "toko": return lang === "en" ? "Store" : "Toko";
+    case "artikel": return lang === "en" ? "Articles" : "Artikel";
+    case "terminal": return lang === "en" ? "Terminal" : "Terminal";
+    case "testimoni": return lang === "en" ? "Reviews" : "Testimoni";
+    case "kontak": return lang === "en" ? "Contact" : "Kontak";
+    default: return id;
+  }
+};
 
 const APPS: AppItem[] = [
   {
@@ -96,7 +112,7 @@ const APPS: AppItem[] = [
     icon: <FileText className="h-[22px] w-[22px] text-[#ea580c] dark:text-[#fb923c] shrink-0 transition-transform group-hover:scale-110" strokeWidth={2.2} />,
     number: 5,
     colorClass: "hover:bg-[#ea580c]/10 hover:text-[#ea580c] dark:hover:bg-[#fb923c]/10 dark:hover:text-[#fb923c]",
-    activeClass: "text-[#ea580c] dark:text-[#fb923c] bg-[#ea580c]/15 dark:bg-[#fb923c]/15 ring-[#ea580c]/50 dark:ring-[#fb923c]/50",
+    activeClass: "text-[#ea580c] dark:text-[#fb923c] bg-[#ea580c]/15 dark:bg-[#fb923c]/15 ring-[#ea580c]/50 dark:ring-[#ea580c]/50",
   },
   {
     id: "terminal",
@@ -110,16 +126,22 @@ const APPS: AppItem[] = [
     icon: <MessageSquareQuote className="h-[22px] w-[22px] text-[#7c3aed] dark:text-[#a78bfa] shrink-0 transition-transform group-hover:scale-110" strokeWidth={2.2} />,
     number: 7,
     colorClass: "hover:bg-[#7c3aed]/10 hover:text-[#7c3aed] dark:hover:bg-[#a78bfa]/10 dark:hover:text-[#a78bfa]",
-    activeClass: "text-[#7c3aed] dark:text-[#a78bfa] bg-[#7c3aed]/15 dark:bg-[#a78bfa]/15 ring-[#7c3aed]/50 dark:ring-[#a78bfa]/50",
+    activeClass: "text-[#7c3aed] dark:text-[#a78bfa] bg-[#7c3aed]/15 dark:bg-[#a78bfa]/15 ring-[#7c3aed]/50 dark:ring-[#7c3aed]/50",
   },
   {
     id: "kontak",
     icon: <Mail className="h-[22px] w-[22px] text-[#e11d48] dark:text-[#fb7185] shrink-0 transition-transform group-hover:scale-110" strokeWidth={2.2} />,
     number: 8,
     colorClass: "hover:bg-[#e11d48]/10 hover:text-[#e11d48] dark:hover:bg-[#fb7185]/10 dark:hover:text-[#fb7185]",
-    activeClass: "text-[#e11d48] dark:text-[#fb7185] bg-[#e11d48]/15 dark:bg-[#fb7185]/15 ring-[#e11d48]/50 dark:ring-[#fb7185]/50",
+    activeClass: "text-[#e11d48] dark:text-[#fb7185] bg-[#e11d48]/15 dark:bg-[#fb7185]/15 ring-[#e11d48]/50 dark:ring-[#e11d48]/50",
   },
 ];
+
+// Urutan section dalam mode mobile single-page-scroll. Terminal IKUT di sini
+// pada posisinya (sama seperti urutan APPS) supaya MUNCUL SAAT DI-SCROLL —
+// sebelumnya hanya bisa dibuka lewat Start Menu, penguna mobile tidak tahu
+// terminal itu ada. Panelnya interaktif, jadi dibungkus kartu ber-height tetap.
+const SCROLL_SECTIONS: AppId[] = ["profil", "layanan", "proyek", "toko", "artikel", "terminal", "testimoni", "kontak"];
 
 export function OSDesktopManager({
   profile,
@@ -131,6 +153,7 @@ export function OSDesktopManager({
 }: OSDesktopManagerProps) {
   const { t, language, setLanguage } = useTranslation();
   const { theme, setTheme } = useOSTheme();
+  const [mounted, setMounted] = useState(false);
   const [activeApp, setActiveApp] = useState<AppId>("profil");
   const [isMinimized, setIsMinimized] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
@@ -139,6 +162,14 @@ export function OSDesktopManager({
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [menuQuery, setMenuQuery] = useState("");
   const [soundOn, setSoundOn] = useState(true);
+  // Mode tampilan: "mobile" = single-page scroll (<768px), "desktop" =
+  // window manager tab (>=768px). Sengaja memakai breakpoint md Tailwind
+  // (768px) agar sinkron dengan utility hidden/md:flex di JSX.
+  const [viewMode, setViewMode] = useState<"mobile" | "desktop">("desktop");
+
+  // Ref container scroll window (desktop) — dideklarasikan di atas agar semua
+  // callback di bawah mereferensikan binding yang sudah diinisialisasi.
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Preferensi suara dibaca SETELAH mount — useState initializer yang membaca
   // localStorage membuat render pertama server vs klien berbeda (hydration mismatch).
@@ -149,7 +180,18 @@ export function OSDesktopManager({
       // Storage diblokir — pakai default ON
     }
   }, []);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Deteksi mode viewport (md = 768px, sinkron dengan utility Tailwind).
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const apply = () => {
+      setViewMode(mq.matches ? "desktop" : "mobile");
+    };
+    apply();
+    mq.addEventListener("change", apply);
+    setMounted(true);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
 
   const getAppFilename = useCallback((id: AppId) => {
     switch (id) {
@@ -168,6 +210,8 @@ export function OSDesktopManager({
   const currentIndex = APPS.findIndex((a) => a.id === activeApp);
   const currentApp = APPS[currentIndex] || APPS[0];
 
+  // =================== MODE DESKTOP (window manager) ===================
+
   const switchApp = React.useCallback((id: AppId, updateUrl = true) => {
     playOS("nav");
     setActiveApp(id);
@@ -177,8 +221,6 @@ export function OSDesktopManager({
     }
     if (updateUrl && typeof window !== "undefined") {
       const hash = id === "profil" ? "" : "#" + id;
-      // Pertahankan search params (mis. ?lang=en) — sebelumnya pathname+hash
-      // saja, sehingga setiap pindah app diam-diam menghapus locale dari URL.
       const search = window.location.search;
       const newUrl = window.location.pathname + search + hash;
       if (window.location.hash !== hash) {
@@ -213,28 +255,44 @@ export function OSDesktopManager({
     }
   }, []);
 
-  // Keyboard navigation: Arrow Left/Right and Number keys 1-8
+  // Infinite scroll antar jendela (desktop saja).
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Jangan ganggu shortcut browser/OS: Ctrl+1..8 / Cmd+1..8 adalah switch
-      // tab di Chrome/Firefox/Edge/Safari, Alt+<key> umumnya menu window.
-      // Sebelumnya pengecekan ini tidak ada, sehingga preventDefault() di bawah
-      // menelan shortcut tab-switching pengunjung.
-      if (e.ctrlKey || e.metaKey || e.altKey) {
-        return;
-      }
+    if (viewMode !== "desktop") return;
+    const el = scrollContainerRef.current;
+    if (!el) return;
 
-      // Lewati saat fokus di elemen input: selain INPUT/TEXTAREA juga SELECT
-      // (panah membuka/menutup daftar pilihan) dan contentEditable (mis.
-      // editor admin) — panah di situ navigasi kursor, bukan pindah aplikasi.
+    const handleWheel = (e: WheelEvent) => {
+      if (activeApp === "terminal") return;
+      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= 0;
+      const atTop = el.scrollTop <= 0;
+      if (Math.abs(e.deltaY) < 4) return;
+
+      if (e.deltaY > 0 && atBottom) {
+        e.preventDefault();
+        handleNext();
+      } else if (e.deltaY < 0 && atTop) {
+        e.preventDefault();
+        handlePrev();
+      }
+    };
+
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", handleWheel);
+    };
+  }, [activeApp, handleNext, handlePrev, viewMode]);
+
+  // Keyboard navigation (desktop saja).
+  useEffect(() => {
+    if (viewMode !== "desktop") return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
       const active = document.activeElement;
       const tag = active?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
-        return;
-      }
-      if (active instanceof HTMLElement && active.isContentEditable) {
-        return;
-      }
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (active instanceof HTMLElement && active.isContentEditable) return;
 
       if (e.key === "ArrowRight") {
         e.preventDefault();
@@ -252,56 +310,12 @@ export function OSDesktopManager({
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    const handleSwitchAppEvent = (e: CustomEvent<AppId>) => {
-      if (e.detail) {
-        switchApp(e.detail);
-      }
-    };
-    window.addEventListener("switch-os-app", handleSwitchAppEvent as EventListener);
-
-    // Sync from initial URL hash on mount or hash change (for direct share links)
-    const handleHashChange = () => {
-      const hash = window.location.hash.replace("#", "").toLowerCase();
-      const aliasMap: Record<string, AppId> = {
-        profil: "profil",
-        profile: "profil",
-        hero: "profil",
-        about: "profil",
-        layanan: "layanan",
-        services: "layanan",
-        proyek: "proyek",
-        projects: "proyek",
-        toko: "toko",
-        produk: "toko",
-        store: "toko",
-        products: "toko",
-        testimoni: "testimoni",
-        testimonials: "testimoni",
-        reviews: "testimoni",
-        artikel: "artikel",
-        articles: "artikel",
-        blog: "artikel",
-        kontak: "kontak",
-        contact: "kontak",
-        terminal: "terminal",
-      };
-
-      if (hash && aliasMap[hash]) {
-        switchApp(aliasMap[hash], false);
-      }
-    };
-
-    handleHashChange();
-    window.addEventListener("hashchange", handleHashChange);
-
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("switch-os-app", handleSwitchAppEvent as EventListener);
-      window.removeEventListener("hashchange", handleHashChange);
     };
-  }, [handleNext, handlePrev, switchApp]);
+  }, [handleNext, handlePrev, switchApp, viewMode]);
 
-  // Command palette: Ctrl+K / Cmd+K (bekerja walau fokus di input)
+  // Command palette: Ctrl+K / Cmd+K (bekerja walau fokus di input).
   useEffect(() => {
     const openPalette = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
@@ -312,6 +326,177 @@ export function OSDesktopManager({
     window.addEventListener("keydown", openPalette);
     return () => window.removeEventListener("keydown", openPalette);
   }, []);
+
+  // Hash routing: dibaca saat mount + saat berubah (deep link share).
+  useEffect(() => {
+    const aliasMap: Record<string, AppId> = {
+      profil: "profil", profile: "profil", hero: "profil", about: "profil",
+      layanan: "layanan", services: "layanan",
+      proyek: "proyek", projects: "proyek",
+      toko: "toko", produk: "toko", store: "toko", products: "toko",
+      testimoni: "testimoni", testimonials: "testimoni", reviews: "testimoni",
+      artikel: "artikel", articles: "artikel", blog: "artikel",
+      kontak: "kontak", contact: "kontak",
+      terminal: "terminal",
+    };
+
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace("#", "").toLowerCase();
+      if (hash && aliasMap[hash]) {
+        switchApp(aliasMap[hash], false);
+      }
+    };
+
+    handleHashChange();
+    window.addEventListener("hashchange", handleHashChange);
+    return () => {
+      window.removeEventListener("hashchange", handleHashChange);
+    };
+  }, [switchApp]);
+
+  // =================== MODE MOBILE (single-page scroll) ===================
+
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
+  // Section ID -> sectionRef untuk scroll-to via taskbar/bot.
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+
+  // Scroll-spy mobile: tandai section yang paling terlihat sebagai app
+  // aktif. Memakai scroll listener + hitung posisi (bukan IntersectionObserver
+  // yang berbasis rasio) — deterministik untuk section yang jauh lebih tinggi
+  // dari viewport, dan tidak bergantung jadwal callback IO di WebView.
+  useEffect(() => {
+    if (viewMode !== "mobile") return;
+    const root = mobileScrollRef.current;
+    if (!root) return;
+
+    let rafId = 0;
+    const update = () => {
+      rafId = 0;
+      // Garis fokus: ~35% tinggi container dari tepi atasnya. Section dianggap
+      // "aktif" bila TEPinya sudah naik melewati garis ini di ruang konten.
+      // Konversi: posisi tepi section di viewport = offsetTop - scrollTop,
+      // jadi syaratnya offsetTop <= scrollTop + focusOffset. (Versi awal
+      // salah membandingkan offsetTop dengan garis viewport tanpa scrollTop
+      // → sisi kanan konstan → label taskbar tidak pernah berganti.)
+      const focusOffset = Math.min(root.clientHeight * 0.35, 220);
+      const children = sectionRefs.current;
+      let current: AppId | null = null;
+      // Pilih section TERAKHIR yang top-nya sudah melewati garis fokus.
+      for (const id of SCROLL_SECTIONS) {
+        const el = children[id];
+        if (!el) continue;
+        if (el.offsetTop <= root.scrollTop + focusOffset) {
+          current = id;
+        } else {
+          break;
+        }
+      }
+      // Fallback: belum ada yang lewat garis → section pertama yang terlihat.
+      if (!current) {
+        for (const id of SCROLL_SECTIONS) {
+          const el = children[id];
+          if (!el) continue;
+          const r = el.getBoundingClientRect();
+          if (r.bottom > root.getBoundingClientRect().top) {
+            current = id;
+            break;
+          }
+        }
+      }
+      if (current) setActiveApp(current);
+    };
+
+    const onScroll = () => {
+      if (!rafId) rafId = requestAnimationFrame(update);
+    };
+
+    update();
+    root.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    return () => {
+      root.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [viewMode, mounted]);
+
+  // Scroll ke section tertentu (mode mobile) — dipakai taskbar & event bot.
+  const scrollToSection = React.useCallback((id: AppId) => {
+    if (viewMode !== "mobile") return;
+    const el = sectionRefs.current[id];
+    const root = mobileScrollRef.current;
+    if (!el || !root) return;
+    playOS("nav");
+    setActiveApp(id);
+    root.scrollTo({ top: el.offsetTop - 4, behavior: "smooth" });
+  }, [viewMode]);
+
+  // Membuka Terminal. Di desktop = jendela biasa (switchApp). Di mobile =
+  // scroll ke section Terminal (sama seperti section lain). TIDAK boleh memaksa
+  // setViewMode("desktop") — matchMedia listener hanya memantau event "change"
+  // (resize), jadi viewMode nyangkut "desktop" → taskbar desktop (8 ikon)
+  // dirender di layar kecil & single-page scroll hilang (bug "harus buka tab
+  // baru").
+  const openTerminal = React.useCallback(() => {
+    if (viewMode === "mobile") {
+      scrollToSection("terminal");
+    } else {
+      switchApp("terminal");
+    }
+  }, [viewMode, scrollToSection, switchApp]);
+
+  // Ref callback container scroll: selain menyimpan ref, daftarkan elemen ini
+  // sebagai scroller GSAP ScrollTrigger. Ref callback React berjalan pada fase
+  // commit SEBELUM useLayoutEffect anak-anak (useGSAP di tiap section), jadi
+  // semua ScrollTrigger yang dibuat section membaca scroller yang benar —
+  // container internal ini di mobile, container window di desktop.
+  const bindMobileScroller = React.useCallback((el: HTMLDivElement | null) => {
+    mobileScrollRef.current = el;
+    setGsapScroller(el);
+  }, []);
+
+  const bindDesktopScroller = React.useCallback((el: HTMLDivElement | null) => {
+    scrollContainerRef.current = el;
+    setGsapScroller(el);
+  }, []);
+
+  // Jembatan lintas-mode: event "switch-os-app" (dari RetroBot, hero CONTACT,
+  // terminal) → desktop switchApp, mobile scrollToSection.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<AppId>).detail;
+      if (!detail) return;
+      if (viewMode === "mobile") {
+        // Semua app (termasuk terminal) adalah section scroll — tidak ada
+        // layer terpisah yang harus ditutup/dibuka, viewMode tidak diubah.
+        scrollToSection(detail);
+      } else {
+        switchApp(detail);
+      }
+    };
+    window.addEventListener("switch-os-app", handler);
+    return () => window.removeEventListener("switch-os-app", handler);
+  }, [viewMode, switchApp, scrollToSection]);
+
+  // Saat resize melewati breakpoint, posisikan scroll mobile ke section yang
+  // sama dengan window yang terbuka di desktop. Hanya bergantung viewMode —
+  // BUKAN activeApp (scroll-spy terus memutakhirkan activeApp saat user
+  // scroll; efek yang bergantung padanya akan "melawan" scroll pengguna).
+  const lastDesktopAppRef = useRef<AppId>("profil");
+  useEffect(() => {
+    if (activeApp !== "terminal") lastDesktopAppRef.current = activeApp;
+  }, [activeApp]);
+
+  useEffect(() => {
+    if (viewMode !== "mobile") return;
+    const id = lastDesktopAppRef.current;
+    const raf = requestAnimationFrame(() => {
+      const el = sectionRefs.current[id];
+      const root = mobileScrollRef.current;
+      if (el && root) root.scrollTop = el.offsetTop - 4;
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [viewMode]);
 
   const paletteActions: PaletteAction[] = React.useMemo(
     () => [
@@ -340,6 +525,217 @@ export function OSDesktopManager({
     [language, setLanguage, setTheme]
   );
 
+  // =================== RENDER ===================
+
+  // Sebelum mount + deteksi viewport: render kerangka netral (mencegah
+  // hydration mismatch dan flash konten salah mode).
+  if (!mounted) {
+    return (
+      <div className="flex-1 w-full h-full flex flex-col overflow-hidden relative select-none">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="vt-window px-6 py-4 font-mono text-xs font-bold text-[var(--vt-ink)]">
+            SIGIT_KERNEL :: initializing display ...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ===== MODE MOBILE: single-page scroll =====
+  if (viewMode === "mobile") {
+    const activeAppItem = APPS.find((a) => a.id === activeApp) || APPS[0];
+
+    return (
+      <div className="flex-1 w-full h-full flex flex-col overflow-hidden relative select-none">
+        <div
+          ref={bindMobileScroller}
+          // Sama seperti body window mode desktop (lihat bawah): kanvas section
+          // harus --vt-paper + --vt-ink. Tanpa ini, background jatuh ke
+          // body{--vt-desktop} (navy gelap) → judul section ber-teks --vt-ink
+          // (nyaris hitam) tak terlihat di latar biru.
+          className="flex-1 overflow-y-auto vt-scrollbar overscroll-contain relative bg-[var(--vt-paper)] text-[var(--vt-ink)]"
+        >
+          <div className="p-1.5 space-y-1.5">
+            {SCROLL_SECTIONS.map((id) => (
+              <section
+                key={id}
+                data-app-id={id}
+                ref={(el) => {
+                  sectionRefs.current[id] = el;
+                }}
+                className="scroll-mt-1"
+              >
+                {id === "profil" && <HeroSection profile={profile} />}
+                {id === "layanan" && <ServicesSection services={services} profile={profile} />}
+                {id === "proyek" && <FeaturedProjectsSection projects={projects} />}
+                {id === "toko" && <ProductsSection products={products} profile={profile} />}
+                {id === "artikel" && <ArticlesSection articles={articles} />}
+                {id === "terminal" && (
+                  // Terminal sebagai section baca (bukan overlay): kartu
+                  // ber-height tetap biar pengguna bisa scroll melewatinya.
+                  // Tinggi tetap penting — tanpanya, panel interaktif akan
+                  // tumbuh seiring output dan memakan seluruh dokumen.
+                  <div className="rounded-xs border-2 border-border bg-[var(--vt-desktop)] overflow-hidden shadow-md">
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-[var(--vt-card)] border-b-2 border-border font-mono text-[10px] font-bold">
+                      <span className="shrink-0">
+                        {APPS.find((a) => a.id === "terminal")?.icon}
+                      </span>
+                      <span className="truncate">{getAppFilename("terminal")}</span>
+                      <span className="ml-auto opacity-60 font-normal hidden xs:inline">
+                        {language === "en" ? "type “help”" : "ketik “help”"}
+                      </span>
+                    </div>
+                    <div className="h-[60vh] min-h-[300px]">
+                      <OSCrtTerminal
+                        ownerName={profile.name}
+                        profile={profile}
+                        services={services}
+                        projects={projects}
+                        articles={articles}
+                        fullscreen
+                      />
+                    </div>
+                  </div>
+                )}
+                {id === "testimoni" && <TestimonialsSection testimonials={testimonials} />}
+                {id === "kontak" && <ContactSection profile={profile} />}
+              </section>
+            ))}
+
+            {/* Penutup retro: EOF marker + tombol kembali ke awal dokumen.
+                Sebelumnya hanya ada teks "ketuk ikon taskbar" — taskbar mobile
+                cuma menampilkan SATU ikon (section aktif), jadi petunjuk itu
+                membingungkan. Tombol di bawah ini bekerja di mana pun. */}
+            <div className="pt-3 pb-5 flex flex-col items-center gap-2 font-mono text-[10px] font-bold text-[var(--vt-ink)]">
+              <span className="opacity-60">
+                {language === "en" ? "— END OF DOCUMENT —" : "— AKHIR DOKUMEN —"}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  playOS("nav");
+                  setActiveApp("profil");
+                  mobileScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                aria-label={language === "en" ? "Back to top" : "Kembali ke atas"}
+                className="vt-btn vt-btn-chrome px-3 py-1.5 rounded-xs flex items-center gap-1.5 cursor-pointer select-none"
+              >
+                <ArrowUp className="h-3 w-3" strokeWidth={2.5} />
+                <span>{language === "en" ? "BACK TO TOP" : "KEMBALI KE ATAS"}</span>
+              </button>
+              <span className="opacity-50 font-normal text-center px-4">
+                {language === "en"
+                  ? "or tap the Start button to jump to any section"
+                  : "atau ketuk tombol Start untuk lompat ke section mana pun"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Taskbar mobile: Start + SATU ikon section aktif (scroll-spy) */}
+        <div className="vt-taskbar h-10 px-1.5 flex items-center justify-between gap-1 border-t-2 border-border select-none z-30 shrink-0 overflow-hidden">
+          <div className="flex items-center gap-1 flex-1 min-w-0 overflow-hidden">
+            {/* Start button (compact, mobile) */}
+            <div className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setStartOpen(!startOpen);
+                  setThemeMenuOpen(false);
+                }}
+                className={`vt-btn px-2.5 py-1 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer select-none transition-all duration-200 group ${
+                  startOpen
+                    ? "vt-btn-inset bg-[var(--vt-card)] translate-y-0.5"
+                    : "vt-btn-chrome text-foreground hover:scale-105"
+                }`}
+                title={t.os_start_btn}
+              >
+                <div className="grid grid-cols-2 gap-0.5 w-4 h-4 p-0.5 bg-black/20 rounded-xs group-hover:rotate-12 transition-transform shrink-0">
+                  <span className="bg-red-500 rounded-xs" />
+                  <span className="bg-green-500 rounded-xs" />
+                  <span className="bg-blue-500 rounded-xs" />
+                  <span className="bg-yellow-400 rounded-xs" />
+                </div>
+              </button>
+            </div>
+
+            <div className="h-6 w-[2px] bg-[#5a5750] shadow-[1px_0_0_#fff] mx-0.5 shrink-0" />
+
+            {/* SATU tab section aktif: ketuk = kembali ke atas section itu */}
+            <button
+              type="button"
+              onClick={() => scrollToSection(activeAppItem.id)}
+              title={`${getAppFilename(activeAppItem.id)} — ${language === "en" ? "tap to scroll to top of section" : "ketuk untuk kembali ke atas section"}`}
+              aria-label={getAppFilename(activeAppItem.id)}
+              className={`vt-taskbar-tab group relative h-7 px-2 text-[10px] flex items-center justify-center gap-1 cursor-pointer shrink-0 transition-all duration-300 active shadow-md ring-2 font-extrabold -translate-y-0.5 ${activeAppItem.activeClass}`}
+            >
+              <span className="shrink-0">{activeAppItem.icon}</span>
+              <span className="leading-none">{appHumanLabel(activeAppItem.id, language)}</span>
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1/2 h-0.5 bg-current rounded-full animate-pulse" />
+            </button>
+          </div>
+
+          {/* Status kanan */}
+          <div className="flex items-center gap-1 text-[9px] font-mono font-bold shrink-0 pl-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_5px_rgba(16,185,129,0.8)]" />
+            <span className="hidden xs:inline text-[#065f46] dark:text-[#6ee7b7]">{t.os_status_online}</span>
+          </div>
+        </div>
+
+        {/* Start Menu (dipakai bersama dengan mode desktop — komponen inline) */}
+        {startOpen && (
+          <StartMenuMobile
+            profile={profile}
+            close={() => {
+              setStartOpen(false);
+              setThemeMenuOpen(false);
+              setMenuQuery("");
+            }}
+            onOpenTerminal={() => {
+              setStartOpen(false);
+              openTerminal();
+            }}
+            onScrollTo={(id) => {
+              setStartOpen(false);
+              scrollToSection(id);
+            }}
+            language={language}
+            setLanguage={setLanguage}
+            soundOn={soundOn}
+            setSoundOn={(v) => {
+              setSoundOn(v);
+              try {
+                window.localStorage?.setItem("sigitos_sound", v ? "on" : "off");
+              } catch {
+                // abaikan
+              }
+            }}
+            theme={theme}
+            setTheme={setTheme}
+          />
+        )}
+
+        {/* Command palette Ctrl+K */}
+        <OSCommandPalette
+          open={paletteOpen}
+          apps={APPS.map((a) => ({ id: a.id, label: getAppFilename(a.id), icon: a.icon }))}
+          actions={paletteActions}
+          language={language}
+          onSelectApp={(id) => {
+            if (id === "terminal") {
+              openTerminal();
+            } else {
+              scrollToSection(id as AppId);
+            }
+          }}
+          onClose={() => setPaletteOpen(false)}
+        />
+
+      </div>
+    );
+  }
+
+  // ===== MODE DESKTOP: window manager tab (perilaku lama penuh) =====
   return (
     <div className="flex-1 w-full h-full flex flex-col overflow-hidden relative select-none">
       <div className="flex-1 flex overflow-hidden p-1 sm:p-2 md:p-4 gap-1.5 sm:gap-3 relative">
@@ -369,10 +765,6 @@ export function OSDesktopManager({
         {/* Center: The Active OS Application Window */}
         <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0 z-20">
           {activeApp === "terminal" ? (
-            // Terminal merenggang penuh: tanpa chrome jendela OS (titlebar,
-            // padding body, bottom nav prev/next). Terminal menyediakan top
-            // bar, gauge, dan prompt-nya sendiri — layar CRT adalah seluruh
-            // jendela, sesuai permintaan "tampilan terminal fullscreen".
             <div key="terminal-fullscreen" className="vt-window vt-crt-on flex flex-col h-full">
               {!isMinimized && (
                 <OSCrtTerminal
@@ -388,7 +780,7 @@ export function OSDesktopManager({
           ) : (
           <div
             key={activeApp}
-            className={`vt-window flex flex-col h-full vt-crt-on transition-all duration-150 ${
+            className={`vt-window flex flex-col h-full vt-crt-on transition-all duration-150 relative ${
               isMaximized ? "fixed inset-2 z-50" : "flex-1"
             } ${isMinimized ? "h-auto" : ""}`}
           >
@@ -446,10 +838,10 @@ export function OSDesktopManager({
               </div>
             </div>
 
-            {/* 2. Window Body Canvas (Internal Scroll, Page stays 100% viewport locked) */}
+            {/* 2. Window Body Canvas (Internal Scroll) */}
             {!isMinimized && (
               <div
-                ref={scrollContainerRef}
+                ref={bindDesktopScroller}
                 className="flex-1 overflow-y-auto vt-scrollbar bg-[var(--vt-paper)] text-[var(--vt-ink)] p-2 sm:p-3 md:p-6"
               >
                 {activeApp === "profil" && <HeroSection profile={profile} />}
@@ -470,54 +862,9 @@ export function OSDesktopManager({
               </div>
             )}
 
-            {/* 4. In-Window Bottom Navigation & Statusbar (Previous / Next Buttons) */}
+            {/* 2b. Continuation signifier: gradien di tepi bawah body window */}
             {!isMinimized && (
-              <div className="vt-taskbar py-2 sm:py-3 px-2 sm:px-4 flex items-center justify-between gap-1 sm:gap-2 border-t-2 border-border text-xs font-mono shrink-0 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
-                {/* Previous Button */}
-                <button
-                  type="button"
-                  onClick={handlePrev}
-                  className="group vt-btn vt-btn-chrome h-8 sm:h-10 px-3 sm:px-4 text-[11px] sm:text-sm font-bold text-foreground flex items-center gap-1.5 cursor-pointer hover:bg-[var(--vt-blue)] hover:text-white transition-colors shadow-sm"
-                  title={t.os_nav_prev_tooltip}
-                >
-                  <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5 group-hover:-translate-x-0.5 transition-transform" />
-                  <span className="hidden sm:inline">{t.os_nav_prev}</span>
-                </button>
-
-                {/* Section Counter & Keyboard Guide */}
-                <div className="flex items-center gap-2 sm:gap-4 text-[11px] sm:text-[13px] text-[var(--vt-ink)] font-mono font-bold">
-                  <span className="hidden md:inline-flex items-center gap-1.5 px-2 py-0.5 bg-muted/50 rounded-sm border border-border/50">
-                    <HardDrive className="h-4 w-4 text-primary" />
-                    <span>C:\SIGIT\APP_{currentApp.number}.EXE</span>
-                  </span>
-                  <span className="px-2.5 sm:px-3 py-1 bg-muted rounded border border-border text-[var(--vt-ink)] font-extrabold shadow-inner">
-                    {currentApp.number} / {APPS.length}
-                  </span>
-                  <span className="hidden lg:inline text-xs text-[var(--vt-ink)] opacity-75 font-medium italic">
-                    {t.os_nav_keys}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setPaletteOpen(true)}
-                    className="hidden lg:inline-flex items-center gap-1 px-2 py-0.5 bg-muted/50 rounded-sm border border-border/50 text-xs text-[var(--vt-ink)] font-medium hover:bg-muted transition-colors cursor-pointer"
-                    title={language === "en" ? "Open command palette (Ctrl+K)" : "Buka palet perintah (Ctrl+K)"}
-                  >
-                    <span className="opacity-75">Ctrl+K</span>
-                  </button>
-                </div>
-
-                {/* Next Button */}
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  className="group vt-btn vt-btn-pink h-8 sm:h-10 px-3 sm:px-5 text-[11px] sm:text-sm font-extrabold text-white flex items-center gap-1.5 cursor-pointer shadow-md hover:brightness-110 active:brightness-90 transition-all"
-                  title={t.os_nav_next_tooltip}
-                >
-                  <span className="hidden sm:inline" style={{ color: "#1a1512" }}>{t.os_nav_next}</span>
-                  <span className="sm:hidden" style={{ color: "#1a1512" }}>{language === "en" ? "Next" : "Lanjut"}</span>
-                  <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 group-hover:translate-x-0.5 transition-transform" />
-                </button>
-              </div>
+              <ScrollFade containerRef={scrollContainerRef} />
             )}
           </div>
           )}
@@ -534,7 +881,7 @@ export function OSDesktopManager({
         onClose={() => setPaletteOpen(false)}
       />
 
-      {/* Fixed Start Menu Popup (Placed at root level so it is NEVER clipped by taskbar) */}
+      {/* Fixed Start Menu Popup */}
       {startOpen && (
         <>
           {/* Backdrop for outside click */}
@@ -548,10 +895,8 @@ export function OSDesktopManager({
           />
 
           {/* Start Menu Window */}
-          <div
-            className="fixed left-1.5 sm:left-3 bottom-9 sm:bottom-11 w-64 max-w-[calc(100vw-1rem)] vt-window bg-[var(--vt-chrome)] text-foreground text-xs shadow-2xl z-50 flex flex-row overflow-hidden animate-in fade-in-50 zoom-in-95 duration-100"
-          >
-            {/* Left Blue Gradient Sidebar (Dikosongkan sesuai instruksi) */}
+          <div className="fixed left-1.5 sm:left-3 bottom-9 sm:bottom-11 w-64 max-w-[calc(100vw-1rem)] vt-window bg-[var(--vt-chrome)] text-foreground text-xs shadow-2xl z-50 flex flex-row overflow-hidden animate-in fade-in-50 zoom-in-95 duration-100">
+            {/* Left Blue Gradient Sidebar */}
             <div className="w-5 sm:w-6 bg-gradient-to-t from-[var(--vt-navy)] via-[var(--vt-blue)] to-[#7c5cff] select-none shrink-0" />
 
             {/* Menu Items List */}
@@ -580,7 +925,12 @@ export function OSDesktopManager({
                   key={app.id}
                   type="button"
                   onClick={() => {
-                    switchApp(app.id);
+                    if (app.id === "terminal") {
+                      switchApp("terminal");
+                    } else {
+                      // Di desktop: buka window; mobile tidak memakai start menu ini.
+                      switchApp(app.id);
+                    }
                     setStartOpen(false);
                     setMenuQuery("");
                   }}
@@ -613,7 +963,7 @@ export function OSDesktopManager({
                 </span>
               </button>
 
-              {/* Sound Toggle (persist localStorage, dibaca boot beep) */}
+              {/* Sound Toggle */}
               <button
                 type="button"
                 onClick={() => {
@@ -678,7 +1028,6 @@ export function OSDesktopManager({
                 )}
               </div>
 
-
               <button
                 type="button"
                 onClick={() => {
@@ -697,9 +1046,9 @@ export function OSDesktopManager({
 
       {/* Bottom Taskbar (Windows 95/98 Classic OS Taskbar) */}
       <div className="vt-taskbar h-10 sm:h-12 md:h-14 px-1.5 sm:px-3 md:px-4 flex items-center justify-between gap-1 border-t-2 border-border select-none z-30 shrink-0 overflow-hidden">
-        {/* Left Side: Windows Start Button + Separator + Open Windows Tabs */}
+        {/* Left Side: Start Button + Separator + Open Windows Tabs */}
         <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0 overflow-hidden">
-          {/* 1. Classic Windows 95/98 Start Button — proporsional di mobile */}
+          {/* 1. Classic Start Button */}
           <div className="relative shrink-0">
             <button
               type="button"
@@ -727,7 +1076,7 @@ export function OSDesktopManager({
           {/* Retro Taskbar Separator */}
           <div className="h-7 sm:h-8 md:h-10 w-[2px] bg-[#5a5750] shadow-[1px_0_0_#fff] mx-0.5 sm:mx-2 shrink-0" />
 
-          {/* Open windows taskbar buttons (Icon-only on mobile so ALL items fit without overflow; Icon + Text on md+) */}
+          {/* Open windows taskbar buttons */}
           <div className="flex items-center gap-0.5 sm:gap-2 overflow-hidden min-w-0 flex-1 pr-0.5 sm:pr-2">
             {APPS.map((app) => (
               <button
@@ -752,6 +1101,9 @@ export function OSDesktopManager({
                 <span className="hidden md:inline truncate max-w-[100px] lg:max-w-none">
                   {getAppFilename(app.id)}
                 </span>
+                <span className="md:hidden text-[9px] leading-none">
+                  {appHumanLabel(app.id, language)}
+                </span>
                 {activeApp === app.id && (
                   <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1/2 h-0.5 bg-current rounded-full animate-pulse" />
                 )}
@@ -768,4 +1120,194 @@ export function OSDesktopManager({
       </div>
     </div>
   );
+}
+
+// ===================== Start Menu versi mobile =====================
+// Dipisah agar JSX utama tidak terlalu panjang; perilaku identik dengan
+// start menu desktop tapi item aplikasi = scroll ke section, dan Terminal
+// membuka mode desktop window (satu-satunya app non-scroll).
+
+interface StartMenuMobileProps {
+  profile: ProfileData;
+  close: () => void;
+  onOpenTerminal: () => void;
+  onScrollTo: (id: AppId) => void;
+  language: "id" | "en";
+  setLanguage: (l: "id" | "en") => void;
+  soundOn: boolean;
+  setSoundOn: (v: boolean) => void;
+  theme: OSTheme;
+  setTheme: (t: OSTheme) => void;
+}
+
+function StartMenuMobile({
+  profile,
+  close,
+  onOpenTerminal,
+  onScrollTo,
+  language,
+  setLanguage,
+  soundOn,
+  setSoundOn,
+  theme,
+  setTheme,
+}: StartMenuMobileProps) {
+  const { t } = useTranslation();
+  const [menuQuery, setMenuQuery] = useState("");
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40" onClick={close} />
+      <div className="fixed left-1.5 bottom-9 w-[calc(100vw-0.75rem)] max-w-64 vt-window bg-[var(--vt-chrome)] text-foreground text-xs shadow-2xl z-50 flex flex-row overflow-hidden animate-in fade-in-50 zoom-in-95 duration-100">
+        <div className="w-5 bg-gradient-to-t from-[var(--vt-navy)] via-[var(--vt-blue)] to-[#7c5cff] select-none shrink-0" />
+
+        <div className="flex-1 p-1 space-y-0.5 font-mono overflow-y-auto max-h-[70vh]">
+          <div className="px-2 py-1.5 bg-muted/60 mb-1 border-b border-border/60">
+            <p className="font-bold text-foreground truncate">{profile.name}</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
+              {t.os_start_title}
+            </p>
+          </div>
+
+          <div className="px-1 pb-1">
+            <input
+              type="text"
+              value={menuQuery}
+              onChange={(e) => setMenuQuery(e.target.value)}
+              placeholder={language === "en" ? "Search apps..." : "Cari aplikasi..."}
+              className="w-full px-2.5 py-1.5 text-xs font-mono bg-muted/60 border border-border/60 rounded-xs outline-none placeholder:text-muted-foreground focus:border-[var(--vt-blue)]"
+            />
+          </div>
+
+          {APPS.filter((app) =>
+            getAppFilenameById(app.id, language).toLowerCase().includes(menuQuery.trim().toLowerCase())
+          ).map((app) => (
+            <button
+              key={app.id}
+              type="button"
+              onClick={() => {
+                if (app.id === "terminal") {
+                  onOpenTerminal();
+                } else {
+                  onScrollTo(app.id);
+                }
+              }}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors text-left cursor-pointer ${
+                app.id === "terminal" ? "" : ""
+              }`}
+            >
+              <span className="shrink-0">{app.icon}</span>
+              <span className="font-bold">{getAppFilenameById(app.id, language)}</span>
+            </button>
+          ))}
+
+          <div className="h-px bg-[#9a968e] my-1 shadow-[0_1px_0_#fff]" />
+
+          {/* Language Switcher */}
+          <button
+            type="button"
+            onClick={() => {
+              setLanguage(language === "id" ? "en" : "id");
+              close();
+            }}
+            className="w-full flex items-center justify-between px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors text-left font-bold cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <Globe className="h-3.5 w-3.5 text-sky-500" />
+              <span>{language === "id" ? "Bahasa (ID)" : "Language (EN)"}</span>
+            </div>
+            <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded border border-border">
+              {language.toUpperCase()}
+            </span>
+          </button>
+
+          {/* Sound Toggle */}
+          <button
+            type="button"
+            onClick={() => setSoundOn(!soundOn)}
+            className="w-full flex items-center justify-between px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors text-left font-bold cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              {soundOn ? (
+                <Volume2 className="h-3.5 w-3.5 text-emerald-500" />
+              ) : (
+                <VolumeX className="h-3.5 w-3.5 text-muted-foreground" />
+              )}
+              <span>{language === "en" ? "Sound" : "Suara"}</span>
+            </div>
+            <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded border border-border">
+              {soundOn ? "ON" : "OFF"}
+            </span>
+          </button>
+
+          {/* Theme Selector Submenu */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setThemeMenuOpen(!themeMenuOpen)}
+              className="w-full flex items-center justify-between px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors text-left font-bold cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <Palette className="h-3.5 w-3.5 text-indigo-500" />
+                <span>{t.os_start_theme}</span>
+              </div>
+              <ChevronRight className="h-3 w-3" />
+            </button>
+
+            {themeMenuOpen && (
+              <div className="mt-1 pl-4 space-y-1 bg-muted/40 p-1.5 rounded-xs border border-border">
+                {THEMES.map((th) => (
+                  <button
+                    key={th.id}
+                    type="button"
+                    onClick={() => {
+                      setTheme(th.id);
+                      close();
+                    }}
+                    className={`w-full flex items-center justify-between px-2 py-1 text-[11px] rounded-xs font-bold cursor-pointer ${
+                      theme === th.id
+                        ? "bg-[var(--vt-blue)] text-white"
+                        : "hover:bg-muted text-foreground"
+                    }`}
+                  >
+                    <span>{th.label}</span>
+                    <span className="text-[9px] opacity-75">[{th.tag}]</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              sessionStorage.removeItem("sigitos_booted_session");
+              window.location.reload();
+            }}
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-amber-600 hover:text-white rounded-xs transition-colors text-left cursor-pointer font-bold"
+          >
+            <RotateCcw className="h-3.5 w-3.5 text-amber-500 hover:text-white" />
+            <span>{t.os_start_reboot}</span>
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// Helper nama file tanpa hook (untuk StartMenuMobile yang tidak menerima
+// fungsi getAppFilename sebagai prop).
+function getAppFilenameById(id: AppId, language: "id" | "en"): string {
+  switch (id) {
+    case "profil": return language === "en" ? "Profile.exe" : "Profil.exe";
+    case "layanan": return language === "en" ? "Services.exe" : "Layanan.exe";
+    case "proyek": return language === "en" ? "Projects.exe" : "Proyek.exe";
+    case "toko": return language === "en" ? "Store.zip" : "Toko.zip";
+    case "testimoni": return language === "en" ? "Reviews.txt" : "Testimoni.txt";
+    case "artikel": return language === "en" ? "Articles.doc" : "Artikel.doc";
+    case "kontak": return language === "en" ? "Contact.exe" : "Kontak.exe";
+    case "terminal": return "Terminal.bat";
+    default: return `${id}.exe`;
+  }
 }

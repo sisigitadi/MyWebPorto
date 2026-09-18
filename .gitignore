@@ -62,6 +62,8 @@ deploy_package.zip
 build_run.txt
 build_verify.txt
 fix-*.js
+dev-server-*.log
+migrate.log
 .aider*
 .freebuff/
 data/local-store.json
@@ -75,3 +77,4 @@ scripts/find-*.mjs
 
 # media hasil upload runtime (ephemeral di serverless; tidak direferensikan kode)
 public/uploads/
+.claude/
