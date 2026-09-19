@@ -261,65 +261,7 @@ export function OSDesktopManager({
     }
   }, []);
 
-  const handleNext = React.useCallback(() => {
-    playOS("nav");
-    setActiveApp((curr) => {
-      const idx = apps.findIndex((a) => a.id === curr);
-      const nextIdx = (idx + 1) % apps.length;
-      return apps[nextIdx].id;
-    });
-    setIsMinimized(false);
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = 0;
-    }
-  }, [apps]);
-
-  const handlePrev = React.useCallback(() => {
-    playOS("nav");
-    setActiveApp((curr) => {
-      const idx = apps.findIndex((a) => a.id === curr);
-      const prevIdx = (idx - 1 + apps.length) % apps.length;
-      return apps[prevIdx].id;
-    });
-    setIsMinimized(false);
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = 0;
-    }
-  }, [apps]);
-
-  // Infinite scroll antar jendela (desktop saja).
-  // mounted WAJIB ada di deps: render pertama manager masih skeleton
-  // (mounted=false) → window body belum ada → scrollContainerRef.current
-  // null → listener tidak terpasang. viewMode tidak berubah nilai saat
-  // desktop ("desktop"→"desktop") jadi tanpa mounted, effect ini tidak
-  // pernah dijalankan ulang saat node container sebenarnya muncul.
-  useEffect(() => {
-    if (viewMode !== "desktop" || !mounted) return;
-    const el = scrollContainerRef.current;
-    if (!el) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      if (activeApp === "terminal") return;
-      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= 0;
-      const atTop = el.scrollTop <= 0;
-      if (Math.abs(e.deltaY) < 4) return;
-
-      if (e.deltaY > 0 && atBottom) {
-        e.preventDefault();
-        handleNext();
-      } else if (e.deltaY < 0 && atTop) {
-        e.preventDefault();
-        handlePrev();
-      }
-    };
-
-    el.addEventListener("wheel", handleWheel, { passive: false });
-    return () => {
-      el.removeEventListener("wheel", handleWheel);
-    };
-  }, [activeApp, handleNext, handlePrev, viewMode, mounted]);
-
-  // Keyboard navigation (desktop saja).
+  // Keyboard navigation (desktop saja: shortcut angka 1-8).
   useEffect(() => {
     if (viewMode !== "desktop") return;
 
@@ -331,13 +273,7 @@ export function OSDesktopManager({
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       if (active instanceof HTMLElement && active.isContentEditable) return;
 
-      if (e.key === "ArrowRight") {
-        e.preventDefault();
-        handleNext();
-      } else if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        handlePrev();
-      } else if (e.key >= "1" && e.key <= "8") {
+      if (e.key >= "1" && e.key <= "8") {
         const idx = parseInt(e.key, 10) - 1;
         // Posisi mengikuti urutan app aktif (bisa diatur admin), bukan APPS
         // statis — angka 3 tidak selalu = "proyek".
@@ -352,7 +288,7 @@ export function OSDesktopManager({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [apps, handleNext, handlePrev, switchApp, viewMode]);
+  }, [apps, switchApp, viewMode]);
 
   // Command palette: Ctrl+K / Cmd+K (bekerja walau fokus di input).
   useEffect(() => {
