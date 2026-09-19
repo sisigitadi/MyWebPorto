@@ -37,6 +37,10 @@ import { useRouter } from "next/navigation";
 interface GodModeVersionBarProps {
   categoryKey: GodModeKey;
   onSaveDraft: () => Promise<boolean>;
+  onPublish: () => Promise<boolean>;
+  isDirty?: boolean;
+}
+
 export function GodModeVersionBar({
   categoryKey,
   onSaveDraft,

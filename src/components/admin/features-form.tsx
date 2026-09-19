@@ -142,7 +142,6 @@ export function FeaturesForm({ initial }: FeaturesFormProps) {
     setError("");
   };
 
-  return (
   const handleSaveDraft = async (): Promise<boolean> => {
     const res = await saveGodModeDraftAction("features", values);
     if (!res.ok) {
@@ -167,6 +166,11 @@ export function FeaturesForm({ initial }: FeaturesFormProps) {
       return false;
     }
     setBaseline({ ...values });
+    return true;
+  };
+
+  return (
+    <div className="space-y-6">
       {/* God Mode Fase 4: Draft, Live Preview, dan Rollback Bar */}
       <GodModeVersionBar
         categoryKey="features"
@@ -175,10 +179,7 @@ export function FeaturesForm({ initial }: FeaturesFormProps) {
         isDirty={isDirty}
       />
 
-    return true;
-  };
-
-    <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
       {FEATURE_GROUPS.map((group) => (
         <div key={group} className="space-y-3">
           <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
@@ -264,5 +265,6 @@ export function FeaturesForm({ initial }: FeaturesFormProps) {
         </AlertDialogContent>
       </AlertDialog>
     </form>
+  </div>
   );
 }
