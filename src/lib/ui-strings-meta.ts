@@ -30,25 +30,32 @@ interface EditableKeyDef {
 }
 
 export const EDITABLE_KEYS = [
+  // Hero
   { key: "hero_available_badge", label: "Badge Ketersediaan", group: "Hero", maxLength: 80, hint: "Pita status di hero section." },
-  { key: "hero_verified_badge", label: "Badge Terverifikasi", group: "Hero", maxLength: 60, hint: "Pita verifikasi di hero section." },
-  { key: "hero_cta_projects", label: "Tombol CTA — Proyek", group: "Hero", maxLength: 40 },
   { key: "hero_cta_portfolio", label: "Tombol CTA — Portofolio", group: "Hero", maxLength: 40 },
-  { key: "hero_skills_label", label: "Label Keahlian Utama", group: "Hero", maxLength: 40 },
-  { key: "hero_contact_heading", label: "Heading Hubungi Saya", group: "Hero", maxLength: 60 },
-  { key: "services_eyebrow", label: "Eyebrow Section Layanan", group: "Services", maxLength: 60 },
+  { key: "hero_cta_contact", label: "Tombol CTA — Kontak", group: "Hero", maxLength: 40 },
+  // Services
+  { key: "services_badge", label: "Badge Section Layanan", group: "Services", maxLength: 60, hint: "Pita label di atas judul section." },
   { key: "services_title", label: "Judul Section Layanan", group: "Services", maxLength: 80 },
   { key: "services_subtitle", label: "Subjudul Section Layanan", group: "Services", maxLength: 160 },
   { key: "services_cta", label: "Tombol CTA Layanan", group: "Services", maxLength: 60 },
-  { key: "projects_eyebrow", label: "Eyebrow Section Proyek", group: "Projects", maxLength: 60 },
+  // Projects
+  { key: "projects_badge", label: "Badge Section Proyek", group: "Projects", maxLength: 60, hint: "Pita label di atas judul section." },
   { key: "projects_title", label: "Judul Section Proyek", group: "Projects", maxLength: 80 },
-  { key: "projects_view_all", label: "Tombol Lihat Semua Proyek", group: "Projects", maxLength: 40 },
-  { key: "products_eyebrow", label: "Eyebrow Section Produk", group: "Products", maxLength: 60 },
+  { key: "projects_page_subtitle", label: "Subjudul Section Proyek", group: "Projects", maxLength: 160 },
+  { key: "projects_detail_btn", label: "Tombol Detail Proyek", group: "Projects", maxLength: 40 },
+  // Products
+  { key: "products_badge", label: "Badge Section Produk", group: "Products", maxLength: 60, hint: "Pita label di atas judul section." },
   { key: "products_title", label: "Judul Section Produk", group: "Products", maxLength: 80 },
-  { key: "testi_eyebrow", label: "Eyebrow Section Testimoni", group: "Testimoni", maxLength: 60 },
+  // Testimoni
+  { key: "testi_badge", label: "Badge Section Testimoni", group: "Testimoni", maxLength: 60, hint: "Pita label di atas judul section." },
   { key: "testi_title", label: "Judul Section Testimoni", group: "Testimoni", maxLength: 80 },
-  { key: "articles_eyebrow", label: "Eyebrow Section Artikel", group: "Artikel", maxLength: 100 },
+  { key: "testi_subtitle", label: "Subjudul Section Testimoni", group: "Testimoni", maxLength: 160 },
+  // Artikel
+  { key: "articles_badge", label: "Badge Section Artikel", group: "Artikel", maxLength: 100, hint: "Pita label di atas judul section." },
   { key: "articles_title", label: "Judul Section Artikel", group: "Artikel", maxLength: 100 },
+  { key: "articles_subtitle", label: "Subjudul Section Artikel", group: "Artikel", maxLength: 160 },
+  // Kontak
   { key: "contact_eyebrow", label: "Eyebrow Section Kontak", group: "Kontak", maxLength: 100 },
   { key: "contact_title", label: "Judul Section Kontak", group: "Kontak", maxLength: 80 },
   { key: "contact_subtitle", label: "Subjudul Section Kontak", group: "Kontak", maxLength: 160 },

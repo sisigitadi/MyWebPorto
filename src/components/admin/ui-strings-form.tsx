@@ -123,8 +123,14 @@ export function UIStringsForm({ initial }: UIStringsFormProps) {
       const payload: UIStringsOverlay = { id: {}, en: {} };
       for (const def of EDITABLE_DEFS) {
         const k = def.key;
-        payload.id[k] = rows[k].id;
-        payload.en[k] = rows[k].en;
+        // Hanya kirim slot yang BERBEDA dari default kode. Kolom form selalu
+        // menampilkan teks efektif (buildRows mengisi default saat kolom DB
+        // kosong) — bila semuanya dikirim, simpanan pertama akan menulis
+        // seluruh default kode ke DB, sehingga perbaikan default di
+        // translations.ts tak pernah sampai ke pengunjung. Slot yang sama
+        // dengan default dikosongkan → overlay hilang → default dipakai.
+        if (rows[k].id !== defaultFor(k, "id")) payload.id[k] = rows[k].id;
+        if (rows[k].en !== defaultFor(k, "en")) payload.en[k] = rows[k].en;
       }
       const res = await saveUIStringsAction(payload);
       if (res.ok) {

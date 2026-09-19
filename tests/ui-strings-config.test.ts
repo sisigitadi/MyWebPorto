@@ -225,3 +225,39 @@ describe("EDITABLE_KEYS vs translations (jaga-jaga typo)", () => {
     }
   });
 });
+
+describe("EDITABLE_KEYS punya konsumen DOM publik", () => {
+  // Pencegah kegagalan diam-diam: pernah ada 10 key Editable (*_eyebrow)
+  // yang TIDAK dirender komponen publik (yg dipakai *_badge) — admin edit,
+  // toast sukses, situs tak berubah. Setiap key HARUS muncul sebagai
+  // `t.<key>` di salah satu file .tsx src/components/public/**.
+  //
+  // File dibaca sebagai TEKS (bukan diimpor): .tsx + jsx:"preserve" tidak
+  // bisa diimpor di vitest (lihat Ruling 6 di ledger).
+  const PUBLIC_DIR = path.join(process.cwd(), "src", "components", "public");
+
+  function readAllTsx(dir: string): string {
+    let out = "";
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        out += readAllTsx(full);
+      } else if (entry.name.endsWith(".tsx")) {
+        out += "\n" + fs.readFileSync(full, "utf-8");
+      }
+    }
+    return out;
+  }
+
+  it("setiap key EDITABLE_KEYS dirender di komponen publik", () => {
+    const sources = readAllTsx(PUBLIC_DIR);
+    expect(sources.length).toBeGreaterThan(0);
+    const missing: string[] = [];
+    for (const def of EDITABLE_KEYS) {
+      // `t.<key>` — batas kata menahan key yg prefix key lain (mis.
+      // projects_title vs projects_title_x).
+      if (!new RegExp(`t\\.${def.key}\\b`).test(sources)) missing.push(def.key);
+    }
+    expect(missing).toEqual([]);
+  });
+});
