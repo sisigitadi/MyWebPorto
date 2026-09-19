@@ -1052,6 +1052,8 @@ git commit -m "@ feat(godmode): Fase 3 task 6 — gate keranjang belanja (modal 
 
 **Kenapa `notFound()` (spec §3.3):** "off" harus benar-benar off — halaman ter-index memang hilang saat flag dimatikan, itulah maksudnya. Flag default ON dan `saveFeaturesAction` memanggil `revalidatePath("/", "layout")` (Task 8), jadi SSG tidak akan meng-cache versi OFF lama. Jangan tambah `force-dynamic`.
 
+**Catatan status HTTP (temuan implementasi):** karena `src/app/(public)/loading.tsx` menciptakan Suspense boundary di route group `(public)` dan gate wajib `await resolveFeatures()` sebelumnya, `notFound()` di sini menghasilkan **status 200 + body not-found**, bukan 404 (sama seperti slug tak dikenal yang sudah pre-existing). Intent SEO tetap tercapai via soft-404. Lihat catatan paralel di spec §3.3 — **implikasinya: `generateMetadata` route `[slug]` WAJIB juga digate**, jika tidak metadata artikel bocor ke `<head>` saat OFF (ditemukan review round 0, diperbaiki round 1).
+
 - [ ] **Step 1: Gate `src/app/(public)/artikel/page.tsx`**
 
 Tambah import:
@@ -1079,6 +1081,20 @@ Pola identik: import `notFound` + `resolveFeatures`, lalu di awal fungsi page (s
   const features = await resolveFeatures();
   if (!features.enable_articles) notFound();
 ```
+
+- [ ] **Step 2b: Gate `generateMetadata` di `src/app/(public)/artikel/[slug]/page.tsx`**
+
+`generateMetadata` dijalankan Next **meskipun** page melempar `notFound()` di dalam Suspense boundary — tanpa gate, judul/deskripsi (`summary || content.slice(0,160)`)/tag/tanggal artikel asli bocor ke `<head>` saat OFF. Tambahkan di paling awal `generateMetadata`, sebelum `await params` dan sebelum `getArticles()` apapun:
+
+```ts
+  // Gate feature flag (settings.features): generateMetadata dijalankan Next
+  // meskipun page melempar notFound() di dalam Suspense — metadata artikel
+  // asli harus diblokir sebelum membaca data apapun.
+  const features = await resolveFeatures();
+  if (!features.enable_articles) return { title: "Artikel Tidak Ditemukan" };
+```
+
+Return partial `{ title }` cukup (Next merge dengan metadata parent → branding generik); yang penting `getArticles()` tak dipanggil saat OFF.
 
 - [ ] **Step 3: tsc + lint**
 

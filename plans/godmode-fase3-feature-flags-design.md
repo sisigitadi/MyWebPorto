@@ -102,6 +102,8 @@ Saat OFF:
 
 Pemilihan `notFound()` (404) atas soft-hide: "off" harus benar-benar off. SEO: halaman ter-index memang hilang saat flag dimatikan — itu maksudnya. Karena flag default ON dan `saveFeaturesAction` memanggil `revalidatePath("/", "layout")`, SSG tidak akan meng-cache versi OFF lama.
 
+**Catatan implementasi (status HTTP):** `notFound()` di route ini menghasilkan **status 200 + body not-found**, bukan 404. Sebabnya: `src/app/(public)/loading.tsx` menciptakan Suspense boundary di seluruh route group `(public)`, dan gate wajib `await resolveFeatures()` (baca DB) sebelum melempar `notFound()` — shell skeleton sudah di-flush dengan status 200 lebih dulu. Ini perilaku pre-existing yang juga menimpa slug tak dikenal (`/artikel/slug-tidak-ada` sudah 200 + not-found sebelum Fase 3). Intent SEO tetap tercapai karena body memuat teks not-found (soft-404 yang dikenali mesin pencari → deindex). Hard-404 sejati sengaja tidak dikejar: gate middleware dilarang §3.4 (edge runtime vs `fs`/drizzle), dan restrukturisasi pohon route publik ke loading per-route melanggar prinsip blast-radius minimum sekaligus menghapus skeleton UX. Konsekuensi: `generateMetadata` route `[slug]` **wajib** juga digate (Next menjalankan `generateMetadata` meskipun page melempar `notFound()` di dalam Suspense) — jika tidak, judul/deskripsi/potongan konten artikel bocor ke `<head>` saat OFF.
+
 ### 3.4 `maintenance_mode`
 
 Layout-level gate (lihat 2.3). Halaman pengganti:
