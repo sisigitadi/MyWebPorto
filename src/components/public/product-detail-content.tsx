@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import type { ProductData, ProfileData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
+import { useFeature } from "@/lib/features-context";
 import { Button } from "@/components/ui/button";
 import { OSWindow } from "@/components/public/os/os-window";
 import { useCart, buildSingleProductWhatsAppUrl } from "@/lib/cart-context";
@@ -34,6 +35,12 @@ interface ProductDetailContentProps {
 export function ProductDetailContent({ product, profile }: ProductDetailContentProps) {
   const { language } = useTranslation();
   const { addItem, totalCount, setIsOpen } = useCart();
+
+  // Gate feature flag (settings.features): saat OFF, tombol "Cart" dan
+  // tombol "Tambah ke Keranjang" disembunyikan; addItem dan setIsOpen(true)
+  // tak pernah dipanggil.
+  const enableStoreCart = useFeature("enable_store_cart");
+
   const containerRef = useRef<HTMLDivElement>(null);
 
   const isEn = language === "en";
@@ -100,18 +107,20 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
             </Button>
           </div>
 
-          {/* Cart Button */}
-          <button
-            type="button"
-            onClick={() => setIsOpen(true)}
-            className="vt-btn vt-btn-pink h-8 px-3 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
-          >
-            <ShoppingCart className="h-3.5 w-3.5" />
-            <span>{isEn ? "Cart" : "Keranjang"}</span>
-            <span className="px-1.5 py-0.2 rounded-xs bg-white text-black font-extrabold text-[10px]">
-              {totalCount}
-            </span>
-          </button>
+          {/* Cart Button — disembunyikan saat enable_store_cart OFF */}
+          {enableStoreCart && (
+            <button
+              type="button"
+              onClick={() => setIsOpen(true)}
+              className="vt-btn vt-btn-pink h-8 px-3 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <ShoppingCart className="h-3.5 w-3.5" />
+              <span>{isEn ? "Cart" : "Keranjang"}</span>
+              <span className="px-1.5 py-0.2 rounded-xs bg-white text-black font-extrabold text-[10px]">
+                {totalCount}
+              </span>
+            </button>
+          )}
         </div>
 
         <OSWindow
@@ -239,7 +248,8 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
                       </div>
                     )}
 
-                    {/* Add to Cart Button */}
+                    {/* Add to Cart Button — disembunyikan saat enable_store_cart OFF */}
+                    {enableStoreCart && (
                     <button
                       type="button"
                       disabled={isOutOfStock}
@@ -262,6 +272,7 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
                         </>
                       )}
                     </button>
+                    )}
 
                     {/* WhatsApp Direct Order Button */}
                     {(product.customWhatsapp || profile?.phone) && (

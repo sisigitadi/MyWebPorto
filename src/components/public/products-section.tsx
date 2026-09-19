@@ -19,6 +19,7 @@ import { ProductData, ProfileData } from "@/lib/dummy-data";
 import { storeName } from "@/lib/store";
 import { getProductSlug } from "@/lib/product-link";
 import { useTranslation } from "@/lib/i18n";
+import { useFeature } from "@/lib/features-context";
 import { OSWindow } from "@/components/public/os/os-window";
 import { useCart, buildSingleProductWhatsAppUrl } from "@/lib/cart-context";
 import gsap from "gsap";
@@ -37,6 +38,12 @@ interface ProductsSectionProps {
 export function ProductsSection({ products: propProducts, profile }: ProductsSectionProps) {
   const { t, language } = useTranslation();
   const { addItem, totalCount, setIsOpen } = useCart();
+
+  // Gate feature flag (settings.features): saat OFF, tombol keranjang dan
+  // tombol "Tambah ke Keranjang" per produk disembunyikan; addItem dan
+  // setIsOpen(true) tak pernah dipanggil.
+  const enableStoreCart = useFeature("enable_store_cart");
+
   const containerRef = useRef<HTMLElement>(null);
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
 
@@ -131,21 +138,23 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
             </p>
           </div>
 
-          {/* Quick Cart Trigger */}
-          <button
-            type="button"
-            onClick={() => setIsOpen(true)}
-            className={`group vt-btn vt-btn-pink px-3.5 py-2 text-xs font-mono font-bold flex items-center gap-2 cursor-pointer shadow-md transition-all self-start sm:self-auto ${
-              totalCount > 0 ? "animate-pulse ring-2 ring-primary" : ""
-            }`}
-            title="Buka Keranjang Belanja"
-          >
-            <ShoppingCart className="h-4 w-4" />
-            <span>{language === "en" ? "Cart.zip" : "Keranjang"}</span>
-            <span className="px-1.5 py-0.2 rounded-xs bg-white text-black font-extrabold text-[11px]">
-              {totalCount}
-            </span>
-          </button>
+          {/* Quick Cart Trigger — disembunyikan saat enable_store_cart OFF */}
+          {enableStoreCart && (
+            <button
+              type="button"
+              onClick={() => setIsOpen(true)}
+              className={`group vt-btn vt-btn-pink px-3.5 py-2 text-xs font-mono font-bold flex items-center gap-2 cursor-pointer shadow-md transition-all self-start sm:self-auto ${
+                totalCount > 0 ? "animate-pulse ring-2 ring-primary" : ""
+              }`}
+              title="Buka Keranjang Belanja"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              <span>{language === "en" ? "Cart.zip" : "Keranjang"}</span>
+              <span className="px-1.5 py-0.2 rounded-xs bg-white text-black font-extrabold text-[11px]">
+                {totalCount}
+              </span>
+            </button>
+          )}
         </div>
 
         {/* Search, Filter & Sort Toolbar */}
@@ -334,7 +343,8 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                       <div className="flex gap-2">
                         {(!product.purchaseType || product.purchaseType === 'whatsapp') ? (
                           <>
-                            {/* Add to Cart Button */}
+                            {/* Add to Cart Button — disembunyikan saat enable_store_cart OFF */}
+                            {enableStoreCart && (
                             <button
                               type="button"
                               disabled={isOutOfStock}
@@ -358,6 +368,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                                 </>
                               )}
                             </button>
+                            )}
 
                             {/* Instant WhatsApp Order Button */}
                             {(product.customWhatsapp || profile?.phone) && (
