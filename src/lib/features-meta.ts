@@ -70,8 +70,8 @@ export const FEATURE_DEFS: readonly FeatureDef[] = [
     key: "enable_articles",
     label: "Artikel",
     description: {
-      id: "Menampilkan app Artikel OS serta route /artikel dan /artikel/[slug]. Saat dimatikan, halaman artikel mengembalikan 404.",
-      en: "Shows the OS Articles app plus the /artikel and /artikel/[slug] routes. When off, article pages return 404.",
+      id: "Menampilkan app Artikel OS serta route /artikel dan /artikel/[slug]. Saat dimatikan, halaman artikel menampilkan halaman tidak ditemukan dan konten artikel tidak pernah dilayani.",
+      en: "Shows the OS Articles app plus the /artikel and /artikel/[slug] routes. When off, article pages show a not-found page and no article content is ever served.",
     },
     group: "Aplikasi OS",
   },
