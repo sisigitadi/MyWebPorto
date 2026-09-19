@@ -48,7 +48,8 @@ import { submitToOpenAI } from "@/lib/ai-openai";
 import { listCloudModels } from "@/lib/ai-models";
 import { saveOSApps, resolveOSApps } from "@/lib/os-apps-config";
 import type { OSAppConfig } from "@/lib/os-apps-meta";
-import { resolveFeatures } from "@/lib/features-config";
+import { resolveFeatures, saveFeatures, describeFeatures } from "@/lib/features-config";
+import type { Features } from "@/lib/features-meta";
 import {
   resolveUIStrings,
   saveUIStrings,
@@ -1958,6 +1959,38 @@ export async function saveUIStringsAction(
     revalidatePath("/", "layout");
     revalidatePath("/admin/strings");
     return { ok: true, strings: resolved };
+  } catch (err) {
+    return { ok: false, error: sanitizeError(err) };
+  }
+}
+
+/**
+ * Simpan feature flag global dari form /admin/features. Shape identik dengan
+ * saveUIStringsAction/saveOSAppsAction agar form admin seragam.
+ *
+ * Keamanan asimetris (sama seperti Fase 1/2): verifyAdmin() dulu, lalu seluruh
+ * validasi nilai dilakukan server-side oleh saveFeatures() (key harus
+ * terdaftar, nilai harus boolean eksplisit — input asing/non-boolean ditolak
+ * keras dengan pesan Indonesia). Manipulasi form di client tidak pernah
+ * menerobos. Setelah simpan, audit log dicatat dan layout publik
+ * di-revalidate (maintenance_mode & gate app mengubah seluruh tree publik).
+ */
+export async function saveFeaturesAction(
+  input: unknown
+): Promise<{ ok: true; features: Features } | { ok: false; error: string }> {
+  await verifyAdmin();
+  try {
+    const features = await saveFeatures(input);
+    await logAudit({
+      action: "update",
+      entity: "settings",
+      entityId: "features",
+      detail: describeFeatures(features, "id"),
+    });
+    // Layout-level: maintenance_mode & gate app mengubah seluruh tree publik.
+    revalidatePath("/", "layout");
+    revalidatePath("/admin/features");
+    return { ok: true, features };
   } catch (err) {
     return { ok: false, error: sanitizeError(err) };
   }
