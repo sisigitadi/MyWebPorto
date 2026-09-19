@@ -1,5 +1,7 @@
 import { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { getArticles } from "@/lib/actions";
+import { resolveFeatures } from "@/lib/features-config";
 import { safeJsonLd } from "@/lib/json-ld";
 import { localeAlternates } from "@/lib/seo";
 import { ArticlesCatalogContent } from "@/components/public/articles-catalog-content";
@@ -28,6 +30,12 @@ export const metadata: Metadata = {
 export const revalidate = 60;
 
 export default async function ArticlesPage() {
+  // Gate feature flag (settings.features): app Artikel OS di-exclude dari
+  // daftar OS (os-desktop-manager); route artikel sendiri mengembalikan 404
+  // supaya "off" benar-benar off — termasuk untuk mesin pencari.
+  const features = await resolveFeatures();
+  if (!features.enable_articles) notFound();
+
   const articles = await getArticles();
   const publishedArticles = articles.filter((a) => a.published);
 

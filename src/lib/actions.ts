@@ -48,6 +48,8 @@ import { submitToOpenAI } from "@/lib/ai-openai";
 import { listCloudModels } from "@/lib/ai-models";
 import { saveOSApps, resolveOSApps } from "@/lib/os-apps-config";
 import type { OSAppConfig } from "@/lib/os-apps-meta";
+import { resolveFeatures, saveFeatures, describeFeatures } from "@/lib/features-config";
+import type { Features } from "@/lib/features-meta";
 import {
   resolveUIStrings,
   saveUIStrings,
@@ -1766,6 +1768,22 @@ export async function askSigitBot(
     };
   }
 
+  // Gate feature flag (settings.features): app Terminal (os-desktop-manager)
+  // dan widget RetroBot di-gate di client; aksi server ini adalah jalur lain
+  // yang dipakai os-crt-terminal.tsx — wajib ditolak di server juga.
+  const features = await resolveFeatures();
+  if (!features.enable_terminal) {
+    return {
+      text:
+        lang === "en"
+          ? "The terminal feature is currently disabled."
+          : "Fitur terminal sedang dinonaktifkan.",
+      intent: "disabled",
+      confidence: 1,
+      source: "local",
+    };
+  }
+
   const ip = await aibotIp();
   const rl = rateLimit(`aibot:${ip}`, AIBOT_LIMIT, AIBOT_WINDOW_MS);
   cleanupRateLimits();
@@ -1941,6 +1959,38 @@ export async function saveUIStringsAction(
     revalidatePath("/", "layout");
     revalidatePath("/admin/strings");
     return { ok: true, strings: resolved };
+  } catch (err) {
+    return { ok: false, error: sanitizeError(err) };
+  }
+}
+
+/**
+ * Simpan feature flag global dari form /admin/features. Shape identik dengan
+ * saveUIStringsAction/saveOSAppsAction agar form admin seragam.
+ *
+ * Keamanan asimetris (sama seperti Fase 1/2): verifyAdmin() dulu, lalu seluruh
+ * validasi nilai dilakukan server-side oleh saveFeatures() (key harus
+ * terdaftar, nilai harus boolean eksplisit — input asing/non-boolean ditolak
+ * keras dengan pesan Indonesia). Manipulasi form di client tidak pernah
+ * menerobos. Setelah simpan, audit log dicatat dan layout publik
+ * di-revalidate (maintenance_mode & gate app mengubah seluruh tree publik).
+ */
+export async function saveFeaturesAction(
+  input: unknown
+): Promise<{ ok: true; features: Features } | { ok: false; error: string }> {
+  await verifyAdmin();
+  try {
+    const features = await saveFeatures(input);
+    await logAudit({
+      action: "update",
+      entity: "settings",
+      entityId: "features",
+      detail: describeFeatures(features, "id"),
+    });
+    // Layout-level: maintenance_mode & gate app mengubah seluruh tree publik.
+    revalidatePath("/", "layout");
+    revalidatePath("/admin/features");
+    return { ok: true, features };
   } catch (err) {
     return { ok: false, error: sanitizeError(err) };
   }

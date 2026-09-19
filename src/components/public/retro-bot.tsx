@@ -30,6 +30,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { useFeature } from "@/lib/features-context";
 import { playOS } from "@/lib/os-sound";
 import { RetroBotAvatar, type RetroBotMood } from "./retro-bot-avatar";
 
@@ -177,6 +178,9 @@ function uid(): string {
 
 export function RetroBot() {
   const { t, language } = useTranslation();
+  // Gate feature flag (settings.features): widget adalah bagian "asisten AI
+  // retro" bersama app Terminal — satu flag mengikat keduanya.
+  const enableTerminal = useFeature("enable_terminal");
   const [isOpen, setIsOpen] = useState(false);
   const [mood, setMood] = useState<RetroBotMood>("idle");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -682,6 +686,11 @@ export function RetroBot() {
     // memasukkannya akan membuat loop render tanpa henti.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, position]);
+
+  // Gate wajib di bawah seluruh hook (termasuk useLayoutEffect di atas): bila
+  // ada hook setelah baris ini, ia ter-skip saat flag OFF → melanggar aturan
+  // hook (render berbeda jumlah hook). Letak ini adalah setelah hook terakhir.
+  if (!enableTerminal) return null;
 
   return (
     // Tanpa aria-hidden di container: tombol avatar (aria-label tooltip) &

@@ -18,6 +18,7 @@ import {
   Palette,
   Sparkles,
   Languages,
+  ToggleLeft,
 } from "lucide-react";
 import { useUser, SignOutButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
@@ -92,6 +93,11 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     title: "Teks & Bahasa",
     href: "/admin/strings",
     icon: Languages,
+  },
+  {
+    title: "Fitur & Mode",
+    href: "/admin/features",
+    icon: ToggleLeft,
   },
   {
     title: "Sistem & Logs",

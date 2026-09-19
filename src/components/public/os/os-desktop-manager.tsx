@@ -30,6 +30,7 @@ import { ProfileData, ServiceData, ProjectData, ProductData, TestimonialData, Ar
 import { useTranslation } from "@/lib/i18n";
 import { appFilename, appHumanLabel, type AppId, type OSAppConfig } from "@/lib/os-apps-meta";
 import { useOSTheme, OSTheme } from "./theme-context";
+import { useFeature } from "@/lib/features-context";
 import { playOS } from "@/lib/os-sound";
 import { HeroSection } from "@/components/public/hero-section";
 import { ServicesSection } from "@/components/public/services-section";
@@ -158,21 +159,43 @@ export function OSDesktopManager({
   // (768px) agar sinkron dengan utility hidden/md:flex di JSX.
   const [viewMode, setViewMode] = useState<"mobile" | "desktop">("desktop");
 
-  // App yang BENAR-BENAR ditampilkan: filter enabled + urut dari appsConfig,
-  // digabung dengan metadata visual (ikon/warna) dari APPS. `number` diisi
-  // ulang dari posisi agar titlebar "[n/total]" selalu konsisten dengan urutan
-  // yang diatur admin — angka statis di APPS hanya untuk bacaan kode.
+  // Feature flag (settings.features): matikan app Terminal/Artikel tanpa
+  // menyentuh /admin/appearance. Satu flag "asisten AI retro" mengikat app
+  // Terminal + widget RetroBot + endpoint /api/retrobot + askSigitBot
+  // (titik-titik lain digate di task masing-masing).
+  const enableTerminal = useFeature("enable_terminal");
+  const enableArticles = useFeature("enable_articles");
+
+  // App yang BENAR-BENAR ditampilkan: filter feature flag + filter enabled +
+  // urut dari appsConfig, digabung dengan metadata visual (ikon/warna) dari
+  // APPS. `number` diisi ulang dari posisi agar titlebar "[n/total]" selalu
+  // konsisten dengan urutan yang diatur admin — angka statis di APPS hanya
+  // untuk bacaan kode.
   const apps = React.useMemo<AppItem[]>(() => {
     const meta = new Map(APPS.map((a) => [a.id, a]));
-    const list = appsConfig
+    // Feature flag diletakkan SEBELUM filter enabled sehingga taskbar, start
+    // menu, command palette, dan tab mobile (semuanya membaca daftar ini)
+    // otomatis ikut mati.
+    const gated = appsConfig.filter((c) => {
+      if (c.id === "terminal" && !enableTerminal) return false;
+      if (c.id === "artikel" && !enableArticles) return false;
+      return true;
+    });
+    const list = gated
       .filter((c) => c.enabled && meta.has(c.id))
       .sort((a, b) => a.order - b.order)
       .map((c, i) => ({ ...meta.get(c.id)!, number: i + 1 }));
     // Pengaman terakhir: resolveOSApps() di server menjamin daftar tidak pernah
     // kosong, tapi komponen ini tidak boleh runtuh walau menerima props aneh —
-    // kembali ke daftar lengkap daripada merender tanpa app sama sekali.
-    return list.length ? list : APPS;
-  }, [appsConfig]);
+    // kembali ke daftar lengkap (yang sudah digate flag) daripada merender
+    // tanpa app sama sekali, atau merender app yang seharusnya dimatikan.
+    if (list.length) return list;
+    return APPS.filter(
+      (a) =>
+        (a.id !== "terminal" || enableTerminal) &&
+        (a.id !== "artikel" || enableArticles)
+    );
+  }, [appsConfig, enableTerminal, enableArticles]);
 
   // Urutan section mode mobile = urutan app aktif. Sebelumnya daftar ini
   // hardcode terpisah (SCROLL_SECTIONS) sehingga bisa beda dengan urutan

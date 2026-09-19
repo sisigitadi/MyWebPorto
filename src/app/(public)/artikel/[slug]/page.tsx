@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getArticles, getProfile } from "@/lib/actions";
+import { resolveFeatures } from "@/lib/features-config";
 import { safeJsonLd } from "@/lib/json-ld";
 import { localeAlternates } from "@/lib/seo";
 import { ArticleDetailContent } from "@/components/public/article-detail-content";
@@ -18,6 +19,13 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: ArticleDetailPageProps) {
+  // Gate feature flag (settings.features): sama seperti gate page di atas —
+  // generateMetadata dijalankan Next meskipun page melempar notFound() di
+  // dalam Suspense boundary, jadi metadata artikel asli harus diblokir
+  // sebelum membaca data apapun.
+  const features = await resolveFeatures();
+  if (!features.enable_articles) return { title: "Artikel Tidak Ditemukan" };
+
   const { slug } = await params;
   const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
   const articles = await getArticles();
@@ -55,6 +63,12 @@ export async function generateMetadata({ params }: ArticleDetailPageProps) {
 }
 
 export default async function ArticleDetailPage({ params }: ArticleDetailPageProps) {
+  // Gate feature flag (settings.features): app Artikel OS di-exclude dari
+  // daftar OS (os-desktop-manager); route artikel sendiri mengembalikan 404
+  // supaya "off" benar-benar off — termasuk untuk mesin pencari.
+  const features = await resolveFeatures();
+  if (!features.enable_articles) notFound();
+
   const { slug } = await params;
   const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
   const [articles, profile] = await Promise.all([getArticles(), getProfile()]);

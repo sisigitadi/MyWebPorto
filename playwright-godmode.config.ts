@@ -19,13 +19,14 @@ import { defineConfig } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "e2e",
-  testMatch: /(os-apps-config|ui-strings)\.spec\.ts/,
+  testMatch: /(os-apps-config|ui-strings|features)\.spec\.ts/,
   timeout: 60_000,
   fullyParallel: false,
-  // Satu worker: os-apps-config dan ui-strings berbagi backend file yang sama
-  // (data/local-settings.json) dan saling menimpa/ menghapus isinya. Bila kedua
-  // spec jalan paralel di worker berbeda, clearSettings satu worker menghapus
-  // config yang baru ditulis worker lain → test dapat render default.
+  // Satu worker: os-apps-config, ui-strings, dan features berbagi backend file
+  // yang sama (data/local-settings.json) dan saling menimpa/ menghapus isinya.
+  // Bila spec-spec ini jalan paralel di worker berbeda, clearSettings satu
+  // worker menghapus config yang baru ditulis worker lain → test dapat render
+  // default.
   workers: 1,
   reporter: "list",
   use: {

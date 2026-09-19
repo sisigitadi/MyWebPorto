@@ -18,6 +18,7 @@ import { useCart, formatIdr, buildWhatsAppOrderUrl, CustomerOrderInfo } from "@/
 import { ProfileData } from "@/lib/dummy-data";
 import { STORE_NAME, storeName, platformLabelFromUrl, isExternalStoreUrl } from "@/lib/store";
 import { useTranslation } from "@/lib/i18n";
+import { useFeature } from "@/lib/features-context";
 import { OSWindow } from "@/components/public/os/os-window";
 import { playOS } from "@/lib/os-sound";
 import { toast } from "sonner";
@@ -65,6 +66,12 @@ export function CartDialog({ profile }: CartDialogProps) {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isOpen, handleClose]);
+
+  // Gate feature flag (settings.features). Pertahanan kedua: pemicu tombol
+  // juga di-gate di products-section & product-detail; modal global ini tetap
+  // tak muncul walau flag berubah antara render section dan render dialog.
+  const enableStoreCart = useFeature("enable_store_cart");
+  if (!enableStoreCart) return null;
 
   if (!isOpen) return null;
 
