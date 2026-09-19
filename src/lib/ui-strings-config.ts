@@ -143,7 +143,7 @@ export async function saveUIStrings(input: unknown): Promise<void> {
 }
 
 /** Ringkasan untuk UI admin: jumlah key disunting vs total. */
-export function describeUIStrings(strings: UIStrings): string {
+export function describeUIStrings(strings: UIStrings, _lang: "id" | "en"): string {
   const edited = Object.keys(strings.id).length + Object.keys(strings.en).length;
   return `${edited}/${EDITABLE_KEYS.length} key disunting (${EDITABLE_KEYS.length * 2} slot)`;
 }

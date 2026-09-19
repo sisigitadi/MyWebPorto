@@ -174,7 +174,13 @@ export function UIStringsForm({ initial }: UIStringsFormProps) {
       toast.error("Gagal mempublikasikan: " + res.error);
       return false;
     }
-    setBaseline(JSON.parse(JSON.stringify(rows)));
+    return true;
+  };
+
+  const groups = [...new Set(EDITABLE_DEFS.map((k) => k.group))];
+
+  return (
+    <div className="space-y-6">
       {/* God Mode Fase 4 Version Bar */}
       <GodModeVersionBar
         categoryKey="ui_strings"
@@ -183,13 +189,7 @@ export function UIStringsForm({ initial }: UIStringsFormProps) {
         isDirty={isDirty}
       />
 
-    return true;
-  };
-
-  const groups = [...new Set(EDITABLE_DEFS.map((k) => k.group))];
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
       {groups.map((group) => (
         <div key={group} className="space-y-3">
           <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
@@ -295,5 +295,6 @@ export function UIStringsForm({ initial }: UIStringsFormProps) {
         </span>
       </div>
     </form>
+  </div>
   );
 }

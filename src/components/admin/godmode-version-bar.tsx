@@ -54,15 +54,14 @@ export function GodModeVersionBar({
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const checkDraft = async () => {
-    const res = await getGodModeDraftStatusAction(categoryKey);
-    if (res.ok) {
-      setHasDraft(res.hasDraft);
-    }
-  };
-
   useEffect(() => {
-    checkDraft();
+    const run = async () => {
+      const res = await getGodModeDraftStatusAction(categoryKey);
+      if (res.ok) {
+        setHasDraft(res.hasDraft);
+      }
+    };
+    void run();
   }, [categoryKey]);
 
   const handleSaveDraft = () => {
@@ -137,10 +136,6 @@ export function GodModeVersionBar({
       }
     });
   };
-
-  onPublish: () => Promise<boolean>;
-  isDirty?: boolean;
-}
 
   return (
     <>

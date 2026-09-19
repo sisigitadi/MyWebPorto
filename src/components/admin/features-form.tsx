@@ -165,7 +165,6 @@ export function FeaturesForm({ initial }: FeaturesFormProps) {
       toast.error("Gagal mempublikasikan: " + res.error);
       return false;
     }
-    setBaseline({ ...values });
     return true;
   };
 

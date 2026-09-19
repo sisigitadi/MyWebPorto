@@ -139,6 +139,11 @@ export function OSAppsConfigForm({ initial }: OSAppsConfigFormProps) {
       toast.error("Gagal mempublikasikan: " + res.error);
       return false;
     }
+    return true;
+  };
+
+  return (
+    <div className="space-y-4">
       {/* God Mode Fase 4 Version Bar */}
       <GodModeVersionBar
         categoryKey="os_apps"
@@ -147,11 +152,7 @@ export function OSAppsConfigForm({ initial }: OSAppsConfigFormProps) {
         isDirty={isDirty}
       />
 
-    return true;
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
         {rows.map((row, index) => {
           const Icon = APP_ICONS[row.id];
@@ -263,5 +264,6 @@ export function OSAppsConfigForm({ initial }: OSAppsConfigFormProps) {
         </span>
       </div>
     </form>
+  </div>
   );
 }
