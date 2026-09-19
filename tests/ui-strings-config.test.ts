@@ -13,6 +13,7 @@ import {
   describeUIStrings,
 } from "@/lib/ui-strings-config";
 import type { UIStrings } from "@/lib/ui-strings-config";
+import { translations } from "@/lib/translations";
 
 /**
  * resolveUIStrings/saveUIStrings membaca settings.ui_strings; di lingkungan test
@@ -217,16 +218,10 @@ describe("EDITABLE_KEYS vs translations (jaga-jaga typo)", () => {
   // Setiap key di EDITABLE_KEYS HARUS key asli di translations — kalau tidak,
   // overlay untuk key itu tidak akan pernah dipakai (merge di provider
   // membaca translations[lang][key]) dan God Mode diam-diam tidak bekerja.
-  //
-  // DITUNDA — brief mengasumsikan `translations` di @/lib/i18n bisa diimpor di
-  // vitest node-env; faktanya TIDAK (dua halangan, keduanya di luar file yang
-  // boleh disentuh task ini):
-  //  1. tsconfig.json men-set "jsx": "preserve" → plugin vite:import-analysis
-  //     menolak sintaks JSX i18n.tsx ("invalid JS syntax"), sehingga impor
-  //     apapun dari .tsx membuat seluruh suite gagal (0 test run).
-  //  2. `translations` dideklarasikan `const` tanpa `export` (i18n.tsx:347),
-  //     jadi bahkan dengan #1 teratasi, named import-nya gagal.
-  // Jalannya: ekstrak konstanta translations ke modul .ts murni (lalu
-  // i18n.tsx mengimpornya) atau tambah plugin vitest untuk transform JSX.
-  it.todo("semua key ada di translations.id dan translations.en");
+  it("semua key ada di translations.id dan translations.en", () => {
+    for (const def of EDITABLE_KEYS) {
+      expect(translations.id).toHaveProperty(def.key);
+      expect(translations.en).toHaveProperty(def.key);
+    }
+  });
 });

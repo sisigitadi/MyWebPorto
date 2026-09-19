@@ -6,6 +6,7 @@ import { LanguageProvider } from "@/lib/i18n";
 import { CartProvider } from "@/lib/cart-context";
 import { CartDialog } from "@/components/public/cart-dialog";
 import { getProfile } from "@/lib/actions";
+import { resolveUIStrings } from "@/lib/ui-strings-config";
 import { OSBootLoader } from "@/components/public/os/os-boot-loader";
 import { OSSoundLayer } from "@/components/public/os/os-sound-layer";
 import VisitorTracker from "@/components/public/visitor-tracker";
@@ -25,9 +26,10 @@ export default async function RootPublicLayout({
   children: React.ReactNode;
 }>) {
   const profile = await getProfile();
+  const uiStrings = await resolveUIStrings();
 
   return (
-    <LanguageProvider>
+    <LanguageProvider overrides={uiStrings}>
       <ThemeProvider>
         <CartProvider>
           <div className="h-screen max-h-screen w-screen max-w-full desktop-viewport flex flex-col desktop-wallpaper text-foreground overflow-hidden relative">
