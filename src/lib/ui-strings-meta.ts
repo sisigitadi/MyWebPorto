@@ -70,8 +70,9 @@ export function maxLengthForKey(key: string): number {
 }
 
 /**
- * Sanitasi plain-text: trim → collapse whitespace → buang tag HTML → buang
- * char kontrol. Sengaja TIDAK memotong ke maxLength — penolakan panjang adalah
+ * Sanitasi plain-text: buang tag HTML → buang char kontrol → collapse
+ * whitespace → trim (urutan eksekusi kode di bawah). Sengaja TIDAK memotong
+ * ke maxLength — penolakan panjang adalah
  * tugas saveUIStrings() supaya pelanggaran ditolak keras, bukan diam-diam
  * dipendekkan. Pemanggil read-path (resolveUIStrings) membuang value terlalu
  * panjang, bukan memotongnya.
