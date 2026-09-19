@@ -100,7 +100,7 @@ Saat OFF:
 2. **`src/app/(public)/artikel/page.tsx`** — `const features = await resolveFeatures(); if (!features.enable_articles) notFound();`
 3. **`src/app/(public)/artikel/[slug]/page.tsx`** — sama, `notFound()`.
 
-Pemilihan `notFound()` (404) atas soft-hide: "off" harus benar-benar off. SEO: halaman ter-index memang hilang saat flag dimatikan — itu maksudnya. Karena flag default ON dan `saveFeaturesAction` memanggil `revalidatePath("/", "layout")`, SSG tidak akan meng-cache versi OFF lama.
+Pemilihan `notFound()` (halaman not-found — lihat catatan status HTTP di bawah) atas soft-hide: "off" harus benar-benar off. SEO: halaman ter-index memang hilang saat flag dimatikan — itu maksudnya. Karena flag default ON dan `saveFeaturesAction` memanggil `revalidatePath("/", "layout")`, SSG tidak akan meng-cache versi OFF lama.
 
 **Catatan implementasi (status HTTP):** `notFound()` di route ini menghasilkan **status 200 + body not-found**, bukan 404. Sebabnya: `src/app/(public)/loading.tsx` menciptakan Suspense boundary di seluruh route group `(public)`, dan gate wajib `await resolveFeatures()` (baca DB) sebelum melempar `notFound()` — shell skeleton sudah di-flush dengan status 200 lebih dulu. Ini perilaku pre-existing yang juga menimpa slug tak dikenal (`/artikel/slug-tidak-ada` sudah 200 + not-found sebelum Fase 3). Intent SEO tetap tercapai karena body memuat teks not-found (soft-404 yang dikenali mesin pencari → deindex). Hard-404 sejati sengaja tidak dikejar: gate middleware dilarang §3.4 (edge runtime vs `fs`/drizzle), dan restrukturisasi pohon route publik ke loading per-route melanggar prinsip blast-radius minimum sekaligus menghapus skeleton UX. Konsekuensi: `generateMetadata` route `[slug]` **wajib** juga digate (Next menjalankan `generateMetadata` meskipun page melempar `notFound()` di dalam Suspense) — jika tidak, judul/deskripsi/potongan konten artikel bocor ke `<head>` saat OFF.
 
@@ -136,7 +136,7 @@ Halaman admin ini sendiri tidak pernah tergate maintenance (layout admin terpisa
 ## 6. Testing
 
 - **`tests/features-config.test.ts`** (mirror `tests/ui-strings-config.test.ts`): resolve default saat DB kosong; toleransi (key asing diabaikan, value `"yes"`/`1`/`null` → default key, shape hancur → fallback penuh); save ketat (key asing ditolak, non-boolean ditolak, panjang berlebih ditolak); guard "semua FEATURE_KEYS punya label"; guard jumlah flag = 4.
-- **`e2e/features.spec.ts`** (3 test, viewport mobile 375×740 — wajib, lihat pelajaran Fase 2): (1) `enable_articles` OFF → app Artikel tak ada di OS + `/artikel` 404; (2) `maintenance_mode` ON → halaman publik terganti teks maintenance; (3) `enable_store_cart` OFF → tombol cart tak ada. Bersih-bersih `data/local-settings.json` di afterEach; daftar ke `playwright-godmode.config.ts` `testMatch`; `workers: 1` (berbagi file settings).
+- **`e2e/features.spec.ts`** (4 test, viewport mobile 375×740 — wajib, lihat pelajaran Fase 2): (1) `enable_articles` OFF → app Artikel tak ada di OS + `/artikel` → **status 200 + UI not-found + konten artikel absen** (bukan 404 — lihat catatan status HTTP §3.3; test juga meng-pin status 200 sebagai regression guard untuk keputusan itu); (2) `maintenance_mode` ON → halaman publik terganti teks maintenance; (3) `enable_store_cart` OFF → tombol cart tak ada; (4) default (DB kosong) → seluruh fitur utuh. Bersih-bersih `data/local-settings.json` di afterEach; daftar ke `playwright-godmode.config.ts` `testMatch`; `workers: 1` (berbagi file settings).
 - Registrasi `tests/features-config.test.ts` ke project serial `SHARED_FS_TESTS` di `vitest.config.mts` (file ini menyentuh `data/local-settings.json` — pelajaran Fase 1).
 - **Gate CI:** `npm run lint && npx tsc --noEmit && npm run test && npm run test:e2e:godmode && npm run build` — semua hijau.
 
@@ -161,7 +161,7 @@ Modifikasi (13):
 - `src/components/public/cart-dialog.tsx` — gate modal
 - `src/components/public/products-section.tsx` — gate tombol beli
 - `src/components/public/product-detail-content.tsx` — gate tombol beli
-- `src/app/(public)/artikel/page.tsx` + `src/app/(public)/artikel/[slug]/page.tsx` — gate 404
+- `src/app/(public)/artikel/page.tsx` + `src/app/(public)/artikel/[slug]/page.tsx` — gate notFound (status 200, lihat §3.3)
 - `src/components/admin/admin-sidebar.tsx` — item menu
 - `vitest.config.mts` — registrasi test serial
 - `playwright-godmode.config.ts` — `testMatch`

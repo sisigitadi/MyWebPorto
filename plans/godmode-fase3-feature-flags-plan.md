@@ -112,8 +112,8 @@ export const FEATURE_DEFS: readonly FeatureDef[] = [
     key: "enable_articles",
     label: "Artikel",
     description: {
-      id: "Menampilkan app Artikel OS serta route /artikel dan /artikel/[slug]. Saat dimatikan, halaman artikel mengembalikan 404.",
-      en: "Shows the OS Articles app plus the /artikel and /artikel/[slug] routes. When off, article pages return 404.",
+      id: "Menampilkan app Artikel OS serta route /artikel dan /artikel/[slug]. Saat dimatikan, halaman artikel menampilkan halaman tidak ditemukan dan konten artikel tidak pernah dilayani.",
+      en: "Shows the OS Articles app plus the /artikel and /artikel/[slug] routes. When off, article pages show a not-found page and no article content is ever served.",
     },
     group: "Aplikasi OS",
   },
@@ -535,7 +535,7 @@ export function describeFeatures(features: Features, lang: "id" | "en"): string 
 - [ ] **Step 5: Jalankan test untuk verifikasi lolos**
 
 Run: `npx vitest run tests/features-config.test.ts`
-Expected: PASS — semua test (resolve toleran 5, save ketat 6, describe 4, guard daftar 5 = 20 test).
+Expected: PASS — semua test (resolve toleran 5, save ketat 6, describe 4, guard daftar 6 = 21 test).
 
 - [ ] **Step 6: Verifikasi suite penuh tidak rusak + tsc**
 
@@ -1067,8 +1067,9 @@ Di awal `ArticlesPage` (sebelum `const articles = await getArticles();`):
 
 ```ts
   // Gate feature flag (settings.features): app Artikel OS di-exclude dari
-  // daftar OS (os-desktop-manager); route artikel sendiri mengembalikan 404
-  // supaya "off" benar-benar off — termasuk untuk mesin pencari.
+  // daftar OS (os-desktop-manager); route artikel sendiri memanggil notFound()
+  // supaya "off" benar-benar off — termasuk untuk mesin pencari. Catatan:
+  // status HTTP tetap 200 (Suspense boundary loading.tsx) — lihat §3.3 spec.
   const features = await resolveFeatures();
   if (!features.enable_articles) notFound();
 ```
@@ -1109,7 +1110,7 @@ Dev server 3458, tulis sementara `data/local-settings.json` `{"features":{"enabl
 curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:3458/artikel"
 ```
 
-Expected: `404`. Lalu hapus file, curl lagi → Expected `200`. (`notFound()` merender 404 bawaan Next; di dev dev-server menambahkan overlay 404 di HTML tetapi status tetap 404.)
+Expected: `200` **dengan** body memuat teks "could not be found" dan **tanpa** konten artikel (lihat §3.3 spec: `loading.tsx` Suspense boundary di route group `(public)` membuat `notFound()` merender halaman not-found dengan status 200, bukan 404). Lalu hapus file, curl lagi → Expected `200` dengan konten artikel. Verifikasi utama adalah **konten**, bukan status.
 
 - [ ] **Step 5: Commit**
 
