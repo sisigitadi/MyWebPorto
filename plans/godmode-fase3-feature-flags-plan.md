@@ -647,25 +647,29 @@ export function MaintenanceNotice({ profile }: MaintenanceNoticeProps) {
   const isEn = language === "en";
   const name = profile?.name?.trim() || (isEn ? "the site owner" : "pemilik situs");
 
+  // Palet HARUS di-hardcode, bukan var(--vt-*): cabang maintenance sengaja
+  // melewati ThemeProvider (ringan, di luar OS shell), dan data-theme hanya
+  // pernah ditulis oleh ThemeProvider — tanpanya :root memakai token LIGHT
+  // retro90s, jadi --vt-ink ≈ #0d0d14 di atas bg gelap = kontras ~1.1:1.
+  // Selain itu --vt-bg bukan token nyata. Verifikasi kontras reviewer:
+  // h1 #e8e4f0/#1a1726 = 14.05:1 (AAA), p #9a93b0/#1a1726 = 6.01:1 (AA).
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[var(--vt-bg,#1a1726)] px-6 py-10">
+    <main className="min-h-screen w-full flex items-center justify-center bg-[#1a1726] px-6 py-10">
       <div className="max-w-md w-full text-center space-y-5 font-mono">
         <div className="flex justify-center">
-          <div className="h-16 w-16 rounded-md border-2 border-[var(--vt-edge-lo-2,#3a3450)] flex items-center justify-center animate-pulse">
-            <Wrench className="h-8 w-8 text-[var(--vt-amber,#fbbf24)]" />
+          <div className="h-16 w-16 rounded-md border-2 border-[#3a3450] flex items-center justify-center motion-safe:animate-pulse">
+            <Wrench className="h-8 w-8 text-[#fbbf24]" aria-hidden />
           </div>
         </div>
-        <h1 className="text-xl sm:text-2xl font-bold text-[var(--vt-ink,#e8e4f0)]">
+        <h1 className="text-xl sm:text-2xl font-bold text-[#e8e4f0]">
           {isEn ? "Under Maintenance" : "Sedang Pemeliharaan"}
         </h1>
-        <p className="text-sm text-[var(--vt-ink-mute,#9a93b0)] leading-relaxed">
+        <p className="text-sm text-[#9a93b0] leading-relaxed">
           {isEn
             ? `${name}'s portfolio is temporarily offline for maintenance. Please come back in a moment.`
             : `Portofolio ${name} sementara tidak bisa diakses karena sedang pemeliharaan. Silakan kembali lagi sebentar.`}
         </p>
-        <p className="text-[11px] text-[var(--vt-ink-mute,#9a93b0)] opacity-70">
-          {isEn ? "— SigitOS —" : "— SigitOS —"}
-        </p>
+        <p className="text-[11px] text-[#9a93b0] opacity-70">— SigitOS —</p>
       </div>
     </div>
   );
