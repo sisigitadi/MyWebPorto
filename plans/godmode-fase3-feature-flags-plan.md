@@ -1608,16 +1608,20 @@ test.describe("God Mode: settings.features mengendalikan situs publik", () => {
     clearSettings();
   });
 
-  test("enable_articles OFF → app Artikel hilang dari OS + /artikel 404", async ({ page }) => {
+  test("enable_articles OFF → app Artikel hilang dari OS + /artikel tidak layani konten", async ({ page }) => {
     clearSettings();
     writeFeatures(flags({ enable_articles: false }));
     await page.goto(freshUrl());
     // Mode mobile: seluruh section ada di satu dokumen. Saat flag OFF, app
     // artikel di-exclude dari daftar OS (os-desktop-manager) → section hilang.
     await expect(page.locator("#artikel")).toHaveCount(0);
-    // Gate server-side route: "off" harus benar-benar off.
+    // Gate server-side route: "off" harus benar-benar off. Status HTTP tetap
+    // 200 karena Suspense boundary (public)/loading.tsx (Ruling 7), jadi yang
+    // diuji adalah BODY: UI not-found + nol konten artikel.
     const res = await page.goto(freshUrl("/artikel"));
-    expect(res?.status()).toBe(404);
+    expect(res?.status()).toBe(200);
+    await expect(page.getByText(/could not be found/i)).toBeVisible();
+    await expect(page.locator("#artikel")).toHaveCount(0);
   });
 
   test("maintenance_mode ON → situs publik diganti halaman pemeliharaan", async ({ page }) => {
