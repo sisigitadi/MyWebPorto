@@ -19,6 +19,13 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: ArticleDetailPageProps) {
+  // Gate feature flag (settings.features): sama seperti gate page di atas —
+  // generateMetadata dijalankan Next meskipun page melempar notFound() di
+  // dalam Suspense boundary, jadi metadata artikel asli harus diblokir
+  // sebelum membaca data apapun.
+  const features = await resolveFeatures();
+  if (!features.enable_articles) return { title: "Artikel Tidak Ditemukan" };
+
   const { slug } = await params;
   const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
   const articles = await getArticles();
