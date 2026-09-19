@@ -687,9 +687,9 @@ export function RetroBot() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, position]);
 
-  // HARUS setelah SELURUShook (termasuk useLayoutEffect di atas): bila ada
-  // hook setelah baris ini, ia ter-skip saat flag OFF → melanggar aturan hook
-  // (render berbeda jumlah hook). Letak ini adalah setelah hook terakhir.
+  // Gate wajib di bawah seluruh hook (termasuk useLayoutEffect di atas): bila
+  // ada hook setelah baris ini, ia ter-skip saat flag OFF → melanggar aturan
+  // hook (render berbeda jumlah hook). Letak ini adalah setelah hook terakhir.
   if (!enableTerminal) return null;
 
   return (
