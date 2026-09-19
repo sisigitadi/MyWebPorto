@@ -10,6 +10,7 @@ import {
 import { OSDesktopManager } from "@/components/public/os/os-desktop-manager";
 import { JsonLdSchema } from "@/components/public/json-ld";
 import { LocaleHrefLang } from "@/components/public/locale-hreflang";
+import { resolveOSApps } from "@/lib/os-apps-config";
 
 export const revalidate = 60;
 
@@ -32,6 +33,11 @@ export default async function HomePage() {
     getTestimonials(),
     getArticles(),
   ]);
+
+  // Konfigurasi app SigitOS (settings.os_apps): app mana yang aktif + urutan.
+  // Dijalankan paralel dengan fetch konten di atas; gagal/belum diatur jatuh
+  // ke default 8 app (lihat resolveOSApps).
+  const { enabled: appsConfig } = await resolveOSApps();
 
   const publishedProjects = projects.filter((p) => p.published);
   const publishedArticles = articles.filter((a) => a.published);
@@ -126,6 +132,7 @@ export default async function HomePage() {
         products={products}
         testimonials={testimonials}
         articles={articles}
+        appsConfig={appsConfig}
       />
     </div>
   );

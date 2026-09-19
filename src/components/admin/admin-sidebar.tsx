@@ -15,6 +15,7 @@ import {
   Images,
   ExternalLink,
   LogOut,
+  Palette,
   Sparkles,
 } from "lucide-react";
 import { useUser, SignOutButton } from "@clerk/nextjs";
@@ -80,6 +81,11 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     title: "Media Library",
     href: "/admin/media",
     icon: Images,
+  },
+  {
+    title: "Tampilan & App OS",
+    href: "/admin/appearance",
+    icon: Palette,
   },
   {
     title: "Sistem & Logs",

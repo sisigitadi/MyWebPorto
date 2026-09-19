@@ -46,6 +46,8 @@ import {
 } from "@/lib/cloud-ai-config";
 import { submitToOpenAI } from "@/lib/ai-openai";
 import { listCloudModels } from "@/lib/ai-models";
+import { saveOSApps, resolveOSApps } from "@/lib/os-apps-config";
+import type { OSAppConfig } from "@/lib/os-apps-meta";
 import { rateLimit, cleanupRateLimits } from "@/lib/rate-limit";
 import { headers } from "next/headers";
 
@@ -1883,6 +1885,35 @@ export async function listCloudModelsAction(
     const result = await listCloudModels(provider, key, base);
     if (result.error) return { ok: false, error: result.error };
     return { ok: true, models: result.models };
+  } catch (err) {
+    return { ok: false, error: sanitizeError(err) };
+  }
+}
+
+/**
+ * Simpan urutan & status aktif app SigitOS dari halaman /admin/appearance.
+ * Wajib admin terotentikasi. Mengubah apa yang dilihat pengunjung di homepage
+ * (taskbar, sidebar ikon, start menu, dan urutan section mobile), jadi selain
+ * revalidatePath("/admin/appearance") juga harus revalidatePath("/") —
+ * perubahan baru terlihat setelah refresh cache halaman publik.
+ */
+export async function saveOSAppsAction(input: OSAppConfig[]): Promise<
+  { ok: true; apps: OSAppConfig[] } | { ok: false; error: string }
+> {
+  await verifyAdmin();
+  try {
+    await saveOSApps(input);
+    const resolved = await resolveOSApps();
+    const activeCount = resolved.apps.filter((a) => a.enabled).length;
+    await logAudit({
+      action: "update",
+      entity: "settings",
+      entityId: "os_apps",
+      detail: `${activeCount}/${resolved.apps.length} app aktif`,
+    });
+    revalidatePath("/");
+    revalidatePath("/admin/appearance");
+    return { ok: true, apps: resolved.apps };
   } catch (err) {
     return { ok: false, error: sanitizeError(err) };
   }
