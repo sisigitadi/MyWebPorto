@@ -4,8 +4,13 @@ test("beranda SigitOS tampil + tanggal dd/mm/yyyy", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle(/Sigit Adi/);
   await expect(page.getByText("SIGIT-OS").first()).toBeVisible();
-  // Format tanggal menubar hasil revisi dev (span desktop = elemen terakhir)
-  await expect(page.getByText(/\d{2}\/\d{2}\/\d{4}/).last()).toBeVisible();
+  // Menubar merender dua span tanggal: mobile dd/mm/yy (sm:hidden) dan
+  // desktop dd/mm/yyyy (hidden sm:inline). Yang diuji harus yang TERLIHAT
+  // pada viewport config — mengejar span desktop lewat .last() membuat test
+  // ini selalu gagal di config prod (viewport 390×844 → hidden sm:inline).
+  await expect(
+    page.getByText(/\d{2}\/\d{2}\/\d{2,4}/).filter({ visible: true }).first(),
+  ).toBeVisible();
 });
 
 test("katalog proyek dan artikel dapat dibuka", async ({ page }) => {

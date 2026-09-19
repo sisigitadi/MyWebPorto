@@ -42,7 +42,7 @@ import { ContactSection } from "@/components/public/contact-section";
 import { OSCrtTerminal } from "@/components/public/os/os-crt-terminal";
 import { OSCommandPalette, PaletteAction } from "@/components/public/os/os-command-palette";
 import { ScrollFade } from "@/components/public/os/os-scroll-fade";
-import { setGsapScroller } from "@/lib/gsap-scroller";
+import { setGsapScroller, getGsapScroller } from "@/lib/gsap-scroller";
 
 interface OSDesktopManagerProps {
   profile: ProfileData;
@@ -288,8 +288,13 @@ export function OSDesktopManager({
   }, [apps]);
 
   // Infinite scroll antar jendela (desktop saja).
+  // mounted WAJIB ada di deps: render pertama manager masih skeleton
+  // (mounted=false) → window body belum ada → scrollContainerRef.current
+  // null → listener tidak terpasang. viewMode tidak berubah nilai saat
+  // desktop ("desktop"→"desktop") jadi tanpa mounted, effect ini tidak
+  // pernah dijalankan ulang saat node container sebenarnya muncul.
   useEffect(() => {
-    if (viewMode !== "desktop") return;
+    if (viewMode !== "desktop" || !mounted) return;
     const el = scrollContainerRef.current;
     if (!el) return;
 
@@ -312,7 +317,7 @@ export function OSDesktopManager({
     return () => {
       el.removeEventListener("wheel", handleWheel);
     };
-  }, [activeApp, handleNext, handlePrev, viewMode]);
+  }, [activeApp, handleNext, handlePrev, viewMode, mounted]);
 
   // Keyboard navigation (desktop saja).
   useEffect(() => {
@@ -509,6 +514,15 @@ export function OSDesktopManager({
   // effect — dan saat ia jalan node container sudah terpasang di DOM. Ref
   // belum terisi di fase ini, jadi kita ambil elemen lewat atribut data yang
   // spesifik per mode (tidak ambigu saat kedua mode transit pada resize).
+  //
+  // deps WAJIB memuat activeApp: di desktop, ganti app = remount window body
+  // (key={activeApp}) → node container baru. Bila effect ini hanya dijalankan
+  // ulang saat mode/viewport berubah, pendaftaran scroller baru hanya bisa
+  // terjadi lewat ref callback — yang (fase layout, setelah layout effect
+  // ANAK) terlambat: useGSAP section sudah lebih dulu membuat trigger terikat
+  // ke container LAMA yang sudah terlepas dari DOM. defaults() tidak
+  // retroaktif terhadap trigger yang sudah dibuat → start "top 80%" salah
+  // hitung (rect nol) → kartu menetap di opacity 0 sampai halaman di-refresh.
   useInsertionEffect(() => {
     if (!mounted) return;
     const sel =
@@ -516,8 +530,14 @@ export function OSDesktopManager({
         ? "[data-gsap-scroller='mobile']"
         : "[data-gsap-scroller='desktop']";
     const el = document.querySelector(sel);
-    if (el instanceof HTMLDivElement) setGsapScroller(el);
-  }, [viewMode, mounted]);
+    // Hanya daftar ulang bila elemennya berbeda dari yang tercatat. Tanpa
+    // guard ini, scroll-spy mobile (yang setActiveApp setiap ganti section)
+    // memicu refresh ScrollTrigger pada setiap scroll — boros di perangkat
+    // rendah. Di desktop, ganti app selalu menghasilkan node baru (key).
+    if (el instanceof HTMLDivElement && getGsapScroller() !== el) {
+      setGsapScroller(el);
+    }
+  }, [viewMode, mounted, activeApp]);
 
   // Jembatan lintas-mode: event "switch-os-app" (dari RetroBot, hero CONTACT,
   // terminal) → desktop switchApp, mobile scrollToSection.
