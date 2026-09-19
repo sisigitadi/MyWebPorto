@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useMemo } from "react";
+import React, { createContext, useContext } from "react";
 import type { FeatureKey, Features } from "@/lib/features-meta";
 
 const FeaturesContext = createContext<Features | null>(null);
@@ -21,10 +21,10 @@ export function FeaturesProvider({
   features: Features;
   children: React.ReactNode;
 }) {
-  // Object stabil selama prop tidak berubah — consumer tidak re-render
-  // sia-sia saat layout membangun ulang tree.
-  const value = useMemo(() => features, [features]);
-  return <FeaturesContext.Provider value={value}>{children}</FeaturesContext.Provider>;
+  // Prop langsung dari server component: nilainya tidak berubah antar render
+  // client, jadi tidak perlu stabilisasi tambahan — useMemo(() => x, [x])
+  // hanya mengembalikan prop yang sama.
+  return <FeaturesContext.Provider value={features}>{children}</FeaturesContext.Provider>;
 }
 
 /**
