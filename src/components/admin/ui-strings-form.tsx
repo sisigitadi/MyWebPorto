@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { saveUIStringsAction, translateFieldAction } from "@/lib/actions";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import {
   EDITABLE_KEYS,
   UI_STRING_LANGS,
@@ -25,23 +26,23 @@ type Rows = Record<StringKey, { id: string; en: string }>;
 
 // EDITABLE_KEYS dideklarasikan `as const satisfies readonly EditableKeyDef[]`,
 // jadi tipenya menyempit jadi union literal — sebagian member tidak punya
-// `hint` dan akses def.hint/compiler menolak. Tampilan tipe longgar ini hanya
-// untuk iterasi form; validasi nilai tetap memakai EDITABLE_KEYS/meta di sisi
-// server. Lihat task-5-report.md.
+// `hint` dan akses def.hint/def.key ditolak compiler. Alias tipe longgar ini
+// hanya untuk iterasi form (key dikeraskan jadi StringKey); validasi nilai
+// tetap 100% di sisi server (saveUIStrings: allowlist + panjang + sanitasi).
 type EditableDef = {
-  key: string;
+  key: StringKey;
   label: string;
   group: string;
   maxLength: number;
   hint?: string;
 };
-const EDITABLE_DEFS = EDITABLE_KEYS as unknown as readonly EditableDef[];
+const EDITABLE_DEFS: readonly EditableDef[] = EDITABLE_KEYS;
 
 /** Teks efektif saat ini: overlay DB bila ada, kalau tidak default kode. */
 function buildRows(overlay: UIStringsOverlay): Rows {
   const rows = {} as Rows;
   for (const def of EDITABLE_DEFS) {
-    const defk = def.key as StringKey;
+    const defk = def.key;
     rows[defk] = {
       id: overlay.id[defk] ?? defaultFor(def.key, "id"),
       en: overlay.en[defk] ?? defaultFor(def.key, "en"),
@@ -74,6 +75,15 @@ export function UIStringsForm({ initial }: UIStringsFormProps) {
 
   const baseline = buildRows(initial);
   const isDirty = JSON.stringify(rows) !== JSON.stringify(baseline);
+
+  // Guard "belum disimpan" (sama dengan 6 form admin lain). sessionKey memakai
+  // isi initial, bukan object-nya: prop initial selalu dibuat baru tiap render,
+  // tapi isinya stabil selama mengetik (yang berubah rows, bukan initial) —
+  // jadi baseline tidak ter-reset di tengah pengetikan. Setelah Simpan sukses,
+  // router.refresh() mengirim initial yang isinya sudah berisi teks disimpan:
+  // stringify berubah → baseline ter-reset → dirty kembali false (menutup
+  // jendela "isDirty usang" antara simpan dan selesainya refresh).
+  useUnsavedChanges(JSON.stringify(initial), rows);
 
   const handleChange = (key: StringKey, lang: "id" | "en", value: string): void => {
     setRows((prev) => ({ ...prev, [key]: { ...prev[key], [lang]: value } }));
@@ -112,7 +122,7 @@ export function UIStringsForm({ initial }: UIStringsFormProps) {
     startTransition(async () => {
       const payload: UIStringsOverlay = { id: {}, en: {} };
       for (const def of EDITABLE_DEFS) {
-        const k = def.key as StringKey;
+        const k = def.key;
         payload.id[k] = rows[k].id;
         payload.en[k] = rows[k].en;
       }
@@ -140,7 +150,7 @@ export function UIStringsForm({ initial }: UIStringsFormProps) {
             {group}
           </h3>
           {EDITABLE_DEFS.filter((k) => k.group === group).map((def) => {
-            const k = def.key as StringKey;
+            const k = def.key;
             const row = rows[k];
             const overridden =
               baseline[k].id !== row.id || baseline[k].en !== row.en;

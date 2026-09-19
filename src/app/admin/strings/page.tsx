@@ -18,8 +18,8 @@ export const revalidate = 0;
  * Halaman "God Mode" Fase 2: ubah teks marketing UI tanpa kode/redeploy.
  *
  * Yang disimpan hanya overlay (key terdaftar) di settings.ui_strings; teks
- * default tetap di src/lib/i18n.tsx dan dipakai bila key belum ditimpa atau
- * data rusak. Perubahan langsung tayang di situs publik setelah Simpan
+ * default tetap di src/lib/translations.ts dan dipakai bila key belum ditimpa
+ * atau data rusak. Perubahan langsung tayang di situs publik setelah Simpan
  * (revalidatePath("/", "layout") di saveUIStringsAction).
  */
 export default async function AdminStringsPage() {
