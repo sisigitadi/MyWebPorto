@@ -68,9 +68,15 @@ function normalizeLang(input: unknown): LangOverlay {
   return out;
 }
 
-export async function resolveUIStrings(): Promise<UIStrings> {
+export async function resolveUIStrings(options?: { preview?: boolean }): Promise<UIStrings> {
   try {
-    const stored = await getSetting<unknown>(SETTING_KEY);
+    let stored: unknown = null;
+    if (options?.preview) {
+      stored = await getSetting<unknown>(`${SETTING_KEY}:draft`);
+    }
+    if (!stored) {
+      stored = await getSetting<unknown>(SETTING_KEY);
+    }
     const id = normalizeLang(
       stored && typeof stored === "object" ? (stored as Record<string, unknown>).id : undefined
     );

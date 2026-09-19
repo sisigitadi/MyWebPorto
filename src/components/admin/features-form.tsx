@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { Loader2, Save, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { saveFeaturesAction } from "@/lib/actions";
+import { saveFeaturesAction, saveGodModeDraftAction, publishGodModeAction } from "@/lib/actions";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
+import { GodModeVersionBar } from "@/components/admin/godmode-version-bar";
 import {
   FEATURE_DEFS,
   FEATURE_GROUPS,
@@ -142,6 +143,41 @@ export function FeaturesForm({ initial }: FeaturesFormProps) {
   };
 
   return (
+  const handleSaveDraft = async (): Promise<boolean> => {
+    const res = await saveGodModeDraftAction("features", values);
+    if (!res.ok) {
+      toast.error("Gagal menyimpan draf: " + res.error);
+      return false;
+    }
+    return true;
+  };
+
+  const handlePublishLive = async (): Promise<boolean> => {
+    const turningDangerousOn = FEATURE_DEFS.filter((d) => d.dangerous).some(
+      (d) => values[d.key] && !initial[d.key]
+    );
+    if (turningDangerousOn) {
+      if (!confirm("Mode pemeliharaan akan aktif di situs publik! Lanjutkan publikasi?")) {
+        return false;
+      }
+    }
+    const res = await publishGodModeAction("features", values);
+    if (!res.ok) {
+      toast.error("Gagal mempublikasikan: " + res.error);
+      return false;
+    }
+    setBaseline({ ...values });
+      {/* God Mode Fase 4: Draft, Live Preview, dan Rollback Bar */}
+      <GodModeVersionBar
+        categoryKey="features"
+        onSaveDraft={handleSaveDraft}
+        onPublish={handlePublishLive}
+        isDirty={isDirty}
+      />
+
+    return true;
+  };
+
     <form onSubmit={handleSubmit} className="space-y-6">
       {FEATURE_GROUPS.map((group) => (
         <div key={group} className="space-y-3">

@@ -14,6 +14,8 @@ import { OSBootLoader } from "@/components/public/os/os-boot-loader";
 import { OSSoundLayer } from "@/components/public/os/os-sound-layer";
 import VisitorTracker from "@/components/public/visitor-tracker";
 import { RetroBot } from "@/components/public/retro-bot";
+import { draftMode } from "next/headers";
+import { GodModePreviewBar } from "@/components/public/godmode-preview-bar";
 
 export async function generateMetadata(): Promise<Metadata> {
   // Sengaja tidak membaca searchParams di sini: mengaksesnya memaksa seluruh
@@ -28,9 +30,12 @@ export default async function RootPublicLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const dm = await draftMode();
+  const isPreview = dm.isEnabled;
+
   const profile = await getProfile();
-  const uiStrings = await resolveUIStrings();
-  const features = await resolveFeatures();
+  const uiStrings = await resolveUIStrings({ preview: isPreview });
+  const features = await resolveFeatures({ preview: isPreview });
 
   // Mode pemeliharaan: seluruh situs publik diganti halaman ringan. Language
   // Provider tetap dipasang (MaintenanceNotice memakai useTranslation).
@@ -54,6 +59,9 @@ export default async function RootPublicLayout({
 
               {/* Suara retro global: ketukan tombol + nada pindah halaman */}
               <OSSoundLayer />
+
+              {/* Mode Pratinjau God Mode Floating Bar */}
+              {isPreview && <GodModePreviewBar />}
 
               {/* Anonymous visit beacon → self-hosted Cloudflare Worker (no cookies) */}
               <VisitorTracker />

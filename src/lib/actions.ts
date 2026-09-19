@@ -57,7 +57,16 @@ import {
   type UIStrings,
 } from "@/lib/ui-strings-config";
 import { rateLimit, cleanupRateLimits } from "@/lib/rate-limit";
-import { headers } from "next/headers";
+import { headers, draftMode } from "next/headers";
+import {
+  getSetting,
+  setSetting,
+  deleteSetting,
+  recordSettingHistory,
+  getSettingHistory,
+  getSettingHistoryById,
+  type SettingHistoryRecord,
+} from "@/lib/settings";
 
 // ==========================================
 // PERSISTENT LOCAL FILE STORE (OFFLINE & BACKUP)
@@ -1991,6 +2000,240 @@ export async function saveFeaturesAction(
     revalidatePath("/", "layout");
     revalidatePath("/admin/features");
     return { ok: true, features };
+  } catch (err) {
+    return { ok: false, error: sanitizeError(err) };
+  }
+}
+
+// ==========================================
+// GOD MODE FASE 4: DRAFT, LIVE PREVIEW, & ROLLBACK
+// ==========================================
+
+export type GodModeKey = "features" | "ui_strings" | "os_apps";
+
+/**
+ * Aktifkan Next.js draftMode() untuk admin (memungkinkan pratinjau konfigurasi draft).
+ */
+export async function enableGodModePreviewAction(): Promise<{ ok: true } | { ok: false; error: string }> {
+  await verifyAdmin();
+  try {
+    const dm = await draftMode();
+    dm.enable();
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: sanitizeError(err) };
+  }
+}
+
+/**
+ * Nonaktifkan Next.js draftMode() dan kembali ke tampilan normal pengunjung publik.
+ */
+export async function disableGodModePreviewAction(): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const dm = await draftMode();
+    dm.disable();
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: sanitizeError(err) };
+  }
+}
+
+/**
+ * Simpan konfigurasi sebagai draf tanpa mengubah konfigurasi live publik.
+ */
+export async function saveGodModeDraftAction(
+  key: GodModeKey,
+  input: unknown
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  await verifyAdmin();
+  try {
+    if (key === "features") {
+      await saveFeatures(input);
+    } else if (key === "ui_strings") {
+      await saveUIStrings(input);
+    } else if (key === "os_apps") {
+      await saveOSApps(input as OSAppConfig[]);
+    } else {
+      throw new Error(`Kategori God Mode "${key}" tidak dikenal.`);
+    }
+
+    await setSetting(`${key}:draft`, input);
+
+    await logAudit({
+      action: "draft",
+      entity: "settings",
+      entityId: `${key}:draft`,
+      detail: `Menyimpan draf konfigurasi ${key}`,
+    });
+
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: sanitizeError(err) };
+  }
+}
+
+/**
+ * Publikasikan draf ke live (atau simpan langsung ke live sekaligus membuat snapshot riwayat).
+ */
+export async function publishGodModeAction(
+  key: GodModeKey,
+  payloadOverride?: unknown
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  await verifyAdmin();
+  try {
+    let payload = payloadOverride;
+    if (payload === undefined) {
+      payload = await getSetting(`${key}:draft`);
+      if (payload === null || payload === undefined) {
+        throw new Error(`Tidak ada draf untuk "${key}" yang siap dipublikasikan.`);
+      }
+    }
+
+    const previousLive = await getSetting(key);
+    let label = `Publikasi ${key}`;
+    if (key === "features") {
+      const saved = await saveFeatures(payload);
+      label = describeFeatures(saved, "id");
+    } else if (key === "ui_strings") {
+      await saveUIStrings(payload);
+      const resolved = await resolveUIStrings();
+      label = describeUIStrings(resolved, "id");
+    } else if (key === "os_apps") {
+      await saveOSApps(payload as OSAppConfig[]);
+      const resolved = await resolveOSApps();
+      const activeCount = resolved.apps.filter((a) => a.enabled).length;
+      label = `${activeCount}/${resolved.apps.length} app aktif`;
+    }
+
+    if (previousLive !== null && previousLive !== undefined) {
+      await recordSettingHistory({
+        key,
+        value: previousLive,
+        label: `Snapshot sebelum ${label}`,
+      });
+    }
+
+    await deleteSetting(`${key}:draft`);
+
+    await logAudit({
+      action: "publish",
+      entity: "settings",
+      entityId: key,
+      detail: label,
+    });
+
+    revalidatePath("/", "layout");
+    if (key === "os_apps") revalidatePath("/admin/appearance");
+    if (key === "ui_strings") revalidatePath("/admin/strings");
+    if (key === "features") revalidatePath("/admin/features");
+
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: sanitizeError(err) };
+  }
+}
+
+/**
+ * Buang draf yang belum dipublikasikan.
+ */
+export async function discardGodModeDraftAction(
+  key: GodModeKey
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  await verifyAdmin();
+  try {
+    await deleteSetting(`${key}:draft`);
+    await logAudit({
+      action: "discard_draft",
+      entity: "settings",
+      entityId: `${key}:draft`,
+      detail: `Membuang draf konfigurasi ${key}`,
+    });
+    if (key === "os_apps") revalidatePath("/admin/appearance");
+    if (key === "ui_strings") revalidatePath("/admin/strings");
+    if (key === "features") revalidatePath("/admin/features");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: sanitizeError(err) };
+  }
+}
+
+/**
+ * Kembalikan konfigurasi live ke snapshot riwayat tertentu (Rollback 1-klik).
+ */
+export async function rollbackGodModeAction(
+  historyId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  await verifyAdmin();
+  try {
+    const history = await getSettingHistoryById(historyId);
+    if (!history) {
+      throw new Error(`Data riwayat dengan ID "${historyId}" tidak ditemukan.`);
+    }
+
+    const key = history.key as GodModeKey;
+    const previousLive = await getSetting(key);
+
+    if (previousLive !== null && previousLive !== undefined) {
+      await recordSettingHistory({
+        key,
+        value: previousLive,
+        label: `Snapshot sebelum rollback ke ${history.label ?? history.id}`,
+      });
+    }
+
+    if (key === "features") {
+      await saveFeatures(history.value);
+    } else if (key === "ui_strings") {
+      await saveUIStrings(history.value);
+    } else if (key === "os_apps") {
+      await saveOSApps(history.value as OSAppConfig[]);
+    } else {
+      await setSetting(key, history.value);
+    }
+
+    await logAudit({
+      action: "rollback",
+      entity: "settings",
+      entityId: key,
+      detail: `Rollback ke versi ${history.label ?? history.createdAt}`,
+    });
+
+    revalidatePath("/", "layout");
+    if (key === "os_apps") revalidatePath("/admin/appearance");
+    if (key === "ui_strings") revalidatePath("/admin/strings");
+    if (key === "features") revalidatePath("/admin/features");
+
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: sanitizeError(err) };
+  }
+}
+
+/**
+ * Ambil daftar snapshot riwayat konfigurasi untuk key tertentu.
+ */
+export async function getGodModeHistoryAction(
+  key: GodModeKey
+): Promise<{ ok: true; history: SettingHistoryRecord[] } | { ok: false; error: string }> {
+  await verifyAdmin();
+  try {
+    const history = await getSettingHistory(key, 20);
+    return { ok: true, history };
+  } catch (err) {
+    return { ok: false, error: sanitizeError(err) };
+  }
+}
+
+/**
+ * Ambil status draf saat ini (apakah ada draf tersimpan).
+ */
+export async function getGodModeDraftStatusAction(
+  key: GodModeKey
+): Promise<{ ok: true; hasDraft: boolean; draftValue: unknown } | { ok: false; error: string }> {
+  await verifyAdmin();
+  try {
+    const draft = await getSetting(`${key}:draft`);
+    return { ok: true, hasDraft: draft !== null && draft !== undefined, draftValue: draft };
   } catch (err) {
     return { ok: false, error: sanitizeError(err) };
   }
