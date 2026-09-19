@@ -54,13 +54,12 @@ async function minCardOpacity(page: Page, selector: string): Promise<number> {
   }, selector);
 }
 
-test("wheel di dasar window body pindah ke app berikutnya", async ({ page }) => {
+test("wheel di dasar window body TIDAK memindahkan window/app (hanya scroll internal)", async ({ page }) => {
   await page.goto("/", { timeout: 60_000 });
   await waitForBoot(page);
   await page.locator(DESKTOP_SCROLLER).waitFor({ state: "visible" });
 
-  // Mouse harus berada di atas window body agar event sampai ke listener yang
-  // dipasang pada container (bukan pada window).
+  // Mouse harus berada di atas window body
   const box = await page.locator(DESKTOP_SCROLLER).boundingBox();
   expect(box).not.toBeNull();
   await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
@@ -74,7 +73,8 @@ test("wheel di dasar window body pindah ke app berikutnya", async ({ page }) => 
   await page.waitForTimeout(700);
   const after = await titlebar(page);
 
-  expect(before).not.toBe(after);
+  // App/tab tetap sama, tidak pindah karena wheel scroll
+  expect(before).toBe(after);
 });
 
 test("kartu section muncul tanpa refresh setelah ganti app via ikon", async ({ page }) => {
