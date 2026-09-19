@@ -48,6 +48,7 @@ import { submitToOpenAI } from "@/lib/ai-openai";
 import { listCloudModels } from "@/lib/ai-models";
 import { saveOSApps, resolveOSApps } from "@/lib/os-apps-config";
 import type { OSAppConfig } from "@/lib/os-apps-meta";
+import { resolveFeatures } from "@/lib/features-config";
 import {
   resolveUIStrings,
   saveUIStrings,
@@ -1762,6 +1763,22 @@ export async function askSigitBot(
       text: lang === "en" ? "Please enter a query or command." : "Silakan masukkan pertanyaan atau perintah.",
       intent: "empty",
       confidence: 0,
+      source: "local",
+    };
+  }
+
+  // Gate feature flag (settings.features): app Terminal (os-desktop-manager)
+  // dan widget RetroBot di-gate di client; aksi server ini adalah jalur lain
+  // yang dipakai os-crt-terminal.tsx — wajib ditolak di server juga.
+  const features = await resolveFeatures();
+  if (!features.enable_terminal) {
+    return {
+      text:
+        lang === "en"
+          ? "The terminal feature is currently disabled."
+          : "Fitur terminal sedang dinonaktifkan.",
+      intent: "disabled",
+      confidence: 1,
       source: "local",
     };
   }

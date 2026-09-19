@@ -4,6 +4,7 @@ import { queryAIEngine, type EngineContext } from "@/lib/ai-engine";
 import { buildCloudMessages } from "@/lib/ai-provider";
 import { submitToOpenAIStream } from "@/lib/ai-openai";
 import { resolveCloudAIConfig, isCloudAIConfigEnabled } from "@/lib/cloud-ai-config";
+import { resolveFeatures } from "@/lib/features-config";
 import { rateLimit, cleanupRateLimits } from "@/lib/rate-limit";
 
 // Hardening: endpoint publik (pengunjung anon) — rate-limit ketat, input dibatasi,
@@ -61,6 +62,19 @@ function appContextLine(app: string, lang: "id" | "en"): string {
  * Selalu selesai dengan done/error agar client tidak menggantung.
  */
 export async function POST(req: NextRequest) {
+  // Gate feature flag (settings.features): "asisten AI retro" adalah satu
+  // kesatuan — permintaan langsung ke endpoint tetap harus ditolak walau
+  // widget client sudah di-return null (spec §5: client gate saja tidak
+  // cukup). Diletakkan paling atas (sebelum parsing body & rate-limit) agar
+  // penolakan murah dan cepat.
+  const features = await resolveFeatures();
+  if (!features.enable_terminal) {
+    return NextResponse.json(
+      { error: "Fitur terminal sedang dinonaktifkan." },
+      { status: 404 }
+    );
+  }
+
   const ip = clientIp(req);
   const rl = rateLimit(`retrobot:${ip}`, POST_LIMIT, POST_WINDOW_MS);
   cleanupRateLimits();
