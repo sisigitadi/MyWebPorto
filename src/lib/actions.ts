@@ -48,6 +48,12 @@ import { submitToOpenAI } from "@/lib/ai-openai";
 import { listCloudModels } from "@/lib/ai-models";
 import { saveOSApps, resolveOSApps } from "@/lib/os-apps-config";
 import type { OSAppConfig } from "@/lib/os-apps-meta";
+import {
+  resolveUIStrings,
+  saveUIStrings,
+  describeUIStrings,
+  type UIStrings,
+} from "@/lib/ui-strings-config";
 import { rateLimit, cleanupRateLimits } from "@/lib/rate-limit";
 import { headers } from "next/headers";
 
@@ -1914,6 +1920,27 @@ export async function saveOSAppsAction(input: OSAppConfig[]): Promise<
     revalidatePath("/");
     revalidatePath("/admin/appearance");
     return { ok: true, apps: resolved.apps };
+  } catch (err) {
+    return { ok: false, error: sanitizeError(err) };
+  }
+}
+
+export async function saveUIStringsAction(
+  input: unknown
+): Promise<{ ok: true; strings: UIStrings } | { ok: false; error: string }> {
+  await verifyAdmin();
+  try {
+    await saveUIStrings(input);
+    const resolved = await resolveUIStrings();
+    await logAudit({
+      action: "update",
+      entity: "settings",
+      entityId: "ui_strings",
+      detail: describeUIStrings(resolved, "id"),
+    });
+    revalidatePath("/", "layout");
+    revalidatePath("/admin/strings");
+    return { ok: true, strings: resolved };
   } catch (err) {
     return { ok: false, error: sanitizeError(err) };
   }
