@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { Loader2, Save, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { saveFeaturesAction } from "@/lib/actions";
+import { saveFeaturesAction, saveGodModeDraftAction, publishGodModeAction } from "@/lib/actions";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
+import { GodModeVersionBar } from "@/components/admin/godmode-version-bar";
 import {
   FEATURE_DEFS,
   FEATURE_GROUPS,
@@ -141,8 +142,43 @@ export function FeaturesForm({ initial }: FeaturesFormProps) {
     setError("");
   };
 
+  const handleSaveDraft = async (): Promise<boolean> => {
+    const res = await saveGodModeDraftAction("features", values);
+    if (!res.ok) {
+      toast.error("Gagal menyimpan draf: " + res.error);
+      return false;
+    }
+    return true;
+  };
+
+  const handlePublishLive = async (): Promise<boolean> => {
+    const turningDangerousOn = FEATURE_DEFS.filter((d) => d.dangerous).some(
+      (d) => values[d.key] && !initial[d.key]
+    );
+    if (turningDangerousOn) {
+      if (!confirm("Mode pemeliharaan akan aktif di situs publik! Lanjutkan publikasi?")) {
+        return false;
+      }
+    }
+    const res = await publishGodModeAction("features", values);
+    if (!res.ok) {
+      toast.error("Gagal mempublikasikan: " + res.error);
+      return false;
+    }
+    return true;
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="space-y-6">
+      {/* God Mode Fase 4: Draft, Live Preview, dan Rollback Bar */}
+      <GodModeVersionBar
+        categoryKey="features"
+        onSaveDraft={handleSaveDraft}
+        onPublish={handlePublishLive}
+        isDirty={isDirty}
+      />
+
+      <form onSubmit={handleSubmit} className="space-y-6">
       {FEATURE_GROUPS.map((group) => (
         <div key={group} className="space-y-3">
           <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
@@ -228,5 +264,6 @@ export function FeaturesForm({ initial }: FeaturesFormProps) {
         </AlertDialogContent>
       </AlertDialog>
     </form>
+  </div>
   );
 }

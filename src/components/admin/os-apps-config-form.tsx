@@ -20,7 +20,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { saveOSAppsAction } from "@/lib/actions";
+import { saveOSAppsAction, saveGodModeDraftAction, publishGodModeAction } from "@/lib/actions";
+import { GodModeVersionBar } from "@/components/admin/godmode-version-bar";
 import {
   appHumanLabel,
   appFilename,
@@ -114,8 +115,44 @@ export function OSAppsConfigForm({ initial }: OSAppsConfigFormProps) {
     });
   };
 
+  const getPayload = (): OSAppConfig[] =>
+    rows.map((r, i) => ({
+      id: r.id,
+      enabled: r.enabled,
+      order: i,
+    }));
+
+  const handleSaveDraft = async (): Promise<boolean> => {
+    const payload = getPayload();
+    const res = await saveGodModeDraftAction("os_apps", payload);
+    if (!res.ok) {
+      toast.error("Gagal menyimpan draf: " + res.error);
+      return false;
+    }
+    return true;
+  };
+
+  const handlePublishLive = async (): Promise<boolean> => {
+    const payload = getPayload();
+    const res = await publishGodModeAction("os_apps", payload);
+    if (!res.ok) {
+      toast.error("Gagal mempublikasikan: " + res.error);
+      return false;
+    }
+    return true;
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="space-y-4">
+      {/* God Mode Fase 4 Version Bar */}
+      <GodModeVersionBar
+        categoryKey="os_apps"
+        onSaveDraft={handleSaveDraft}
+        onPublish={handlePublishLive}
+        isDirty={isDirty}
+      />
+
+      <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
         {rows.map((row, index) => {
           const Icon = APP_ICONS[row.id];
@@ -227,5 +264,6 @@ export function OSAppsConfigForm({ initial }: OSAppsConfigFormProps) {
         </span>
       </div>
     </form>
+  </div>
   );
 }

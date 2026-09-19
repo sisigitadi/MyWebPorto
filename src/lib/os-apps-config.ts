@@ -73,8 +73,14 @@ function normalize(input: unknown): OSAppConfig[] {
   return ordered.map((a, i) => ({ id: a.id, enabled: a.enabled, order: i }));
 }
 
-export async function resolveOSApps(): Promise<ResolvedOSApps> {
-  const stored = await getSetting<unknown>(SETTING_KEY);
+export async function resolveOSApps(options?: { preview?: boolean }): Promise<ResolvedOSApps> {
+  let stored: unknown = null;
+  if (options?.preview) {
+    stored = await getSetting<unknown>(`${SETTING_KEY}:draft`);
+  }
+  if (!stored) {
+    stored = await getSetting<unknown>(SETTING_KEY);
+  }
   const apps = normalize(stored);
 
   // Jaminan keras: minimal satu app aktif. Tanpa ini admin bisa mengunci

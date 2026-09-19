@@ -6,8 +6,9 @@ import { Languages, Loader2, Save, Sparkles, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { saveUIStringsAction, translateFieldAction } from "@/lib/actions";
+import { saveUIStringsAction, translateFieldAction, saveGodModeDraftAction, publishGodModeAction } from "@/lib/actions";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
+import { GodModeVersionBar } from "@/components/admin/godmode-version-bar";
 import {
   EDITABLE_KEYS,
   UI_STRING_LANGS,
@@ -146,10 +147,49 @@ export function UIStringsForm({ initial }: UIStringsFormProps) {
     });
   };
 
+  const getPayload = (): UIStringsOverlay => {
+    const payload: UIStringsOverlay = { id: {}, en: {} };
+    for (const def of EDITABLE_DEFS) {
+      const k = def.key;
+      if (rows[k].id !== defaultFor(k, "id")) payload.id[k] = rows[k].id;
+      if (rows[k].en !== defaultFor(k, "en")) payload.en[k] = rows[k].en;
+    }
+    return payload;
+  };
+
+  const handleSaveDraft = async (): Promise<boolean> => {
+    const payload = getPayload();
+    const res = await saveGodModeDraftAction("ui_strings", payload);
+    if (!res.ok) {
+      toast.error("Gagal menyimpan draf: " + res.error);
+      return false;
+    }
+    return true;
+  };
+
+  const handlePublishLive = async (): Promise<boolean> => {
+    const payload = getPayload();
+    const res = await publishGodModeAction("ui_strings", payload);
+    if (!res.ok) {
+      toast.error("Gagal mempublikasikan: " + res.error);
+      return false;
+    }
+    return true;
+  };
+
   const groups = [...new Set(EDITABLE_DEFS.map((k) => k.group))];
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="space-y-6">
+      {/* God Mode Fase 4 Version Bar */}
+      <GodModeVersionBar
+        categoryKey="ui_strings"
+        onSaveDraft={handleSaveDraft}
+        onPublish={handlePublishLive}
+        isDirty={isDirty}
+      />
+
+      <form onSubmit={handleSubmit} className="space-y-6">
       {groups.map((group) => (
         <div key={group} className="space-y-3">
           <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
@@ -255,5 +295,6 @@ export function UIStringsForm({ initial }: UIStringsFormProps) {
         </span>
       </div>
     </form>
+  </div>
   );
 }

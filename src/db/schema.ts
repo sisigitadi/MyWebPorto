@@ -266,6 +266,34 @@ export const settings = pgTable(
   },
   (table) => [index("settings_updated_at_idx").on(table.updatedAt)]
 );
+/**
+ * Riwayat snapshot konfigurasi God Mode (Fase 4) — menyimpan versi snapshot
+ * settings (os_apps, ui_strings, features) saat dipublikasikan, agar dapat
+ * ditinjau dan di-rollback sewaktu-waktu.
+ */
+export const settingsHistory = pgTable(
+  "settings_history",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    key: text("key").notNull(),
+    value: jsonb("value").notNull(),
+    label: text("label"),
+    actor: text("actor"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("settings_history_key_idx").on(table.key),
+    index("settings_history_created_idx").on(table.createdAt),
+  ]
+);
+
+export type SettingsHistory = typeof settingsHistory.$inferSelect;
+export type NewSettingsHistory = typeof settingsHistory.$inferInsert;
+
 
 export type Setting = typeof settings.$inferSelect;
 export type NewSetting = typeof settings.$inferInsert;

@@ -29,10 +29,19 @@ const SETTING_KEY = "features";
 /**
  * Baca flag efektif untuk pengunjung. Tidak pernah melempar — dipanggil di
  * hot path render (layout publik + route artikel + endpoint RetroBot).
+ *
+ * Bila options?.preview === true, periksa apakah ada draf `features:draft`
+ * terlebih dahulu (God Mode Fase 4).
  */
-export async function resolveFeatures(): Promise<Features> {
+export async function resolveFeatures(options?: { preview?: boolean }): Promise<Features> {
   try {
-    const stored = await getSetting<unknown>(SETTING_KEY);
+    let stored: unknown = null;
+    if (options?.preview) {
+      stored = await getSetting<unknown>(`${SETTING_KEY}:draft`);
+    }
+    if (!stored) {
+      stored = await getSetting<unknown>(SETTING_KEY);
+    }
     if (!stored || typeof stored !== "object") {
       return { ...DEFAULT_FEATURES };
     }

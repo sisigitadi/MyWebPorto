@@ -24,6 +24,7 @@ const SHARED_FS_TESTS = [
   "tests/os-apps-config.test.ts",
   "tests/ui-strings-config.test.ts",
   "tests/features-config.test.ts",
+  "tests/settings-history.test.ts",
 ];
 
 export default defineConfig({
