@@ -223,7 +223,7 @@ export async function POST(req: NextRequest) {
         ...history.map((h) => ({ role: h.role, content: h.content })),
         appLine ? { role: "user" as const, content: appLine } : null,
         user,
-      ].filter((m): m is { role: "user" | "system"; content: string } => m !== null);
+      ].filter((m): m is { role: "user" | "system" | "assistant"; content: string } => m !== null);
 
       let sentAny = false;
       try {

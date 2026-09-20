@@ -78,3 +78,8 @@ scripts/find-*.mjs
 # media hasil upload runtime (ephemeral di serverless; tidak direferensikan kode)
 public/uploads/
 .claude/
+
+# agent tooling scratch (worktree lokal, log verifikasi sekali pakai — jangan masuk repo)
+.kilo/
+.superpowers/
+.verify*.log

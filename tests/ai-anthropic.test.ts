@@ -10,7 +10,7 @@ import type { ResolvedCloudAIConfig } from "@/lib/cloud-ai-config";
 
 const CFG: ResolvedCloudAIConfig = {
   provider: "anthropic",
-  apiKey: "sk-ant-real-key",
+  apiKey: "TEST_ANTHROPIC_KEY_FIXTURE",
   model: "claude-3-5-haiku-latest",
   baseUrl: "https://api.anthropic.com/v1",
   systemPrompt: "",
@@ -54,7 +54,7 @@ describe("submitToAnthropic", () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toBe("https://api.anthropic.com/v1/messages");
     const headers = init?.headers as Record<string, string>;
-    expect(headers["x-api-key"]).toBe("sk-ant-real-key");
+    expect(headers["x-api-key"]).toBe("TEST_ANTHROPIC_KEY_FIXTURE");
     expect(headers["anthropic-version"]).toBe("2023-06-01");
     fetchMock.mockRestore();
   });

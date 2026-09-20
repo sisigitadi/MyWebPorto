@@ -2,6 +2,43 @@
 
 Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
+## [v2.15.2] - 2026-09-20
+
+### Fixed — Konsistensi pasca-audit (nol perubahan perilaku runtime)
+- Fixed: CHANGELOG v2.15.0 menyebut "8 provider baru", padahal union
+  `CloudProvider` (`src/lib/cloud-ai-config.ts`) menambahkan tepat **7**
+  provider baru selain Gemini & OpenAI-compatible: `anthropic`, `deepseek`,
+  `groq`, `openrouter`, `together`, `mistral`, `xai`. Klaim "Total 10
+  pilihan (`off` + 9)" tetap benar — hanya angka "8" yang salah.
+- Changed: string key fake di test disatukan ke konstanta fixture yang sama
+  (`TEST_ANTHROPIC_KEY_FIXTURE` / `TEST_GROQ_KEY_FIXTURE`). Sebelumnya scrub
+  GitGuardian hanya merename dua nilai yang memicu scanner; sisanya
+  (`sk-ant-real-key`, `gsk_real_key`, `sk-ant-fake`, `gsk_fake`) tertinggal
+  di `tests/ai-anthropic.test.ts`, `tests/ai-models.test.ts`, dan
+  `tests/cloud-ai-config.test.ts`. Nol impact fungsional (semuanya jelas
+  fake & CI hijau), murni konsistensi konvensi fixture.
+- Changed: type predicate filter `messages` di `POST /api/retrobot`
+  diperluas menjadi `role: "user" | "system" | "assistant"` — riwayat chat
+  sah menyumbang role `assistant`; predicate lama lebih sempit dari nilai
+  sebenarnya (tsc & runtime sudah benar, ini hanya kejujuran tipe).
+- Removed: stale git worktree `.kilo/worktrees/river-ease/` (mirror
+  pre-v2.15 — union 3-provider, timeout 15s). Sudah gitignored sehingga
+  tidak pernah di-ship, tapi merupakan salinan kode usang yang mencemari
+  hasil pencarian tooling. `.kilo/`, `.superpowers/`, `.verify*.log`
+  ditambahkan ke `.gitignore` agar scratch sejenis tak masuk repo lagi.
+
+### Docs — Audit keamanan post-merge v2.15.0/v2.15.1
+- Added: SECURITY.md §3.7 mencatat bahwa **semua 9 provider memakai
+  otentikasi API key** — tidak ada alur login/OAuth per akun. Form admin
+  hanya input API key (lihat `maskKey()`); login akun provider tidak
+  didukung maupun direncanakan.
+- Audit: `tsc --noEmit` EXIT 0; `vitest run` 233/233 (21 file). Auth
+  boundary (`verifyAdmin()` di tiap server action baru), fail-closed
+  3-lapis (`isCloudProvider` / `resolveCloudAIConfig` / `saveCloudAIConfig`),
+  `maskKey()`, placeholder key → nol network call, `AbortSignal.timeout` di
+  seluruh egress — **lulus, tanpa issue blocking**.
+
+
 ## [v2.15.1] - 2026-09-20
 
 ### Fixed — RetroBot: eskalasi Gemini kini multi-turn
@@ -39,7 +76,7 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [v2.15.0] - 2026-09-20
 
-### Added — Cloud AI: 8 provider baru lewat satu registry (2026-09-20)
+### Added — Cloud AI: 7 provider baru lewat satu registry (2026-09-20)
 - Added: **registry provider terpusat** `src/lib/ai-providers.ts` (client-safe —
   murni data publik: label, hint, base URL/model default, nama env var; tidak
   ada import server-only, tidak ada key). Dipakai bersama oleh form admin DAN
@@ -47,7 +84,7 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
   `Record<CloudProvider, ProviderMeta>` memaksa **exhaustiveness check** saat
   compile: tambah provider = satu entry registry + satu baris union
   `CloudProvider`; TypeScript menolak bila salah satu sisi kurang.
-- Added: **8 provider baru** selain Gemini & OpenAI-compatible — Anthropic
+- Added: **7 provider baru** selain Gemini & OpenAI-compatible — Anthropic
   Claude, DeepSeek, Groq, OpenRouter, Together AI, Mistral, xAI Grok, tetap
   ada "OpenAI-compatible — custom" (OpenAI / Ollama / endpoint
   `/v1/chat/completions` sendiri). Total 10 pilihan (`off` + 9). Provider
