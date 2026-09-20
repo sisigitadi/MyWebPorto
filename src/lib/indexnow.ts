@@ -9,19 +9,23 @@
  */
 
 import { isPlaceholderKey } from "@/lib/env";
+import { resolveSeoConfig } from "@/lib/seo-config";
 
 /**
- * Key IndexNow dibaca dari env INDEXNOW_KEY (sudah terisi di .env.local/Vercel).
- * Sengaja TIDAK ada default hardcoded: tanpa env, submit dilewati diam-diam —
- * mencegah key lama dipakai terus setelah rotasi dan memisahkan concerns
- * dengan token verifikasi Bing di layout.
+ * Key IndexNow dibaca dari pengaturan admin (tabel settings, diisi dari form
+ * /admin/seo) atau env INDEXNOW_KEY — pengaturan admin lebih diprioritaskan.
+ * Sengaja TIDAK ada default hardcoded: tanpa keduanya submit dilewati diam-diam
+ * — mencegah key lama dipakai terus setelah rotasi dan memisahkan concerns
+ * dengan token verifikasi Bing di layout. Rotasi key dari admin langsung
+ * efektif karena file /{key}.txt dilayani dinamis oleh app/[indexnowKey].
  */
 export function getIndexNowBaseUrl(): string {
   return (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
 }
 
-export function getIndexNowKey(): string {
-  return process.env.INDEXNOW_KEY || "";
+export async function getIndexNowKey(): Promise<string> {
+  const cfg = await resolveSeoConfig();
+  return cfg.indexNowKey;
 }
 
 /** Hanya URL http(s) absolut di host sendiri yang boleh disubmit. */
@@ -64,7 +68,7 @@ export async function submitUrlsToIndexNow(urls: string[]): Promise<IndexNowResu
   if (clean.length === 0) {
     return { success: false, status: null, submittedCount: 0, skipped: true };
   }
-  const key = getIndexNowKey();
+  const key = await getIndexNowKey();
   if (isPlaceholderKey(key)) {
     return { success: false, status: null, submittedCount: 0, skipped: true };
   }

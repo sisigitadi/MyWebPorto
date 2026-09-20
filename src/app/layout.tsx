@@ -55,8 +55,12 @@ const unbounded = Unbounded({
 });
 
 const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
-const googleVerification = process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION || "nO80bNSBPyrM7VQYvpPKCmgcQVBuJ_7Ydaxhfsk5Vbw";
-const bingVerification = process.env.NEXT_PUBLIC_BING_VERIFICATION || "e5b871c984924b179571fcfdca565780";
+// Token verifikasi BUKAN rahasia (Google/Bing mempublikasikannya via file
+// statis public/). Env opsional — nilai efektif & override admin diatur di
+// src/lib/seo-config.ts (settings key "seo"), dipasang ke <head> oleh
+// generateDynamicMetadata di (public)/layout.tsx.
+const googleVerification = process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION || "";
+const bingVerification = process.env.NEXT_PUBLIC_BING_VERIFICATION || "";
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
@@ -107,10 +111,8 @@ export const metadata: Metadata = {
     images: ["/opengraph-image"],
   },
   verification: {
-    google: googleVerification,
-    other: {
-      "msvalidate.01": bingVerification,
-    },
+    google: googleVerification || undefined,
+    other: bingVerification ? { "msvalidate.01": bingVerification } : undefined,
   },
   // PWA install dimatikan: manifest & appleWebApp dihapus agar browser tidak
   // lagi menawarkan "Install app". Service worker + halaman /offline tetap

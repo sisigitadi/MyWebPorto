@@ -44,6 +44,12 @@ import {
   type StoredCloudAIConfig,
   type CloudProvider,
 } from "@/lib/cloud-ai-config";
+import {
+  getSeoConfigForAdmin,
+  saveSeoConfig,
+  type AdminSeoView,
+  type StoredSeoConfig,
+} from "@/lib/seo-config";
 import { submitToOpenAI } from "@/lib/ai-openai";
 import { submitToAnthropic } from "@/lib/ai-anthropic";
 import { getApiStyle } from "@/lib/ai-providers";
@@ -1912,6 +1918,41 @@ export async function saveCloudAIConfigAction(input: StoredCloudAIConfig): Promi
     };
   }
 }
+
+/**
+ * Simpan konfigurasi SEO/SEM dari form /admin/seo (token verifikasi Google &
+ * Bing, key IndexNow, override Open Graph). Wajib admin terotentikasi.
+ *
+ * Asimetris seperti action settings lainnya: verifyAdmin() di luar try, lalu
+ * validasi nilai dilakukan server-side oleh saveSeoConfig() (token asing
+ * ditolak keras dengan pesan Indonesia). Token tidak pernah dikembalikan
+ * mentah ke client — pembacaan form lewat getSeoConfigForAdmin() (di-mask).
+ * Perubahan mempengaruhi <head> seluruh situs publik + /opengraph-image, jadi
+ * revalidatePath memakai scope "layout".
+ */
+export async function saveSeoConfigAction(
+  input: unknown
+): Promise<{ ok: true; config: AdminSeoView } | { ok: false; error: string }> {
+  await verifyAdmin();
+  try {
+    await saveSeoConfig(input as StoredSeoConfig);
+    const config = await getSeoConfigForAdmin();
+    await logAudit({
+      action: "update",
+      entity: "settings",
+      entityId: "seo",
+      detail: "Konfigurasi SEO/SEM (GSC, Bing, IndexNow, Open Graph)",
+    });
+    // Layout-level: meta verifikasi + OG berlaku untuk seluruh halaman publik;
+    // /admin/seo butuh refresh tampilan status setelah simpan.
+    revalidatePath("/", "layout");
+    revalidatePath("/admin/seo");
+    return { ok: true, config };
+  } catch (err) {
+    return { ok: false, error: sanitizeError(err) };
+  }
+}
+
 
 /**
  * Ambi daftar model yang tersedia di provider (untuk auto-fill form Cloud AI).

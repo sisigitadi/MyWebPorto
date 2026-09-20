@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { getProfile } from "@/lib/actions";
+import { resolveOgMeta } from "@/lib/seo-config";
 
 export const runtime = "nodejs";
 export const alt = "Sigit Adi Irianto — Portofolio & Workstation";
@@ -8,11 +9,21 @@ export const contentType = "image/png";
 
 export default async function Image() {
   const profile = await getProfile();
-  const title = `${profile.name} — ${profile.headline || "Web Developer"}`;
-  const subtitle =
-    profile.bio || "Portofolio interaktif SigitOS dengan sistem modern & karya unggulan.";
+  // Override Open Graph dari /admin/seo (settings "seo") bila ada; jika tidak
+  // diturunkan dari profil. Sinkron dengan generateDynamicMetadata di seo.ts.
+  const og = await resolveOgMeta({
+    name: profile.name,
+    headline: profile.headline,
+    bio: profile.bio,
+  });
+  const title = og.title;
+  const subtitle = og.description;
   const initial = (profile.name.charAt(0) || "S").toUpperCase();
-  const avatar = profile.avatarUrl;
+  // Bila admin menetapkan gambar OG sendiri (URL absolut), pakai gambar itu;
+  // jika tidak, gambar dinamis memakai avatar profil (fallback: monogram inisial).
+  const overrideImage =
+    og.imageUrl !== "/opengraph-image" && /^https?:\/\//.test(og.imageUrl) ? og.imageUrl : undefined;
+  const avatar = overrideImage || profile.avatarUrl;
   const imageUrl = avatar && /^https?:\/\//.test(avatar) ? avatar : undefined;
 
   return new ImageResponse(

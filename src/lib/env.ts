@@ -17,6 +17,8 @@ const EnvSchema = z.object({
   DATABASE_URL: z.string().optional().or(z.literal("")),
   NEXT_PUBLIC_FORMSPREE_ENDPOINT: z.string().optional().or(z.literal("")),
   INDEXNOW_KEY: z.string().optional().or(z.literal("")),
+  NEXT_PUBLIC_GOOGLE_VERIFICATION: z.string().optional().or(z.literal("")),
+  NEXT_PUBLIC_BING_VERIFICATION: z.string().optional().or(z.literal("")),
   ENABLE_EXTERNAL_TRANSLATE: z.string().optional().or(z.literal("")),
   // Cloud AI Sigit_Bot: off (default) | gemini | openai | anthropic | deepseek |
   // groq | openrouter | together | mistral | xai (lihat registry ai-providers.ts)
@@ -98,6 +100,8 @@ export function getEnv(): AppEnv {
     DATABASE_URL: "",
     NEXT_PUBLIC_FORMSPREE_ENDPOINT: "",
     INDEXNOW_KEY: "",
+    NEXT_PUBLIC_GOOGLE_VERIFICATION: "",
+    NEXT_PUBLIC_BING_VERIFICATION: "",
     ENABLE_EXTERNAL_TRANSLATE: "",
     AI_PROVIDER: "",
     GEMINI_API_KEY: "",
@@ -181,6 +185,20 @@ export function getEnvIssues(env: AppEnv = getEnv()): EnvIssue[] {
       key: "INDEXNOW_KEY",
       severity: "info",
       message: "Ping IndexNow memakai key default — ganti di .env (jangan commit).",
+    });
+  }
+  if (isPlaceholder(env.NEXT_PUBLIC_GOOGLE_VERIFICATION)) {
+    issues.push({
+      key: "NEXT_PUBLIC_GOOGLE_VERIFICATION",
+      severity: "info",
+      message: "Token verifikasi Google (meta tag) kosong — bisa diisi di /admin/seo atau env.",
+    });
+  }
+  if (isPlaceholder(env.NEXT_PUBLIC_BING_VERIFICATION)) {
+    issues.push({
+      key: "NEXT_PUBLIC_BING_VERIFICATION",
+      severity: "info",
+      message: "Token verifikasi Bing msvalidate.01 kosong — bisa diisi di /admin/seo atau env.",
     });
   }
   if ((env.ENABLE_EXTERNAL_TRANSLATE ?? "true") === "false") {

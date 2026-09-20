@@ -5,18 +5,18 @@ import { defineConfig } from "vitest/config";
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
- * Enam test file ini (dan hanya ini) menulis/membaca berkas bersama
+ * Tujuh test file ini (dan hanya ini) menulis/membaca berkas bersama
  * `data/local-settings.json` — backend fallback getSetting/setSetting saat
  * tidak ada DATABASE_URL (persis seperti di produksi admin menimpa env).
  *
- * Saat keempatnya dijadwalkan di worker berbeda, baca-tulis mereka berlomba:
+ * Saat ketujuhnya dijadwalkan di worker berbeda, baca-tulis mereka berlomba:
  * beforeEach satu menghapus persis saat yang lain menulis, sehingga config
- * "hilang" dan test jatuh ke default secara acak (flaky). Karena itu keempat
- * file ditempatkan di project terpisah yang berjalan serial — `fileParallelism:
- * false` di level project membuat file di dalamnya tidak pernah tumpang
- * tindih. Semua test file lain tetap berjalan paralel penuh.
+ * "hilang" dan test jatuh ke default secara acak (flaky). Karena itu semua
+ * file ini ditempatkan di project terpisah yang berjalan serial —
+ * `fileParallelism: false` di level project membuat file di dalamnya tidak
+ * pernah tumpang tindih. Semua test file lain tetap berjalan paralel penuh.
  *
- * Bila nanti ada test file ke-7 yang menyentuh local-settings.json, tambahkan
+ * Bila nanti ada test file ke-8 yang menyentuh local-settings.json, tambahkan
  * ke daftar ini, jangan buat file paralel baru.
  */
 const SHARED_FS_TESTS = [
@@ -26,6 +26,7 @@ const SHARED_FS_TESTS = [
   "tests/features-config.test.ts",
   "tests/settings-history.test.ts",
   "tests/redaksi-automation.test.ts",
+  "tests/seo-config.test.ts",
 ];
 
 export default defineConfig({

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useTransition } from "react";
+import Link from "next/link";
 import { Eye, ExternalLink, LogOut, Loader2 } from "lucide-react";
 import { disableGodModePreviewAction } from "@/lib/actions";
 import { toast } from "sonner";
@@ -33,13 +34,13 @@ export function GodModePreviewBar() {
         Anda melihat draf internal yang belum dipublikasikan ke publik.
       </span>
       <div className="flex items-center gap-2">
-        <a
+        <Link
           href="/admin"
           className="px-2 py-1 rounded bg-amber-950/10 hover:bg-amber-950/20 dark:bg-amber-100/10 dark:hover:bg-amber-100/20 transition-colors flex items-center gap-1"
         >
           <span>Admin</span>
           <ExternalLink className="w-3 h-3" />
-        </a>
+        </Link>
         <button
           onClick={handleExit}
           disabled={isPending}

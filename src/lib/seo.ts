@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { resolveOgMeta, resolveVerification } from "@/lib/seo-config";
 
 export interface LlmsEntry {
   title: string;
@@ -97,6 +98,16 @@ export async function generateDynamicMetadata(): Promise<Metadata> {
   const title = `${profile.name} — ${profile.headline}`;
   const description = profile.bio;
 
+  // Open Graph & token verifikasi: override admin (settings "seo") → turunan
+  // profil. Dipakai bersama route /opengraph-image.tsx agar tag & gambar
+  // selalu sinkron dengan pratinjau di /admin/seo.
+  const og = await resolveOgMeta({
+    name: profile.name,
+    headline: profile.headline,
+    bio: profile.bio,
+  });
+  const verification = await resolveVerification();
+
   return {
     metadataBase: new URL(appUrl),
     title: {
@@ -137,25 +148,30 @@ export async function generateDynamicMetadata(): Promise<Metadata> {
       // alternates.languages (hreflang) di atas.
       locale: "id_ID",
       url: appUrl,
-      title,
-      description,
+      title: og.title,
+      description: og.description,
       siteName: `${profile.name} Portfolio`,
-      images: [
-        {
-          url: "/opengraph-image",
-          width: 1200,
-          height: 630,
-          alt: `${profile.name} - Web Developer & Tech Creator`,
-        },
-      ],
+      images:
+        og.imageUrl === "/opengraph-image"
+          ? [
+              {
+                url: "/opengraph-image",
+                width: 1200,
+                height: 630,
+                alt: og.imageAlt,
+              },
+            ]
+          : [{ url: og.imageUrl, alt: og.imageAlt }],
     },
     twitter: {
       card: "summary_large_image",
-      title,
-      description,
+      title: og.title,
+      description: og.description,
       creator: profile.socialLinks?.twitter ? `@${profile.socialLinks.twitter.split("/").pop()}` : "@developer",
-      images: ["/opengraph-image"],
+      images: [og.imageUrl],
     },
+    // Token verifikasi Google Search Console & Bing Webmaster (msvalidate.01).
+    verification,
     robots: {
       index: true,
       follow: true,
