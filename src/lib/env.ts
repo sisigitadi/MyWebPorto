@@ -18,13 +18,29 @@ const EnvSchema = z.object({
   NEXT_PUBLIC_FORMSPREE_ENDPOINT: z.string().optional().or(z.literal("")),
   INDEXNOW_KEY: z.string().optional().or(z.literal("")),
   ENABLE_EXTERNAL_TRANSLATE: z.string().optional().or(z.literal("")),
-  // Cloud AI Sigit_Bot: off (default) | gemini | openai (OpenAI-compatible)
+  // Cloud AI Sigit_Bot: off (default) | gemini | openai | anthropic | deepseek |
+  // groq | openrouter | together | mistral | xai (lihat registry ai-providers.ts)
   AI_PROVIDER: z.string().optional().or(z.literal("")),
   GEMINI_API_KEY: z.string().optional().or(z.literal("")),
   AI_MODEL: z.string().optional().or(z.literal("")),
   OPENAI_API_KEY: z.string().optional().or(z.literal("")),
   OPENAI_BASE_URL: z.string().optional().or(z.literal("")),
   OPENAI_MODEL: z.string().optional().or(z.literal("")),
+  ANTHROPIC_API_KEY: z.string().optional().or(z.literal("")),
+  ANTHROPIC_BASE_URL: z.string().optional().or(z.literal("")),
+  ANTHROPIC_MODEL: z.string().optional().or(z.literal("")),
+  DEEPSEEK_API_KEY: z.string().optional().or(z.literal("")),
+  DEEPSEEK_MODEL: z.string().optional().or(z.literal("")),
+  GROQ_API_KEY: z.string().optional().or(z.literal("")),
+  GROQ_MODEL: z.string().optional().or(z.literal("")),
+  OPENROUTER_API_KEY: z.string().optional().or(z.literal("")),
+  OPENROUTER_MODEL: z.string().optional().or(z.literal("")),
+  TOGETHER_API_KEY: z.string().optional().or(z.literal("")),
+  TOGETHER_MODEL: z.string().optional().or(z.literal("")),
+  MISTRAL_API_KEY: z.string().optional().or(z.literal("")),
+  MISTRAL_MODEL: z.string().optional().or(z.literal("")),
+  XAI_API_KEY: z.string().optional().or(z.literal("")),
+  XAI_MODEL: z.string().optional().or(z.literal("")),
 });
 
 export type AppEnv = z.infer<typeof EnvSchema>;
@@ -73,6 +89,21 @@ export function getEnv(): AppEnv {
     OPENAI_API_KEY: "",
     OPENAI_BASE_URL: "",
     OPENAI_MODEL: "",
+    ANTHROPIC_API_KEY: "",
+    ANTHROPIC_BASE_URL: "",
+    ANTHROPIC_MODEL: "",
+    DEEPSEEK_API_KEY: "",
+    DEEPSEEK_MODEL: "",
+    GROQ_API_KEY: "",
+    GROQ_MODEL: "",
+    OPENROUTER_API_KEY: "",
+    OPENROUTER_MODEL: "",
+    TOGETHER_API_KEY: "",
+    TOGETHER_MODEL: "",
+    MISTRAL_API_KEY: "",
+    MISTRAL_MODEL: "",
+    XAI_API_KEY: "",
+    XAI_MODEL: "",
   };
 }
 

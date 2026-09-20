@@ -5,7 +5,7 @@ import { defineConfig } from "vitest/config";
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
- * Empat test file ini (dan hanya ini) menulis/membaca berkas bersama
+ * Enam test file ini (dan hanya ini) menulis/membaca berkas bersama
  * `data/local-settings.json` — backend fallback getSetting/setSetting saat
  * tidak ada DATABASE_URL (persis seperti di produksi admin menimpa env).
  *
@@ -16,7 +16,7 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
  * false` di level project membuat file di dalamnya tidak pernah tumpang
  * tindih. Semua test file lain tetap berjalan paralel penuh.
  *
- * Bila nanti ada test file ke-5 yang menyentuh local-settings.json, tambahkan
+ * Bila nanti ada test file ke-7 yang menyentuh local-settings.json, tambahkan
  * ke daftar ini, jangan buat file paralel baru.
  */
 const SHARED_FS_TESTS = [
@@ -25,6 +25,7 @@ const SHARED_FS_TESTS = [
   "tests/ui-strings-config.test.ts",
   "tests/features-config.test.ts",
   "tests/settings-history.test.ts",
+  "tests/redaksi-automation.test.ts",
 ];
 
 export default defineConfig({

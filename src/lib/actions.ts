@@ -45,6 +45,8 @@ import {
   type CloudProvider,
 } from "@/lib/cloud-ai-config";
 import { submitToOpenAI } from "@/lib/ai-openai";
+import { submitToAnthropic } from "@/lib/ai-anthropic";
+import { getApiStyle } from "@/lib/ai-providers";
 import { listCloudModels } from "@/lib/ai-models";
 import { saveOSApps, resolveOSApps } from "@/lib/os-apps-config";
 import type { OSAppConfig } from "@/lib/os-apps-meta";
@@ -67,6 +69,17 @@ import {
   getSettingHistoryById,
   type SettingHistoryRecord,
 } from "@/lib/settings";
+import { draftContentWithAI, type DraftPublicContext } from "@/lib/redaksi-draft";
+import {
+  resolveRedaksiAutomation,
+  saveRedaksiAutomation,
+  markAutomationRun,
+  stageDraft,
+  deleteStagedDraft,
+  computePublishIntent,
+} from "@/lib/redaksi-automation";
+import { AUTOMATION_SECTIONS } from "@/lib/redaksi-automation-meta";
+import { isRedaksiContentType, type RedaksiContentType } from "@/lib/redaksi-meta";
 
 // ==========================================
 // PERSISTENT LOCAL FILE STORE (OFFLINE & BACKUP)
@@ -1740,8 +1753,9 @@ export async function getCloudAIStatus(): Promise<{ enabled: boolean; model: str
 }
 
 /**
- * Dispatcher cloud tunggal — pilih provider sesuai AI_PROVIDER.
- * Hanya dipakai askSigitBot (non-streaming) dan route /api/retrobot.
+ * Dispatcher cloud tunggal — pilih gaya API sesuai provider efektif (lihat
+ * registry ai-providers.ts). Dipakai askSigitBot (terminal, non-streaming);
+ * route /api/retrobot punya cabang streaming sendiri.
  * Tidak pernah throw: gagal → {success:false} dan pemanggil jatuh ke jawaban
  * lokal TF-IDF.
  */
@@ -1755,7 +1769,12 @@ async function submitToCloud(
   const cfg = await resolveCloudAIConfig();
   // Persona & gaya jawaban kustom dari pengaturan admin (bila diisi).
   const custom = { systemPrompt: cfg.systemPrompt, answerStyle: cfg.answerStyle };
-  if (cfg.provider === "openai") {
+  const style = getApiStyle(cfg.provider);
+  if (style === "anthropic") {
+    // Anthropic pakai messages API; system prompt jadi field top-level.
+    return submitToAnthropic(buildCloudMessages(query, ctx, lang, custom), { config: cfg });
+  }
+  if (style === "openai-chat") {
     // OpenAI-compatible memakai format messages; prompt tetap katalog publik.
     return submitToOpenAI(buildCloudMessages(query, ctx, lang, custom), { config: cfg });
   }
@@ -2029,6 +2048,11 @@ export async function enableGodModePreviewAction(): Promise<{ ok: true } | { ok:
  * Nonaktifkan Next.js draftMode() dan kembali ke tampilan normal pengunjung publik.
  */
 export async function disableGodModePreviewAction(): Promise<{ ok: true } | { ok: false; error: string }> {
+  // Simetris dengan enableGodModePreviewAction: hanya admin yang boleh mengubah
+  // status draftMode(). Tanpa ini pengunjung anonim bisa memanggil action ini
+  // (Broken Access Control, OWASP A01) — walau dampaknya terbatas ke cookie
+  // draft pemanggil, tetap harus konsisten dengan pasangannya.
+  await verifyAdmin();
   try {
     const dm = await draftMode();
     dm.disable();
@@ -2238,3 +2262,191 @@ export async function getGodModeDraftStatusAction(
     return { ok: false, error: sanitizeError(err) };
   }
 }
+
+// ==========================================
+// REDAKSI — hub penulisan konten (manual + bantuan AI)
+// ==========================================
+// Rate limit pembuatan draf AI: admin-only, tapi tetap dibatasi agar key Cloud
+// AI tidak terkuras oleh klik berulang / loop bug. Lebih longgar dari bot publik.
+const REDAKSI_DRAFT_LIMIT = 20;
+const REDAKSI_DRAFT_WINDOW_MS = 5 * 60_000;
+
+/**
+ * Buat draf konten via Cloud AI untuk composer Redaksi. verifyAdmin + rate-limit
+ * per IP. Hasil sudah divalidasi terhadap schema draf (lihat redaksi-draft.ts);
+ * penyimpanan final tetap lewat action save* dengan validasi schema PENUH.
+ */
+export async function draftContentWithAIAction(
+  type: string,
+  brief: string,
+  lang: "id" | "en" = "id"
+): Promise<
+  | { ok: true; draft: unknown }
+  | { ok: false; error: string }
+> {
+  await verifyAdmin();
+  if (!isRedaksiContentType(type)) {
+    return { ok: false, error: "Tipe konten tidak dikenal." };
+  }
+  const ip = await aibotIp();
+  const rl = rateLimit(`redaksi:${ip}`, REDAKSI_DRAFT_LIMIT, REDAKSI_DRAFT_WINDOW_MS);
+  cleanupRateLimits();
+  if (!rl.allowed) {
+    return {
+      ok: false,
+      error: `Batas pembuatan draf tercapai (${REDAKSI_DRAFT_LIMIT}/5 menit). Tunggu sebentar lalu coba lagi.`,
+    };
+  }
+
+  try {
+    // Konteks profil PUBLIK disuntikkan ke prompt (nama/headline/keahlian).
+    const profile = await getProfile();
+    const publicCtx: DraftPublicContext = {
+      name: profile.name,
+      headline: profile.headline,
+      skills: profile.skills || [],
+    };
+    const result = await draftContentWithAI(type, brief, lang, publicCtx);
+    if (!result.ok) return { ok: false, error: result.error };
+    await logAudit({
+      action: "create",
+      entity: "redaksi_draft",
+      entityId: type,
+      detail: `brief=${brief.trim().slice(0, 80)}`,
+    });
+    return { ok: true, draft: result.draft.data };
+  } catch (err) {
+    return { ok: false, error: sanitizeError(err) };
+  }
+}
+
+/**
+ * Simpan pengaturan Otomasi Redaksi dari form /admin/redaksi/otomasi.
+ */
+export async function saveRedaksiAutomationAction(
+  input: unknown
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  await verifyAdmin();
+  try {
+    const cfg = await saveRedaksiAutomation(input);
+    await logAudit({
+      action: "update",
+      entity: "settings",
+      entityId: "redaksi_auto",
+      detail: `enabled=${cfg.enabled} autoUpload=${cfg.autoUpload} mode=${cfg.scheduleMode}`,
+    });
+    revalidatePath("/admin/redaksi/otomasi");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: sanitizeError(err) };
+  }
+}
+
+/**
+ * Hapus satu draf hasil otomasi yang tertahan (staging).
+ */
+export async function deleteStagedDraftAction(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  await verifyAdmin();
+  try {
+    await deleteStagedDraft(id);
+    await logAudit({ action: "delete", entity: "redaksi_staged", entityId: id });
+    revalidatePath("/admin/redaksi");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: sanitizeError(err) };
+  }
+}
+
+/** Ringkasan satu pekerjaan otomasi (untuk ditampilkan ke admin). */
+export interface AutomationJobResult {
+  type: string;
+  topic: string;
+  ok: boolean;
+  error?: string;
+  stagedId?: string;
+}
+
+/**
+ * Jalankan otomasi redaksi: untuk tiap section aktif yang punya topik (hingga
+ * maxPerRun), buat draf via Cloud AI lalu STAGE-kan (settings.redaksi_staging)
+ * dengan niat publish sesuai pengaturan (autoUpload / waktu upload).
+ *
+ * Mengapa staging, bukan langsung tulis ke tabel konten:
+ *  1. "Perlu izin": tidak ada konten AI yang tayang tanpa satu kali review
+ *     manusia — pembatasan abuse sekaligus kesalahan halus AI.
+ *  2. Integritas schema: proyek/produk mewajibkan imageUrl; AI dilarang
+ *     mengarang aset, jadi field itu harus diisi admin saat review.
+ *  3. Niat publish (published/publishAt) diterapkan saat admin "Terima & Simpan"
+ *     lewat composer Redaksi yang memakai action save* biasa — sehingga
+ *     validasi schema PENUH, slug-unik, audit, dan revalidatePath tetap jalan.
+ */
+export async function runRedaksiAutomationAction(): Promise<
+  | { ok: true; summary: { total: number; created: number; failed: number; results: AutomationJobResult[] } }
+  | { ok: false; error: string }
+> {
+  await verifyAdmin();
+  const cfg = await resolveRedaksiAutomation();
+  if (!cfg.enabled) {
+    return { ok: false, error: "Otomasi redaksi sedang dimatikan. Nyalakan master switch di pengaturan." };
+  }
+
+  // Kumpulkan pekerjaan dari section aktif yang punya topik.
+  const jobs: { type: RedaksiContentType; topic: string }[] = [];
+  for (const section of AUTOMATION_SECTIONS) {
+    if (!cfg.sections[section]) continue;
+    for (const topic of cfg.topics[section] || []) jobs.push({ type: section, topic });
+  }
+  if (!jobs.length) {
+    return {
+      ok: false,
+      error: "Tidak ada section aktif yang memiliki topik. Isi topik pada section yang dinyalakan.",
+    };
+  }
+  const limited = jobs.slice(0, cfg.maxPerRun);
+
+  let profile: Awaited<ReturnType<typeof getProfile>>;
+  try {
+    profile = await getProfile();
+  } catch (err) {
+    return { ok: false, error: sanitizeError(err) };
+  }
+  const publicCtx: DraftPublicContext = {
+    name: profile.name,
+    headline: profile.headline,
+    skills: profile.skills || [],
+  };
+  const intent = computePublishIntent(cfg);
+
+  const results: AutomationJobResult[] = [];
+  for (const job of limited) {
+    try {
+      const r = await draftContentWithAI(job.type, job.topic, "id", publicCtx);
+      if (!r.ok) {
+        results.push({ type: job.type, topic: job.topic, ok: false, error: r.error });
+        continue;
+      }
+      const staged = await stageDraft({
+        type: job.type,
+        topic: job.topic,
+        data: r.draft.data as Record<string, unknown>,
+        intendedPublished: intent.intendedPublished,
+        intendedPublishAt: intent.intendedPublishAt,
+      });
+      results.push({ type: job.type, topic: job.topic, ok: true, stagedId: staged.id });
+    } catch (err) {
+      results.push({ type: job.type, topic: job.topic, ok: false, error: sanitizeError(err) });
+    }
+  }
+
+  await markAutomationRun();
+  const created = results.filter((r) => r.ok).length;
+  await logAudit({
+    action: "create",
+    entity: "redaksi_auto",
+    detail: `${created}/${results.length} draf tertahan dibuat`,
+  });
+  revalidatePath("/admin/redaksi");
+  return { ok: true, summary: { total: results.length, created, failed: results.length - created, results } };
+}
+
+

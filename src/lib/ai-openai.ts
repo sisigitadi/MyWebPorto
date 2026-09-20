@@ -59,6 +59,10 @@ export interface OpenAICallOptions {
    * diberikan, jatuh ke env — menjaga kompatibilitas pemanggil lama.
    */
   config?: ResolvedCloudAIConfig;
+  /** Batas token output (default 300 — jawaban bot). Redaksi memakai lebih. */
+  maxTokens?: number;
+  /** Batas panjang karakter hasil sebelum dikembalikan (default 2000). */
+  maxChars?: number;
 }
 
 /**
@@ -75,6 +79,10 @@ export async function submitToOpenAI(
   if (isPlaceholderKey(apiKey)) return { success: false, text: "" };
   const baseUrl = cfg?.baseUrl || getOpenAIBaseUrl();
   const model = cfg?.model || getOpenAIModel();
+  // Default 300 token / 2000 char untuk jawaban bot; Redaksi memakai nilai lebih
+  // besar lewat opsi (draft konten panjang) — pemanggil lama tak terpengaruh.
+  const maxTokens = options.maxTokens ?? 300;
+  const maxChars = options.maxChars ?? 2000;
 
   const messages: ChatMessage[] =
     typeof prompt === "string"
@@ -84,7 +92,7 @@ export async function submitToOpenAI(
             content:
               "You are Sigit_Bot, a retro Windows 95-era assistant for a portfolio website. Answer concisely (max 5 sentences).",
           },
-          { role: "user", content: prompt.slice(0, 2000) },
+          { role: "user", content: prompt.slice(0, maxChars) },
         ]
       : prompt.slice(-9);
 
@@ -98,10 +106,10 @@ export async function submitToOpenAI(
       body: JSON.stringify({
         model,
         messages,
-        max_tokens: 300,
+        max_tokens: maxTokens,
         temperature: 0.4,
       }),
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(30_000),
     });
 
     if (!response.ok) return { success: false, text: "" };
@@ -111,7 +119,7 @@ export async function submitToOpenAI(
     };
     const text = data.choices?.[0]?.message?.content || "";
     if (!text.trim()) return { success: false, text: "" };
-    return { success: true, text: text.trim().slice(0, 2000) };
+    return { success: true, text: text.trim().slice(0, maxChars) };
   } catch {
     return { success: false, text: "" };
   }

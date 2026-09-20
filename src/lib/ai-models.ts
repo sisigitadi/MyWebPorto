@@ -15,6 +15,7 @@
  * Key hanya dipakai di server, tidak pernah dikembalikan ke client.
  */
 import type { CloudProvider } from "@/lib/cloud-ai-config";
+import { getApiStyle, getProviderMeta } from "@/lib/ai-providers";
 
 export interface ModelListResult {
   models: string[];
@@ -22,22 +23,30 @@ export interface ModelListResult {
 }
 
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
+// Sama dengan ai-anthropic.ts — Anthropic wajib header versi API.
+const ANTHROPIC_VERSION = "2023-06-01";
 
 /**
- * Ambi daftar model. `apiKey` wajib; untuk openai, `baseUrl` wajib (default
- * https://api.openai.com/v1). Untuk gemini, baseUrl diabaikan (endpoint tetap).
+ * Ambi daftar model AKTIF dari provider (realtime — dipanggil sesudah admin
+ * memilih provider & mengisi key). `apiKey` wajib; base URL wajib untuk gaya
+ * openai-chat/anthropic (default diambil dari registry bila kosong).
  */
 export async function listCloudModels(
   provider: CloudProvider,
   apiKey: string,
   baseUrl: string
 ): Promise<ModelListResult> {
-  if (provider === "off") return { models: [], error: "Provider dimatikan." };
+  const style = getApiStyle(provider);
+  if (style === "off") return { models: [], error: "Provider dimatikan." };
   const key = (apiKey || "").trim();
   if (!key) return { models: [], error: "API Key wajib diisi untuk mengambil daftar model." };
 
+  // Provider preset (groq/deepseek/dst.) punya base URL default di registry;
+  // argumen baseUrl (dari form) menang bila diisi.
+  const meta = getProviderMeta(provider);
+
   try {
-    if (provider === "gemini") {
+    if (style === "gemini") {
       const res = await fetch(`${GEMINI_BASE}/models?key=${encodeURIComponent(key)}`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
@@ -62,9 +71,36 @@ export async function listCloudModels(
       return { models };
     }
 
-    // OpenAI-compatible
-    const base = (baseUrl || "https://api.openai.com/v1").trim().replace(/\/+$/, "");
+    const base = (baseUrl || meta?.defaultBaseUrl || "https://api.openai.com/v1")
+      .trim()
+      .replace(/\/+$/, "");
     if (!base) return { models: [], error: "Base URL wajib diisi." };
+
+    if (style === "anthropic") {
+      // Anthropic: GET {base}/models, header x-api-key + anthropic-version.
+      // Response shape mirip OpenAI ({ data: [{ id }] }).
+      const res = await fetch(`${base}/models`, {
+        method: "GET",
+        headers: {
+          "x-api-key": key,
+          "anthropic-version": ANTHROPIC_VERSION,
+          "Content-Type": "application/json",
+        },
+        signal: AbortSignal.timeout(12_000),
+      });
+      if (!res.ok) {
+        return { models: [], error: `Gagal (${res.status}) — periksa API Key Anthropic.` };
+      }
+      const data = (await res.json()) as { data?: { id?: string }[] };
+      const models = (data.data || [])
+        .map((m) => (m.id || "").trim())
+        .filter((id) => id)
+        .sort();
+      if (!models.length) return { models: [], error: "Provider tidak mengembalikan model apa pun." };
+      return { models };
+    }
+
+    // OpenAI-compatible
     const res = await fetch(`${base}/models`, {
       method: "GET",
       headers: {
