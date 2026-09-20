@@ -3,6 +3,13 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
+  // Next 16 memblokir akses cross-origin ke resource dev (/_next/hmr) dari
+  // host tak terdaftar. Playwright memakai 127.0.0.1 sedangkan dev server
+  // mengidentifikasi diri sebagai localhost → tanpa allow-list, handshake
+  // HMR ditolak (ERR_INVALID_HTTP_RESPONSE) dan bootstrap client E2E
+  // tidak pernah selesai hydrate (lihat playwright.config.ts). Dev-only;
+  // diabaikan di build produksi.
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
   // Gunakan standalone hanya untuk build mandiri VPS/PM2, biarkan default untuk Vercel
   output: process.env.VERCEL ? undefined : "standalone",
   // Next.js 16: tetap di experimental (diverifikasi via tipe NextConfig 16.3.5

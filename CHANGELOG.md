@@ -4,9 +4,38 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
-> Belum ada perubahan dirilis setelah `v3.0.1`. Kerjaan terbuka ada di plan doc §5:
-> perbaiki E2E CI (instance Clerk valid/mock), migrasi provider context ke external
-> store + custom change event, dan pindahkan fetch list admin ke Server Component.
+> E2E CI diperbaiki (lihat `Fixed` di bawah) — 20/20 test hijau dan masuk ke CI.
+> Kerjaan terbuka berikutnya: migrasi provider context (theme/cart/i18n) ke
+> external store + custom change event, dan pindahkan fetch list admin ke
+> Server Component (plan doc §5).
+
+### Fixed — E2E CI (Playwright) berjalan lagi + masuk sebagai job CI
+- Fixed: 20 test E2E (9 publik + 11 God Mode) hijau kembali; job `e2e`
+  ditambahkan ke `.github/workflows/ci.yml`. Tiga akar penyebab, semuanya
+  environmental (bukan regresi aplikasi):
+  - **Instance Clerk dev (`pk_test_`)** memaksa handshake browser di tiap
+    navigasi (Chrome modern memblokir cookie pihak-ketiga →
+    `ERR_TOO_MANY_REDIRECTS`); terpisah itu, Clerk SDK v7 **menolak** key
+    placeholder di runtime — `clerkMiddleware` melempar HTTP 500 di setiap
+    route dan `ClerkProvider` crash di client. Solusi: **"mode tanpa Clerk"** —
+    `proxy.ts` & `layout.tsx` mendeteksi key placeholder/absen di level export
+    dan melewati Clerk (server tetap render publik, `/admin` fail-closed 404
+    di produksi). Dev lokal & CI jalan tanpa kredensial Clerk; produksi tidak
+    berubah (key valid → `clerkMiddleware` + `auth.protect()` aktif penuh).
+  - **Next 16 memblokir resource dev cross-origin** (`/_next/hmr`): Playwright
+    memakai `127.0.0.1` sedangkan dev server mengidentifikasi diri sebagai
+    `localhost` → handshake HMR ditolak → aplikasi client tidak pernah hydrate.
+    Fix: `allowedDevOrigins: ["127.0.0.1", "localhost"]` di `next.config.ts`
+    (dev-only, diabaikan build produksi).
+  - **Spec settings butuh DB mati**: `features`/`ui_strings`/`os_apps` menulis
+    `data/local-settings.json`; di dev server biasa (tersambung Neon) tulisan
+    itu diabaikan, ditambah race tulis file antar worker. Fix: spec tersebut
+    hanya berjalan via `npm run test:e2e:godmode` (DB dimatikan + 1 worker);
+    suite utama disempitkan ke 9 test publik dengan `workers: 1` (aplikasi
+    berat tidak bisa dilayani paralel oleh satu dev server dalam batas 60s).
+- Changed: bagian autentikasi `os-menubar.tsx` dipindah ke komponen `MenubarUser`
+  yang hanya dimuat saat Clerk aktif (`useUser` butuh konteks `ClerkProvider`);
+  halaman `/sign-up` kini punya fallback seperti `/sign-in` saat key belum diset.
 
 ## [v3.0.1] - 2026-09-20 (tag `v3.0.1`; Vercel prod success)
 

@@ -40,6 +40,15 @@ export default defineConfig({
     reuseExistingServer: false,
     timeout: 180_000,
     // Override env induk: tanpa DATABASE_URL → fallback file JSON lokal.
-    env: { DATABASE_URL: "" },
+    // Clerk juga dimatikan (mode tanpa Clerk) — alasan sama dengan
+    // playwright.config.ts: test ini hanya memvalidasi render publik dan
+    // tidak butuh session Clerk.
+    env: {
+      DATABASE_URL: "",
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_xxxx",
+      CLERK_SECRET_KEY: "sk_test_xxxx",
+      ADMIN_CLERK_ID: "",
+      NEXT_PUBLIC_ADMIN_CLERK_ID: "",
+    },
   },
 });

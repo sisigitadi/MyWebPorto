@@ -2,6 +2,7 @@ import { SignIn } from "@clerk/nextjs";
 import Link from "next/link";
 import { ArrowLeft, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { hasClerkPublishableKey } from "@/lib/env";
 
 export const metadata = {
   title: "Masuk Admin - MyWebPorto",
@@ -13,10 +14,7 @@ export const metadata = {
 };
 
 export default function SignInPage() {
-  const hasClerkKey = Boolean(
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
-      !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes("xxxx")
-  );
+  const hasClerkKey = hasClerkPublishableKey();
 
   return (
     <div className="min-h-[100dvh] flex flex-col items-center justify-center p-4 bg-muted/20">
