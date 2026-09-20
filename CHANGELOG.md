@@ -8,7 +8,7 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 > perbaiki E2E CI (instance Clerk valid/mock), migrasi provider context ke external
 > store + custom change event, dan pindahkan fetch list admin ke Server Component.
 
-## [v3.0.1] - 2026-09-20 (tag `v3.0.1`)
+## [v3.0.1] - 2026-09-20 (tag `v3.0.1`; Vercel prod success)
 
 ### Changed — pembayaran utang teknis `set-state-in-effect`
 - Changed: rule `react-hooks/set-state-in-effect` (eslint-plugin-react-hooks v7) dikembalikan
