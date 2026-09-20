@@ -2,6 +2,40 @@
 
 Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
+## [v3.0.0] - Belum dirilis (branch `upgrade/next-16`)
+
+> **Major release — upgrade framework Next.js 15.5.25 → 16.3.5.** Lihat rencana lengkap di
+> `plans/next-16-upgrade-plan.md` (§5 hasil eksekusi). Semua gate hijau: `tsc` EXIT 0,
+> `vitest` 233/233, `eslint` 0 error, build Turbopack 38/38 route, gerbang proxy terverifikasi.
+
+### Changed
+- Changed: **middleware.ts → proxy.ts** (konvensi Next.js 16; logika gate identik). Clerk resmi
+  mendukung proxy.ts di Next 16 — hanya nama file yang berubah. `createRouteMatcher()` (kini
+  deprecated Clerk) diganti dengan matching native `req.nextUrl.pathname.startsWith("/admin")`.
+  Pertahanan berlapis tetap utuh: cek server-side `auth()` + `notFound()` di `admin/layout.tsx`
+  dan `verifyAdmin()` di setiap server action.
+- Changed: **ESLint flat config native** — `eslint.config.mjs` tidak lagi memakai `FlatCompat`
+  (`@eslint/eslintrc` dihapus); extends langsung `eslint-config-next/core-web-vitals` +
+  `/typescript`. Memperbaiki crash `Converting circular structure to JSON` pada eslint 9.39.5
+  + config-next 16.
+- Changed: script `dev` tidak lagi memakai flag `--turbopack` (Turbopack jadi default bundler
+  Next 16 untuk dev maupun build).
+- Changed: `tsconfig.json` diupdate oleh `next typegen` (`jsx: react-jsx`, include
+  `.next/dev/types`).
+
+### Fixed
+- Fixed: `os-boot-loader.tsx` — `handleComplete` dipanggil dalam `setTimeout` **sebelum**
+  deklarasinya (TDZ); sebelumnya hanya jalan berkat delay 5 detik. Dipindah ke atas + dibungkus
+  `useCallback` (deps effect `[handleComplete]`, tetap run-once). Ditangkap oleh rule baru
+  `react-hooks/immutability` (eslint-plugin-react-hooks v7).
+
+### Deprecations / utang teknis (didokumentasikan, bukan blocker)
+- `react-hooks/set-state-in-effect` (eslint-plugin-react-hooks v7) menandai 23 situs
+  inisialisasi-mount yang sah (fetch-on-mount, load cart dari localStorage, bahasa dari URL).
+  Diturunkan ke `warn` agar tidak memblokir CI; refactor `useEffectEvent` menyusul.
+- Rule v7 lainnya (`refs`, `purity`, `immutability`): 3 false-positive di-scope-suppress dengan
+  komentar (rule tak bisa membedakan render vs event handler).
+
 ## [v2.15.2] - 2026-09-20
 
 ### Fixed — Konsistensi pasca-audit (nol perubahan perilaku runtime)

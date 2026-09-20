@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "@/lib/i18n";
 import { playOS } from "@/lib/os-sound";
 
@@ -51,6 +51,21 @@ export function OSBootLoader() {
       // Audio autoplay policy might silently block; ignore gracefully
     }
   };
+
+  // Dideklarasikan & distabilkan sebelum useEffect: rule react-hooks v7
+  // melarang akses sebelum deklarasi (TDZ) — sebelumnya handleComplete dipanggil
+  // di dalam effect padahal dideklarasikan setelahnya (hanya jalan berkat
+  // setTimeout 5 detik; rapuh saat refactor). useCallback([]) stabil → deps
+  // [handleComplete] tetap menjaga effect run-once di mount.
+  const handleComplete = useCallback(() => {
+    setIsFading(true);
+    sessionStorage.setItem("sigitos_booted_session", "true");
+    // Chime "masuk desktop" ala startup jadul — sopan dan singkat
+    playOS("boot");
+    setTimeout(() => {
+      setBootVisible(false);
+    }, 600);
+  }, []);
 
   useEffect(() => {
     // Boot hanya muncul saat pengguna membuka aplikasi pertama kali atau
@@ -127,17 +142,7 @@ export function OSBootLoader() {
       clearTimeout(completeTimer);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, []);
-
-  const handleComplete = () => {
-    setIsFading(true);
-    sessionStorage.setItem("sigitos_booted_session", "true");
-    // Chime "masuk desktop" ala startup jadul — sopan dan singkat
-    playOS("boot");
-    setTimeout(() => {
-      setBootVisible(false);
-    }, 600);
-  };
+  }, [handleComplete]);
 
   // Jangan render apapun di server (mencegah flash hitam SSR saat refresh) dan
   // jangan render di klien bila sudah boot di sesi tab ini.
