@@ -38,7 +38,8 @@ Out of scope: infra pihak ketiga (Clerk, Vercel, Neon, Bunny, Formspree), social
 
 ### 3.1 OWASP A01 — Broken Access Control
 - Semua **Server Actions** mutasi wajib `await verifyAdmin()` di baris pertama.
-- `ADMIN_CLERK_ID` = satu-satunya akun yang boleh ubah konten. Di `middleware.ts:13` dan `lib/actions.ts:40`, placeholder `user_xxxxxxxxxxxxxxxxx` sengaja diabaikan agar dev tetap jalan.
+- `ADMIN_CLERK_ID` = satu-satunya akun yang boleh ubah konten. Di `proxy.ts` (middleware Next 16) dan `lib/actions.ts`, placeholder `user_xxxxxxxxxxxxxxxxx` sengaja diabaikan agar dev tetap jalan.
+- **Mode tanpa Clerk** (publishable key kosong / placeholder `xxxx`): SDK Clerk v7 menolak key format-invalid saat inisialisasi — `clerkMiddleware` melempar "Publishable key not valid" di **setiap** request (HTTP 500) dan `ClerkProvider` crash di client, sehingga deteksi di dalam handler tidak pernah tercapai. Karena itu `proxy.ts` dan `layout.tsx` memilih gate/provider tanpa Clerk **di level export**: situs publik tetap render (dev lokal tanpa kredensial + CI E2E), `/admin` **fail-closed 404** di produksi, dan komponen butuh-konteks Clerk (`os-menubar` `useUser`/`UserButton`, `<SignIn/>`, `<SignUp/>`) disembunyikan atau diganti fallback. Produksi (key valid) tidak terdampak: `clerkMiddleware → auth.protect()` + gate `ADMIN_CLERK_ID` aktif penuh.
 - Rute `/admin/*` dilindungi `clerkMiddleware → auth.protect()`; non-admin dapat **404** (bukan 403) agar tidak leak keberadaan halaman.
 - `GET /api/indexnow` dinonaktifkan (405); `POST` kini **admin-only** (`src/app/api/indexnow/route.ts:24`).
 - Error disamaratakan via `sanitizeError()` —Stack trace / env tidak pernah ke klien.

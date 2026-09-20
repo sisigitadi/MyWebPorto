@@ -1,6 +1,6 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
-import { isPlaceholderKey, isProduction } from "@/lib/env";
+import { hasClerkPublishableKey, isProduction } from "@/lib/env";
 import { isAdminOwnerConfigured } from "@/lib/admin-auth";
 
 // Next.js 16: middleware.ts di-rename menjadi proxy.ts (logika gate identik,
@@ -9,20 +9,28 @@ import { isAdminOwnerConfigured } from "@/lib/admin-auth";
 // non-auth pakai matching native sesuai anjuran Clerk.
 const isAdminRoute = (req: NextRequest): boolean => req.nextUrl.pathname.startsWith("/admin");
 
-export default clerkMiddleware(async (auth, req) => {
-  // Jika Clerk keys belum diset / masih placeholder — izinkan navigasi untuk dev lokal (lihat SECURITY.md)
-  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  const isPlaceholder = isPlaceholderKey(publishableKey);
-  if (isPlaceholder) {
+/**
+ * Gate tanpa Clerk — dipakai saat publishable key belum diset / placeholder.
+ *
+ * Kenapa percabangan ada di level export, bukan di dalam handler
+ * clerkMiddleware: SDK Clerk v7 memvalidasi key saat middleware diinisialisasi.
+ * Key placeholder membuat SETIAP request melempar "Publishable key not valid"
+ * (HTTP 500) sebelum handler dijalankan, jadi early-return di dalam handler
+ * tidak pernah tercapai. Mode tanpa Clerk aman untuk dev lokal tanpa
+ * kredensial dan CI E2E (lihat SECURITY.md); di produksi tanpa key valid,
+ * /admin tetap fail-closed 404 di bawah.
+ */
+function proxyWithoutClerk(req: NextRequest): NextResponse {
+  if (isAdminRoute(req) && isProduction()) {
     // Fail-closed: di produksi tanpa kredensial asli, admin 404 (bukan bypass).
-    // Bypass dev hanya diizinkan di luar produksi (lihat SECURITY.md).
-    if (isAdminRoute(req) && isProduction()) {
-      return new NextResponse("Halaman Tidak Ditemukan", { status: 404 });
-    }
-    // Hardening: jangan bocorkan bahwa ini placeholder — tetap lanjut tanpa proteksi
-    return NextResponse.next();
+    return new NextResponse("Halaman Tidak Ditemukan", { status: 404 });
   }
+  const res = NextResponse.next();
+  res.headers.set("x-request-id", crypto.randomUUID());
+  return res;
+}
 
+const clerkProxy = clerkMiddleware(async (auth, req) => {
   if (isAdminRoute(req)) {
     await auth.protect();
 
@@ -48,6 +56,8 @@ export default clerkMiddleware(async (auth, req) => {
   res.headers.set("x-request-id", crypto.randomUUID());
   return res;
 });
+
+export default hasClerkPublishableKey() ? clerkProxy : proxyWithoutClerk;
 
 export const config = {
   matcher: [

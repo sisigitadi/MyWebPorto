@@ -48,3 +48,38 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # E2E Playwright terhadap dev server. Dev server sengaja jalan TANPA Clerk
+  # (key placeholder → "mode tanpa Clerk" di proxy.ts + layout.tsx): instance
+  # dev Clerk (pk_test_) memaksa handshake browser di tiap navigasi dan Chrome
+  # modern memblokir cookie pihak-ketiganya → seluruh test gagal. Mode tanpa
+  # Clerk membuat rute publik deterministik. Chrome di-install via Playwright
+  # (config memakai channel "chrome").
+  # Jadikan required check di Settings > Branches bila ingin menggated merge.
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5.1.0 (pinned)
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v5.0.0 (pinned)
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Install Chrome (channel Playwright)
+        run: npx playwright install --with-deps chrome
+
+      - name: E2E (dev server, mode tanpa Clerk)
+        run: npm run test:e2e
+
+      - name: E2E God Mode (settings via file lokal)
+        run: npm run test:e2e:godmode

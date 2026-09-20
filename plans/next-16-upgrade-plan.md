@@ -126,19 +126,32 @@
 3. **Flat config ESLint**: plugin `react-hooks` harus dideklarasikan ulang di object override karena
    config object `next` (eslint-config-next) me-scope plugin-nya hanya ke `files:` tertentu — object
    global tidak bisa melihatnya tanpa deklarasi (`@typescript-eslint` global, jadi tidak terkena).
-4. **E2E Playwright (16 test) — 4 lulus / 12 gagal, semua karena environmental, BUKAN regresi Next 16:**
-   - Akar penyebab: `.env.local` memakai instance Clerk **development** (`pk_test_`, domain
-     `*.clerk.accounts.dev`). Instance dev memaksa **handshake Clerk di setiap navigasi browser**
-     (response header `x-clerk-auth-reason: dev-browser-missing`). Chrome modern memblokir cookie
-     pihak-ketiga → handshake tak pernah selesai → `ERR_TOO_MANY_REDIRECTS`.
-   - Curl polos dapat 200 (tidak bawa header browser); 4 test yang lulus murni konten server
-     (`/proyek`, `/sitemap.xml`, `/robots.txt`, `/feed.xml`).
-   - Sudah didokumentasikan sejak lama di `env.ts` & `SECURITY.md` §4 (perilaku `pk_test_`).
-   - Prod-mode E2E dengan placeholder key juga tidak viable: Clerk SDK v7 **menolak** placeholder
-     format-invalid di runtime (`pk_test_xxxx` ditolak; validasi ketat di `initPublishableKeyValues`).
-   - **Saran**: E2E penuh butuh CI dengan instance Clerk valid (key `pk_test_` nyata dari dashboard)
-     atau mock Clerk di level test — pekerjaan terpisah, bukan blocker upgrade.
-
+4. **E2E Playwright — DIPERBAIKI, 20/20 hijau + job `e2e` di CI** (sebelumnya
+   4 lulus / 12 gagal; semua environmental, BUKAN regresi Next 16):
+    - ~~Instance Clerk development memaksa handshake di tiap navigasi~~ →
+      **fix: mode tanpa Clerk.** Clerk SDK v7 menolak key placeholder di
+      runtime — `clerkMiddleware` melempar "Publishable key not valid" (HTTP
+      500 di SETIAP request) dan `ClerkProvider` crash di client, jadi
+      deteksi placeholder di dalam handler tidak pernah tercapai. Karena itu
+      `proxy.ts` & `layout.tsx` memilih gate/provider tanpa Clerk **di level
+      export**: server render halaman publik tanpa handshake, `/admin`
+      fail-closed 404 di produksi, dan komponen butuh-konteks Clerk
+      (`os-menubar` `useUser`, `<SignIn/>`, `<SignUp/>`) disembunyikan /
+      diganti fallback. Produksi (key valid) tetap `clerkMiddleware` +
+      `auth.protect()`. Dev lokal & CI E2E jalan tanpa kredensial.
+    - **Next 16 cross-origin dev block** (`/_next/hmr`): Playwright di
+      `127.0.0.1` vs identitas dev server `localhost` → handshake HMR ditolak
+      (`ERR_INVALID_HTTP_RESPONSE`) → aplikasi client tidak pernah hydrate
+      (efek tanggal/taskbar tak jalan). Fix: `allowedDevOrigins` di
+      `next.config.ts`.
+    - **Spec settings butuh `DATABASE_URL` mati**: `features`/`ui_strings`/
+      `os_apps` menulis `data/local-settings.json`; dev server tersambung Neon
+      mengabaikan file itu + race tulis antar worker. Fix: ketiganya hanya
+      jalan di config godmode (DB off + `workers: 1`); suite utama disempitkan
+      ke 9 test publik, juga `workers: 1` (aplikasi berat tidak bisa dilayani
+      paralel oleh satu dev server dalam batas 60s goto).
+    - Konsekuensi positif: sisa utang `set-state-in-effect` (12 suppressions)
+      kini aman dikerjakan — E2E CI valid sebagai pengaman refactor (butir 2).
 **File yang berubah (9 + 1 rename):** `package.json`, `package-lock.json`, `eslint.config.mjs`,
 `next.config.ts` (komentar saja), `tsconfig.json` (typegen), `src/proxy.ts` (rename dari
 `middleware.ts` + matching native), `os-boot-loader.tsx`, `content-editor.tsx`, `os-crt-terminal.tsx`.

@@ -124,7 +124,7 @@ export interface ArticleData {
 
 export const DUMMY_PROFILE: ProfileData = {
   id: "owner",
-  name: "Sigit",
+  name: "Sigit Adi Irianto",
   headline: "Web Developer & Systems Architect",
   headlineEn: "Web Developer & Systems Architect",
   bio: "Membangun sistem web, antarmuka interaktif berperforma tinggi, dan solusi digital yang cepat, aman, dan memukau.",

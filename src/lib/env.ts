@@ -60,6 +60,22 @@ export function isPlaceholderKey(value: string | undefined): boolean {
 }
 
 /** True hanya di lingkungan produksi (Vercel production / NODE_ENV production). */
+/**
+ * True bila publishable key Clerk VALID (ada dan bukan placeholder).
+ *
+ * SDK Clerk v7 memvalidasi format key saat inisialisasi: key kosong atau
+ * placeholder (mis. `pk_test_xxxx`) membuat clerkMiddleware MELEMPAR di
+ * setiap request (HTTP 500) dan ClerkProvider crash di client. Karena itu
+ * middleware (proxy.ts), provider (layout.tsx), maupun komponen yang butuh
+ * konteks Clerk (os-menubar) memeriksa ini dulu dan masuk "mode tanpa Clerk"
+ * — situasi dev lokal tanpa kredensial dan CI. Rute /admin tetap fail-closed
+ * di produksi (lihat SECURITY.md).
+ */
+export function hasClerkPublishableKey(): boolean {
+  return !isPlaceholderKey(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+}
+
+/** True hanya di lingkungan produksi (Vercel production / NODE_ENV production). */
 export function isProduction(): boolean {
   return process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
 }

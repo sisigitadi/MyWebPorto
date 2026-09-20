@@ -2,6 +2,7 @@ import { SignUp } from "@clerk/nextjs";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { hasClerkPublishableKey } from "@/lib/env";
 
 export const metadata = {
   title: "Daftar - MyWebPorto",
@@ -34,7 +35,25 @@ export default function SignUpPage() {
           </span>
         </div>
 
-        <SignUp />
+        {hasClerkPublishableKey() ? (
+          <SignUp />
+        ) : (
+          <div className="w-full border border-border bg-card rounded-xl p-6 text-card-foreground shadow-sm text-center space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight">Daftar Akun (Clerk Autentikasi)</h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Komponen Clerk belum aktif. Atur{" "}
+                <code className="bg-muted px-1.5 py-0.5 rounded text-[11px]">
+                  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+                </code>{" "}
+                di <code className="bg-muted px-1.5 py-0.5 rounded text-[11px]">.env.local</code>.
+              </p>
+            </div>
+            <Button asChild className="w-full text-xs h-9">
+              <Link href="/">Kembali ke Beranda</Link>
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
