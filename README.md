@@ -31,7 +31,7 @@ Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager int
 - CRUD profil, proyek, layanan, produk, testimoni, dan artikel.
 - **Sistem & Logs** di `/admin/system`: kelayakan deploy (validasi env terpusat), tracing `x-request-id`, dan audit log mutasi.
 - **Media Library** di `/admin/media`: daftar gambar di Bunny Storage (bila terkonfigurasi) dengan hapus.
-- **Konfigurasi Cloud AI** di `/admin/system`: pilih provider (Gemini / OpenAI-compatible), isi API key + base URL, **ambil daftar model otomatis** dari endpoint provider, atur **prompt & cara menjabarkan** (concise / detailed / friendly). Disimpan di tabel `settings` (key `cloud_ai`), nilai efektif dapat dari admin *atau* env.
+- **Konfigurasi Cloud AI** di `/admin/system`: pilih 1 dari 10 provider (OFF 100% lokal TF-IDF, Gemini, OpenAI-compatible custom, Anthropic Claude, DeepSeek, Groq, OpenRouter, Together, Mistral, xAI Grok), isi API key (+ base URL untuk gaya OpenAI-compatible/Anthropic), **ambil daftar model otomatis & realtime** dari endpoint provider, serta atur **prompt & cara menjawab** (concise / detailed / friendly). Disimpan di tabel `settings` (key `cloud_ai`), menimpa env per-field — ganti provider/model tanpa redeploy.
 - **God Mode — Tampilan & App OS** di `/admin/appearance`: atur aplikasi SigitOS yang ditampilkan ke pengunjung (centang aktif) dan urutannya (tombol panah), tanpa kode/redeploy. Mengendalikan taskbar, sidebar ikon desktop, Start Menu, command palette, jalan pintas angka, dan urutan section mobile. Disimpan di tabel `settings` (key `os_apps`); minimal satu app harus aktif, config rusak kembali ke default. Fase pertama dari roadmap God Mode; editor teks UI menyusul.
 - **Manajemen tautan sosial**: isi Telegram, Instagram, TikTok, YouTube, Facebook, Discord, Slack, Reddit, Medium, GitHub, LinkedIn, X, Portofolio — tampil otomatis di Kontak.exe, footer & menubar hanya jika terisi.
 - **Editor chip** untuk tag artikel & tech stack proyek (tambah/hapus per item, bukan hardcode).
@@ -43,6 +43,17 @@ Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager int
 - Upload gambar lokal ke `public/uploads`, atau **Bunny Storage otomatis bila `BUNNY_STORAGE_*` terkonfigurasi** (wajib di Vercel/serverless).
 - Slug produk dapat dikelola dari admin dan masuk ke sitemap.
 - Artikel studi kasus project dan topical authority AI, cybersecurity, Linux, Windows, dan macOS.
+
+### Autentikasi (Clerk + Google OAuth)
+
+- Login admin melalui Clerk di `/sign-in` (Google OAuth dan/atau email + password). Rute `/admin/*` dilindungi middleware; hanya user yang cocok `ADMIN_CLERK_ID` (single-owner) yang masuk — non-admin mendapat **404**.
+- Guard bersifat **fail-closed**: key Clerk placeholder di **luar produksi** masih mengizinkan admin untuk development, tapi di **produksi tanpa kredensial asli → admin 404** (lihat `src/middleware.ts`). Server actions `"use server"` tetap memanggil `verifyAdmin()` meskipun read-only, karena bisa dipanggil sebagai RPC publik.
+- **Penyebab umum "tiba-tiba tidak bisa login Google"**: (1) `oauth_google` aktif di instance Clerk DEV tapi belum di instance PRODUKSI (dashboard Clerk `pk_live` → User & Authentication → Social connections); (2) header CSP belum mengizinkan domain Clerk dari publishable key — akun custom domain **bukan** `*.clerk.accounts.dev` (lihat catatan di `next.config.ts` & `SECURITY.md`).
+- Verifikasi dengan browser asli (cek faktor OAuth, Account Portal, dan request Clerk yang tidak diblokir CSP):
+  ```bash
+  node scripts/check-clerk-login.mjs
+  ```
+  Lihat juga `DEPLOYMENT.md` (env `CLERK_*`) dan `SECURITY.md` (CSP, `frame-src` Clerk).
 
 ### Sigit_Bot / RetroBot (arsitektur hybrid)
 
@@ -122,9 +133,11 @@ src/
 `-- lib/
     |-- actions.ts         # Server Actions CRUD, query, askSigitBot, listCloudModels
     |-- ai-engine.ts       # Mesin NLP/ML lokal (TF-IDF) untuk terminal & bot
-    |-- ai-provider.ts     # Cloud Gemini (prompt builder + style jawaban)
-    |-- ai-openai.ts       # Cloud OpenAI-compatible (streaming SSE)
-    |-- ai-models.ts       # Daftar model dari provider (auto-fetch)
+    |-- ai-provider.ts     # Cloud dispatcher (prompt builder + gaya jawaban + Gemini REST)
+    |-- ai-providers.ts    # Registry provider (client-safe): 10 provider, default, env var
+    |-- ai-openai.ts       # Cloud OpenAI-compatible (chat + streaming SSE)
+    |-- ai-anthropic.ts    # Cloud Anthropic Claude (/v1/messages, non-streaming)
+    |-- ai-models.ts       # Daftar model realtime dari provider (gemini/openai/anthropic)
     |-- cloud-ai-config.ts # Config Cloud AI: admin settings menimpa env
     |-- settings.ts        # Key/value store (tabel settings) + masking secret
     |-- admin-auth.ts      # verifyAdmin() + isAdminOwnerConfigured()
@@ -157,7 +170,7 @@ src/
 
 # Di luar src/:
 drizzle/                   # Migrasi SQL 0000–0009 + meta snapshot
-tests/                     # Unit test Vitest (13 file, 100 test)
+tests/                     # Unit test Vitest (21 file, 226 test)
 e2e/                       # E2E Playwright area publik
 scripts/                   # seed.mjs, package-deploy.mjs, dll
 data/                      # Local store: local-store.json, local-settings.json

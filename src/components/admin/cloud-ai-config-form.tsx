@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Cloud, KeyRound, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import { listCloudModelsAction, saveCloudAIConfigAction } from "@/lib/actions";
 import type { AdminCloudAIView, CloudProvider } from "@/lib/cloud-ai-config";
+import { PROVIDERS, getApiStyle } from "@/lib/ai-providers";
 
 const PROMPT_PLACEHOLDER = [
   "Contoh (opsional — hapus jika ingin pakai default):",
@@ -36,24 +37,6 @@ interface CloudAIConfigFormProps {
   initial: AdminCloudAIView;
 }
 
-const PROVIDERS: { value: CloudProvider; label: string; hint: string }[] = [
-  {
-    value: "off",
-    label: "OFF — 100% lokal (TF-IDF)",
-    hint: "Default. Nol egress, tidak butuh key, jawaban tetap masuk akal untuk pertanyaan katalog.",
-  },
-  {
-    value: "gemini",
-    label: "Gemini (Google AI Studio)",
-    hint: 'Dipakai hanya jika confidence jawaban lokal rendah. Dapatkan key di aistudio.google.com (gratis).',
-  },
-  {
-    value: "openai",
-    label: "OpenAI-compatible (OpenAI / DeepSeek / Groq / Ollama…)",
-    hint: "Endpoint /v1/chat/completions apapun. Isi Base URL & Model sesuai penyedia.",
-  },
-];
-
 /**
  * Form pengaturan Cloud AI untuk /admin/system.
  *
@@ -61,6 +44,10 @@ const PROVIDERS: { value: CloudProvider; label: string; hint: string }[] = [
  * Vercel lalu redeploy. Form ini menyimpan konfigurasi di tabel `settings`
  * (server-only), menimpa env per-field — jadi admin bisa ganti provider/model/
  * key tanpa menyentuh deployment.
+ *
+ * Daftar provider, label, hint, default base URL & model diambil dari registry
+ * `ai-providers.ts` (client-safe, tidak ada rahasia). Daftar model di dropdown
+ * diambil REALTIME dari endpoint /models provider setelah key diisi.
  *
  * Keamanan: key TIDAK PERNAH dikembalikan ke browser. Server hanya mengirim
  * versi di-mask (maskKey). Field key dikosongkan saat submit = "pertahankan key
@@ -79,24 +66,39 @@ export function CloudAIConfigForm({ initial }: CloudAIConfigFormProps) {
   );
   const [error, setError] = useState("");
 
-  // Auto-fetch daftar model dari provider.
+  // Daftar model aktif yang ditarik REALTIME dari endpoint /models provider.
   const [models, setModels] = useState<string[]>([]);
   const [fetchingModels, setFetchingModels] = useState(false);
   const [modelError, setModelError] = useState("");
+  const [fetchedAt, setFetchedAt] = useState<Date | null>(null);
 
-  const providerMeta = PROVIDERS.find((p) => p.value === provider) ?? PROVIDERS[0];
-  const isOpenAI = provider === "openai";
+  const providerMeta = PROVIDERS.find((p) => p.id === provider) ?? PROVIDERS[0];
+  const style = getApiStyle(provider);
+  // Hanya gaya openai-chat & anthropic yang memakai base URL (endpoint Gemini tetap).
+  const needsBaseUrl = style === "openai-chat" || style === "anthropic";
   // Tampilkan hint "kosongkan untuk tetap" hanya bila sudah ada key tersimpan.
   const keyPlaceholder = initial.hasKey
     ? `${initial.maskedKey} — kosongkan untuk tetap`
-    : "AIza… / sk-…";
+    : providerMeta.keyPlaceholder;
+  const modelPlaceholder =
+    providerMeta.defaultModel || (needsBaseUrl ? "gpt-4o-mini" : "gemini-2.5-flash");
 
   /**
    * Ambi daftar model dari provider memakai key & base URL yang sedang di form
    * (bila kosong, server memakai yang tersimpan). Berhasil → pilih model
    * pertama yang cocok / model saat ini bila masih ada di daftar.
    */
-  const handleFetchModels = () => {
+  /**
+   * Ambi daftar model dari provider memakai key & base URL yang sedang di form
+   * (bila kosong, server memakai yang tersimpan). Berhasil → pilih model
+   * pertama yang cocok / model saat ini bila masih ada di daftar.
+   *
+   * `silent` dipakai untuk auto-fetch (ganti provider / mount / blur key):
+   * tanpa toast, error hanya inline — agar tidak spam notifikasi saat admin
+   * masih mencari-cari provider yang tepat.
+   */
+  const handleFetchModels = (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent ?? false;
     setModelError("");
     startTransition(async () => {
       setFetchingModels(true);
@@ -104,10 +106,11 @@ export function CloudAIConfigForm({ initial }: CloudAIConfigFormProps) {
         const res = await listCloudModelsAction(
           provider,
           apiKey.trim(),
-          isOpenAI ? baseUrl.trim() : ""
+          needsBaseUrl ? baseUrl.trim() : ""
         );
         if (res.ok) {
           setModels(res.models);
+          setFetchedAt(new Date());
           // Pertahankan pilihan admin bila masih tersedia; jika tidak, ambil
           // model pertama yang paling relevan (flash/mini hemat bila ada).
           const current = model.trim().toLowerCase();
@@ -118,18 +121,44 @@ export function CloudAIConfigForm({ initial }: CloudAIConfigFormProps) {
               res.models[0];
             setModel(preferred);
           }
-          toast.success(`${res.models.length} model ditemukan.`, {
-            description: provider === "gemini" ? "Google AI Studio" : baseUrl.trim() || "OpenAI-compatible",
-          });
+          if (!silent) {
+            toast.success(`${res.models.length} model ditemukan.`, {
+              description: providerMeta.label,
+            });
+          }
         } else {
           setModelError(res.error);
-          toast.error("Gagal mengambil daftar model.", { description: res.error });
+          if (!silent) {
+            toast.error("Gagal mengambil daftar model.", { description: res.error });
+          }
         }
       } finally {
         setFetchingModels(false);
       }
     });
   };
+
+  // Mount: bila provider sudah aktif & ada key tersimpan, tarik daftar model
+  // langsung agar dropdown sudah berisi model aktif provider (realtime, tanpa klik).
+  useEffect(() => {
+    if (provider !== "off" && initial.hasKey) handleFetchModels({ silent: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Ganti provider: reset daftar model lama, isi base URL default dari registry,
+  // dan auto-fetch bila key sudah ada (diketik, atau tersimpan untuk provider ini).
+  const prevProvider = useRef(provider);
+  useEffect(() => {
+    if (prevProvider.current === provider) return;
+    prevProvider.current = provider;
+    setModels([]);
+    setFetchedAt(null);
+    setModelError("");
+    if (needsBaseUrl) setBaseUrl(providerMeta.defaultBaseUrl);
+    const hasKey = apiKey.trim() || (initial.hasKey && provider === initial.provider);
+    if (provider !== "off" && hasKey) handleFetchModels({ silent: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [provider]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -141,17 +170,20 @@ export function CloudAIConfigForm({ initial }: CloudAIConfigFormProps) {
         // saveCloudAIConfig(). Tidak pernah mengirim key yang sudah di-mask.
         apiKey: apiKey.trim(),
         model: model.trim(),
-        baseUrl: isOpenAI ? baseUrl.trim() : "",
+        baseUrl: needsBaseUrl ? baseUrl.trim() : "",
         systemPrompt,
         answerStyle,
       });
       if (res.ok) {
         toast.success("Pengaturan Cloud AI disimpan.", {
-          description: `Provider: ${provider === "off" ? "OFF (lokal)" : provider}${provider !== "off" ? ` · ${model.trim() || "model default"}` : ""}`,
+          description: `Provider: ${provider === "off" ? "OFF (lokal)" : `${providerMeta.label} · ${model.trim() || "model default"}`}`,
         });
         setApiKey("");
         // Segarkan data server (maskedKey & status integrasi) tanpa full reload.
         router.refresh();
+        // Setelah key tersimpan, tarik ulang daftar model realtime (key di form
+        // sudah dikosongkan → server memakai key yang baru disimpan).
+        if (provider !== "off") handleFetchModels({ silent: true });
       } else {
         setError(res.error);
         toast.error("Gagal menyimpan pengaturan Cloud AI.", { description: res.error });
@@ -169,7 +201,7 @@ export function CloudAIConfigForm({ initial }: CloudAIConfigFormProps) {
           </SelectTrigger>
           <SelectContent>
             {PROVIDERS.map((p) => (
-              <SelectItem key={p.value} value={p.value}>
+              <SelectItem key={p.id} value={p.id}>
                 {p.label}
               </SelectItem>
             ))}
@@ -188,6 +220,13 @@ export function CloudAIConfigForm({ initial }: CloudAIConfigFormProps) {
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
+            // Realtime: setelah key diketik lalu field ditinggal, daftar model
+            // ditarik otomatis (bila belum ada) — tanpa tekan tombol manual.
+            onBlur={() => {
+              if (apiKey.trim() && !models.length && !fetchingModels) {
+                handleFetchModels({ silent: true });
+              }
+            }}
             placeholder={keyPlaceholder}
             autoComplete="off"
             spellCheck={false}
@@ -216,6 +255,9 @@ export function CloudAIConfigForm({ initial }: CloudAIConfigFormProps) {
                   {models.map((m) => (
                     <SelectItem key={m} value={m} className="font-mono text-xs">
                       {m}
+                      {m === model && (
+                        <span className="text-emerald-600 dark:text-emerald-400"> · aktif</span>
+                      )}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -225,7 +267,7 @@ export function CloudAIConfigForm({ initial }: CloudAIConfigFormProps) {
                 id="cloud-ai-model"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
-                placeholder={isOpenAI ? "gpt-4o-mini" : "gemini-2.5-flash"}
+                placeholder={modelPlaceholder}
                 spellCheck={false}
                 className="font-mono"
               />
@@ -235,7 +277,7 @@ export function CloudAIConfigForm({ initial }: CloudAIConfigFormProps) {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleFetchModels}
+                onClick={() => handleFetchModels()}
                 disabled={fetchingModels || pending}
                 className="h-7 text-[11px] gap-1.5"
               >
@@ -261,26 +303,28 @@ export function CloudAIConfigForm({ initial }: CloudAIConfigFormProps) {
             ) : (
               <p className="text-[11px] text-muted-foreground">
                 {models.length > 0
-                  ? `${models.length} model ditemukan. Pilih dari daftar, atau "ketik manual".`
-                  : isOpenAI
+                  ? `${models.length} model aktif (realtime${fetchedAt ? ` · diperbarui ${fetchedAt.toLocaleTimeString("id-ID")}` : ""}). Pilih dari daftar, atau "ketik manual".`
+                  : needsBaseUrl
                   ? "Isi Base URL di samping lalu tekan Ambil Daftar Model."
                   : "Tekan Ambil Daftar Model setelah API Key terisi."}
               </p>
             )}
           </div>
-          {isOpenAI && (
+          {needsBaseUrl && (
             <div className="space-y-1.5">
               <Label htmlFor="cloud-ai-base-url">Base URL</Label>
               <Input
                 id="cloud-ai-base-url"
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
-                placeholder="https://api.openai.com/v1"
+                placeholder={providerMeta.defaultBaseUrl}
                 spellCheck={false}
                 className="font-mono"
               />
               <p className="text-[11px] text-muted-foreground">
-                Tanpa trailing slash. Untuk Ollama lokal: http://localhost:11434/v1.
+                Tanpa trailing slash. Default provider sudah terisi otomatis; ganti
+                hanya bila memakai endpoint kustom (mis. Ollama lokal
+                http://localhost:11434/v1 — pilih preset &quot;OpenAI-compatible — custom&quot;).
               </p>
             </div>
           )}

@@ -16,7 +16,21 @@ import {
  * (persis seperti perilaku produksi: admin menimpa env).
  */
 
-const ENV_KEYS = ["AI_PROVIDER", "GEMINI_API_KEY", "OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL", "AI_MODEL"] as const;
+const ENV_KEYS = [
+  "AI_PROVIDER",
+  "GEMINI_API_KEY",
+  "OPENAI_API_KEY",
+  "OPENAI_BASE_URL",
+  "OPENAI_MODEL",
+  "AI_MODEL",
+  "ANTHROPIC_API_KEY",
+  "ANTHROPIC_BASE_URL",
+  "ANTHROPIC_MODEL",
+  "DEEPSEEK_API_KEY",
+  "GROQ_API_KEY",
+  "OPENROUTER_API_KEY",
+  "XAI_API_KEY",
+] as const;
 const OLD: Record<string, string | undefined> = {};
 for (const k of ENV_KEYS) OLD[k] = process.env[k];
 
@@ -80,6 +94,41 @@ describe("resolveCloudAIConfig (fallback env)", () => {
     process.env.AI_PROVIDER = "claude";
     expect((await resolveCloudAIConfig()).provider).toBe("off");
   });
+
+  it("anthropic membaca key/model/base URL dari env-nya sendiri", async () => {
+    process.env.AI_PROVIDER = "anthropic";
+    process.env.ANTHROPIC_API_KEY = "sk-ant-real-key";
+    process.env.ANTHROPIC_MODEL = "claude-3-5-sonnet-20241022";
+    process.env.ANTHROPIC_BASE_URL = "https://api.anthropic.com/v1/";
+    const cfg = await resolveCloudAIConfig();
+    expect(cfg.provider).toBe("anthropic");
+    expect(cfg.apiKey).toBe("sk-ant-real-key");
+    expect(cfg.model).toBe("claude-3-5-sonnet-20241022");
+    // Trailing slash selalu dipotong.
+    expect(cfg.baseUrl).toBe("https://api.anthropic.com/v1");
+  });
+
+  it("preset (groq) dapat default base URL & model dari registry", async () => {
+    process.env.AI_PROVIDER = "groq";
+    process.env.GROQ_API_KEY = "gsk_real_key";
+    const cfg = await resolveCloudAIConfig();
+    expect(cfg).toMatchObject({
+      provider: "groq",
+      apiKey: "gsk_real_key",
+      model: "llama-3.3-70b-versatile",
+      baseUrl: "https://api.groq.com/openai/v1",
+    });
+  });
+
+  it("key provider lain tidak bocor ke provider aktif (isolasi)", async () => {
+    // AI_PROVIDER=gemini tapi hanya DEEPSEEK_API_KEY yang terisi → key harus
+    // kosong, bukan meminjam deepseek (provider gemini tidak kompatibel).
+    process.env.AI_PROVIDER = "gemini";
+    process.env.DEEPSEEK_API_KEY = "sk-deepseek";
+    const cfg = await resolveCloudAIConfig();
+    expect(cfg.provider).toBe("gemini");
+    expect(cfg.apiKey).toBe("");
+  });
 });
 
 describe("saveCloudAIConfig (validasi + prioritas admin)", () => {
@@ -106,6 +155,23 @@ describe("saveCloudAIConfig (validasi + prioritas admin)", () => {
     const cfg = await resolveCloudAIConfig();
     expect(cfg.model).toBe("gemini-2.0-flash");
     expect(cfg.apiKey).toBe("AIzaKeepMe123456");
+  });
+
+  it("provider baru (anthropic/groq) disimpan & di-resolve dengan benar", async () => {
+    await saveCloudAIConfig({
+      provider: "anthropic",
+      apiKey: "TEST_ANTHROPIC_KEY_FIXTURE",
+      model: "claude-3-5-haiku-latest",
+    });
+    expect((await resolveCloudAIConfig()).provider).toBe("anthropic");
+
+    await saveCloudAIConfig({
+      provider: "groq",
+      apiKey: "TEST_GROQ_KEY_FIXTURE",
+    });
+    const cfg = await resolveCloudAIConfig();
+    expect(cfg.provider).toBe("groq");
+    expect(cfg.apiKey).toBe("TEST_GROQ_KEY_FIXTURE");
   });
 
   it("menyimpan systemPrompt & answerStyle kustom admin", async () => {

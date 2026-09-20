@@ -19,6 +19,8 @@ import {
   Sparkles,
   Languages,
   ToggleLeft,
+  Newspaper,
+  Bot,
 } from "lucide-react";
 import { useUser, SignOutButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
@@ -36,73 +38,113 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+export type NavGroup = "manajemen" | "redaksi" | "godmode";
+
 export interface NavItem {
   title: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
+  /** Kelompok menu — memisahkan operasional konten dari konfigurasi global. */
+  group: NavGroup;
 }
+
+/**
+ * Kelompok menu sesuai urutan tampilan. Pemisahan ini bersifat presentasi
+ * (route TIDAK berubah): Manajemen = operasional CRUD konten harian, Redaksi =
+ * hub penulisan + otomasi, God Mode = konfigurasi global situs (penampilan,
+ * teks, fitur, sistem) yang mempengaruhi seluruh halaman publik.
+ */
+export const NAV_GROUPS: { id: NavGroup; label: string }[] = [
+  { id: "manajemen", label: "Manajemen Konten" },
+  { id: "redaksi", label: "Redaksi" },
+  { id: "godmode", label: "God Mode" },
+];
 
 export const ADMIN_NAV_ITEMS: NavItem[] = [
   {
     title: "Dashboard",
     href: "/admin",
     icon: LayoutDashboard,
+    group: "manajemen",
   },
   {
     title: "Profil Pribadi",
     href: "/admin/profile",
     icon: User,
+    group: "manajemen",
   },
   {
     title: "Kelola Proyek",
     href: "/admin/projects",
     icon: FolderGit2,
+    group: "manajemen",
   },
   {
     title: "Kelola Layanan",
     href: "/admin/services",
     icon: Briefcase,
+    group: "manajemen",
   },
   {
     title: "Kelola Produk",
     href: "/admin/products",
     icon: Package,
+    group: "manajemen",
   },
   {
     title: "Kelola Testimoni",
     href: "/admin/testimonials",
     icon: MessageSquareQuote,
+    group: "manajemen",
   },
   {
     title: "Kelola Artikel",
     href: "/admin/articles",
     icon: FileText,
+    group: "manajemen",
   },
   {
     title: "Media Library",
     href: "/admin/media",
     icon: Images,
+    group: "manajemen",
+  },
+  {
+    title: "Redaksi — Tulis Konten",
+    href: "/admin/redaksi",
+    icon: Newspaper,
+    group: "redaksi",
+  },
+  {
+    title: "Otomasi Redaksi",
+    href: "/admin/redaksi/otomasi",
+    icon: Bot,
+    group: "redaksi",
   },
   {
     title: "Tampilan & App OS",
     href: "/admin/appearance",
     icon: Palette,
+    group: "godmode",
   },
   {
     title: "Teks & Bahasa",
     href: "/admin/strings",
     icon: Languages,
+    group: "godmode",
   },
   {
     title: "Fitur & Mode",
     href: "/admin/features",
     icon: ToggleLeft,
+    group: "godmode",
   },
   {
     title: "Sistem & Logs",
     href: "/admin/system",
     icon: Activity,
+    group: "godmode",
   },
 ];
 
@@ -159,6 +201,15 @@ export function AdminSidebar({
   const displayEmail = user?.primaryEmailAddress?.emailAddress || "";
   const initial = (displayName[0] || "A").toUpperCase();
 
+  // Item aktif = prefix terpanjang yang cocok, sehingga induk & anak dari route
+  // bertingkat (mis. /admin/redaksi vs /admin/redaksi/otomasi) tidak menyala
+  // bersamaan. Sebelumnya pakai startsWith mentah, yang juga keliru menandai
+  // /admin/projects-xyz saat berada di /admin/projects.
+  const activeHref = ADMIN_NAV_ITEMS.filter(
+    (i) => pathname === i.href || pathname.startsWith(`${i.href}/`)
+  )
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+
   return (
     <div className="flex flex-col h-full">
       {/* Brand & Logo Header */}
@@ -184,46 +235,51 @@ export function AdminSidebar({
 
       {/* Navigation Links */}
       <div className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
-        <div className="px-3 mb-2 text-[11px] font-semibold tracking-wider text-[var(--vt-ink-mute)] uppercase">
-          Menu Manajemen
-        </div>
-        {ADMIN_NAV_ITEMS.map((item) => {
-          const isActive =
-            item.href === "/admin"
-              ? pathname === "/admin"
-              : pathname.startsWith(item.href);
-          const Icon = item.icon;
-
+        {NAV_GROUPS.map((grp) => {
+          const items = ADMIN_NAV_ITEMS.filter((i) => i.group === grp.id);
+          if (!items.length) return null;
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={(e) => handleNavClick(e, item.href)}
-              className={cn(
-                "flex items-center justify-between px-3 py-2.5 rounded-xs text-xs font-mono font-bold transition-colors group",
-                isActive
-                  ? "bg-[var(--vt-blue)] text-white font-bold"
-                  : "text-[var(--vt-ink)] hover:bg-[var(--vt-edge-hi-2)]"
-              )}
-            >
-              <div className="flex items-center gap-3">
-                <Icon
-                  className={cn(
-                    "h-4 w-4 shrink-0",
-                    isActive ? "text-white" : "text-[var(--vt-ink-mute)] group-hover:text-[var(--vt-ink)]"
-                  )}
-                />
-                <span className={isActive ? "text-white" : "text-[var(--vt-ink)]"}>{item.title}</span>
+            <div key={grp.id} className="space-y-1">
+              <div className="px-3 pt-4 pb-2 text-[11px] font-semibold tracking-wider text-[var(--vt-ink-mute)] uppercase">
+                {grp.label}
               </div>
-              {item.badge && (
-                <Badge
-                  variant={isActive ? "secondary" : "outline"}
-                  className="text-[10px] h-4 px-1.5 font-normal"
-                >
-                  {item.badge}
-                </Badge>
-              )}
-            </Link>
+              {items.map((item) => {
+                const isActive = activeHref === item.href;
+                const Icon = item.icon;
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={(e) => handleNavClick(e, item.href)}
+                    className={cn(
+                      "flex items-center justify-between px-3 py-2.5 rounded-xs text-xs font-mono font-bold transition-colors group",
+                      isActive
+                        ? "bg-[var(--vt-blue)] text-white font-bold"
+                        : "text-[var(--vt-ink)] hover:bg-[var(--vt-edge-hi-2)]"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon
+                        className={cn(
+                          "h-4 w-4 shrink-0",
+                          isActive ? "text-white" : "text-[var(--vt-ink-mute)] group-hover:text-[var(--vt-ink)]"
+                        )}
+                      />
+                      <span className={isActive ? "text-white" : "text-[var(--vt-ink)]"}>{item.title}</span>
+                    </div>
+                    {item.badge && (
+                      <Badge
+                        variant={isActive ? "secondary" : "outline"}
+                        className="text-[10px] h-4 px-1.5 font-normal"
+                      >
+                        {item.badge}
+                      </Badge>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
           );
         })}
       </div>

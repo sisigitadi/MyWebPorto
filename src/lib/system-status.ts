@@ -6,6 +6,7 @@ import { db, isDbConnected } from "@/db";
 import { getEnvIssues, isDeployReady, type EnvIssue } from "@/lib/env";
 import { getBunnyConfig, isBunnyConfigured } from "@/lib/storage";
 import { resolveCloudAIConfig } from "@/lib/cloud-ai-config";
+import { getProviderMeta } from "@/lib/ai-providers";
 import { verifyAdmin } from "./admin-auth";
 
 async function cloudAIDetail(): Promise<string> {
@@ -17,7 +18,9 @@ async function cloudAIDetail(): Promise<string> {
     return "OFF (default) — Sigit_Bot 100% lokal TF-IDF, nol egress. Aktifkan via AI_PROVIDER=gemini + GEMINI_API_KEY, atau isi form Cloud AI di bawah (tabel settings).";
   }
   const src = cfg.source === "admin" ? "pengaturan admin" : "env";
-  const providerLabel = cfg.provider === "openai" ? "OpenAI-compatible" : "Gemini";
+  // Label dinamis dari registry (mis. "Anthropic Claude", "Groq (…)") —
+  // bukan lagi hardcoded "Gemini/OpenAI-compatible".
+  const providerLabel = getProviderMeta(cfg.provider)?.label ?? "Gemini";
   return `ON — ${providerLabel} ${cfg.model} sebagai fallback confidence rendah + konteks katalog live (sumber: ${src}). Rate-limit publik 10/5 mnt/IP.`;
 }
 

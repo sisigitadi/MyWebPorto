@@ -3,19 +3,34 @@
  *
  * Dua sumber, dengan prioritas:
  *   1. Pengaturan admin (tabel `settings`, diisi dari form /admin/system).
- *   2. Environment variable (AI_PROVIDER, GEMINI_API_KEY, OPENAI_*).
+ *   2. Environment variable (AI_PROVIDER + <PROVIDER>_API_KEY/_MODEL/_BASE_URL).
  *
  * Sebelumnya hanya env — jadi mengganti provider/model harus redeploy. Dengan
  * lapisan ini, admin bisa mengisi key dari UI tanpa menyentuh Vercel.
  *
+ * Daftar provider & default-nya (base URL, model, nama env var) diatur terpusat
+ * di `ai-providers.ts` (registry client-safe); modul ini hanya membaca registry
+ * itu, tidak mendaftar ulang.
+ *
  * Key TIDAK PERNAH dikembalikan mentah ke client: lihat maskKey() dan
  * getCloudAIConfigForAdmin(). Pemakaian rahasia hanya terjadi di server
- * (submitToGemini / submitToOpenAI / route /api/retrobot).
+ * (submitToGemini / submitToOpenAI / submitToAnthropic / route /api/retrobot).
  */
 import { isPlaceholderKey } from "@/lib/env";
 import { getSetting, setSetting } from "@/lib/settings";
+import { getProviderMeta, isCloudProvider } from "@/lib/ai-providers";
 
-export type CloudProvider = "off" | "gemini" | "openai";
+export type CloudProvider =
+  | "off"
+  | "gemini"
+  | "openai"
+  | "anthropic"
+  | "deepseek"
+  | "groq"
+  | "openrouter"
+  | "together"
+  | "mistral"
+  | "xai";
 
 /** Bentuk pengaturan Cloud AI yang disimpan di tabel settings (key "cloud_ai"). */
 export interface StoredCloudAIConfig {
@@ -45,9 +60,15 @@ export interface ResolvedCloudAIConfig {
 
 const SETTING_KEY = "cloud_ai";
 
+// Default saat provider "off" (tidak dipakai untuk panggilan apa pun — murni
+// agar UI/status tetap menampilkan placeholder). Dilestarikan dari versi lama
+// agar test & tampilan tidak berubah.
+const FALLBACK_BASE_URL = "https://api.openai.com/v1";
+const FALLBACK_MODEL = "gemini-2.5-flash";
+
 function envProvider(): CloudProvider {
   const p = (process.env.AI_PROVIDER || "off").toLowerCase();
-  return p === "gemini" || p === "openai" ? p : "off";
+  return isCloudProvider(p) ? p : "off";
 }
 
 /**
@@ -58,15 +79,27 @@ function envProvider(): CloudProvider {
 export async function resolveCloudAIConfig(): Promise<ResolvedCloudAIConfig> {
   const stored = await getSetting<StoredCloudAIConfig>(SETTING_KEY);
 
-  const provider: CloudProvider = stored?.provider ?? envProvider();
-  const apiKey = (stored?.apiKey || process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY || "").trim();
-  const baseUrl = (stored?.baseUrl || process.env.OPENAI_BASE_URL || "https://api.openai.com/v1")
+  const provider: CloudProvider = isCloudProvider(stored?.provider)
+    ? stored.provider
+    : envProvider();
+  // Metadata provider (base URL/model default + nama env var). Null untuk
+  // "off" → semua field jatuh ke FALLBACK_*.
+  const meta = getProviderMeta(provider);
+
+  const apiKey = (stored?.apiKey || (meta?.envKey ? process.env[meta.envKey] : "") || "").trim();
+  const baseUrl = (
+    stored?.baseUrl ||
+    (meta?.envBaseUrl ? process.env[meta.envBaseUrl] : "") ||
+    meta?.defaultBaseUrl ||
+    FALLBACK_BASE_URL
+  )
     .trim()
     .replace(/\/+$/, "");
   const model = (
     stored?.model ||
-    (provider === "openai" ? process.env.OPENAI_MODEL : process.env.AI_MODEL) ||
-    (provider === "openai" ? "gpt-4o-mini" : "gemini-2.5-flash")
+    (meta?.envModel ? process.env[meta.envModel] : "") ||
+    meta?.defaultModel ||
+    FALLBACK_MODEL
   ).trim();
   const systemPrompt = (stored?.systemPrompt || "").trim();
   const styleRaw = (stored?.answerStyle || "").toLowerCase();
@@ -131,10 +164,7 @@ export async function getCloudAIConfigForAdmin(): Promise<AdminCloudAIView> {
  * tanggung jawab server action pemanggil.
  */
 export async function saveCloudAIConfig(input: StoredCloudAIConfig): Promise<void> {
-  const provider: CloudProvider =
-    input.provider === "gemini" || input.provider === "openai" || input.provider === "off"
-      ? input.provider
-      : "off";
+  const provider: CloudProvider = isCloudProvider(input.provider) ? input.provider : "off";
   const model = (input.model || "").trim().slice(0, 64);
   const baseUrl = (input.baseUrl || "").trim().slice(0, 256).replace(/\/+$/, "");
   const apiKey = (input.apiKey || "").trim().slice(0, 256);
