@@ -1,15 +1,29 @@
 /**
  * Cloud AI provider (opsional, opt-in) — server-only, jangan import dari client.
  *
- * Default: OFF — Sigit_Bot berjalan lokal via TF-IDF (`ai-engine.ts`, nol egress).
- * Aktif bila AI_PROVIDER=gemini + GEMINI_API_KEY, atau AI_PROVIDER=openai +
- * OPENAI_API_KEY (OpenAI-compatible; lihat juga ai-openai.ts).
+ * Default: OFF — Sigit_Bot berjalan lokal via TF-IDF (`ai-engine.ts`, nol
+ * egress). Aktif bila AI_PROVIDER=<provider> + <PROVIDER>_API_KEY terisi
+ * non-placeholder. Daftar provider, default base URL/model, dan nama env var
+ * ada di registry `ai-providers.ts`; pengiriman per gaya API:
+ *   - gemini      → submitToGemini (di sini, REST generateContent) untuk
+ *     askSigitBot/Redaksi (prompt string, single-turn); submitToGeminiMessages
+ *     (ChatMessage[]) untuk RetroBot multi-turn (riwayat + konteks halaman).
+ *   - openai-chat → submitToOpenAI (ai-openai.ts, /v1/chat/completions)
+ *   - anthropic   → submitToAnthropic (ai-anthropic.ts, /v1/messages)
  * Prompt hanya berisi data KATALOG PUBLIK (profil ringkas, judul layanan/proyek/
  * artikel) — tidak pernah PII, secret, atau isi database mentah. Lihat SECURITY.md.
  */
 
 import { isPlaceholderKey } from "@/lib/env";
 import { resolveCloudAIConfig, type ResolvedCloudAIConfig } from "@/lib/cloud-ai-config";
+import { getProviderMeta, isCloudProvider } from "@/lib/ai-providers";
+import type { ChatMessage } from "@/lib/ai-openai";
+
+// Satu sumber kebenaran untuk daftar provider: registry ai-providers.ts.
+// (Import type untuk dipakai lokal + re-export agar modul lain tak perlu
+//  mengimpornya dari cloud-ai-config.)
+import type { CloudProvider } from "@/lib/cloud-ai-config";
+export type { CloudProvider };
 
 export interface LiveContext {
   ownerName: string;
@@ -23,31 +37,35 @@ export interface LiveContext {
 }
 
 /**
- * Provider cloud yang aktif: "off" (default, 100% lokal), "gemini", atau
- * "openai" (OpenAI-compatible — lihat ai-openai.ts, mendukung base URL ubahan).
+ * Provider cloud yang aktif: "off" (default, 100% lokal) atau salah satu dari
+ * registry ai-providers.ts (gemini, openai, anthropic, deepseek, groq,
+ * openrouter, together, mistral, xai).
  */
-export type CloudProvider = "off" | "gemini" | "openai";
-
 export function getCloudProvider(): CloudProvider {
   const provider = (process.env.AI_PROVIDER || "off").toLowerCase();
-  if (provider === "gemini" || provider === "openai") return provider;
-  return "off";
+  return isCloudProvider(provider) ? provider : "off";
 }
 
+/**
+ * Env-only legacy: membaca AI_PROVIDER + <PROVIDER>_API_KEY/_MODEL langsung
+ * dari process.env, TIDAK membaca pengaturan admin (tabel settings). App memakai
+ * resolveCloudAIConfig()/getCloudAIStatus() yang menggabungkan keduanya; dua
+ * fungsi ini tetap diekspor untuk pemanggil langsung & test lama — jangan pakai
+ * di jalur yang harus mencerminkan pengaturan admin.
+ */
 export function isCloudAIEnabled(): boolean {
   const provider = getCloudProvider();
-  if (provider === "gemini") return !isPlaceholderKey(process.env.GEMINI_API_KEY);
-  if (provider === "openai") return !isPlaceholderKey(process.env.OPENAI_API_KEY);
-  return false;
+  const meta = getProviderMeta(provider);
+  if (!meta?.envKey) return false;
+  return !isPlaceholderKey(process.env[meta.envKey]);
 }
 
 export function getCloudAIModel(): string {
-  // OpenAI-compatible punya daftar model sendiri (gpt-4o-mini, deepseek-chat,
-  // llama-3.3-70b, …) — tidak bisa memakai default Gemini.
-  if (getCloudProvider() === "openai") {
-    return (process.env.OPENAI_MODEL || "gpt-4o-mini").trim();
-  }
-  return process.env.AI_MODEL || "gemini-2.5-flash";
+  // Setiap provider punya daftar model sendiri (lihat registry); env var
+  // model per-provider dipakai bila diisi, jika tidak ambil default hemat.
+  const meta = getProviderMeta(getCloudProvider());
+  const fromEnv = meta?.envModel ? process.env[meta.envModel] : undefined;
+  return (fromEnv || meta?.defaultModel || "gemini-2.5-flash").trim();
 }
 
 /**
@@ -169,7 +187,7 @@ export interface CloudAIResult {
 /** Panggil Gemini via REST (tanpa SDK). Tidak pernah throw. */
 export async function submitToGemini(
   prompt: string,
-  options: { config?: ResolvedCloudAIConfig } = {}
+  options: { config?: ResolvedCloudAIConfig; maxOutputTokens?: number; maxChars?: number } = {}
 ): Promise<CloudAIResult> {
   // Key & model bisa datang dari pengaturan admin (tabel settings) atau env.
   const cfg = options.config ?? (await resolveCloudAIConfig());
@@ -178,6 +196,11 @@ export async function submitToGemini(
     return { success: false, text: "" };
   }
   const model = cfg.model;
+  // Batas default 300 token & 2000 char cocok untuk jawaban bot pendek. Redaksi
+  // memakai nilai lebih besar lewat opsi (draft artikel panjang); tidak mengubah
+  // pemanggilan yang sudah ada.
+  const maxOutputTokens = options.maxOutputTokens ?? 300;
+  const maxChars = options.maxChars ?? 2000;
   try {
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
@@ -189,9 +212,9 @@ export async function submitToGemini(
         },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 300, temperature: 0.4 },
+          generationConfig: { maxOutputTokens, temperature: 0.4 },
         }),
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(30_000),
       }
     );
     if (!response.ok) {
@@ -202,7 +225,93 @@ export async function submitToGemini(
     };
     const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
     if (!text.trim()) return { success: false, text: "" };
-    return { success: true, text: text.trim().slice(0, 2000) };
+    return { success: true, text: text.trim().slice(0, maxChars) };
+  } catch {
+    return { success: false, text: "" };
+  }
+}
+
+/**
+ * Panggil Gemini multi-turn via REST (generateContent). Menerima array
+ * ChatMessage — SAMA PERSIS bentuknya dengan submitToAnthropic /
+ * submitToOpenAIStream — sehingga RetroBot bisa meneruskan riwayat chat +
+ * konteks halaman ke Gemini, bukan hanya prompt string tunggal.
+ *
+ * Pemetaan dari format OpenAI-style:
+ *  - role "assistant" → role Gemini "model".
+ *  - role "system" TIDAK ada di generateContent (legacy): persona dilekatkan
+ *    ke awal pesan "user" pertama — setara dengan apa yang buildCloudPrompt
+ *    lakukan untuk versi string (isi identik, hanya format yang beda).
+ *  - role sama berturut-turut digabung (Gemini generateContent juga menolak
+ *    pesan tak bergantian); pesan pertama wajib "user" (leading "model"
+ *    di-drop). Maksimal 9 pesan terakhir, sama seperti anthropic.
+ *
+ * Tidak pernah throw — gagal → {success:false} → fallback lokal.
+ */
+export async function submitToGeminiMessages(
+  messages: ChatMessage[],
+  options: { config?: ResolvedCloudAIConfig; maxOutputTokens?: number; maxChars?: number } = {}
+): Promise<CloudAIResult> {
+  const cfg = options.config ?? (await resolveCloudAIConfig());
+  const apiKey = cfg.apiKey;
+  if (isPlaceholderKey(apiKey)) {
+    return { success: false, text: "" };
+  }
+  const model = cfg.model;
+  const maxOutputTokens = options.maxOutputTokens ?? 300;
+  const maxChars = options.maxChars ?? 2000;
+
+  let systemText = "";
+  const contents: { role: "user" | "model"; parts: { text: string }[] }[] = [];
+  for (const m of messages.slice(-9)) {
+    if (m.role === "system") {
+      systemText = [systemText, m.content].filter(Boolean).join("\n\n");
+      continue;
+    }
+    const role: "user" | "model" = m.role === "assistant" ? "model" : "user";
+    const last = contents[contents.length - 1];
+    if (last && last.role === role) {
+      last.parts[0].text = `${last.parts[0].text}\n\n${m.content}`;
+    } else {
+      contents.push({ role, parts: [{ text: m.content }] });
+    }
+  }
+  // Pesan pertama WAJIB "user"; leading "model" (assistant) di-drop.
+  while (contents.length && contents[0].role === "model") {
+    contents.shift();
+  }
+  // Persona "system" dilekatkan ke user pertama (generateContent tak punya
+  // role system) — setara buildCloudPrompt untuk versi string.
+  if (systemText.trim() && contents.length) {
+    contents[0].parts[0].text = `${systemText.trim().slice(0, 8000)}\n\n${contents[0].parts[0].text}`;
+  }
+  if (!contents.length) contents.push({ role: "user", parts: [{ text: "." }] });
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          contents,
+          generationConfig: { maxOutputTokens, temperature: 0.4 },
+        }),
+        signal: AbortSignal.timeout(30_000),
+      }
+    );
+    if (!response.ok) {
+      return { success: false, text: "" };
+    }
+    const data = (await response.json()) as {
+      candidates?: { content?: { parts?: { text?: string }[] } }[];
+    };
+    const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
+    if (!text.trim()) return { success: false, text: "" };
+    return { success: true, text: text.trim().slice(0, maxChars) };
   } catch {
     return { success: false, text: "" };
   }

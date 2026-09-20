@@ -1,10 +1,12 @@
-import { describe, expect, it, afterEach } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
 import {
   buildCloudPrompt,
   buildCloudMessages,
   isCloudAIEnabled,
+  submitToGeminiMessages,
   type LiveContext,
 } from "@/lib/ai-provider";
+import type { ResolvedCloudAIConfig } from "@/lib/cloud-ai-config";
 
 const OLD_PROVIDER = process.env.AI_PROVIDER;
 const OLD_KEY = process.env.GEMINI_API_KEY;
@@ -87,5 +89,152 @@ describe("buildCloudMessages", () => {
     expect(msgs[1].content).toBe("halo");
     expect(msgs[0].content).toContain("Persona X.");
     expect(msgs[0].content).toContain("terstruktur dan informatif");
+  });
+});
+
+const GEMINI_CFG: ResolvedCloudAIConfig = {
+  provider: "gemini",
+  apiKey: "AIzaRealKey123",
+  model: "gemini-2.5-flash",
+  baseUrl: "",
+  systemPrompt: "",
+  answerStyle: "concise",
+  source: "admin",
+};
+
+const GEMINI_OK = (body: unknown): Response =>
+  new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+
+/** Body permintaan terakhir yang dikirim ke fetch (sudah di-parse). */
+function geminiLastBody(fetchMock: ReturnType<typeof vi.spyOn>): Record<string, unknown> {
+  const init = fetchMock.mock.calls[0][1] as RequestInit | undefined;
+  return JSON.parse(String(init?.body)) as Record<string, unknown>;
+}
+
+describe("submitToGeminiMessages", () => {
+  it("sukses: ambil text dari candidates.parts, potong maxChars", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      GEMINI_OK({
+        candidates: [
+          {
+            content: {
+              parts: [{ text: "Halo, saya " }, { text: "Sigit_Bot." }],
+            },
+          },
+        ],
+      })
+    );
+    const res = await submitToGeminiMessages([{ role: "user", content: "halo" }], {
+      config: GEMINI_CFG,
+      maxChars: 10,
+    });
+    expect(res.success).toBe(true);
+    expect(res.text).toBe("Halo, saya"); // slice(0, 10) setelah trim
+    fetchMock.mockRestore();
+  });
+
+  it("endpoint & header Gemini: :generateContent + x-goog-api-key", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      GEMINI_OK({ candidates: [{ content: { parts: [{ text: "ok" }] } }] })
+    );
+    await submitToGeminiMessages([{ role: "user", content: "halo" }], { config: GEMINI_CFG });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toBe(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+    );
+    const headers = init?.headers as Record<string, string>;
+    expect(headers["x-goog-api-key"]).toBe("AIzaRealKey123");
+    fetchMock.mockRestore();
+  });
+
+  it("assistant → model; persona system dilekatkan ke user pertama", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      GEMINI_OK({ candidates: [{ content: { parts: [{ text: "ok" }] } }] })
+    );
+    await submitToGeminiMessages(
+      [
+        { role: "system", content: "Persona X." },
+        { role: "user", content: "halo" },
+        { role: "assistant", content: "hai" },
+        { role: "user", content: "lagi" },
+      ],
+      { config: GEMINI_CFG }
+    );
+    const body = geminiLastBody(fetchMock);
+    expect(body.contents).toEqual([
+      { role: "user", parts: [{ text: "Persona X.\n\nhalo" }] },
+      { role: "model", parts: [{ text: "hai" }] },
+      { role: "user", parts: [{ text: "lagi" }] },
+    ]);
+    expect(body.generationConfig).toEqual({ maxOutputTokens: 300, temperature: 0.4 });
+    fetchMock.mockRestore();
+  });
+
+  it("role user berturut-turut digabung (konteks halaman + pertanyaan)", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      GEMINI_OK({ candidates: [{ content: { parts: [{ text: "ok" }] } }] })
+    );
+    await submitToGeminiMessages(
+      [
+        { role: "user", content: "konteks halaman" },
+        { role: "user", content: "pertanyaan" },
+      ],
+      { config: GEMINI_CFG }
+    );
+    const body = geminiLastBody(fetchMock);
+    expect(body.contents).toEqual([
+      { role: "user", parts: [{ text: "konteks halaman\n\npertanyaan" }] },
+    ]);
+    fetchMock.mockRestore();
+  });
+
+  it("model di awal di-drop (pesan pertama wajib user)", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      GEMINI_OK({ candidates: [{ content: { parts: [{ text: "ok" }] } }] })
+    );
+    await submitToGeminiMessages(
+      [
+        { role: "assistant", content: "loncat" },
+        { role: "user", content: "halo" },
+      ],
+      { config: GEMINI_CFG }
+    );
+    const body = geminiLastBody(fetchMock);
+    expect(body.contents).toEqual([{ role: "user", parts: [{ text: "halo" }] }]);
+    fetchMock.mockRestore();
+  });
+
+  it("placeholder key → fail-closed, tidak ada panggilan keluar", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+    const res = await submitToGeminiMessages([{ role: "user", content: "halo" }], {
+      config: { ...GEMINI_CFG, apiKey: "xxxx-placeholder" },
+    });
+    expect(res.success).toBe(false);
+    expect(res.text).toBe("");
+    expect(fetchMock).not.toHaveBeenCalled();
+    fetchMock.mockRestore();
+  });
+
+  it("HTTP error / network error / kandidat kosong → success false (bukan throw)", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 401 }));
+    expect(
+      (await submitToGeminiMessages([{ role: "user", content: "halo" }], { config: GEMINI_CFG }))
+        .success
+    ).toBe(false);
+
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network"));
+    expect(
+      (await submitToGeminiMessages([{ role: "user", content: "halo" }], { config: GEMINI_CFG }))
+        .success
+    ).toBe(false);
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(GEMINI_OK({ candidates: [] }));
+    expect(
+      (await submitToGeminiMessages([{ role: "user", content: "halo" }], { config: GEMINI_CFG }))
+        .success
+    ).toBe(false);
   });
 });

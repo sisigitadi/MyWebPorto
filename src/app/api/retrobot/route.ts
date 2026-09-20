@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfile, getServices, getProjects, getArticles } from "@/lib/actions";
 import { queryAIEngine, type EngineContext } from "@/lib/ai-engine";
-import { buildCloudMessages } from "@/lib/ai-provider";
+import { buildCloudMessages, submitToGeminiMessages } from "@/lib/ai-provider";
 import { submitToOpenAIStream } from "@/lib/ai-openai";
+import { submitToAnthropic } from "@/lib/ai-anthropic";
 import { resolveCloudAIConfig, isCloudAIConfigEnabled } from "@/lib/cloud-ai-config";
+import { getApiStyle } from "@/lib/ai-providers";
 import { resolveFeatures } from "@/lib/features-config";
 import { rateLimit, cleanupRateLimits } from "@/lib/rate-limit";
 
@@ -225,43 +227,64 @@ export async function POST(req: NextRequest) {
 
       let sentAny = false;
       try {
-        const upstream = submitToOpenAIStream(messages, { config: cloudCfg });
-        const reader = upstream.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
+        const style = getApiStyle(cloudCfg.provider);
+        if (style === "openai-chat") {
+          // Satu-satunya gaya yang menyediakan SSE OpenAI-compatible.
+          const upstream = submitToOpenAIStream(messages, { config: cloudCfg });
+          const reader = upstream.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
 
-        for (;;) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          // Parse SSE baris penuh saja; sisa tetap di buffer.
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed.startsWith("data:")) continue;
-            const payload = trimmed.slice(5).trim();
-            if (payload === "[DONE]") continue;
-            try {
-              const json = JSON.parse(payload);
-              if (json.error) {
-                // Key tidak terkonfigurasi / upstream gagal → fallback lokal.
-                throw new Error(String(json.error));
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            // Parse SSE baris penuh saja; sisa tetap di buffer.
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed.startsWith("data:")) continue;
+              const payload = trimmed.slice(5).trim();
+              if (payload === "[DONE]") continue;
+              try {
+                const json = JSON.parse(payload);
+                if (json.error) {
+                  // Key tidak terkonfigurasi / upstream gagal → fallback lokal.
+                  throw new Error(String(json.error));
+                }
+                const delta: string = json.choices?.[0]?.delta?.content ?? "";
+                if (delta) {
+                  sentAny = true;
+                  emit("delta", { t: delta });
+                }
+              } catch {
+                // JSON parsial / error → hentikan upstream, fallback lokal.
+                reader.cancel().catch(() => {});
+                throw new Error("upstream_stream_error");
               }
-              const delta: string = json.choices?.[0]?.delta?.content ?? "";
-              if (delta) {
-                sentAny = true;
-                emit("delta", { t: delta });
-              }
-            } catch {
-              // JSON parsial / error → hentikan upstream, fallback lokal.
-              reader.cancel().catch(() => {});
-              throw new Error("upstream_stream_error");
             }
           }
-        }
 
-        if (!sentAny) throw new Error("empty_stream");
+          if (!sentAny) throw new Error("empty_stream");
+        } else {
+          // Gemini & Anthropic tidak menyediakan SSE OpenAI-compatible:
+          // panggilan non-streaming, hasil dipecah per kata untuk efek ketik
+          // (kontrak SSE ke client tetap persis sama, termasuk fallback).
+          //
+          // Ketiga gaya kini menerima `messages` yang SAMA: persona katalog +
+          // riwayat chat + konteks halaman (appLine) diteruskan ke Gemini juga.
+          // (Sebelumnya cabang Gemini memakai buildCloudPrompt string tunggal
+          //  → eskalasi Gemini single-turn. submitToGeminiMessages memetakan
+          //  assistant → "model" dan melekatkan "system" ke user pertama.)
+          const answer =
+            style === "anthropic"
+              ? await submitToAnthropic(messages, { config: cloudCfg })
+              : await submitToGeminiMessages(messages, { config: cloudCfg });
+          if (!answer.success || !answer.text.trim()) throw new Error("empty_cloud");
+          sentAny = true;
+          for (const w of answer.text.split(/(\s+)/)) emit("delta", { t: w });
+        }
         emit("done", {});
       } catch {
         // Fallback: kirim jawaban lokal (sudah pasti ada, bisa kosong → generic).

@@ -2,6 +2,119 @@
 
 Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
+## [v2.15.1] - 2026-09-20
+
+### Fixed — RetroBot: eskalasi Gemini kini multi-turn
+- Fixed: cabang Gemini di `POST /api/retrobot` sebelumnya memanggil
+  `submitToGemini(buildCloudPrompt(...))` (prompt STRING tunggal), sedangkan
+  cabang Anthropic & openai-chat memakai `messages` — sehingga RIWAYAT chat
+  dan konteks halaman (`appLine`) tidak pernah diteruskan ke Gemini dan
+  eskalasi RetroBot ke provider Gemini selalu single-turn (bug kontrak, bukan
+  crash: jawaban tetap dibangkitkan, tapi tanpa memori percakapan).
+- Added: `submitToGeminiMessages(messages, options)` di `src/lib/ai-provider.ts`
+  — versi multi-turn dari `submitToGemini` (REST `:generateContent`), menerima
+  `ChatMessage[]` sama persis bentuknya dengan `submitToAnthropic` /
+  `submitToOpenAIStream`: role `assistant` → `model`; role `system` dilekatkan
+  ke user pertama (`generateContent` tak punya role system — setara isi
+  `buildCloudPrompt` versi string); role sama berturut-turut digabung;
+  leading `model` di-drop; fail-closed placeholder key; never throws.
+- Changed: ketiga gaya API di RetroBot kini memakai array `messages` yang
+  SAMA. `submitToGemini` (string) tetap dipakai untuk `askSigitBot` (terminal)
+  dan draft Redaksi — keduanya single-turn/single-shot sejak awal, tidak
+  diubah. Komentar "KNOWN LIMITATION" di `route.ts` diganti catatan pemetaan.
+- Added: 7 test baru di `tests/ai-provider.test.ts` (pemetaan role, merge
+  same-role, drop leading model, endpoint/header, fail-closed, error path).
+  Total 226 → 233 test (21 file). `tsc --noEmit` EXIT 0; ESLint 0/0;
+  `vitest run` 233/233.
+
+### Docs — README: bagian Autentikasi (Clerk + Google OAuth)
+- Added: sub-bagian baru di `README.md` (Fitur Utama) yang merangkum flow login
+  (Google OAuth / email+password via `/sign-in`), gate single-owner
+  `ADMIN_CLERK_ID` yang fail-closed di produksi, `verifyAdmin()` wajib di
+  server actions read-only, dua penyebab umum "tiba-tiba tidak bisa login
+  Google" (faktor `oauth_google` dev-vs-prod + CSP domain Clerk), dan pemanggilan
+  `scripts/check-clerk-login.mjs` — sebelumnya README hanya satu baris
+  "Login admin melalui Clerk di /sign-in". Rincian tetap di `SECURITY.md` &
+  `DEPLOYMENT.md`.
+
+## [v2.15.0] - 2026-09-20
+
+### Added — Cloud AI: 8 provider baru lewat satu registry (2026-09-20)
+- Added: **registry provider terpusat** `src/lib/ai-providers.ts` (client-safe —
+  murni data publik: label, hint, base URL/model default, nama env var; tidak
+  ada import server-only, tidak ada key). Dipakai bersama oleh form admin DAN
+  resolver server, jadi daftar provider hanya didefinisikan sekali. Tipe
+  `Record<CloudProvider, ProviderMeta>` memaksa **exhaustiveness check** saat
+  compile: tambah provider = satu entry registry + satu baris union
+  `CloudProvider`; TypeScript menolak bila salah satu sisi kurang.
+- Added: **8 provider baru** selain Gemini & OpenAI-compatible — Anthropic
+  Claude, DeepSeek, Groq, OpenRouter, Together AI, Mistral, xAI Grok, tetap
+  ada "OpenAI-compatible — custom" (OpenAI / Ollama / endpoint
+  `/v1/chat/completions` sendiri). Total 10 pilihan (`off` + 9). Provider
+  preset (DeepSeek/Groq/OpenRouter/Together/Mistral/xAI) sudah punya base URL
+  & model default — admin cukup isi API key.
+- Added: `src/lib/ai-anthropic.ts` — `POST /v1/messages` dengan header
+  `x-api-key` + `anthropic-version: 2023-06-01`; system prompt dikirim sebagai
+  **field top-level `system`** (bukan role "system"); pesan same-role
+  berturut-turut di-merge (API menolak yang tak bergantian — penting untuk
+  RetroBot yang menempel konteks halaman sebagai pesan "user" kedua);
+  assistant di awal di-drop. Never throws; placeholder key → fail-closed.
+- Added: daftar model **realtime** kini mencakup semua gaya API.
+  `listCloudModels` menambah cabang Anthropic (`GET {base}/models` dengan
+  header `x-api-key` + `anthropic-version`). Form `/admin/system` mengisi
+  dropdown model otomatis saat provider diganti / key diisi / field blur,
+  dengan badge "· aktif" dan footer "N model aktif (realtime · diperbarui
+  HH:MM:SS)".
+- Added: 15 env var baru di `src/lib/env.ts` (`ANTHROPIC_*`, `DEEPSEEK_*`,
+  `GROQ_*`, `OPENROUTER_*`, `TOGETHER_*`, `MISTRAL_*`, `XAI_*`) — semua
+  server-only (TIDAK boleh prefix `NEXT_PUBLIC_`), divalidasi Zod non-blocking.
+  `.env.example` diperbarui dengan contoh per-provider.
+
+### Changed — Dispatcher gaya API tunggal; RetroBot tak lagi memaksa SSE OpenAI
+- Changed: `getApiStyle()` menjadi satu-satunya pemetaan provider → protokol
+  (`gemini` | `openai-chat` | `anthropic` | `off`). Tiga pemanggil bercabang
+  darinya: `submitToCloud` (server action `askSigitBot`), `draftContentWithAI`
+  (Redaksi), dan route `/api/retrobot` — tidak ada lagi if/else provider
+  hardcoded di banyak tempat.
+- Fixed: route `/api/retrobot` sebelumnya **memaksa SSE OpenAI untuk semua
+  provider**, termasuk Gemini yang tidak menyediakan SSE OpenAI-compatible,
+  sehingga eskalasi cloud jatuh diam-diam ke jawaban lokal. Kini `openai-chat`
+  tetap streaming penuh; `gemini` & `anthropic` memakai cabang non-streaming
+  yang hasilnya dipecah per kata lewat **kontrak SSE yang identik** (meta →
+  delta → done; fallback lokal tetap jalan bila kosong/gagal).
+- Changed: `system-status.ts` dan label UI memakai registry untuk nama
+  provider (mis. "Groq (Llama / Mixtral, sangat cepat)"), bukan hardcoded
+  "Gemini/OpenAI-compatible".
+
+### Security — Fail-closed konsisten di setiap lapisan
+- Id provider asing dari form, env, atau hasil baca DB → `"off"` (fail-closed)
+  di tiga tempat sekaligus: `isCloudProvider()` (type guard),
+  `resolveCloudAIConfig()` (env), `saveCloudAIConfig()` (form). Tidak ada
+  provider tak dikenal yang bisa membuka egress.
+- Isolasi key per-provider terverifikasi: `<PROVIDER>_API_KEY` hanya dibaca
+  lewat `meta.envKey` dari registry — mengganti provider di form tidak
+  membocorkan key provider lain (no cross-provider key leakage).
+- Key tetap tidak pernah dikirim ke client: `maskKey()` → `••••••••` + 4
+  karakter terakhir; `AdminCloudAIView` hanya berisi status masked. Yang
+  dilewatkan ke `submitTo*` hanya provider/model/base URL/prompt (prompt tetap
+  katalog publik, lihat SECURITY.md §3.6).
+
+### Testing — 21 file, 226 test
+- Added: `tests/ai-providers.test.ts` (7) — exhaustiveness registry dua arah,
+  label/hint wajib, base URL default per gaya API, fail-closed id asing.
+- Added: `tests/ai-anthropic.test.ts` (9) — header & endpoint Anthropic, system
+  prompt jadi field top-level, merge same-role, drop assistant awal,
+  fail-closed placeholder key, HTTP/network error tidak throw.
+- Extended: `tests/ai-models.test.ts` (7→9; +cabang Anthropic, +preset Groq
+  pakai base URL registry) dan `tests/cloud-ai-config.test.ts` (11→16; +isolasi
+  env per-provider, +preset Groq, +save/resolve provider baru anthropic/groq).
+- Konvensi test tetap: hanya `vi.spyOn(globalThis, "fetch")`, tidak ada module
+  mock; `cloud-ai-config.test.ts` tetap di project `shared-fs` (serial,
+  `fileParallelism: false`).
+- Verifikasi: `tsc --noEmit` EXIT 0; ESLint 0/0 di 15 berkas berubah;
+  `vitest run` 226/226 (21 file); `next build` sukses (`/admin/system`
+  23.3 kB, `/api/retrobot` terdaftar).
+
 ## [v2.11.0] - 2026-09-19
 
 ### Added — God Mode Fase 1: atur aplikasi SigitOS dari admin (2026-09-19)
