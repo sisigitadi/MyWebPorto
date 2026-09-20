@@ -32,7 +32,14 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
     itu diabaikan, ditambah race tulis file antar worker. Fix: spec tersebut
     hanya berjalan via `npm run test:e2e:godmode` (DB dimatikan + 1 worker);
     suite utama disempitkan ke 9 test publik dengan `workers: 1` (aplikasi
-    berat tidak bisa dilayani paralel oleh satu dev server dalam batas 60s).
+    berat tidak bisa dilayani paralel oleh satu dev server dalam batas 60s)
+    dan `DATABASE_URL` juga dikosongkan — suite hermetic, hasil lokal ==
+    hasil CI (tidak tergantung koneksi Neon developer).
+- Fixed: `DUMMY_PROFILE.name` ("Sigit" → "Sigit Adi Irianto") — fallback
+  tanpa database harus memakai nama pemilik lengkap (konvensi project: string
+  fallback = "Sigit Adi Irianto", DB adalah source of truth). Sebelumnya
+  `<title>` di mode fallback hanya memuat "Sigit", sehingga E2E CI (yang tak
+  punya `DATABASE_URL`) gagal di test beranda.
 - Changed: bagian autentikasi `os-menubar.tsx` dipindah ke komponen `MenubarUser`
   yang hanya dimuat saat Clerk aktif (`useUser` butuh konteks `ClerkProvider`);
   halaman `/sign-up` kini punya fallback seperti `/sign-in` saat key belum diset.

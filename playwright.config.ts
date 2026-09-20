@@ -43,7 +43,13 @@ export default defineConfig({
     // "mode tanpa Clerk" (proxy.ts + layout.tsx): halaman publik render tanpa
     // handshake sama sekali. Process env mengesampingkan .env.local, persis
     // seperti override DATABASE_URL di playwright-godmode.config.ts.
+    // DATABASE_URL juga dikosongkan: E2E harus hermetic (tidak tergantung
+    // Neon) agar hasil lokal == hasil CI — tanpa ini, settings & profile
+    // dibaca dari DB developer dan tulisan test diabaikan. Spec yang memang
+    // butuh file lokal berjalan di config godmode; suite ini hanya membaca
+    // render publik (fallback data dummy).
     env: {
+      DATABASE_URL: "",
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_xxxx",
       CLERK_SECRET_KEY: "sk_test_xxxx",
       ADMIN_CLERK_ID: "",
