@@ -65,6 +65,11 @@ export function ContactSection({ profile }: ContactSectionProps) {
 
     if (!subject && !body) return;
 
+    // One-shot handoff dari navigasi (sessionStorage/URL) ke state form: baca
+    // sekali lalu hapus. useSyncExternalStore tidak cocok karena getSnapshot
+    // harus murni (tidak boleh menghapus sessionStorage); perbaikan butuh
+    // seeding form dari useSearchParams + Suspense boundary.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFormData((current) => ({
       ...current,
       subject: subject || current.subject,

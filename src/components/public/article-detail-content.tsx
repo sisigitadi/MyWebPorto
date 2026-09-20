@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useSyncExternalStore, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -39,13 +39,19 @@ export function ArticleDetailContent({
   const { t, language } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
-  const [pageUrl, setPageUrl] = useState("");
   const [readProgress, setReadProgress] = useState(0);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    setPageUrl(window.location.href);
-  }, []);
+  // URL halaman dibaca dari external store (window.location). Server snapshot ""
+  // menjaga SSR & hydration konsisten (server tidak tahu URL klien) — cakupan
+  // sama dengan effect lama, tanpa setState di body effect.
+  const pageUrl = useSyncExternalStore(
+    (onChange) => {
+      window.addEventListener("popstate", onChange);
+      return () => window.removeEventListener("popstate", onChange);
+    },
+    () => window.location.href,
+    () => "",
+  );
 
   // Progress baca: dengar scroll pada ancestor scrollable (jendela OS) + fallback window.
   useEffect(() => {
@@ -65,6 +71,10 @@ export function ArticleDetailContent({
         setReadProgress(max > 0 ? Math.min(100, Math.round((window.scrollY / max) * 100)) : 0);
       }
     };
+    // Sinkronisasi posisi scroll awal dari external system (ancestor scrollable
+    // baru bisa diresolve setelah mount). Listener di bawah sudah benar (setState
+    // di event callback); migrasi penuh ke useSyncExternalStore butuh cara
+    // menresolve scroller yang stabil saat render — utang terpisah.
     update();
     scroller?.addEventListener("scroll", update, { passive: true });
     window.addEventListener("scroll", update, { passive: true });

@@ -25,10 +25,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.style.colorScheme = isDark ? "dark" : "light";
   };
 
+  // Tema dibaca SETELAH mount (initializer → hydration mismatch). Tulisan ke
+  // DOM (data-theme/class dark) memang tugas effect; tapi setState pasca-baca
+  // ini ditegur rule. Solusi idiomatik: external store + custom change event
+  // (setTheme menulis localStorage di tab yang sama — 'storage' event tidak
+  // memicu re-render); migrasi utang terpisah.
   useEffect(() => {
     try {
       const saved = localStorage.getItem("sigit-os-theme") as OSTheme | null;
       if (saved && ["retro90s", "dark", "tokyo", "vscode"].includes(saved)) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setThemeState(saved);
         document.documentElement.setAttribute("data-theme", saved);
         syncDarkClass(saved);

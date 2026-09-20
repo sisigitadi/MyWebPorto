@@ -97,7 +97,12 @@ export default function AdminProductsPage() {
     }
   };
 
+  // Fetch-on-mount di client component (halaman admin memuat list dari server
+  // action saat dibuka). Refactor yang benar: fetch di Server Component & kirim
+  // data awal sebagai prop (fetchProducts tetap dipakai untuk refresh setelah
+  // mutasi via server action — itu event handler, bukan effect). Utang terpisah.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProducts();
   }, []);
 

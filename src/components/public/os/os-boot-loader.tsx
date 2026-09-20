@@ -75,9 +75,14 @@ export function OSBootLoader() {
     //  - Tab baru / link dari luar → flag belum ada → animasi BIOS jalan.
     //  - Refresh di tab yang sama → flag masih ada → boot dilewati instan.
     //  - Navigasi internal antar halaman publik → flag ada → tetap dilewati.
+    // Boot adalah state machine pasca-mount: baca sessionStorage (SSR tidak
+    // punya sessionStorage → initializer menyebabkan hydration mismatch), lalu
+    // jalankan animasi via timer. setState sinkron di body effect ini memang
+    // ditegur rule; migrasi flag "sudah boot" ke external store — utang terpisah.
     const hasBooted = sessionStorage.getItem("sigitos_booted_session");
     if (hasBooted) {
       // Sudah boot di sesi tab ini → tidak ada animasi, tidak ada beep.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBootVisible(false);
       setMounted(true);
       return;

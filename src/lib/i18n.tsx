@@ -416,12 +416,15 @@ export function LanguageProvider({
 }) {
   const [language, setLanguageState] = useState<Language>("id");
 
-  // Detection precedence: ?lang= di URL > localStorage > preferensi browser.
-  // URL menang karena link yang dibagikan harus mendarat di bahasa yang sama.
+  // Deteksi bahasa pasca-mount (URL ?lang= > localStorage > browser): initializer
+  // di useState → hydration mismatch. setState pasca-baca ditegur rule; solusi
+  // idiomatik = external store + custom event (setLanguage menulis localStorage
+  // di tab yang sama), dan tulisan document.lang tetap di effect — utang terpisah.
   useEffect(() => {
     try {
       const urlLang = readUrlLang();
       if (urlLang) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setLanguageState(urlLang);
         if (typeof document !== "undefined") {
           document.documentElement.lang = urlLang;

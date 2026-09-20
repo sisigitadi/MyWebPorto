@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Cloud, KeyRound, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -138,25 +138,30 @@ export function CloudAIConfigForm({ initial }: CloudAIConfigFormProps) {
     });
   };
 
-  // Mount: bila provider sudah aktif & ada key tersimpan, tarik daftar model
-  // langsung agar dropdown sudah berisi model aktif provider (realtime, tanpa klik).
-  useEffect(() => {
-    if (provider !== "off" && initial.hasKey) handleFetchModels({ silent: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Ganti provider: reset daftar model lama, isi base URL default dari registry,
-  // dan auto-fetch bila key sudah ada (diketik, atau tersimpan untuk provider ini).
-  const prevProvider = useRef(provider);
-  useEffect(() => {
-    if (prevProvider.current === provider) return;
-    prevProvider.current = provider;
+  // Ganti provider: reset state turunan (daftar model lama, error, base URL
+  // default). Penyesuaian state saat state lain berubah — pola "store
+  // information from previous renders" (React docs): setState di body render
+  // aman karena bersyarat & konvergen, tanpa cascading render seperti effect.
+  const [prevProvider, setPrevProvider] = useState(provider);
+  if (prevProvider !== provider) {
+    setPrevProvider(provider);
     setModels([]);
     setFetchedAt(null);
     setModelError("");
     if (needsBaseUrl) setBaseUrl(providerMeta.defaultBaseUrl);
+  }
+
+  // Auto-fetch daftar model: saat mount (provider aktif + key tersimpan) dan
+  // saat provider berganti (key diketik, atau tersimpan untuk provider ini),
+  // agar dropdown langsung berisi model aktif provider (realtime, tanpa klik).
+  // Fetch-on-mount di client component: tanpa data-fetching framework di repo,
+  // refactor ke Server Component/data library adalah utang terpisah.
+  useEffect(() => {
+    if (provider === "off") return;
     const hasKey = apiKey.trim() || (initial.hasKey && provider === initial.provider);
-    if (provider !== "off" && hasKey) handleFetchModels({ silent: true });
+    if (!hasKey) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    handleFetchModels({ silent: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [provider]);
 
