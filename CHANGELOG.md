@@ -2,7 +2,42 @@
 
 Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
-## [v3.0.0] - Belum dirilis (branch `upgrade/next-16`)
+## [Unreleased]
+
+> Belum ada perubahan dirilis setelah `v3.0.1`. Kerjaan terbuka ada di plan doc §5:
+> perbaiki E2E CI (instance Clerk valid/mock), migrasi provider context ke external
+> store + custom change event, dan pindahkan fetch list admin ke Server Component.
+
+## [v3.0.1] - 2026-09-20 (tag `v3.0.1`)
+
+### Changed — pembayaran utang teknis `set-state-in-effect`
+- Changed: rule `react-hooks/set-state-in-effect` (eslint-plugin-react-hooks v7) dikembalikan
+  dari `warn` ke **`error`**. 18 situs yang tadinya memicu warning (lihat v3.0.0) sudah
+  ditangani — nol error, nol warning di `npm run lint`:
+  - **6 situs diperbaiki** dengan pola idiomatik React (bukan `useEffectEvent`):
+    penyesuaian state saat render — "store information from previous renders" — di
+    `os-command-palette.tsx` (2: reset query/pilihan saat palette dibuka & saat query
+    berubah), `os-desktop-manager.tsx` (guard `activeApp` saat props `apps` berganti),
+    `retro-bot.tsx` (reset `panelGeo` saat panel ditutup), `cloud-ai-config-form.tsx`
+    (reset state turunan saat ganti provider); serta `useSyncExternalStore` untuk baca
+    URL halaman di `article-detail-content.tsx` (server snapshot `""` → hydration aman).
+  - **12 situs di-suppress** per-situs dengan `eslint-disable-next-line` + justifikasi
+    tertulis di kode: baca `localStorage`/`sessionStorage` pasca-mount yang hydration-safe
+    (cart, tema, sound, greeting, bahasa, hash), fetch-on-mount di client component
+    (products/testimonials/cloud-ai), one-shot handoff sessionStorage→form
+    (contact-section), boot state machine (os-boot-loader), dan sync awal `matchMedia`
+    (os-desktop-manager).
+  - `useEffectEvent` — pemilik "utang" aslinya — **tidak** dipakai: di React 19.3.0 ia
+    memang sudah ada di build stabil (terverifikasi: `typeof react.useEffectEvent ===
+    "function"`), tapi mayoritas situs ini bukan event-handler-in-effect; pola yang
+    benar adalah penyesuaian state di render.
+- Sisa utang (butuh E2E CI yang valid lebih dulu, lihat plan doc §5 butir 4): migrasi
+  provider context (`theme`/`cart`/`i18n`) ke external store + custom change event
+  (mutasi in-app di tab yang sama tidak memicu `storage` event), dan pindah fetch list
+  admin ke Server Component (data awal sebagai prop; refetch pasca-mutasi di event
+  handler, bukan effect).
+
+## [v3.0.0] - dirilis (tag `v3.0.0`; Vercel prod `success`)
 
 > **Major release — upgrade framework Next.js 15.5.25 → 16.3.5.** Lihat rencana lengkap di
 > `plans/next-16-upgrade-plan.md` (§5 hasil eksekusi). Semua gate hijau: `tsc` EXIT 0,
@@ -30,9 +65,11 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
   `react-hooks/immutability` (eslint-plugin-react-hooks v7).
 
 ### Deprecations / utang teknis (didokumentasikan, bukan blocker)
-- `react-hooks/set-state-in-effect` (eslint-plugin-react-hooks v7) menandai 23 situs
+- `react-hooks/set-state-in-effect` (eslint-plugin-react-hooks v7) menandai 18 situs
   inisialisasi-mount yang sah (fetch-on-mount, load cart dari localStorage, bahasa dari URL).
-  Diturunkan ke `warn` agar tidak memblokir CI; refactor `useEffectEvent` menyusul.
+  Saat rilis ini diturunkan ke `warn` agar tidak memblokir CI — **selesai di [Unreleased]
+  di atas** (6 situs diperbaiki idiomatik, 12 di-suppress terdokumentasi, rule kembali
+  ke `error`).
 - Rule v7 lainnya (`refs`, `purity`, `immutability`): 3 false-positive di-scope-suppress dengan
   komentar (rule tak bisa membedakan render vs event handler).
 

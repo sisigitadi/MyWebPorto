@@ -43,8 +43,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // Load cart from localStorage after mount
+  // Cart dibaca SETELAH mount (initializer di useState → render pertama server
+  // vs klien berbeda = hydration mismatch). Solusi idiomatik: external store
+  // (useSyncExternalStore), tapi mutasi in-app (addItem/dll) menulis localStorage
+  // di tab yang sama tanpa memicu 'storage' event — butuh custom store event;
+  // migrasi cart/theme/i18n adalah utang terpisah (lihat plan doc).
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     try {
       const raw = localStorage.getItem(STORAGE_KEY);

@@ -41,14 +41,24 @@ export function OSCommandPalette({
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  // Reset pencarian tiap kali palette dibuka. Penyesuaian state saat prop
+  // berubah (pola "store information from previous renders" — React docs):
+  // setState di body render aman karena bersyarat & konvergen, dan tidak
+  // memicu cascading render seperti effect lama.
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (prevOpen !== open) {
+    setPrevOpen(open);
     if (open) {
       setQuery("");
       setActiveIndex(0);
-      const t = setTimeout(() => inputRef.current?.focus(), 30);
-      return () => clearTimeout(t);
     }
-  }, [open ]);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    const t = setTimeout(() => inputRef.current?.focus(), 30);
+    return () => clearTimeout(t);
+  }, [open]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -63,9 +73,12 @@ export function OSCommandPalette({
     return [...matchedApps, ...matchedActions].slice(0, 12);
   }, [query, apps, actions]);
 
-  useEffect(() => {
+  // Pilihan kembali ke atas saat daftar hasil berubah karena query diketik.
+  const [prevQuery, setPrevQuery] = useState(query);
+  if (prevQuery !== query) {
+    setPrevQuery(query);
     setActiveIndex(0);
-  }, [query]);
+  }
 
   if (!open) return null;
 

@@ -103,8 +103,26 @@
    - 3 false positive di-scope-suppress dengan `eslint-disable-next-line` + komentar penjelasan
      (`content-editor.tsx` ref di event handler; `os-crt-terminal.tsx` `Math.random()` & `window.location`
      di command handler — rule tak bisa membedakan render vs event handler).
-   - `set-state-in-effect` (23 situs: fetch-on-mount, load localStorage, baca bahasa URL — pola sah)
-     diturunkan ke `warn` di `eslint.config.mjs`; refactor `useEffectEvent` = utang terpisah.
+   - `set-state-in-effect` (18 situs yang dilaporkan rule) — **selesai di v3.0.1**
+     (lihat CHANGELOG `[Unreleased]`), bukan lagi utang terbuka:
+     - **6 diperbaiki** idiomatik: penyesuaian state di render ("store information from
+       previous renders") di `os-command-palette.tsx` (2 situs: reset saat `open` & saat
+       `query` berubah), `os-desktop-manager.tsx` (guard `activeApp` saat props `apps`
+       berganti), `retro-bot.tsx` (reset `panelGeo` saat panel ditutup),
+       `cloud-ai-config-form.tsx` (reset state turunan saat ganti provider), dan
+       `useSyncExternalStore` untuk baca URL di `article-detail-content.tsx`.
+     - **12 di-suppress** per-situs dengan `eslint-disable-next-line` + justifikasi:
+       baca storage pasca-mount (cart/tema/sound/greeting/bahasa/hash — hydration-safe),
+       fetch-on-mount client component (products/testimonials/cloud-ai), handoff
+       sessionStorage→form (contact-section), boot state machine (os-boot-loader),
+       sync awal matchMedia (os-desktop-manager).
+     - Rule dikembalikan ke `error` — situs baru harus diperbaiki, bukan ditumpuk.
+     - `useEffectEvent` (pemilik utang asli) tidak dipakai: sudah ada di React 19.3.0
+       stabil, tapi pola yang benar untuk situs-situs ini adalah penyesuaian-state-di-render.
+     - **Sisa utang** (butuh E2E CI valid dulu, lihat butir 4): migrasi provider context
+       (theme/cart/i18n) ke external store + custom change event (mutasi in-app di tab
+       yang sama tidak memicu `storage` event), dan pindah fetch list admin ke Server
+       Component (data awal sebagai prop; refetch pasca-mutasi di event handler).
 3. **Flat config ESLint**: plugin `react-hooks` harus dideklarasikan ulang di object override karena
    config object `next` (eslint-config-next) me-scope plugin-nya hanya ke `files:` tertentu — object
    global tidak bisa melihatnya tanpa deklarasi (`@typescript-eslint` global, jadi tidak terkena).
@@ -124,4 +142,5 @@
 **File yang berubah (9 + 1 rename):** `package.json`, `package-lock.json`, `eslint.config.mjs`,
 `next.config.ts` (komentar saja), `tsconfig.json` (typegen), `src/proxy.ts` (rename dari
 `middleware.ts` + matching native), `os-boot-loader.tsx`, `content-editor.tsx`, `os-crt-terminal.tsx`.
+
 

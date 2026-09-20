@@ -50,12 +50,18 @@ const eslintConfig = [
         },
       ],
       // eslint-plugin-react-hooks v7 (dibundel eslint-config-next 16) mengaktifkan
-      // rule ini sebagai error. 23 situs yang tertangkap adalah pola
-      // inisialisasi saat mount yang disengaja (fetch-on-mount, baca cart dari
-      // localStorage, bahasa dari URL, sinkronisasi hash) — bukan defect.
-      // Turunkan ke warning supaya tidak memblokir build/CI; refactor menyusul
-      // (useEffectEvent) sebagai utang terpisah.
-      "react-hooks/set-state-in-effect": "warn",
+      // rule ini sebagai error. 18 situs yang tertangkap saat upgrade Next 16
+      // sudah ditangani: 6 diperbaiki dengan pola idiomatik (penyesuaian state di
+      // render — "store information from previous renders" — di os-command-palette,
+      // os-desktop-manager, retro-bot, cloud-ai-config-form; baca URL external store
+      // via useSyncExternalStore di article-detail-content). Sisanya di-suppress
+      // per-situs dengan justifikasi: fetch-on-mount di client component tanpa
+      // data-fetching framework, baca localStorage/sessionStorage pasca-mount
+      // (hydration-safe), dan deteksi bahasa/hash — semuanya butuh migrasi
+      // external store / Server Component (utang terpisah, lihat
+      // plans/next-16-upgrade-plan.md). Rule tetap error: penambahan situs baru
+      // harus diperbaiki, bukan ditumpuk.
+      "react-hooks/set-state-in-effect": "error",
     },
   },
 ];

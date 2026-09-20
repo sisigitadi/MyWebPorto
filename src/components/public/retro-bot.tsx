@@ -212,9 +212,13 @@ export function RetroBot() {
   const isEn = language === "en";
 
   // Greeting hanya muncul setelah mount (SSR tidak punya sessionStorage).
+  // External store (useSyncExternalStore) tidak bisa: dismissGreeting() menulis
+  // sessionStorage di tab yang sama tanpa memicu 'storage' event — butuh custom
+  // store event; migrasi store flag/tema/cart/i18n ini adalah utang terpisah.
   useEffect(() => {
     try {
       if (window.sessionStorage?.getItem(STORAGE_DISMISSED) !== "1") {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setShowGreeting(true);
       }
     } catch {
@@ -253,6 +257,11 @@ export function RetroBot() {
       const hash = window.location.hash.replace("#", "").toLowerCase();
       return (hash && aliasMap[hash]) || null;
     };
+    // Sinkronisasi awal dari location.hash (mis. pengunjung buka /#proyek dari
+    // luar). Listener hashchange/switch-os-app di bawah sudah benar (setState di
+    // event callback); sumber hybrid hash + custom event menyulitkan migrasi
+    // useSyncExternalStore — utang terpisah.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentApp(fromHash());
     const onSwitch = (e: Event) => {
       const detail = (e as CustomEvent<OsAppId>).detail;
@@ -622,11 +631,16 @@ export function RetroBot() {
    * (bukan dipaku pojok kanan-bawah), sehingga muncul di sekitar robot ke
    * mana pun ia di-drag. Flip sisi bila tidak muat di viewport.
    */
+  // Panel ditutup: hapus geometri tersisa saat render (penyesuaian state saat
+  // prop berubah — pola "store information from previous renders", React docs)
+  // agar tidak memakai rect lama saat dibuka lagi. Geometri sendiri tetap
+  // dihitung di layout effect karena butuh ukuran DOM sesungguhnya.
+  if (!isOpen && Object.keys(panelGeo).length) {
+    setPanelGeo({});
+  }
+
   useLayoutEffect(() => {
-    if (!isOpen) {
-      if (Object.keys(panelGeo).length) setPanelGeo({});
-      return;
-    }
+    if (!isOpen) return;
     const el = avatarRef.current;
     if (!el) return;
 
@@ -682,9 +696,6 @@ export function RetroBot() {
       window.removeEventListener("resize", place);
       window.removeEventListener("scroll", place, true);
     };
-    // panelGeo sengaja di luar deps: place() menulisnya setiap kali, jadi
-    // memasukkannya akan membuat loop render tanpa henti.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, position]);
 
   // Gate wajib di bawah seluruh hook (termasuk useLayoutEffect di atas): bila

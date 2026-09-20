@@ -206,12 +206,19 @@ export function OSDesktopManager({
   // tanpa remount), kembalikan ke app aktif pertama. Tanpa ini, currentApp
   // jadi undefined dan titlebar/taskbar runtuh. Server menjamin apps tidak
   // pernah kosong, jadi apps[0] selalu ada.
-  useEffect(() => {
+  //
+  // Penyesuaian state saat props berubah (pola "store information from previous
+  // renders" — React docs): setState di body render aman karena bersyarat &
+  // konvergen. Init null memastikan cek juga jalan di render pertama (dulu
+  // dilakukan effect pasca-mount), sekaligus menghilangkan cascading render.
+  const [prevApps, setPrevApps] = useState<AppItem[] | null>(null);
+  if (prevApps !== apps) {
+    setPrevApps(apps);
     if (apps.length && !apps.some((a) => a.id === activeApp)) {
       setActiveApp(apps[0].id);
       setIsMinimized(false);
     }
-  }, [apps, activeApp]);
+  }
 
   // Ref container scroll window (desktop) — dideklarasikan di atas agar semua
   // callback di bawah mereferensikan binding yang sudah diinisialisasi.
@@ -219,8 +226,12 @@ export function OSDesktopManager({
 
   // Preferensi suara dibaca SETELAH mount — useState initializer yang membaca
   // localStorage membuat render pertama server vs klien berbeda (hydration mismatch).
+  // Solusi idiomatik adalah external store (useSyncExternalStore), tapi sound
+  // juga di-toggle in-app yang menulis localStorage di tab yang sama (tidak
+  // memicu 'storage' event) — butuh custom store event; utang terpisah.
   useEffect(() => {
     try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSoundOn(window.localStorage?.getItem("sigitos_sound") !== "off");
     } catch {
       // Storage diblokir — pakai default ON
@@ -233,8 +244,12 @@ export function OSDesktopManager({
     const apply = () => {
       setViewMode(mq.matches ? "desktop" : "mobile");
     };
+    // Nilai awal di-sync dari external system saat mount; listener di bawah
+    // memakai setState di event callback (sudah benar). Migrasi penuh ke
+    // useSyncExternalStore sekaligus menghapus flag "mounted" — utang terpisah.
     apply();
     mq.addEventListener("change", apply);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     return () => mq.removeEventListener("change", apply);
   }, []);
