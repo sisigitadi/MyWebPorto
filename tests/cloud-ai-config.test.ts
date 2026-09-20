@@ -97,12 +97,12 @@ describe("resolveCloudAIConfig (fallback env)", () => {
 
   it("anthropic membaca key/model/base URL dari env-nya sendiri", async () => {
     process.env.AI_PROVIDER = "anthropic";
-    process.env.ANTHROPIC_API_KEY = "sk-ant-real-key";
+    process.env.ANTHROPIC_API_KEY = "TEST_ANTHROPIC_KEY_FIXTURE";
     process.env.ANTHROPIC_MODEL = "claude-3-5-sonnet-20241022";
     process.env.ANTHROPIC_BASE_URL = "https://api.anthropic.com/v1/";
     const cfg = await resolveCloudAIConfig();
     expect(cfg.provider).toBe("anthropic");
-    expect(cfg.apiKey).toBe("sk-ant-real-key");
+    expect(cfg.apiKey).toBe("TEST_ANTHROPIC_KEY_FIXTURE");
     expect(cfg.model).toBe("claude-3-5-sonnet-20241022");
     // Trailing slash selalu dipotong.
     expect(cfg.baseUrl).toBe("https://api.anthropic.com/v1");
@@ -110,11 +110,11 @@ describe("resolveCloudAIConfig (fallback env)", () => {
 
   it("preset (groq) dapat default base URL & model dari registry", async () => {
     process.env.AI_PROVIDER = "groq";
-    process.env.GROQ_API_KEY = "gsk_real_key";
+    process.env.GROQ_API_KEY = "TEST_GROQ_KEY_FIXTURE";
     const cfg = await resolveCloudAIConfig();
     expect(cfg).toMatchObject({
       provider: "groq",
-      apiKey: "gsk_real_key",
+      apiKey: "TEST_GROQ_KEY_FIXTURE",
       model: "llama-3.3-70b-versatile",
       baseUrl: "https://api.groq.com/openai/v1",
     });

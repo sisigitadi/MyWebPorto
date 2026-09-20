@@ -2,6 +2,77 @@
 
 Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
+## [v3.0.0] - Belum dirilis (branch `upgrade/next-16`)
+
+> **Major release — upgrade framework Next.js 15.5.25 → 16.3.5.** Lihat rencana lengkap di
+> `plans/next-16-upgrade-plan.md` (§5 hasil eksekusi). Semua gate hijau: `tsc` EXIT 0,
+> `vitest` 233/233, `eslint` 0 error, build Turbopack 38/38 route, gerbang proxy terverifikasi.
+
+### Changed
+- Changed: **middleware.ts → proxy.ts** (konvensi Next.js 16; logika gate identik). Clerk resmi
+  mendukung proxy.ts di Next 16 — hanya nama file yang berubah. `createRouteMatcher()` (kini
+  deprecated Clerk) diganti dengan matching native `req.nextUrl.pathname.startsWith("/admin")`.
+  Pertahanan berlapis tetap utuh: cek server-side `auth()` + `notFound()` di `admin/layout.tsx`
+  dan `verifyAdmin()` di setiap server action.
+- Changed: **ESLint flat config native** — `eslint.config.mjs` tidak lagi memakai `FlatCompat`
+  (`@eslint/eslintrc` dihapus); extends langsung `eslint-config-next/core-web-vitals` +
+  `/typescript`. Memperbaiki crash `Converting circular structure to JSON` pada eslint 9.39.5
+  + config-next 16.
+- Changed: script `dev` tidak lagi memakai flag `--turbopack` (Turbopack jadi default bundler
+  Next 16 untuk dev maupun build).
+- Changed: `tsconfig.json` diupdate oleh `next typegen` (`jsx: react-jsx`, include
+  `.next/dev/types`).
+
+### Fixed
+- Fixed: `os-boot-loader.tsx` — `handleComplete` dipanggil dalam `setTimeout` **sebelum**
+  deklarasinya (TDZ); sebelumnya hanya jalan berkat delay 5 detik. Dipindah ke atas + dibungkus
+  `useCallback` (deps effect `[handleComplete]`, tetap run-once). Ditangkap oleh rule baru
+  `react-hooks/immutability` (eslint-plugin-react-hooks v7).
+
+### Deprecations / utang teknis (didokumentasikan, bukan blocker)
+- `react-hooks/set-state-in-effect` (eslint-plugin-react-hooks v7) menandai 23 situs
+  inisialisasi-mount yang sah (fetch-on-mount, load cart dari localStorage, bahasa dari URL).
+  Diturunkan ke `warn` agar tidak memblokir CI; refactor `useEffectEvent` menyusul.
+- Rule v7 lainnya (`refs`, `purity`, `immutability`): 3 false-positive di-scope-suppress dengan
+  komentar (rule tak bisa membedakan render vs event handler).
+
+## [v2.15.2] - 2026-09-20
+
+### Fixed — Konsistensi pasca-audit (nol perubahan perilaku runtime)
+- Fixed: CHANGELOG v2.15.0 menyebut "8 provider baru", padahal union
+  `CloudProvider` (`src/lib/cloud-ai-config.ts`) menambahkan tepat **7**
+  provider baru selain Gemini & OpenAI-compatible: `anthropic`, `deepseek`,
+  `groq`, `openrouter`, `together`, `mistral`, `xai`. Klaim "Total 10
+  pilihan (`off` + 9)" tetap benar — hanya angka "8" yang salah.
+- Changed: string key fake di test disatukan ke konstanta fixture yang sama
+  (`TEST_ANTHROPIC_KEY_FIXTURE` / `TEST_GROQ_KEY_FIXTURE`). Sebelumnya scrub
+  GitGuardian hanya merename dua nilai yang memicu scanner; sisanya
+  (`sk-ant-real-key`, `gsk_real_key`, `sk-ant-fake`, `gsk_fake`) tertinggal
+  di `tests/ai-anthropic.test.ts`, `tests/ai-models.test.ts`, dan
+  `tests/cloud-ai-config.test.ts`. Nol impact fungsional (semuanya jelas
+  fake & CI hijau), murni konsistensi konvensi fixture.
+- Changed: type predicate filter `messages` di `POST /api/retrobot`
+  diperluas menjadi `role: "user" | "system" | "assistant"` — riwayat chat
+  sah menyumbang role `assistant`; predicate lama lebih sempit dari nilai
+  sebenarnya (tsc & runtime sudah benar, ini hanya kejujuran tipe).
+- Removed: stale git worktree `.kilo/worktrees/river-ease/` (mirror
+  pre-v2.15 — union 3-provider, timeout 15s). Sudah gitignored sehingga
+  tidak pernah di-ship, tapi merupakan salinan kode usang yang mencemari
+  hasil pencarian tooling. `.kilo/`, `.superpowers/`, `.verify*.log`
+  ditambahkan ke `.gitignore` agar scratch sejenis tak masuk repo lagi.
+
+### Docs — Audit keamanan post-merge v2.15.0/v2.15.1
+- Added: SECURITY.md §3.7 mencatat bahwa **semua 9 provider memakai
+  otentikasi API key** — tidak ada alur login/OAuth per akun. Form admin
+  hanya input API key (lihat `maskKey()`); login akun provider tidak
+  didukung maupun direncanakan.
+- Audit: `tsc --noEmit` EXIT 0; `vitest run` 233/233 (21 file). Auth
+  boundary (`verifyAdmin()` di tiap server action baru), fail-closed
+  3-lapis (`isCloudProvider` / `resolveCloudAIConfig` / `saveCloudAIConfig`),
+  `maskKey()`, placeholder key → nol network call, `AbortSignal.timeout` di
+  seluruh egress — **lulus, tanpa issue blocking**.
+
+
 ## [v2.15.1] - 2026-09-20
 
 ### Fixed — RetroBot: eskalasi Gemini kini multi-turn
@@ -39,7 +110,7 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [v2.15.0] - 2026-09-20
 
-### Added — Cloud AI: 8 provider baru lewat satu registry (2026-09-20)
+### Added — Cloud AI: 7 provider baru lewat satu registry (2026-09-20)
 - Added: **registry provider terpusat** `src/lib/ai-providers.ts` (client-safe —
   murni data publik: label, hint, base URL/model default, nama env var; tidak
   ada import server-only, tidak ada key). Dipakai bersama oleh form admin DAN
@@ -47,7 +118,7 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
   `Record<CloudProvider, ProviderMeta>` memaksa **exhaustiveness check** saat
   compile: tambah provider = satu entry registry + satu baris union
   `CloudProvider`; TypeScript menolak bila salah satu sisi kurang.
-- Added: **8 provider baru** selain Gemini & OpenAI-compatible — Anthropic
+- Added: **7 provider baru** selain Gemini & OpenAI-compatible — Anthropic
   Claude, DeepSeek, Groq, OpenRouter, Together AI, Mistral, xAI Grok, tetap
   ada "OpenAI-compatible — custom" (OpenAI / Ollama / endpoint
   `/v1/chat/completions` sendiri). Total 10 pilihan (`off` + 9). Provider

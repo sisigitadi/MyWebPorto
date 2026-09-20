@@ -59,6 +59,10 @@ export function ContentEditor({ id, label, value, onChange, placeholder, rows = 
         </button>
       </div>
       <div className="flex items-center gap-1 pb-0.5">
+        {/* react-hooks v7 menandai akses ref saat render, tetapi areaRef.current
+            hanya dibaca dalam apply() yang dijalankan dari onClick toolbar —
+            bukan pada saat render. Rule tak bisa melihat scope event handler. */}
+        {/* eslint-disable-next-line react-hooks/refs */}
         {tools.map((tool) => (
           <button
             key={tool.title}

@@ -1,9 +1,13 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { isPlaceholderKey, isProduction } from "@/lib/env";
 import { isAdminOwnerConfigured } from "@/lib/admin-auth";
 
-const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
+// Next.js 16: middleware.ts di-rename menjadi proxy.ts (logika gate identik,
+// hanya nama file yang berubah — lihat docs Next 16 + clerkMiddleware Clerk).
+// createRouteMatcher() deprecated di Clerk (log runtime warning); untuk logika
+// non-auth pakai matching native sesuai anjuran Clerk.
+const isAdminRoute = (req: NextRequest): boolean => req.nextUrl.pathname.startsWith("/admin");
 
 export default clerkMiddleware(async (auth, req) => {
   // Jika Clerk keys belum diset / masih placeholder — izinkan navigasi untuk dev lokal (lihat SECURITY.md)

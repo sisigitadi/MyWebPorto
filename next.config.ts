@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   compress: true,
   // Gunakan standalone hanya untuk build mandiri VPS/PM2, biarkan default untuk Vercel
   output: process.env.VERCEL ? undefined : "standalone",
+  // Next.js 16: tetap di experimental (diverifikasi via tipe NextConfig 16.3.5
+  // — config-shared.d.ts:928; tidak ikut pindah ke top-level).
   experimental: {
     serverActions: {
       bodySizeLimit: "25mb",

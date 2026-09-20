@@ -610,6 +610,10 @@ export function OSCrtTerminal({
       const argLower = arg.toLowerCase();
       if (argLower === "random" || argLower === "acak") {
         const pool: OSTheme[] = ["retro90s", "dark", "tokyo", "vscode"];
+        // Math.random() di sini dieksekusi saat pengguna mengetik perintah
+        // "random"/"acak", bukan saat render; react-hooks v7 tidak bisa
+        // membedakan scope command handler → false positive di-scope-suppress.
+        // eslint-disable-next-line react-hooks/purity
         const picked = pool[Math.floor(Math.random() * pool.length)];
         setTheme(picked);
         appendLogs([...newLogs, t.terminal_theme_random.replace("{theme}", picked)]);
@@ -665,6 +669,10 @@ export function OSCrtTerminal({
     if (command === "email" || command === "mail") {
       if (profile.email) {
         appendLogs([...newLogs, `Email: ${profile.email}`, t.terminal_email_opening]);
+        // Navigasi mailto: dijalankan dalam command handler pengguna, bukan
+        // saat render; react-hooks v7 tidak bisa membedakan scope handler →
+        // false positive di-scope-suppress.
+        // eslint-disable-next-line react-hooks/immutability
         window.location.href = `mailto:${profile.email}`;
       } else {
         appendLogs([...newLogs, t.terminal_email_unconfigured]);

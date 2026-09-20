@@ -65,13 +65,13 @@ describe("listCloudModels", () => {
         ],
       })
     );
-    const r = await listCloudModels("anthropic", "sk-ant-fake", "https://api.anthropic.com/v1");
+    const r = await listCloudModels("anthropic", "TEST_ANTHROPIC_KEY_FIXTURE", "https://api.anthropic.com/v1");
     expect(r.models).toEqual(["claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022"]);
     const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toBe("https://api.anthropic.com/v1/models");
     const headers = init?.headers as Record<string, string>;
     // Anthropic pakai x-api-key (bukan Bearer) + wajib header versi API.
-    expect(headers["x-api-key"]).toBe("sk-ant-fake");
+    expect(headers["x-api-key"]).toBe("TEST_ANTHROPIC_KEY_FIXTURE");
     expect(headers["anthropic-version"]).toBeTruthy();
     fetchMock.mockRestore();
   });
@@ -80,12 +80,12 @@ describe("listCloudModels", () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       OK({ data: [{ id: "llama-3.3-70b-versatile" }] })
     );
-    const r = await listCloudModels("groq", "gsk_fake", "");
+    const r = await listCloudModels("groq", "TEST_GROQ_KEY_FIXTURE", "");
     expect(r.models).toEqual(["llama-3.3-70b-versatile"]);
     expect(String(fetchMock.mock.calls[0][0])).toBe("https://api.groq.com/openai/v1/models");
     // Preset OpenAI-compatible tetap memakai Authorization Bearer.
     const init = fetchMock.mock.calls[0][1] as RequestInit;
-    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer gsk_fake");
+    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer TEST_GROQ_KEY_FIXTURE");
     fetchMock.mockRestore();
   });
 
