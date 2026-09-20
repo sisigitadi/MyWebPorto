@@ -9,6 +9,55 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 > external store + custom change event, dan pindahkan fetch list admin ke
 > Server Component (plan doc §5).
 
+### Added — Menu admin SEO & SEM (`/admin/seo`)
+- Added: halaman admin terpadu untuk SEO/SEM — token verifikasi **Google
+  Search Console** & **Bing Webmaster**, key **IndexNow** + tombol ping manual
+  semua URL, serta override **Open Graph** lengkap dengan pratinjau kartu
+  sosial (Facebook/X/LinkedIn) dan gambar OG aktual yang dibangkitkan.
+  Konfigurasi disimpan di tabel `settings` (key `"seo"`) lewat
+  `saveSeoConfigAction` — urutannya `verifyAdmin()` → validasi 100%
+  server-side di `saveSeoConfig()` → `logAudit` → `revalidatePath("/",
+  "layout")`. Tidak ada redeploy untuk mengganti token/key/OG.
+- Added: `src/lib/seo-config.ts` — lapisan resolusi dengan prioritas pengaturan
+  admin → env (`NEXT_PUBLIC_GOOGLE_VERIFICATION`,
+  `NEXT_PUBLIC_BING_VERIFICATION`, `INDEXNOW_KEY`) → token publik fallback.
+  Token tidak pernah dikembalikan mentah ke client (`maskToken`, 4 karakter
+  terakhir); field token kosong saat submit = "pertahankan yang sudah ada"
+  (sama seperti pola Cloud AI), sedangkan field OG kosong = "kembali ke
+  default profil".
+- Added: route dinamis `/{key}.txt` (`src/app/[indexnowKey]/route.ts`) yang
+  melayani file verifikasi IndexNow — rotasi key dari admin langsung efektif
+  tanpa menambah file statis. Path asing tetap 404; file statis lama di
+  `public/` tetap diutamakan Next.js untuk nama yang sama (tidak ada regresi).
+- Changed: `generateDynamicMetadata` (`lib/seo.ts`) dan `opengraph-image.tsx`
+  memakai `resolveOgMeta()` + `resolveVerification()` sehingga override OG
+  mengubah tag **dan** gambar yang dibangkitkan (sebelumnya OG murni
+  diturunkan dari profil). Token verifikasi tidak lagi di-hardcode di
+  `app/layout.tsx` (sebelumnya bertentangan dengan aturan "tidak ada
+  default di source" — token tersebut bukan rahasia dan juga dipublikasikan
+  via file statis `public/`, tetap dipindah ke lapisan konfigurasi; fallback
+  konstanta sengaja dijaga supaya produksi tidak kehilangan meta tag sebelum
+  admin membuka halaman baru).
+- Added: `NEXT_PUBLIC_GOOGLE_VERIFICATION` & `NEXT_PUBLIC_BING_VERIFICATION`
+  terdaftar di validasi env (`lib/env.ts`, severity `info`) → muncul di
+  checklist `/admin/system`.
+- Added: 15 unit test baru di `tests/seo-config.test.ts` (prioritas
+  admin>env>default, validasi token, semantik "kosong = keep", masking, URL
+  gambar). File didaftarkan di `SHARED_FS_TESTS` (`vitest.config.mts`) karena
+  menulis `data/local-settings.json` — ikut project serial anti-flaky.
+  Total 248 test lolos.
+- Added: dokumentasi deploy SEO — `.env.example` mencantumkan
+  `NEXT_PUBLIC_GOOGLE_VERIFICATION` & `NEXT_PUBLIC_BING_VERIFICATION`;
+  `DEPLOYMENT.md` menambah env tersebut ke template `.env`, checklist
+  pra-deploy (rotasi key/token dari `/admin/seo` tanpa redeploy), dan
+  verifikasi pasca-deploy (`curl /{key}.txt` + grep meta verifikasi);
+  `README.md` menambah bullet fitur admin SEO/SEM, env wajib, dan
+  troubleshooting GSC ("Not verified").
+- Fixed: lint error pre-existing di `godmode-preview-bar.tsx` (`<a href>`
+  → `next/link`) — selain mematikan job `lint` di CI (gate deploy),
+  sebelumnya navigasi admin memicu full page reload. `npm run lint`
+  sekarang 0 error.
+
 ### Fixed — E2E CI (Playwright) berjalan lagi + masuk sebagai job CI
 - Fixed: 20 test E2E (9 publik + 11 God Mode) hijau kembali; job `e2e`
   ditambahkan ke `.github/workflows/ci.yml`. Tiga akar penyebab, semuanya

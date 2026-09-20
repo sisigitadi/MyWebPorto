@@ -36,6 +36,11 @@ Perintah ini akan secara otomatis:
    BUNNY_STORAGE_ZONE_NAME=nama-storage-zone
    BUNNY_STORAGE_API_KEY=xxxx
    BUNNY_CDN_HOSTNAME=namazone.b-cdn.net
+   # SEO / SEM (opsional — token verifikasi BUKAN rahasia, sengaja dipublikasikan
+   # di <meta> + file statis; key IndexNow wajib bisa diambil crawler)
+   INDEXNOW_KEY=ganti-key-indexnow-anda
+   NEXT_PUBLIC_GOOGLE_VERIFICATION=
+   NEXT_PUBLIC_BING_VERIFICATION=
    # Cloud AI Sigit_Bot (opsional — default OFF, mesin lokal)
    AI_PROVIDER=off
    GEMINI_API_KEY=
@@ -99,9 +104,15 @@ curl -I https://domainanda.com/
 curl -I https://domainanda.com/sitemap.xml
 curl -I https://domainanda.com/robots.txt
 curl -I https://domainanda.com/toko/template-portfolio-notion
+# SEO: file verifikasi IndexNow harus 200, path asing harus 404
+curl -s -o /dev/null -w "%{http_code}\n" https://domainanda.com/INDEXNOW_KEY_Anda.txt
+# SEO: meta verifikasi harus muncul di <head>
+curl -s https://domainanda.com/ | grep -E "google-site-verification|msvalidate.01"
 ```
 
 Uji browser untuk login admin, CRUD setiap section, upload gambar, form kontak, dan halaman slug artikel/proyek/produk.
+
+Setelah deploy, konfigurasi SEO dari **`/admin/seo`** (tanpa redeploy): tempel token verifikasi Google Search Console & Bing Webmaster, rotasi key IndexNow, dan override Open Graph. Verifikasi kepemilikan domain di GSC/Bing bisa memakai metode tag `<meta>` (sudah otomatis terpasang) atau file `https://domainanda.com/{key}.txt` yang dilayani dinamis.
 
 ## Keamanan Pra-Deploy (Hardening v2)
 
@@ -111,7 +122,7 @@ Pastikan sudah memenuhi checklist berikut sebelum produksi (lihat `SECURITY.md` 
 - [ ] `ADMIN_CLERK_ID` diisi dengan Clerk user ID pemilik (bukan `user_xxxxxxxxxxxxxxxxx`).
 - [ ] `DATABASE_URL` Neon prod (`sslmode=require`), sudah `npm run db:push`.
 - [ ] `NEXT_PUBLIC_APP_URL` = domain prod (tanpa trailing slash, untuk canonical & OG).
-- [ ] `INDEXNOW_KEY` ganti dari default `e5b871c...` dan jangan commit.
+- [ ] `INDEXNOW_KEY` ganti dari default `e5b871c...` dan jangan commit. Key maupun token verifikasi Google/Bing bisa diisi/rotasi dari **`/admin/seo`** (disimpan di tabel `settings`) tanpa redeploy; env di atas hanya fallback pra-admin.
 - [ ] `ENABLE_EXTERNAL_TRANSLATE` sesuai kebijakan privasi (`false` jika egress dilarang).
 - [ ] `npm run lint && npm run build` pass (0 error) + `npm audit --audit-level=high` cek.
 - [ ] Header CSP tidak blokir UI: buka DevTools → Console, pastikan tidak ada CSP violations.

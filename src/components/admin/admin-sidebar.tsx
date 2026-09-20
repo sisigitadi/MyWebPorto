@@ -19,6 +19,7 @@ import {
   Sparkles,
   Languages,
   ToggleLeft,
+  Search,
   Newspaper,
   Bot,
 } from "lucide-react";
@@ -138,6 +139,12 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     title: "Fitur & Mode",
     href: "/admin/features",
     icon: ToggleLeft,
+    group: "godmode",
+  },
+  {
+    title: "SEO & SEM",
+    href: "/admin/seo",
+    icon: Search,
     group: "godmode",
   },
   {

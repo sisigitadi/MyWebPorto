@@ -31,6 +31,7 @@ Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager int
 - CRUD profil, proyek, layanan, produk, testimoni, dan artikel.
 - **Sistem & Logs** di `/admin/system`: kelayakan deploy (validasi env terpusat), tracing `x-request-id`, dan audit log mutasi.
 - **Media Library** di `/admin/media`: daftar gambar di Bunny Storage (bila terkonfigurasi) dengan hapus.
+- **SEO & SEM** di `/admin/seo`: token verifikasi **Google Search Console** & **Bing Webmaster**, key **IndexNow** + ping manual semua URL, dan override **Open Graph** (judul/deskripsi/gambar) dengan pratinjau kartu sosial. Disimpan di tabel `settings` (key `"seo"`) — ganti token/key/OG tanpa redeploy.
 - **Konfigurasi Cloud AI** di `/admin/system`: pilih 1 dari 10 provider (OFF 100% lokal TF-IDF, Gemini, OpenAI-compatible custom, Anthropic Claude, DeepSeek, Groq, OpenRouter, Together, Mistral, xAI Grok), isi API key (+ base URL untuk gaya OpenAI-compatible/Anthropic), **ambil daftar model otomatis & realtime** dari endpoint provider, serta atur **prompt & cara menjawab** (concise / detailed / friendly). Disimpan di tabel `settings` (key `cloud_ai`), menimpa env per-field — ganti provider/model tanpa redeploy.
 - **God Mode — Tampilan & App OS** di `/admin/appearance`: atur aplikasi SigitOS yang ditampilkan ke pengunjung (centang aktif) dan urutannya (tombol panah), tanpa kode/redeploy. Mengendalikan taskbar, sidebar ikon desktop, Start Menu, command palette, jalan pintas angka, dan urutan section mobile. Disimpan di tabel `settings` (key `os_apps`); minimal satu app harus aktif, config rusak kembali ke default. Fase pertama dari roadmap God Mode; editor teks UI menyusul.
 - **Manajemen tautan sosial**: isi Telegram, Instagram, TikTok, YouTube, Facebook, Discord, Slack, Reddit, Medium, GitHub, LinkedIn, X, Portofolio — tampil otomatis di Kontak.exe, footer & menubar hanya jika terisi.
@@ -91,10 +92,12 @@ src/
 |   |   `-- toko/[slug]/    # Detail produk shareable
 |   |-- admin/             # Panel admin terproteksi (single-owner)
 |   |   |-- appearance/    # God Mode: app SigitOS aktif + urutan (settings.os_apps)
+|   |   |-- seo/           # SEO & SEM: GSC/Bing verification, IndexNow, Open Graph
 |   |   |-- system/        # Kelayakan deploy + audit logs + Cloud AI config
 |   |   `-- media/         # Media Library (Bunny Storage)
 |   |-- sign-in/           # Login Clerk
 |   |-- sign-up/           # Sign up Clerk
+|   |-- [indexnowKey]/     # File verifikasi IndexNow /{key}.txt (dinamis)
 |   |-- api/
 |   |   |-- indexnow/      # Ping IndexNow (admin-only, rate-limited)
 |   |   `-- retrobot/      # Streaming SSE RetroBot (publik, rate-limited)
@@ -110,7 +113,8 @@ src/
 |   |-- admin/             # Komponen admin
 |   |   |-- cloud-ai-config-form.tsx  # Form Cloud AI + auto-fetch model
 |   |   |-- content-editor.tsx        # Toolbar sintaks + pratinjau
-|   |   `-- media-list.tsx            # Media Library
+|   |   |-- media-list.tsx            # Media Library
+|   |   `-- seo-config-form.tsx       # Form SEO/SEM (GSC/Bing/IndexNow/OG)
 |   |-- public/            # Komponen halaman publik
 |   |   |-- os/            # Komponen SigitOS / retro desktop
 |   |   |   |-- os-desktop-manager.tsx  # Window manager + hash sync
@@ -391,6 +395,7 @@ Jika GSC melaporkan **"Redirect error"**, **"Excluded by 'noindex' tag"**, atau 
 3. **"Excluded by 'noindex'"** — wajar untuk `/admin/*`, `/sign-in`, `/sign-up` (sengaja `robots: { index: false }`). Jika muncul di rute publik, cek `<meta name="robots">` di HTML — semua rute publik memancarkan `index, follow`.
 4. **"Discovered/Crawled - currently not indexed"** — halaman baru butuh waktu (hari–minggu). Pastikan `lastmod` di `sitemap.xml` segar dan URL ter-submit. Rute publik dipancarkan statis (`revalidate: 60`), jadi ini masalah waktu, bukan blokir.
 5. **Canonical** — `?lang=id` / `?lang=en` sengaja **canonical ke URL tanpa query** (bukan duplikat); hreflang `id-ID`/`en`/`x-default` memandu Google memilih varian. Jangan submit `?lang=` sebagai URL terpisah.
+6. **Token verifikasi gagal/"Not verified"** — token verifikasi Google Search Console & Bing Webmaster sekarang dikelola dari **`/admin/seo`** (tabel `settings`, tanpa redeploy) dengan fallback ke env `NEXT_PUBLIC_GOOGLE_VERIFICATION` / `NEXT_PUBLIC_BING_VERIFICATION`. Verifikasi dari terminal: `curl -s https://sigitadi.id/ | grep -E "google-site-verification|msvalidate.01"` harus menampilkan kedua meta. Untuk metode file, `https://sigitadi.id/{INDEXNOW_KEY}.txt` dilayani dinamis (path asing 404).
 
 Cepat verifikasi dari terminal (harus `200`, bukan `3xx`):
 
@@ -412,6 +417,9 @@ Project siap dideploy ke platform Next.js seperti Vercel. Push ke branch `main` 
 - `DATABASE_URL`
 - `NEXT_PUBLIC_FORMSPREE_ENDPOINT`
 - `NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL`
+- `INDEXNOW_KEY` (ganti default; rotasi key juga bisa dari `/admin/seo`)
+- `NEXT_PUBLIC_GOOGLE_VERIFICATION` (opsional — atau isi dari `/admin/seo`)
+- `NEXT_PUBLIC_BING_VERIFICATION` (opsional — atau isi dari `/admin/seo`)
 
 Karena upload saat ini memakai `public/uploads`, penyimpanan gambar tidak persisten di lingkungan serverless. Untuk produksi jangka panjang, gunakan object storage atau CDN storage seperti Bunny, S3, R2, atau layanan sejenis.
 
