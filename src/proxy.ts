@@ -2,6 +2,7 @@ import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
 import { hasClerkPublishableKey, isProduction } from "@/lib/env";
 import { isAdminOwnerConfigured } from "@/lib/admin-auth";
+import { resolveSectionRedirect } from "@/lib/section-redirects";
 
 // Next.js 16: middleware.ts di-rename menjadi proxy.ts (logika gate identik,
 // hanya nama file yang berubah — lihat docs Next 16 + clerkMiddleware Clerk).
@@ -38,6 +39,34 @@ function consolidateContactPrefill(req: NextRequest): NextResponse | null {
 }
 
 /**
+ * Redirect permanen (308) path section SigitOS yang ditulis polos ke anchor
+ * section di homepage.
+ *
+ * Section homepage (theme SigitOS) hidup sebagai anchor —
+ * `https://sigitadi.id/#layanan` — bukan rute sendiri. Pengguna yang mengetik
+ * "sigitadi.id/layanan" (atau backlink tebekan) mendapat 404, dan GSC
+ * berpotensi melaporkannya "Not found (404)". Path polos diarahkan ke anchor
+ * section; fragment (#…) tidak dikirim ke server dan tidak diindeks Google
+ * sebagai URL terpisah, jadi kanonik tetap `/` — tidak menciptakan varian
+ * baru (sama prinsipnya dengan konsolidasi pre-fill kontak di atas). Tabel
+ * path→anchor ada di `src/lib/section-redirects.ts` (murni, teruji unit).
+ */
+function consolidateSectionPaths(req: NextRequest): NextResponse | null {
+  const anchor = resolveSectionRedirect(req.nextUrl.pathname);
+  if (!anchor) {
+    return null;
+  }
+
+  const url = req.nextUrl.clone();
+  url.pathname = "/";
+  // anchor berbentuk "#layanan"; NextResponse.redirect mempertahankan fragment
+  // di header Location. Query lain (mis. ?lang=en) dipertahankan — toggle
+  // bahasa client-side tetap bekerja.
+  url.hash = anchor.slice(1);
+  return NextResponse.redirect(url, 308);
+}
+
+/**
  * Gate tanpa Clerk — dipakai saat publishable key belum diset / placeholder.
  *
  * Kenapa percabangan ada di level export, bukan di dalam handler
@@ -49,7 +78,7 @@ function consolidateContactPrefill(req: NextRequest): NextResponse | null {
  * /admin tetap fail-closed 404 di bawah.
  */
 function proxyWithoutClerk(req: NextRequest): NextResponse {
-  const seoRedirect = consolidateContactPrefill(req);
+  const seoRedirect = consolidateSectionPaths(req) ?? consolidateContactPrefill(req);
   if (seoRedirect) return seoRedirect;
 
   if (isAdminRoute(req) && isProduction()) {
@@ -62,7 +91,7 @@ function proxyWithoutClerk(req: NextRequest): NextResponse {
 }
 
 const clerkProxy = clerkMiddleware(async (auth, req) => {
-  const seoRedirect = consolidateContactPrefill(req);
+  const seoRedirect = consolidateSectionPaths(req) ?? consolidateContactPrefill(req);
   if (seoRedirect) return seoRedirect;
 
   if (isAdminRoute(req)) {
