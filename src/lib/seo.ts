@@ -68,26 +68,22 @@ export function buildLlmsTxt(input: {
 import { getProfile } from "@/lib/actions";
 
 /**
- * Alternates locale untuk satu URL absolut.
+ * Kanonik (tanpa query) untuk satu URL absolut.
  *
- * Locale dibawa via ?lang= (client-side i18n). Awalnya pakai URL relatif "./"
- * di metadata layout, tapi terbukti rapuh: (1) alternates di halaman menimpa
- * milik layout sepenuhnya — tidak ada merge — sehingga hreflang hilang di
- * /proyek & /artikel; (2) di root path, "./?lang=id" diresolve tanpa query-nya.
- * Helper ini dipanggil eksplisit per-halaman agar kanonikal & hreflang selalu
- * konsisten.
+ * Catatan SEO: helper ini dulu juga memancarkan hreflang id-ID/en/x-default ke
+ * varian "?lang=". Karena i18n 100% client-side, HTML "/?lang=id" dan
+ * "/?lang=en" identik dengan kanoniknya — GSC mengelompokkannya sebagai
+ * "Alternate page with proper canonical tag" (duplikat yang boros crawl
+ * budget; untuk varian pre-fill kontak Google memakai label "Crawled -
+ * currently not indexed"). Varian "?lang=" tidak lagi diiklankan
+ * dari sitemap maupun metadata; tetap berfungsi sebagai deep-link/toggle
+ * bahasa client-side (lihat src/lib/i18n.tsx). Helper ini tetap dipanggil
+ * eksplisit per-halaman karena alternates di halaman menimpa milik layout
+ * sepenuhnya (tidak ada merge) — tanpa ini kanonik hilang di /proyek & /artikel.
  */
-export function localeAlternates(
-  canonicalUrl: string
-): { canonical: string; languages: Record<string, string> } {
-  const clean = canonicalUrl.replace(/[?#].*$/, "");
+export function localeAlternates(canonicalUrl: string): { canonical: string } {
   return {
-    canonical: clean,
-    languages: {
-      "id-ID": `${clean}?lang=id`,
-      en: `${clean}?lang=en`,
-      "x-default": clean,
-    },
+    canonical: canonicalUrl.replace(/[?#].*$/, ""),
   };
 }
 
@@ -144,8 +140,10 @@ export async function generateDynamicMetadata(): Promise<Metadata> {
     alternates: localeAlternates(appUrl),
     openGraph: {
       type: "website",
-      // Locale default situs ini id-ID; varian EN dideklarasikan via
-      // alternates.languages (hreflang) di atas.
+      // Locale default situs ini id-ID. Varian "?lang=en" TIDAK dideklarasikan
+      // sebagai hreflang: i18n 100% client-side → HTML-nya identik dengan
+      // kanonik, dan GSC melaporkan varian itu sebagai "Alternate page with
+      // proper canonical tag". Lihat catatan di localeAlternates().
       locale: "id_ID",
       url: appUrl,
       title: og.title,

@@ -22,7 +22,7 @@ import { useGSAP } from "@gsap/react";
 import { OSWindow } from "@/components/public/os/os-window";
 import { FormattedText } from "@/components/public/formatted-text";
 import { ArticleData, ProfileData } from "@/lib/dummy-data";
-import { buildContactPrefillUrl } from "@/lib/contact-link";
+import { prefillContact, CONTACT_SECTION_HREF } from "@/lib/contact-link";
 import { toast } from "sonner";
 
 interface ArticleDetailContentProps {
@@ -126,11 +126,6 @@ export function ArticleDetailContent({
   const discussionBody = isEn
     ? `Hello ${profile.name || "Sigit"},\n\nI just read your article "${title}" and would love to share thoughts/inquire about it.`
     : `Halo ${profile.name || "Sigit"},\n\nSaya baru saja membaca artikel "${title}" dan tertarik untuk berdiskusi/bertanya lebih lanjut.`;
-  const contactDiscussionUrl = buildContactPrefillUrl({
-    subject: discussionSubject,
-    body: discussionBody,
-  });
-
   return (
     <div ref={containerRef} className="py-8 md:py-14 w-full vt-crt-on">
       <div className="max-w-4xl mx-auto px-3 sm:px-6 space-y-6">
@@ -339,7 +334,10 @@ export function ArticleDetailContent({
                 size="sm"
                 className="vt-btn-pink h-8 px-4 text-xs font-mono font-bold uppercase gap-1.5"
               >
-                <a href={contactDiscussionUrl}>
+                <a
+                  href={CONTACT_SECTION_HREF}
+                  onClick={() => prefillContact({ subject: discussionSubject, body: discussionBody })}
+                >
                   <Mail className="h-3.5 w-3.5" />
                   <span>{t.article_detail_discuss_cta}</span>
                 </a>
