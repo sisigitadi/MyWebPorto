@@ -51,24 +51,21 @@ export function ContactSection({ profile }: ContactSectionProps) {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    let subject = sessionStorage.getItem("contactSubject");
-    let body = sessionStorage.getItem("contactBody");
-
-    if (subject || body) {
-      sessionStorage.removeItem("contactSubject");
-      sessionStorage.removeItem("contactBody");
-    } else {
-      const params = new URLSearchParams(window.location.search);
-      subject = params.get("contactSubject");
-      body = params.get("contactBody");
-    }
-
+    // Pre-fill hanya via sessionStorage (lihat prefillContact() di
+    // src/lib/contact-link.ts). Membaca window.location.search sengaja
+    // dihilangkan: varian "?contactSubject=…" lama sudah dicegah di sumber dan
+    // dikonsolidasi 308 oleh src/proxy.ts; kalau query tetap dibaca di sini,
+    // varian duplikat homepage akan terlihat "sah" bagi Google.
+    const subject = sessionStorage.getItem("contactSubject");
+    const body = sessionStorage.getItem("contactBody");
     if (!subject && !body) return;
 
-    // One-shot handoff dari navigasi (sessionStorage/URL) ke state form: baca
+    sessionStorage.removeItem("contactSubject");
+    sessionStorage.removeItem("contactBody");
+
+    // One-shot handoff dari navigasi (sessionStorage) ke state form: baca
     // sekali lalu hapus. useSyncExternalStore tidak cocok karena getSnapshot
-    // harus murni (tidak boleh menghapus sessionStorage); perbaikan butuh
-    // seeding form dari useSearchParams + Suspense boundary.
+    // harus murni (tidak boleh menghapus sessionStorage).
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setFormData((current) => ({
       ...current,

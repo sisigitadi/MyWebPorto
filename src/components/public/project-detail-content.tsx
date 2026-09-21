@@ -9,7 +9,7 @@ import { useTranslation } from "@/lib/i18n";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { OSWindow } from "@/components/public/os/os-window";
-import { buildContactPrefillUrl } from "@/lib/contact-link";
+import { prefillContact, CONTACT_SECTION_HREF } from "@/lib/contact-link";
 
 function GithubIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -85,11 +85,6 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
   const discussionBody = isEnglish
     ? `Hello ${profile.name || "Sigit"},\n\nI came across "${title}" on your portfolio and would like to explore collaboration or a similar project.`
     : `Halo ${profile.name || "Sigit"},\n\nSaya melihat proyek "${title}" di portofolio Anda dan tertarik mendiskusikan peluang kerja sama atau proyek serupa.`;
-  const contactDiscussionUrl = buildContactPrefillUrl({
-    subject: discussionSubject,
-    body: discussionBody,
-  });
-
   const ctaDesc = t.detail_cta_box_desc.replace("{name}", profile.name || "Sigit");
 
   return (
@@ -255,7 +250,10 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
                   size="default"
                   className="vt-btn-pink h-10 px-6 font-mono font-bold text-xs uppercase gap-2"
                 >
-                  <a href={contactDiscussionUrl}>
+                  <a
+                    href={CONTACT_SECTION_HREF}
+                    onClick={() => prefillContact({ subject: discussionSubject, body: discussionBody })}
+                  >
                     <Mail className="h-4 w-4" />
                     <span>{t.detail_cta_gmail}</span>
                   </a>

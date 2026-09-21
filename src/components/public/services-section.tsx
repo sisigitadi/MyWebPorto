@@ -8,7 +8,7 @@ import { OSWindow } from "@/components/public/os/os-window";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
-import { buildContactPrefillUrl } from "@/lib/contact-link";
+import { prefillContact, CONTACT_SECTION_HREF } from "@/lib/contact-link";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -93,11 +93,6 @@ export function ServicesSection({ services: propServices, profile }: ServicesSec
               language === "id"
                 ? `Halo ${profile.name.split(" ")[0]},\n\nSaya tertarik dengan layanan "${title}" dan ingin berdiskusi lebih lanjut mengenai kebutuhan saya.`
                 : `Hello ${profile.name.split(" ")[0]},\n\nI am interested in "${title}" services and would like to discuss my needs further.`;
-            const contactUrl = buildContactPrefillUrl({
-              subject: subjectText,
-              body: bodyText,
-            });
-
             return (
               <div key={service.id} className="sigit-service-card flex flex-col h-full">
                 <OSWindow
@@ -130,7 +125,8 @@ export function ServicesSection({ services: propServices, profile }: ServicesSec
                   {/* Mail Action CTA */}
                   <div className="pt-3 border-t border-border/80">
                     <a
-                      href={contactUrl}
+                      href={CONTACT_SECTION_HREF}
+                      onClick={() => prefillContact({ subject: subjectText, body: bodyText })}
                       className="vt-btn vt-btn-chrome w-full py-2 px-3 text-xs font-bold font-mono text-foreground justify-between group"
                     >
                       <span className="inline-flex items-center gap-1.5">

@@ -9,6 +9,35 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 > external store + custom change event, dan pindahkan fetch list admin ke
 > Server Component (plan doc §5).
 
+### Fixed — SEO: varian URL duplikat homepage ("Alternate page with proper canonical tag")
+
+Google Search Console melaporkan 13 URL (mayoritas homepage dengan query string)
+sebagai "Alternate page with proper canonical tag" / "Crawled - currently not
+indexed" — varian `/?contactSubject=…&contactBody=…` (tombol "diskusikan" di
+halaman artikel/proyek/layanan) plus alternate `?lang=` seperti
+`/proyek/promptmatrix-2-0?lang=en`. Semuanya menampilkan HTML identik dengan
+kanoniknya (i18n 100% client-side), jadi Google anggap duplikat dan sengaja tidak
+mengindeksnya.
+
+- Changed: pre-fill form kontak pindah dari query string ke **sessionStorage**
+  — `prefillContact()` di `src/lib/contact-link.ts`. Tombol "diskusikan" tetap
+  `<a href="/#kontak">` (URL bersih) dengan `onClick` yang menaruh
+  subject/body di sessionStorage; `ContactSection` membacanya sekali saat mount
+  lalu menghapus (one-shot handoff). Tidak ada lagi varian URL baru per konten,
+  dan `buildContactPrefillUrl` dihapus.
+- Added: konsolidasi varian lama — `src/proxy.ts` me-**redirect 308**
+  `/?contactSubject=…` atau `/?contactBody=…` ke `/#kontak` (query lain seperti
+  `?lang=` dipertahankan) sebelum gate Clerk. Link equity mengalir ke kanonik
+  dan varian yang sudah di-crawl segera keluar dari indeks. Halaman publik
+  tetap statis (redirect di proxy, bukan baca `searchParams` di page).
+- Changed: varian `?lang=id` / `?lang=en` **tidak lagi diiklankan** sebagai
+  alternate hreflang/sitemap. Karena i18n 100% client-side, HTML kedua varian
+  identik dengan kanoniknya — justru jadi sinyal duplikat. `?lang=` tetap
+  berfungsi sebagai deep-link/toggle bahasa (client-side + e2e memakainya);
+  `localeAlternates()` (`lib/seo.ts`) kembali kanonik-only, helper
+  `withLocales` di `app/sitemap.ts` dihapus, dan komponen `locale-hreflang.tsx`
+  dihapus beserta pemakaiannya di homepage.
+
 ### Added — Menu admin SEO & SEM (`/admin/seo`)
 - Added: halaman admin terpadu untuk SEO/SEM — token verifikasi **Google
   Search Console** & **Bing Webmaster**, key **IndexNow** + tombol ping manual

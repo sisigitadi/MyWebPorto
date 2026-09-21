@@ -9,16 +9,15 @@ import {
 } from "@/lib/actions";
 import { OSDesktopManager } from "@/components/public/os/os-desktop-manager";
 import { JsonLdSchema } from "@/components/public/json-ld";
-import { LocaleHrefLang } from "@/components/public/locale-hreflang";
 import { resolveOSApps } from "@/lib/os-apps-config";
 import { draftMode } from "next/headers";
 
 export const revalidate = 60;
 
-// Di path root, alternates dari metadata kehilangan "?lang=" (normalisasi
-// Next.js). Fallback JSX (LocaleHrefLang) mengisi versi yang benar; definisi
-// di sini mencegah metadata memunculkan tag yang sama tanpa query — yang
-// akan menampilkan dua set hreflang bertentangan di <head>.
+// Kanonik root: URL bersih tanpa query. Varian "?lang=" sengaja tidak
+// diiklankan lagi (i18n 100% client-side → HTML-nya identik dengan kanonik;
+// Google menandainya "Crawled - currently not indexed"). Lihat
+// localeAlternates() di src/lib/seo.ts.
 export const metadata = {
   alternates: {
     canonical: (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, ""),
@@ -47,9 +46,6 @@ export default async function HomePage() {
   return (
     <div className="flex-1 flex-col h-full w-full overflow-hidden relative">
       <JsonLdSchema profile={profile} />
-      {/* Path root: normalisasi URL Next.js men-drop "?lang=" di metadata,
-          jadi hreflang diemit manual di sini (lihat LocaleHrefLang). */}
-      <LocaleHrefLang canonicalUrl={(process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "")} />
 
       {/* 
         Search Engine Optimization (SEO) & Web Accessibility (A11y) SSR Fallback

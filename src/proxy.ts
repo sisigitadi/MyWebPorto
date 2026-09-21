@@ -10,6 +10,34 @@ import { isAdminOwnerConfigured } from "@/lib/admin-auth";
 const isAdminRoute = (req: NextRequest): boolean => req.nextUrl.pathname.startsWith("/admin");
 
 /**
+ * Konsolidasi varian URL pre-fill form kontak ke URL kanonik.
+ *
+ * Dulu tombol "diskusikan artikel/proyek/layanan" membangun
+ * "/?contactSubject=…&contactBody=…#kontak". Setiap konten menciptakan satu
+ * varian homepage dengan HTML identik dengan "/" → Google menandainya
+ * "Crawled - currently not indexed" (duplikat, boros crawl budget). Pre-fill
+ * sekarang dibawa via sessionStorage (lihat prefillContact() di
+ * src/lib/contact-link.ts); varian lama yang sudah di-crawl/di-bookmark
+ * di-redirect permanen (308) ke URL bersih supaya link equity terkonsolidasi
+ * dan varian duplikat segera keluar dari indeks.
+ */
+function consolidateContactPrefill(req: NextRequest): NextResponse | null {
+  const { searchParams } = req.nextUrl;
+  if (!searchParams.has("contactSubject") && !searchParams.has("contactBody")) {
+    return null;
+  }
+
+  const url = req.nextUrl.clone();
+  url.searchParams.delete("contactSubject");
+  url.searchParams.delete("contactBody");
+  // Fragment (#…) tidak dikirim ke server; sematkan #kontak agar pendaratan
+  // varian lama tetap scroll ke form, seperti perilaku tombol aslinya. Query
+  // lain (mis. ?lang=) dipertahankan.
+  url.hash = "kontak";
+  return NextResponse.redirect(url, 308);
+}
+
+/**
  * Gate tanpa Clerk — dipakai saat publishable key belum diset / placeholder.
  *
  * Kenapa percabangan ada di level export, bukan di dalam handler
@@ -21,6 +49,9 @@ const isAdminRoute = (req: NextRequest): boolean => req.nextUrl.pathname.startsW
  * /admin tetap fail-closed 404 di bawah.
  */
 function proxyWithoutClerk(req: NextRequest): NextResponse {
+  const seoRedirect = consolidateContactPrefill(req);
+  if (seoRedirect) return seoRedirect;
+
   if (isAdminRoute(req) && isProduction()) {
     // Fail-closed: di produksi tanpa kredensial asli, admin 404 (bukan bypass).
     return new NextResponse("Halaman Tidak Ditemukan", { status: 404 });
@@ -31,6 +62,9 @@ function proxyWithoutClerk(req: NextRequest): NextResponse {
 }
 
 const clerkProxy = clerkMiddleware(async (auth, req) => {
+  const seoRedirect = consolidateContactPrefill(req);
+  if (seoRedirect) return seoRedirect;
+
   if (isAdminRoute(req)) {
     await auth.protect();
 
