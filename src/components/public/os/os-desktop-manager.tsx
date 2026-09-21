@@ -610,7 +610,9 @@ export function OSDesktopManager({
                   // ber-height tetap biar pengguna bisa scroll melewatinya.
                   // Tinggi tetap penting — tanpanya, panel interaktif akan
                   // tumbuh seiring output dan memakan seluruh dokumen.
-                  <div className="rounded-xs border-2 border-border bg-[var(--vt-desktop)] overflow-hidden shadow-md">
+                  // id="terminal" sebagai target anchor deep-link /#terminal
+                  // (lihat SECTION_PATH_REDIRECTS di src/lib/section-redirects.ts).
+                  <div id="terminal" className="rounded-xs border-2 border-border bg-[var(--vt-desktop)] overflow-hidden shadow-md">
                     <div className="flex items-center gap-1.5 px-2 py-1 bg-[var(--vt-card)] border-b-2 border-border font-mono text-[10px] font-bold">
                       <span className="shrink-0">
                         {apps.find((a) => a.id === "terminal")?.icon}

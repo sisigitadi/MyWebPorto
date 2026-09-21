@@ -9,6 +9,29 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 > external store + custom change event, dan pindahkan fetch list admin ke
 > Server Component (plan doc §5).
 
+### Fixed — SEO: path section SigitOS (`/layanan`, `/toko`, `/terminal`, `/testimoni`) 404
+
+Section homepage (theme SigitOS) hidup sebagai **anchor** (`/#layanan`), bukan
+rute sendiri. Mengetik `sigitadi.id/layanan` polos (atau backlink tebekan/materi
+cetak) kena **404** — GSC berpotensi melaporkannya "Not found (404)" dan boros
+crawl budget. Kebetulan keempat nama ini juga merupakan label app di taskbar,
+jadi mudah disangka path.
+
+- Added: `src/lib/section-redirects.ts` — peta path→anchor murni (tanpa I/O,
+  teruji unit). `src/proxy.ts` me-**redirect 308** path polos ke anchor section
+  di homepage (query `?lang=` dipertahankan, tetap toggle client-side). Fragment
+  `#…` tidak diindeks Google sebagai URL terpisah → kanonik tetap `/`, tidak
+  menciptakan varian baru (sama prinsipnya dengan konsolidasi pre-fill kontak).
+  - Id section di DOM untuk app "Toko" adalah **`produk`** (bukan `toko`), jadi
+    `/toko` → `/#produk` — konsisten dengan tombol "Kembali ke Toko" di halaman
+    detail produk. `/proyek` & `/artikel` **tidak** masuk tabel: rute nyata.
+- Changed: `os-desktop-manager.tsx` — `id="terminal"` di kartu section terminal
+  (mode scroll mobile) agar `/#terminal` punya target anchor.
+- Added: unit test `tests/section-redirects.test.ts`.
+- Verifikasi produksi: `curl -sI https://sigitadi.id/layanan` → `308` ke
+  `https://sigitadi.id/#layanan` (begitu juga `/toko` → `#produk`, `/terminal`,
+  `/testimoni`). Path yang tidak terdaftar tetap 404 seperti sediakala.
+
 ### Fixed — SEO: varian URL duplikat homepage ("Alternate page with proper canonical tag")
 
 Google Search Console melaporkan 13 URL (mayoritas homepage dengan query string)
