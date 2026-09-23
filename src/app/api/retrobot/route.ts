@@ -174,8 +174,13 @@ export async function POST(req: NextRequest) {
   const cloudCfg = await resolveCloudAIConfig();
   const cloudEnabled = await isCloudAIConfigEnabled();
 
-  // Jika Cloud AI aktif, naikkan threshold lokal jadi 0.99 agar mayoritas masuk ke Cloud AI
-  const confidenceThreshold = cloudEnabled ? 0.99 : BASE_CONFIDENCE_THRESHOLD;
+  // Saat Cloud AI aktif, SELALU eskalasi ke model cloud — mesin lokal (TF-IDF)
+  // hanya dipakai sebagai fallback bila cloud gagal (ditangsi di catch bawah).
+  // Catatan: ambang 0.99 sebelumnya rapuh karena scoreIntent menambah +0.5 per
+  // token yang cocok, jadi pertanyaan kaya kata kunci (mis. "siapa sigit, keahlian,
+  // proyek, layanan, kontak?") bisa menempuh 8+ kecocokan → confidence 1.0 dan
+  // TETAP dilayani lokal. Eskalasi langsung menjamin jawaban selalu natural saat
+  // cloud aktif. Saat cloud mati: perilaku lama tetap, lokal-first ambang 0.55.
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
@@ -186,9 +191,11 @@ export async function POST(req: NextRequest) {
         );
       };
 
-      // Rute lokal dipakai bila percaya jawabannya ATAU cloud mati.
+      // Rute lokal HANYA saat cloud mati dan lokal yakin jawabannya
+      // (confidence >= 0.55). Saat cloud aktif, selalu lanjut ke eskalasi cloud
+      // di bawah — lokal tetap siap sebagai fallback bila cloud gagal.
       // Kata dipecah ke chunk kecil agar jawaban lokal dapat efek ketik juga.
-      if (local.confidence >= confidenceThreshold || !cloudEnabled) {
+      if (!cloudEnabled && local.confidence >= BASE_CONFIDENCE_THRESHOLD) {
         emit("meta", {
           source: "local",
           model: "tfidf-local",
