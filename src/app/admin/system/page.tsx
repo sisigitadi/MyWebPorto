@@ -2,7 +2,6 @@ import {
   Activity,
   Bug,
   CheckCircle2,
-  Cloud,
   Database,
   FolderCheck,
   Globe,
@@ -21,8 +20,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { getSystemStatus } from "@/lib/system-status";
 import { getAuditLogs } from "@/lib/audit";
-import { getCloudAIConfigForAdmin } from "@/lib/cloud-ai-config";
-import { CloudAIConfigForm } from "@/components/admin/cloud-ai-config-form";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -41,7 +38,6 @@ function StatusBadge({ ok, trueLabel = "OK", falseLabel = "Perhatian" }: { ok: b
 
 export default async function AdminSystemPage() {
   const status = await getSystemStatus();
-  const cloudAIConfig = await getCloudAIConfigForAdmin();
   const { logs: audits, source: auditSource } = await getAuditLogs(30);
   const envOk = status.env.filter((e) => e.key !== "NEXT_PUBLIC_APP_URL" && e.key !== "ENABLE_EXTERNAL_TRANSLATE").every((e) => e.configured);
 
@@ -156,23 +152,6 @@ export default async function AdminSystemPage() {
           <p><span className="font-semibold">Formspree:</span> {status.integrations.formspree}</p>
           <p className="md:col-span-2"><span className="font-semibold">Storage:</span> {status.integrations.storage}</p>
           <p className="md:col-span-2"><span className="font-semibold">Cloud AI:</span> {status.integrations.cloudAI}</p>
-        </CardContent>
-      </Card>
-
-      {/* Pengaturan Cloud AI */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Cloud className="h-4 w-4 text-primary" /> Pengaturan Cloud AI (Sigit_Bot)
-          </CardTitle>
-          <CardDescription>
-            Provider &amp; key untuk fallback jawaban cloud. Disimpan di tabel settings —
-            menimpa env per-field, langsung aktif tanpa redeploy. Key hanya bisa ditulis,
-            tidak pernah dibaca balik (yang ditampilkan adalah versi yang di-mask).
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <CloudAIConfigForm initial={cloudAIConfig} />
         </CardContent>
       </Card>
 

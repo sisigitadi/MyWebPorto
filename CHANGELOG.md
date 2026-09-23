@@ -9,6 +9,16 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 > external store + custom change event, dan pindahkan fetch list admin ke
 > Server Component (plan doc §5).
 
+### Added — God Mode: Halaman terpisah Pengaturan Cloud AI (`/admin/cloud-ai`)
+
+Pengaturan provider Cloud AI (Gemini, OpenAI, Anthropic, Groq, DeepSeek, OpenRouter, Together, Mistral, xAI) yang sebelumnya berada di halaman `Sistem & Logs` (`/admin/system`) kini dipisahkan ke halaman sendiri.
+
+- **Added**: Rute halaman `/admin/cloud-ai` dan item navigasi "Pengaturan Cloud AI" di sidebar panel admin di bawah grup God Mode.
+- **Changed**: Memindahkan formulir `CloudAIConfigForm` dari `/admin/system` ke `/admin/cloud-ai`. Halaman `Sistem & Logs` kini lebih bersih dan terfokus pada monitoring kelayakan deploy, database, integrasi, audit log, dan tracing.
+- **Changed**: Memperbarui referensi pesan navigasi di komponen komposisi Redaksi (`redaksi-composer.tsx` & `redaksi-draft.ts`) ke menu Pengaturan Cloud AI.
+
+---
+
 ### Fixed — SEO: path section SigitOS (`/layanan`, `/toko`, `/terminal`, `/testimoni`) 404
 
 Section homepage (theme SigitOS) hidup sebagai **anchor** (`/#layanan`), bukan
