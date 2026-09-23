@@ -15,6 +15,7 @@ const CFG: ResolvedCloudAIConfig = {
   baseUrl: "https://api.anthropic.com/v1",
   systemPrompt: "",
   answerStyle: "concise",
+  authMode: "api_key",
   source: "admin",
 };
 

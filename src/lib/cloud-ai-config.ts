@@ -38,6 +38,7 @@ export interface StoredCloudAIConfig {
   apiKey?: string;
   model?: string;
   baseUrl?: string;
+  authMode?: "api_key" | "oauth";
   /**
    * Instruksi/persona tambahan untuk Sigit_Bot (opsional). Disisipkan ke system
    * prompt bila diisi; bila kosong, pakai persona default (lihat ai-provider.ts).
@@ -51,6 +52,7 @@ export interface ResolvedCloudAIConfig {
   provider: CloudProvider;
   apiKey: string;
   model: string;
+  authMode: "api_key" | "oauth";
   baseUrl: string;
   systemPrompt: string;
   answerStyle: "concise" | "detailed" | "friendly";
@@ -101,6 +103,8 @@ export async function resolveCloudAIConfig(): Promise<ResolvedCloudAIConfig> {
     meta?.defaultModel ||
     FALLBACK_MODEL
   ).trim();
+  const authMode: "api_key" | "oauth" = stored?.authMode === "oauth" ? "oauth" : "api_key";
+  
   const systemPrompt = (stored?.systemPrompt || "").trim();
   const styleRaw = (stored?.answerStyle || "").toLowerCase();
   const answerStyle: "concise" | "detailed" | "friendly" =
@@ -110,6 +114,7 @@ export async function resolveCloudAIConfig(): Promise<ResolvedCloudAIConfig> {
     provider,
     apiKey,
     model,
+    authMode,
     baseUrl,
     systemPrompt,
     answerStyle,
@@ -131,6 +136,7 @@ export interface AdminCloudAIView {
   maskedKey: string;
   model: string;
   baseUrl: string;
+  authMode: "api_key" | "oauth";
   systemPrompt: string;
   answerStyle: "concise" | "detailed" | "friendly";
   source: "admin" | "env";
@@ -151,6 +157,7 @@ export async function getCloudAIConfigForAdmin(): Promise<AdminCloudAIView> {
     maskedKey: maskKey(cfg.apiKey),
     model: cfg.model,
     baseUrl: cfg.baseUrl,
+    authMode: cfg.authMode,
     systemPrompt: cfg.systemPrompt,
     answerStyle: cfg.answerStyle,
     source: cfg.source,
@@ -182,8 +189,9 @@ export async function saveCloudAIConfig(input: StoredCloudAIConfig): Promise<voi
   const styleRaw = (input.answerStyle || "").toLowerCase();
   const answerStyle: "concise" | "detailed" | "friendly" =
     styleRaw === "detailed" || styleRaw === "friendly" ? styleRaw : "concise";
+  const authMode: "api_key" | "oauth" = input.authMode === "oauth" ? "oauth" : "api_key";
 
-  const next: StoredCloudAIConfig = { provider, model, baseUrl, answerStyle };
+  const next: StoredCloudAIConfig = { provider, model, baseUrl, authMode, answerStyle };
   if (systemPrompt) next.systemPrompt = systemPrompt;
   if (apiKey) {
     // Hanya simpan key baru bila diisi; string kosong = jangan ubah.

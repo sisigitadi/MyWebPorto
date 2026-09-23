@@ -99,6 +99,7 @@ const GEMINI_CFG: ResolvedCloudAIConfig = {
   baseUrl: "",
   systemPrompt: "",
   answerStyle: "concise",
+  authMode: "api_key",
   source: "admin",
 };
 

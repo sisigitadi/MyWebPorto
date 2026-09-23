@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import { listCloudModelsAction, saveCloudAIConfigAction } from "@/lib/actions";
 import type { AdminCloudAIView, CloudProvider } from "@/lib/cloud-ai-config";
+import { cn } from "@/lib/utils";
 import { PROVIDERS, getApiStyle } from "@/lib/ai-providers";
 
 const PROMPT_PLACEHOLDER = [
@@ -59,6 +60,7 @@ export function CloudAIConfigForm({ initial }: CloudAIConfigFormProps) {
   const [provider, setProvider] = useState<CloudProvider>(initial.provider);
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState(initial.model);
+  const [authMode, setAuthMode] = useState<"api_key" | "oauth">(initial.authMode || "api_key");
   const [baseUrl, setBaseUrl] = useState(initial.baseUrl);
   const [systemPrompt, setSystemPrompt] = useState(initial.systemPrompt || "");
   const [answerStyle, setAnswerStyle] = useState<AdminCloudAIView["answerStyle"]>(
@@ -177,6 +179,7 @@ export function CloudAIConfigForm({ initial }: CloudAIConfigFormProps) {
         apiKey: apiKey.trim(),
         model: model.trim(),
         baseUrl: needsBaseUrl ? baseUrl.trim() : "",
+        authMode,
         systemPrompt,
         answerStyle,
       });
@@ -218,8 +221,40 @@ export function CloudAIConfigForm({ initial }: CloudAIConfigFormProps) {
 
       {provider !== "off" && (
         <div className="space-y-1.5">
+          <Label>Metode Otentikasi</Label>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setAuthMode("api_key")}
+              className={cn(
+                "px-3 py-1.5 rounded-xs text-xs font-mono font-bold border-2 transition-colors cursor-pointer",
+                authMode === "api_key"
+                  ? "bg-[var(--vt-blue)] text-white border-[var(--vt-blue)]"
+                  : "text-[var(--vt-ink)] border-[var(--vt-edge-lo-2)] hover:bg-[var(--vt-edge-hi-2)]"
+              )}
+            >
+              API Key
+            </button>
+            <button
+              type="button"
+              onClick={() => setAuthMode("oauth")}
+              className={cn(
+                "px-3 py-1.5 rounded-xs text-xs font-mono font-bold border-2 transition-colors cursor-pointer",
+                authMode === "oauth"
+                  ? "bg-[var(--vt-blue)] text-white border-[var(--vt-blue)]"
+                  : "text-[var(--vt-ink)] border-[var(--vt-edge-lo-2)] hover:bg-[var(--vt-edge-hi-2)]"
+              )}
+            >
+              OAuth Token / Login
+            </button>
+          </div>
+        </div>
+      )}
+
+      {provider !== "off" && (
+        <div className="space-y-1.5">
           <Label htmlFor="cloud-ai-key" className="flex items-center gap-1.5">
-            <KeyRound className="h-3.5 w-3.5" /> API Key
+            <KeyRound className="h-3.5 w-3.5" /> {authMode === "oauth" ? "OAuth Access Token (Bearer)" : "API Key"}
           </Label>
           <Input
             id="cloud-ai-key"
@@ -241,7 +276,7 @@ export function CloudAIConfigForm({ initial }: CloudAIConfigFormProps) {
           <p className="text-[11px] text-muted-foreground">
             {initial.hasKey
               ? "Key tersimpan di server. Kosongkan field ini untuk mempertahankannya; isi untuk mengganti."
-              : "Disimpan hanya di tabel settings (server), tidak pernah dikirim balik ke browser."}
+              : authMode === "oauth" ? "Masukkan token akses OAuth (Bearer token) Anda." : "Disimpan hanya di tabel settings (server), tidak pernah dikirim balik ke browser."}
           </p>
         </div>
       )}
