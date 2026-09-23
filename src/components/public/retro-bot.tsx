@@ -7,9 +7,10 @@
  * bisa di-drag, dan membuka panel chat bila diklik. Jawaban mengalir via
  * SSE dari /api/retrobot (key TIDAK pernah di client — lihat route handler).
  *
- * Logika hybrid sama dengan Terminal: mesin TF-IDF lokal dipakai untuk
- * pertanyaan yang sudah dikenalnya; baru eskalasi ke cloud bila confidence
- * rendah DAN provider opt-in aktif (AI_PROVIDER=openai|gemini).
+ * Logika hybrid: bila Cloud AI aktif (pengaturan admin / AI_PROVIDER), SEMUA
+ * pesan eskalasi ke model cloud agar jawaban natural; mesin TF-IDF lokal hanya
+ * fallback bila cloud gagal. Bila cloud mati, lokal melayani pertanyaan yang
+ * sudah dikenalnya (confidence >= ambang) — sama seperti Terminal.
  *
  * Catatan hydration: posisi drag & status "greeting sudah ditutup" hanya
  * diubah setelah mount (useEffect) — nilai default identik SSR/client.

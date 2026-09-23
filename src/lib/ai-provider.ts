@@ -117,23 +117,23 @@ function styleLine(
   const s = style || "concise";
   if (lang === "en") {
     if (s === "detailed")
-      return "Answer in English, structured and informative (3-6 short paragraphs or bullets), professional tone.";
+      return "Answer in English, structured and informative (3-6 short paragraphs or bullets), in a natural, conversational tone.";
     if (s === "friendly")
-      return "Answer in English, warm and friendly tone, concise (max 5 sentences).";
-    return "Answer in English, concise (max 5 sentences), professional tone.";
+      return "Answer in English, warm and friendly, conversational and flowing, concise (usually 2-4 sentences).";
+    return "Answer in English, natural and conversational — concise (usually 2-4 sentences), helpful, never stiff or robotic.";
   }
   if (s === "detailed")
-    return "Jawab dalam Bahasa Indonesia, terstruktur dan informatif (3-6 paragraf/poin pendek), nada profesional.";
+    return "Jawab dalam Bahasa Indonesia, terstruktur dan informatif (3-6 paragraf/poin pendek), tetapi natural dan mengalir.";
   if (s === "friendly")
-    return "Jawab dalam Bahasa Indonesia, nada hangat dan ramah, ringkas (maksimal 5 kalimat).";
-  return "Jawab dalam Bahasa Indonesia, ringkas (maksimal 5 kalimat), nada profesional.";
+    return "Jawab dalam Bahasa Indonesia dengan nada hangat dan ramah, mengalir seperti obrolan, ringkas (biasanya 2-4 kalimat).";
+  return "Jawab dalam Bahasa Indonesia secara natural dan mengalir seperti obrolan — ringkas (biasanya 2-4 kalimat), tidak kaku, panjang mengikuti pertanyaan.";
 }
 
 /** Persona default bila admin tidak mengisi Prompt di pengaturan Cloud AI. */
 function defaultPersonaLine(ctx: LiveContext, lang: "id" | "en"): string {
   return lang === "en"
-    ? `Persona: helpful, knowledgeable assistant for ${ctx.ownerName}'s portfolio. You may also answer general technology questions (web development, AI, tools, best practices).`
-    : `Persona: asisten yang membantu dan berpengetahuan untuk portofolio ${ctx.ownerName}. Anda juga boleh menjawab pertanyaan teknologi umum (pengembangan web, AI, tools, best practice).`;
+    ? `Persona: friendly, knowledgeable assistant for ${ctx.ownerName}'s portfolio. Speak naturally and conversationally, like a helpful colleague — warm, not stiff or robotic, and adapt your answer length to the question. You may also answer general technology questions (web development, AI, tools, best practices).`
+    : `Persona: asisten yang membantu dan berpengetahuan untuk portofolio ${ctx.ownerName}. Bicara natural dan mengalir seperti rekan yang membantu — hangat, tidak kaku atau seperti skrip, dan panjang jawaban mengikuti pertanyaan. Anda juga boleh menjawab pertanyaan teknologi umum (pengembangan web, AI, tools, best practice).`;
 }
 
 /**

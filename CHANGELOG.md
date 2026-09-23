@@ -13,7 +13,8 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 - **Added**: Rute halaman terpisah `/admin/cloud-ai` di bawah grup God Mode untuk pengaturan Cloud AI, serta dukungan metode otentikasi ganda (`API Key` atau `OAuth Token / Login`).
 - **Fixed & Enhanced**: Mekanisme **Smart Local Fallback** otomatis pada Redaksi AI — jika koneksi internet terputus atau provider eksternal tidak merespons, sistem otomatis menyusun draf lokal pintar tanpa menampilkan eror merah.
-- **Fixed**: Peningkatan ambang batas kecocokan lokal RetroBot serta penyempurnaan instruksi sistem (*system prompt*) agar RetroBot merespons secara natural, interaktif, dan memprioritaskan Cloud AI saat diaktifkan.
+- **Fixed**: RetroBot kini **selalu eskalasi ke Cloud AI saat diaktifkan** — bukan sekadar menaikkan ambang confidence ke 0.99. Ambang 0.99 sebelumnya rapuh: `scoreIntent` di `ai-engine.ts` menambah `+0.5` per token yang cocok, sehingga pertanyaan kaya kata kunci (8+ kecocokan, mis. *"siapa sigit, keahlian, proyek, layanan, kontak?"*) mencapai confidence `1.0` dan **tetap dilayani mesin TF-IDF lokal yang kaku**. Kini mesin lokal hanya dipakai bila cloud mati (ambang 0.55) atau sebagai fallback saat panggilan cloud gagal.
+- **Changed**: Persona & instruksi sistem (*system prompt*) default Cloud AI ditulis ulang agar **natural dan mengalir seperti obrolan** — sebelumnya kaku ("nada profesional, maksimal 5 kalimat"). Jawaban RetroBot tidak lagi terdengar seperti skrip robotik (`[Neural Model 2.6]: Saya menganalisis input…` itu hanya muncul di jalur lokal murni).
 
 ### Added — God Mode: Halaman terpisah Pengaturan Cloud AI (`/admin/cloud-ai`)
 
