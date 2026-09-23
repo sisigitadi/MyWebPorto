@@ -183,9 +183,11 @@ export async function POST(req: NextRequest) {
         );
       };
 
-      // Rute lokal dipakai bila percaya jawabannya ATAU cloud mati.
-      // Kata dipecah ke chunk kecil agar jawaban lokal dapat efek ketik juga.
-      if (local.confidence >= CONFIDENCE_THRESHOLD || !cloudEnabled) {
+      // Rute lokal dipakai bila cloud mati ATAU kecocokan lokal absolut (confidence >= 0.95)
+      // untuk pertanyaan fakta langsung (mis. email/telepon). Bila cloud aktif,
+      // RetroBot mengutamakan Cloud AI agar terasa seperti asisten AI sungguhan.
+      const RETRO_CLOUD_THRESHOLD = 0.95;
+      if (!cloudEnabled || local.confidence >= RETRO_CLOUD_THRESHOLD) {
         emit("meta", {
           source: "local",
           model: "tfidf-local",
