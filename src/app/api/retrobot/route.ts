@@ -16,7 +16,7 @@ const POST_WINDOW_MS = 5 * 60_000;
 const MAX_BODY_BYTES = 10_000;
 const MAX_INPUT_CHARS = 500;
 const MAX_HISTORY = 4; // pasang user+assistant terakhir
-const CONFIDENCE_THRESHOLD = 0.55; // sama dengan askSigitBot
+const BASE_CONFIDENCE_THRESHOLD = 0.55; // sama dengan askSigitBot
 
 // Streaming butuh Node runtime (ReadableStream fetch), bukan Edge.
 export const runtime = "nodejs";
@@ -174,6 +174,9 @@ export async function POST(req: NextRequest) {
   const cloudCfg = await resolveCloudAIConfig();
   const cloudEnabled = await isCloudAIConfigEnabled();
 
+  // Jika Cloud AI aktif, naikkan threshold lokal jadi 0.99 agar mayoritas masuk ke Cloud AI
+  const confidenceThreshold = cloudEnabled ? 0.99 : BASE_CONFIDENCE_THRESHOLD;
+
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -185,7 +188,7 @@ export async function POST(req: NextRequest) {
 
       // Rute lokal dipakai bila percaya jawabannya ATAU cloud mati.
       // Kata dipecah ke chunk kecil agar jawaban lokal dapat efek ketik juga.
-      if (local.confidence >= CONFIDENCE_THRESHOLD || !cloudEnabled) {
+      if (local.confidence >= confidenceThreshold || !cloudEnabled) {
         emit("meta", {
           source: "local",
           model: "tfidf-local",
