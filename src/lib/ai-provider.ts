@@ -208,7 +208,9 @@ export async function submitToGemini(
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-goog-api-key": apiKey,
+          ...(cfg.authMode === "oauth"
+            ? { Authorization: `Bearer ${apiKey}` }
+            : { "x-goog-api-key": apiKey }),
         },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
@@ -294,7 +296,9 @@ export async function submitToGeminiMessages(
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-goog-api-key": apiKey,
+          ...(cfg.authMode === "oauth"
+            ? { Authorization: `Bearer ${apiKey}` }
+            : { "x-goog-api-key": apiKey }),
         },
         body: JSON.stringify({
           contents,
