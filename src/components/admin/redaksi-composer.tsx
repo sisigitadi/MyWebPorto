@@ -639,7 +639,7 @@ export function RedaksiComposer({
             </Button>
             <span className="text-[11px] text-muted-foreground">
               {cloudProvider === "off"
-                ? "Cloud AI OFF — aktifkan di God Mode → Sistem & Logs."
+                ? "Cloud AI OFF — aktifkan di God Mode → Pengaturan Cloud AI."
                 : `Provider: ${cloudProvider} · model: ${cloudModel}`}
             </span>
           </div>

@@ -38,7 +38,7 @@ interface CloudAIConfigFormProps {
 }
 
 /**
- * Form pengaturan Cloud AI untuk /admin/system.
+ * Form pengaturan Cloud AI untuk /admin/cloud-ai.
  *
  * Sebelumnya satu-satunya cara mengaktifkan Gemini/OpenAI adalah menyetel env di
  * Vercel lalu redeploy. Form ini menyimpan konfigurasi di tabel `settings`

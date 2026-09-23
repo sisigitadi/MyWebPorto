@@ -302,13 +302,13 @@ export async function draftContentWithAI(
   if (getApiStyle(cfg.provider) === "off") {
     return {
       ok: false,
-      error: "Cloud AI sedang OFF. Aktifkan provider (Gemini / OpenAI-compatible / Anthropic Claude / Groq / DeepSeek / OpenRouter / Together / Mistral / xAI) di God Mode → Sistem & Logs sebelum memakai bantuan AI.",
+      error: "Cloud AI sedang OFF. Aktifkan provider (Gemini / OpenAI-compatible / Anthropic Claude / Groq / DeepSeek / OpenRouter / Together / Mistral / xAI) di God Mode → Pengaturan Cloud AI sebelum memakai bantuan AI.",
     };
   }
   if (isPlaceholderKey(cfg.apiKey)) {
     return {
       ok: false,
-      error: "API Key Cloud AI belum terisi (placeholder). Lengkapi dulu di God Mode → Sistem & Logs.",
+      error: "API Key Cloud AI belum terisi (placeholder). Lengkapi dulu di God Mode → Pengaturan Cloud AI.",
     };
   }
 

@@ -22,6 +22,7 @@ import {
   Search,
   Newspaper,
   Bot,
+  Cloud,
 } from "lucide-react";
 import { useUser, SignOutButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
@@ -145,6 +146,12 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     title: "SEO & SEM",
     href: "/admin/seo",
     icon: Search,
+    group: "godmode",
+  },
+  {
+    title: "Pengaturan Cloud AI",
+    href: "/admin/cloud-ai",
+    icon: Cloud,
     group: "godmode",
   },
   {
