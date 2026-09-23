@@ -9,6 +9,12 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 > external store + custom change event, dan pindahkan fetch list admin ke
 > Server Component (plan doc §5).
 
+### Fixed & Enhanced — Cloud AI & Redaksi Fallback
+
+- **Added**: Pilihan autentikasi ganda (`API Key` atau `OAuth Token / Login`) di halaman Pengaturan Cloud AI (`/admin/cloud-ai`).
+- **Fixed**: Penanganan eror pada Redaksi AI dengan mekanisme **Smart Local Fallback** otomatis — jika koneksi internet terputus atau provider eksternal tidak merespons, sistem otomatis menyusun draf lokal pintar tanpa menampilkan eror merah.
+- **Deployment**: Menjalankan *production build* bersih (`0 error`) dan mengemas paket mandiri siap rilis di folder `deploy_package/`.
+
 ### Added — God Mode: Halaman terpisah Pengaturan Cloud AI (`/admin/cloud-ai`)
 
 Pengaturan provider Cloud AI (Gemini, OpenAI, Anthropic, Groq, DeepSeek, OpenRouter, Together, Mistral, xAI) yang sebelumnya berada di halaman `Sistem & Logs` (`/admin/system`) kini dipisahkan ke halaman sendiri.
