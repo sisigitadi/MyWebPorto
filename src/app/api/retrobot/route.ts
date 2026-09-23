@@ -236,6 +236,10 @@ export async function POST(req: NextRequest) {
       ].filter((m): m is { role: "user" | "system" | "assistant"; content: string } => m !== null);
 
       let sentAny = false;
+      // Alasan kegagalan cloud (string generic, tanpa membocorkan key) untuk
+      // meta fallback — membantu admin mendiagnosis kenapa RetroBot jatuh ke
+      // lokal: mis. "status_401" (key salah/expired) atau "status_429" (quota).
+      let cloudError = "";
       try {
         const style = getApiStyle(cloudCfg.provider);
         if (style === "openai-chat") {
@@ -261,22 +265,27 @@ export async function POST(req: NextRequest) {
                 const json = JSON.parse(payload);
                 if (json.error) {
                   // Key tidak terkonfigurasi / upstream gagal → fallback lokal.
-                  throw new Error(String(json.error));
+                  cloudError = String(json.error);
+                  throw new Error(cloudError);
                 }
                 const delta: string = json.choices?.[0]?.delta?.content ?? "";
                 if (delta) {
                   sentAny = true;
                   emit("delta", { t: delta });
                 }
-              } catch {
+              } catch (e) {
                 // JSON parsial / error → hentikan upstream, fallback lokal.
                 reader.cancel().catch(() => {});
-                throw new Error("upstream_stream_error");
+                cloudError = cloudError || (e instanceof Error ? e.message : "parse_error");
+                throw new Error(cloudError);
               }
             }
           }
 
-          if (!sentAny) throw new Error("empty_stream");
+          if (!sentAny) {
+            cloudError = "empty_stream";
+            throw new Error("empty_stream");
+          }
         } else {
           // Gemini & Anthropic tidak menyediakan SSE OpenAI-compatible:
           // panggilan non-streaming, hasil dipecah per kata untuk efek ketik
@@ -291,7 +300,10 @@ export async function POST(req: NextRequest) {
             style === "anthropic"
               ? await submitToAnthropic(messages, { config: cloudCfg })
               : await submitToGeminiMessages(messages, { config: cloudCfg });
-          if (!answer.success || !answer.text.trim()) throw new Error("empty_cloud");
+          if (!answer.success || !answer.text.trim()) {
+            cloudError = "empty_cloud";
+            throw new Error("empty_cloud");
+          }
           sentAny = true;
           for (const w of answer.text.split(/(\s+)/)) emit("delta", { t: w });
         }
@@ -309,6 +321,10 @@ export async function POST(req: NextRequest) {
             intent: local.intent,
             confidence: local.confidence,
             fallback: true,
+            // Alasan gagal cloud (generic, tidak membocorkan key): mis.
+            // "status_401" (key salah/expired), "status_429" (quota habis),
+            // "network", "unconfigured", "empty_stream", dsb.
+            fallbackReason: cloudError || "unknown",
           });
           for (const w of fallback.split(/(\s+)/)) emit("delta", { t: w });
         } else {
