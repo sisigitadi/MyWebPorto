@@ -9,6 +9,12 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 > external store + custom change event, dan pindahkan fetch list admin ke
 > Server Component (plan doc §5).
 
+### Added & Fixed — Cloud AI, OAuth, Smart Fallback & Natural RetroBot
+
+- **Added**: Rute halaman terpisah `/admin/cloud-ai` di bawah grup God Mode untuk pengaturan Cloud AI, serta dukungan metode otentikasi ganda (`API Key` atau `OAuth Token / Login`).
+- **Fixed & Enhanced**: Mekanisme **Smart Local Fallback** otomatis pada Redaksi AI — jika koneksi internet terputus atau provider eksternal tidak merespons, sistem otomatis menyusun draf lokal pintar tanpa menampilkan eror merah.
+- **Fixed**: Peningkatan ambang batas kecocokan lokal RetroBot serta penyempurnaan instruksi sistem (*system prompt*) agar RetroBot merespons secara natural, interaktif, dan memprioritaskan Cloud AI saat diaktifkan.
+
 ### Added — God Mode: Halaman terpisah Pengaturan Cloud AI (`/admin/cloud-ai`)
 
 Pengaturan provider Cloud AI (Gemini, OpenAI, Anthropic, Groq, DeepSeek, OpenRouter, Together, Mistral, xAI) yang sebelumnya berada di halaman `Sistem & Logs` (`/admin/system`) kini dipisahkan ke halaman sendiri.
