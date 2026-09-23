@@ -165,7 +165,15 @@ export async function getCloudAIConfigForAdmin(): Promise<AdminCloudAIView> {
  */
 export async function saveCloudAIConfig(input: StoredCloudAIConfig): Promise<void> {
   const provider: CloudProvider = isCloudProvider(input.provider) ? input.provider : "off";
-  const model = (input.model || "").trim().slice(0, 64);
+  const meta = getProviderMeta(provider);
+  let model = (input.model || "").trim().slice(0, 64);
+
+  // Audit & safeguard: jika model kosong atau tidak sesuai dengan provider (misal provider gemini tapi model gpt-*),
+  // otomatis fallback ke defaultModel provider tersebut agar tidak terjadi error "tidak merespons".
+  if (!model || (provider === "gemini" && model.startsWith("gpt-")) || (provider === "openai" && model.startsWith("gemini-"))) {
+    model = meta?.defaultModel || FALLBACK_MODEL;
+  }
+
   const baseUrl = (input.baseUrl || "").trim().slice(0, 256).replace(/\/+$/, "");
   const apiKey = (input.apiKey || "").trim().slice(0, 256);
   // systemPrompt dibatasi 2000 char (cukup untuk persona + konteks; prompt

@@ -1910,6 +1910,7 @@ export async function saveCloudAIConfigAction(input: StoredCloudAIConfig): Promi
     await saveCloudAIConfig(input);
     await logAudit({ action: "update", entity: "settings", entityId: "cloud_ai", detail: `provider=${input.provider || "off"}` });
     revalidatePath("/admin/system");
+    revalidatePath("/admin/cloud-ai");
     return { ok: true };
   } catch (err) {
     return {

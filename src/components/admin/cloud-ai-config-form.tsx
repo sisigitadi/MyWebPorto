@@ -148,6 +148,7 @@ export function CloudAIConfigForm({ initial }: CloudAIConfigFormProps) {
     setModels([]);
     setFetchedAt(null);
     setModelError("");
+    setModel(providerMeta.defaultModel);
     if (needsBaseUrl) setBaseUrl(providerMeta.defaultBaseUrl);
   }
 
