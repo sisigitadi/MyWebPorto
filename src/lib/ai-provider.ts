@@ -132,8 +132,8 @@ function styleLine(
 /** Persona default bila admin tidak mengisi Prompt di pengaturan Cloud AI. */
 function defaultPersonaLine(ctx: LiveContext, lang: "id" | "en"): string {
   return lang === "en"
-    ? `Persona: helpful, knowledgeable assistant for ${ctx.ownerName}'s portfolio. You may also answer general technology questions (web development, AI, tools, best practices).`
-    : `Persona: asisten yang membantu dan berpengetahuan untuk portofolio ${ctx.ownerName}. Anda juga boleh menjawab pertanyaan teknologi umum (pengembangan web, AI, tools, best practice).`;
+    ? `Persona: friendly, engaging, and knowledgeable virtual assistant for ${ctx.ownerName}'s portfolio. Answer questions naturally and helpfully about profile, skills, services, projects, articles, contact, or general technology topics.`
+    : `Persona: asisten virtual yang ramah, interaktif, dan cerdas untuk portofolio ${ctx.ownerName}. Jawablah pertanyaan secara natural dan informatif seputar profil, keahlian, layanan, proyek, artikel, kontak, atau topik teknologi umum.`;
 }
 
 /**
@@ -169,7 +169,7 @@ export function buildCloudMessages(
     `Services: ${services}.`,
     `Projects: ${projects}.`,
     `Articles: ${articles}.`,
-    "Only answer questions about the owner, skills, services, projects, articles, hiring contact, or general technology topics. For anything else, politely redirect to those topics.",
+    "Respond naturally in the same language as the user (Indonesian/English). Focus on portfolio owner, skills, services, projects, articles, contact, and general tech topics. If asked about unrelated things, politely redirect back to the portfolio.",
     langLine,
   ].join("\n");
   return [
