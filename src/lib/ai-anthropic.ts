@@ -26,6 +26,8 @@ const ANTHROPIC_VERSION = "2023-06-01";
 export interface AnthropicResult {
   success: boolean;
   text: string;
+  /** Alasan gagal generik: status_429, network, empty_cloud (lihat CloudAIResult). */
+  reason?: string;
 }
 
 export interface AnthropicCallOptions {
@@ -131,8 +133,10 @@ export async function submitToAnthropic(
 ): Promise<AnthropicResult> {
   const cfg = options.config;
   const apiKey = anthropicKey(cfg);
-  // Fail-closed: key placeholder/kosong → lokal, tidak ada egress.
-  if (isPlaceholderKey(apiKey)) return { success: false, text: "" };
+  // Fail-closed: key placeholder/kosong → lokal, tidak ada egress. reason
+  // "unconfigured" sejalan dengan jalur OpenAI & Gemini (ai-openai.ts /
+  // ai-provider.ts) supaya badge fallback RetroBot menjelaskan.
+  if (isPlaceholderKey(apiKey)) return { success: false, text: "", reason: "unconfigured" };
   const baseUrl = anthropicBaseUrl(cfg);
   const model = anthropicModel(cfg);
   // Default 300 token / 2000 char untuk jawaban bot; Redaksi memakai nilai
@@ -152,7 +156,7 @@ export async function submitToAnthropic(
       signal: AbortSignal.timeout(30_000),
     });
 
-    if (!response.ok) return { success: false, text: "" };
+    if (!response.ok) return { success: false, text: "", reason: `status_${response.status}` };
 
     const data = (await response.json()) as {
       content?: { type?: string; text?: string }[];
@@ -161,9 +165,9 @@ export async function submitToAnthropic(
       .filter((block) => block.type === "text" && block.text)
       .map((block) => block.text || "")
       .join("");
-    if (!text.trim()) return { success: false, text: "" };
+    if (!text.trim()) return { success: false, text: "", reason: "empty_cloud" };
     return { success: true, text: text.trim().slice(0, maxChars) };
   } catch {
-    return { success: false, text: "" };
+    return { success: false, text: "", reason: "network" };
   }
 }

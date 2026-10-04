@@ -34,6 +34,7 @@ import { useTranslation } from "@/lib/i18n";
 import { useFeature } from "@/lib/features-context";
 import { playOS } from "@/lib/os-sound";
 import { RetroBotAvatar, type RetroBotMood } from "./retro-bot-avatar";
+import { MiniMarkdown } from "./mini-markdown";
 
 type Source = "local" | "cloud" | null;
 
@@ -806,7 +807,13 @@ export function RetroBot() {
                         : "vt-card-inset text-[var(--vt-ink)]"
                     }`}
                   >
-                    {m.text}
+                    {m.role === "user" ? (
+                      m.text
+                    ) : (
+                      // Jawaban AI memakai markdown (**bold**, list) —
+                      // render terformat, bukan asterisk literal.
+                      <MiniMarkdown text={m.text} />
+                    )}
                     {m.streaming && (
                       <span className="rb-cursor inline-block w-1.5 h-3 ml-0.5 bg-current align-middle" />
                     )}

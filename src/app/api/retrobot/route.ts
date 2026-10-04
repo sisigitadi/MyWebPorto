@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfile, getServices, getProjects, getArticles } from "@/lib/actions";
 import { queryAIEngine, type EngineContext } from "@/lib/ai-engine";
-import { buildCloudMessages, submitToGeminiMessages } from "@/lib/ai-provider";
+import { buildCloudMessages, getGeminiFallbackModels, submitToGeminiMessages } from "@/lib/ai-provider";
 import { submitToOpenAIStream } from "@/lib/ai-openai";
 import { submitToAnthropic } from "@/lib/ai-anthropic";
 import { resolveCloudAIConfig, isCloudAIConfigEnabled } from "@/lib/cloud-ai-config";
@@ -296,13 +296,55 @@ export async function POST(req: NextRequest) {
           // (Sebelumnya cabang Gemini memakai buildCloudPrompt string tunggal
           //  → eskalasi Gemini single-turn. submitToGeminiMessages memetakan
           //  assistant → "model" dan melekatkan "system" ke user pertama.)
+          // Budget jawaban per answerStyle. Default ai-provider (300 token /
+          // 2000 char) terlalu kecil untuk model flash keluarga 2.5+: token
+          // "thinking" ikut terhitung di maxOutputTokens, sehingga reasoning
+          // memakan hampir seluruh budget dan teks yang terlihat terpotong
+          // (finishReason MAX_TOKENS → jawaban RetroBot hanya ~30-35 char).
+          const budget =
+            cloudCfg.answerStyle === "detailed"
+              ? { tokens: 1500, chars: 4000 }
+              : cloudCfg.answerStyle === "friendly"
+                ? { tokens: 900, chars: 2600 }
+                : { tokens: 600, chars: 1800 };
           const answer =
             style === "anthropic"
-              ? await submitToAnthropic(messages, { config: cloudCfg })
-              : await submitToGeminiMessages(messages, { config: cloudCfg });
+              ? await submitToAnthropic(messages, {
+                  config: cloudCfg,
+                  maxTokens: budget.tokens,
+                  maxChars: budget.chars,
+                })
+              : await submitToGeminiMessages(messages, {
+                  config: cloudCfg,
+                  maxOutputTokens: budget.tokens,
+                  maxChars: budget.chars,
+                  // Sebelum jatuh ke jawaban lokal, coba model cadangan bila
+                  // model aktif kena 429 (quota habis) / 503 (overload).
+                  // Quota Gemini per-model, jadi cadangan biasanya masih bisa
+                  // menjawab — sesuai permintaan: utamakan cloud daripada
+                  // TF-IDF lokal selama masih ada model yang sehat.
+                  fallbackModels: getGeminiFallbackModels(cloudCfg.model),
+                });
           if (!answer.success || !answer.text.trim()) {
-            cloudError = "empty_cloud";
-            throw new Error("empty_cloud");
+            // reason dari provider (status_429 quota, status_503 overload,
+            // network, empty_cloud) jauh lebih diagnostik daripada hardcoded
+            // "empty_cloud" — langsung dipakai sebagai fallbackReason meta.
+            cloudError = answer.reason || "empty_cloud";
+            throw new Error(cloudError);
+          }
+          // Bila model aktif kena 429/503 dan berhasil dijawab oleh model
+          // cadangan, koreksi meta SSE: event meta pertama (di atas) masih
+          // mencantumkan model aktif. Client memakai meta ini untuk state
+          // source/badge, jaga agar model di stream tetap akurat.
+          const retriedModel = "model" in answer ? answer.model : undefined;
+          if (retriedModel && retriedModel !== cloudCfg.model) {
+            emit("meta", {
+              source: "cloud",
+              model: retriedModel,
+              provider: cloudCfg.provider,
+              intent: local.intent,
+              confidence: local.confidence,
+            });
           }
           sentAny = true;
           for (const w of answer.text.split(/(\s+)/)) emit("delta", { t: w });

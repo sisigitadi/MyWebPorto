@@ -21,6 +21,7 @@ import { useOSTheme, OSTheme } from "./theme-context";
 import { playOS } from "@/lib/os-sound";
 import { ProfileData, ServiceData, ProjectData, ArticleData } from "@/lib/dummy-data";
 import { buildSocialLinks } from "@/components/public/social-icons";
+import { MiniMarkdownInline } from "@/components/public/mini-markdown";
 
 interface OSCrtTerminalProps {
   ownerName: string;
@@ -949,7 +950,9 @@ export function OSCrtTerminal({
             }`}
           >
             <span className="opacity-50 select-none shrink-0">&gt;</span>
-            <span className="break-words whitespace-pre-wrap">{log}</span>
+            <span className="break-words whitespace-pre-wrap">
+              <MiniMarkdownInline text={log} />
+            </span>
           </div>
         ))}
         <div ref={logEndRef} />
