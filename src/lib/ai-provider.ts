@@ -69,7 +69,11 @@ export function getCloudAIModel(): string {
   // model per-provider dipakai bila diisi, jika tidak ambil default hemat.
   const meta = getProviderMeta(getCloudProvider());
   const fromEnv = meta?.envModel ? process.env[meta.envModel] : undefined;
-  return (fromEnv || meta?.defaultModel || "gemini-2.5-flash").trim();
+  // Fallback string terakhir: model aktif utamanya ditentukan oleh resolved
+  // config (DB admin/env), bukan konstanta ini. Audit 2026-10-05:
+  // gemini-2.5-flash sudah 404 (pensiun) — diganti ke alias -latest yang
+  // selalu mengikuti model flash hemat terbaru.
+  return (fromEnv || meta?.defaultModel || "gemini-flash-lite-latest").trim();
 }
 
 /**
@@ -211,25 +215,28 @@ export interface CloudAIResult {
  *
  * Sumber: env `GEMINI_FALLBACK_MODELS` (comma-separated) bila diisi, jika
  * tidak pakai default hemat flash. Urutan default menempatkan model yang
- * masih sehat lebih dulu (audit 2026-10-04: `gemini-3.5-flash` & `-lite`
- * masih 200 OK, keluarga 2.x/1.5 sudah dipensiunkan 404) — loop retry kini
- * melompati 404 sehingga model yang dipensiunkan tetap aman sebagai cadangan
- * ekor, tapi urutan menentukan mana yang dicoba lebih dulu. Model yang sedang
- * aktif selalu dikecualikan karena sudah dicoba lebih dulu.
+ * masih sehat lebih dulu (audit 2026-10-05: keluarga 2.x/1.5 pensiun 404,
+ * lihat di bawah) — loop retry melompati 404 sehingga model yang dipensiunkan
+ * tetap aman bila env memasukkannya, tapi urutan menentukan mana yang dicoba
+ * lebih dulu. Model yang sedang aktif selalu dikecualikan karena sudah
+ * dicoba lebih dulu.
  */
 const DEFAULT_GEMINI_FALLBACK_MODELS = [
-  // Urut sehat-di-depan. Audit 2026-10-04 (probe ListModels + generateContent):
-  // gemini-3.5-flash & -lite masih 200 OK; keluarga 2.x/1.5 sudah dipensiunkan
-  // (404 "no longer available"). Model sehat lebih dulu agar cadangan pertama
-  // langsung berhasil; yang dipensiunkan tetap disimpan sebagai kedalaman
-  // terakhir karena loop retry kini melompati 404, bukan berhenti (lihat
-  // bawah). gemini-flash-latest adalah alias ke model flash terbaru.
+  // Urut sehat-di-depan. Audit 2026-10-05 (probe ListModels + generateContent):
+  // 3.5-flash-lite/3.7-flash/3.6-flash/3.1-flash-lite/3-flash-preview 200 OK;
+  // 3.5-flash & flash-latest 200 OK lalu 429 (quota habis karena probing,
+  // bukan pensiun); 3.8-flash 429 (hidup, tapi free-tier habis). Keluarga
+  // 2.x/1.5 SUDAH PASTI 404 ("no longer available") sehingga dikeluarkan
+  // total — loop retry melompati 404 (lihat bawah), tapi membuang request ke
+  // model yang tak akan pernah berhasil hanya memperlambat cadangan pertama
+  // yang sehat. gemini-flash-latest adalah alias ke model flash terbaru.
   "gemini-3.5-flash-lite",
-  "gemini-3.5-flash",
+  "gemini-3.7-flash",
+  "gemini-3.6-flash",
+  "gemini-3.1-flash-lite",
   "gemini-flash-latest",
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
+  "gemini-3-flash-preview",
+  "gemini-3.5-flash",
 ];
 
 /**

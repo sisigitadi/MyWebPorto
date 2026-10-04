@@ -424,20 +424,32 @@ describe("getGeminiFallbackModels", () => {
     const list = getGeminiFallbackModels("gemini-3.5-flash");
     // Model aktif sudah dicoba lebih dulu oleh pemanggil, jangan ulangi.
     expect(list).not.toContain("gemini-3.5-flash");
-    expect(list).toContain("gemini-2.5-flash");
+    expect(list).toContain("gemini-3.5-flash-lite");
     expect(list.length).toBeGreaterThan(0);
   });
 
-  it("default: model sehat (3.5-flash-lite) didahulukan sebelum yang dipensiunkan", () => {
-    // Audit 2026-10-04: 2.x/1.5 sudah 404, 3.5-flash-lite masih 200 OK.
-    // Urutan menentukan cadangan mana yang dicoba lebih dulu saat retry.
+  it("default: model sehat didahulukan, keluarga pensiun (2.x/1.5) dikeluarkan", () => {
+    // Audit 2026-10-05: 2.x/1.5 sudah pasti 404 ("no longer available"),
+    // sedangkan 3.5-flash-lite/3.7-flash/3.6-flash/3.1-flash-lite masih 200 OK.
+    // Membuang model pensiun penting: loop retry melompati 404, tapi setiap
+    // request ke model yang tak akan pernah berhasil memperlambat cadangan
+    // sehat pertama saat quota habis.
     delete process.env.GEMINI_FALLBACK_MODELS;
-    const list = getGeminiFallbackModels("gemini-flash-latest");
-    const healthy = list.indexOf("gemini-3.5-flash-lite");
-    const retired = list.indexOf("gemini-2.5-flash");
-    expect(healthy).toBeGreaterThanOrEqual(0);
-    expect(retired).toBeGreaterThanOrEqual(0);
-    expect(healthy).toBeLessThan(retired);
+    const list = getGeminiFallbackModels("gemini-flash-lite-latest");
+    // Model sehat ada di daftar...
+    expect(list).toContain("gemini-3.5-flash-lite");
+    expect(list).toContain("gemini-3.7-flash");
+    // ...dan model pensiun TIDAK (404 pasti, bukan transient 429).
+    expect(list).not.toContain("gemini-2.5-flash");
+    expect(list).not.toContain("gemini-2.0-flash");
+    expect(list).not.toContain("gemini-1.5-flash");
+    // Urutan menentukan cadangan mana yang dicoba lebih dulu saat retry:
+    // flash-lite (paling longgar quotanya) sebelum flash biasa.
+    const lite = list.indexOf("gemini-3.5-flash-lite");
+    const flash = list.indexOf("gemini-3.5-flash");
+    expect(lite).toBeGreaterThanOrEqual(0);
+    expect(flash).toBeGreaterThanOrEqual(0);
+    expect(lite).toBeLessThan(flash);
   });
 
   it("env GEMINI_FALLBACK_MODELS menimpa default; duplikat & kosong dibersihkan", () => {

@@ -73,7 +73,10 @@ const PROVIDER_METAS: Record<CloudProvider, ProviderMeta> = {
     // Endpoint Gemini tetap (generativelanguage.googleapis.com) — baseUrl
     // diabaikan untuk style ini; lihat ai-models.ts & ai-provider.ts.
     defaultBaseUrl: "",
-    defaultModel: "gemini-2.5-flash",
+    // Audit 2026-10-05: gemini-2.5-flash sudah dipensiunkan (404). Default
+    // pakai alias -latest yang mengikuti model flash hemat terbaru; model
+    // aktif utamanya tetap dari resolved config (DB admin/env).
+    defaultModel: "gemini-flash-lite-latest",
     envKey: "GEMINI_API_KEY",
     envModel: "AI_MODEL",
     envBaseUrl: "",
