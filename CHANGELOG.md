@@ -28,6 +28,11 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
   tooltip) di footer panel RetroBot — admin tak perlu buka devtools untuk tahu
   kenapa jawaban jatuh ke lokal. Terverifikasi live: badge muncul dengan
   `insufficient_user_quota`.
+- **Security (repo hygiene)**: `scratch/check-db.mjs` (skrap diagnosis sekali pakai
+  yang mengandung kredensial DB) ternyata masih ter-track di repo — ditambahkan
+  sebelum aturan `/scratch/` di `.gitignore` ada, dan lolos dari pembersihan
+  sebelumnya. Dihapus dari index. Catatan: file masih ada di history git lama;
+  rotasi kredensial DB disarankan jika isiinya pernah valid.
 - **Fixed (code, `ai-openai.ts`)**: `readUpstreamError` kini menerima
   `error.code` NUMERIK (beberapa relay memakai `{"code":404}` sebagai angka)
   sehingga reason tetap diagnostic, bukan `status_<http>`.
