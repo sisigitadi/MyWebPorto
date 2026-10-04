@@ -8,6 +8,39 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 > Kerjaan terbuka berikutnya: migrasi provider context (theme/cart/i18n) ke
 > external store + custom change event, dan pindahkan fetch list admin ke
 > Server Component (plan doc §5).
+
+### Fixed — Audit 2026-10-04: tracker analytics, label provider, & visibilitas fallback
+
+- **Fixed (code, `visitor-tracker.tsx`)**: hit analytics TIDAK PERNAH terkirim.
+  `navigator.sendBeacon` sesuai spesifikasi selalu berjalan dengan credentials
+  mode `include`, dan Blob `application/json` memicu preflight — worker tracker
+  membalas preflight dengan `Access-Control-Allow-Origin: *` tanpa
+  `Allow-Credentials` (diverifikasi via curl OPTIONS), sehingga browser MENOLAK
+  request dan error CORS muncul di console. Kini memakai `fetch` +
+  `credentials: "omit"` + `keepalive: true` — tetap tanpa cookie (desain anonim
+  tracker), preflight wildcard lolos, hit terverifikasi sampai (`POST /hit 200`).
+- **Fixed (code, `os-crt-terminal.tsx`)**: tag jawaban cloud terminal
+  meng-hardcode `"Gemini"` meski provider efektif bisa openai/anthropic/groq
+  dll. Registry kini punya `shortLabel` per provider (`getProviderShortLabel`)
+  dan `getCloudAIStatus` meneruskan provider aktif ke terminal.
+- **Fixed (code, `retro-bot.tsx`)**: `fallbackReason` dari meta SSE fallback
+  kini ditampilkan sebagai badge `⚠ Cloud gagal: <reason>` (bilingual, dengan
+  tooltip) di footer panel RetroBot — admin tak perlu buka devtools untuk tahu
+  kenapa jawaban jatuh ke lokal. Terverifikasi live: badge muncul dengan
+  `insufficient_user_quota`.
+- **Fixed (code, `ai-openai.ts`)**: `readUpstreamError` kini menerima
+  `error.code` NUMERIK (beberapa relay memakai `{"code":404}` sebagai angka)
+  sehingga reason tetap diagnostic, bukan `status_<http>`.
+- **Fixed (config DB)**: `settings.cloud_ai.model` masih `gpt-4o-mini` (relay
+  hanya menyajikan gemini-*) — penyebab 503 model_not_found terus berulang.
+  Diperbaiki ke `gemini-3.8-flash-high` (satu field, key/baseUrl utuh).
+  Tindak lanjut di luar kode: **kuota API key relay habis**
+  (`insufficient_user_quota`) — top up di relay atau ganti provider via
+  `/admin/cloud-ai`.
+- **Chore**: hapus duplikat root `lib/og-image.ts(x)` (tak direferensi), file
+  notes berisi perintah git, log basi di root, dan dead code
+  `getProviderName()`.
+
 ### Fixed — RetroBot tak pernah memakai Cloud AI meski diaktifkan (audit 503)
 
 RetroBot selalu jatuh ke jawaban lokal yang kaku meski Cloud AI sudah dianggap
