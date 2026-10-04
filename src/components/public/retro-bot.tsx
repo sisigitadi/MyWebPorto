@@ -188,6 +188,10 @@ export function RetroBot() {
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [source, setSource] = useState<Source>(null);
+  // Alasan kegagalan cloud dari meta SSE kedua (fallback:true + fallbackReason,
+  // mis. "model_not_found"/"status_429") — ditampilkan sebagai badge kecil agar
+  // admin tahu kenapa jawaban jatuh ke lokal tanpa membuka devtools.
+  const [fallbackNote, setFallbackNote] = useState<string | null>(null);
   const [showGreeting, setShowGreeting] = useState(false);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   /** Aplikasi SigitOS yang sedang aktif (untuk prompt & jawaban sadar halaman). */
@@ -381,6 +385,7 @@ export function RetroBot() {
       ]);
       setIsStreaming(true);
       setSource(null);
+      setFallbackNote(null);
 
       const controller = new AbortController();
       abortRef.current = controller;
@@ -445,6 +450,13 @@ export function RetroBot() {
             if (eventName === "meta") {
               setSource(payload.source === "cloud" ? "cloud" : "local");
               setMood("talking");
+              if (
+                payload.fallback === true &&
+                typeof payload.fallbackReason === "string" &&
+                payload.fallbackReason
+              ) {
+                setFallbackNote(payload.fallbackReason);
+              }
             } else if (eventName === "delta") {
               // Delta langsung di-append ke teks pesan. Kecepatan kedatangan
               // chunk dari route sudah memberi efek ketik (token-by-token
@@ -877,6 +889,14 @@ export function RetroBot() {
               >
                 {source === "cloud" ? t.retrobot_source_cloud : t.retrobot_source_local}
               </span>
+              {fallbackNote && (
+                <span
+                  title={t.retrobot_fallback_hint}
+                  className="font-mono text-[8px] font-bold px-1.5 py-0.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40"
+                >
+                  ⚠ {t.retrobot_fallback}: {fallbackNote}
+                </span>
+              )}
               <span className="font-mono text-[8px] text-[var(--vt-ink)] opacity-80 text-right">
                 {t.retrobot_disclaimer}
               </span>

@@ -30,11 +30,6 @@ export interface OpenAIResult {
   text: string;
 }
 
-/** Nama provider untuk log/badge — tidak pernah membocorkan key. */
-export function getProviderName(): string {
-  return "openai";
-}
-
 /** Base URL endpoint (tanpa trailing slash). */
 export function getOpenAIBaseUrl(): string {
   const raw = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").trim();
@@ -63,6 +58,63 @@ export interface OpenAICallOptions {
   maxTokens?: number;
   /** Batas panjang karakter hasil sebelum dikembalikan (default 2000). */
   maxChars?: number;
+}
+
+/**
+ * Ekstrak teks jawaban dari respons /v1/chat/completions. Mendukung DUA bentuk:
+ *  1. JSON utuh: choices[].message.content (OpenAI & mayoritas kompatibel).
+ *  2. SSE `data: {...}` per baris berisi choices[].delta.content — beberapa
+ *     gateway/relay mengabaikan `stream:false` dan SELALU memakai SSE. Tanpa
+ *     toleransi ini, pemanggil non-streaming (terminal/Redaksi) melihat parse
+ *     JSON gagal → dianggap "cloud gagal" dan salah jatuh ke lokal.
+ */
+function extractChatContent(raw: string): string {
+  try {
+    const data = JSON.parse(raw) as {
+      choices?: { message?: { content?: string } }[];
+    };
+    return data.choices?.[0]?.message?.content || "";
+  } catch {
+    // Bentuk SSE: rangkai delta.content dari tiap baris data: {...}.
+    let out = "";
+    for (const line of raw.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data:")) continue;
+      const payload = trimmed.slice(5).trim();
+      if (payload === "[DONE]") continue;
+      try {
+        const chunk = JSON.parse(payload) as {
+          choices?: { delta?: { content?: string } }[];
+        };
+        out += chunk.choices?.[0]?.delta?.content ?? "";
+      } catch {
+        // Baris parsial / bukan JSON — dilewati.
+      }
+    }
+    return out;
+  }
+}
+
+/**
+ * Baca alasan kegagalan dari respons non-2xx provider OpenAI-compatible.
+ * Diutamakan field `error.code` (mis. "model_not_found", "invalid_api_key"):
+ * pendek, diagnostic, dan tidak membocorkan rahasia — langsung masuk ke meta SSE
+ * `fallbackReason` di route /api/retrobot agar admin segera tahu penyebabnya.
+ * Jatuh ke `status_<http>` bila body tak terbaca/ter-parse (mis. proxy buta).
+ */
+async function readUpstreamError(res: Response, fallback: string): Promise<string> {
+  try {
+    const raw = await res.text();
+    const code = (JSON.parse(raw) as { error?: { code?: unknown } })?.error?.code;
+    if (typeof code === "string" && code.trim()) return code.trim().slice(0, 64);
+    // Beberapa relay memakai code NUMERIK (mis. {"error":{"code":404}}).
+    if (typeof code === "number" && Number.isFinite(code)) {
+      return String(code).slice(0, 64);
+    }
+    return fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 /**
@@ -114,10 +166,11 @@ export async function submitToOpenAI(
 
     if (!response.ok) return { success: false, text: "" };
 
-    const data = (await response.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
-    const text = data.choices?.[0]?.message?.content || "";
+    // Beberapa gateway/relay OpenAI-compatible mengabaikan `stream:false` dan
+    // SELALU membalas SSE (`data: {...}` per baris). extractChatContent menang
+    // ani kedua bentuk (JSON utuh maupun SSE) agar jalur non-streaming
+    // (terminal/Redaksi) tidak keliru menganggap cloud gagal.
+    const text = extractChatContent(await response.text());
     if (!text.trim()) return { success: false, text: "" };
     return { success: true, text: text.trim().slice(0, maxChars) };
   } catch {
@@ -180,8 +233,15 @@ export function submitToOpenAIStream(
       }
 
       if (!upstream.ok || !upstream.body) {
+        // Teruskan alasan gagal yang sebenarnya: hampir semua gateway/relay
+        // OpenAI-compatible membalas {error:{code,message}} yang sangat
+        // diagnostic (mis. "model_not_found", "invalid_api_key"). code-nya
+        // (string pendek, tak menyimpan rahasia) naik ke route → meta SSE
+        // fallbackReason, agar admin langsung tahu kenapa jatuh ke lokal.
+        // Jatuh ke status_<http> bila body tak terbaca (mis. proxy buta).
+        const reason = await readUpstreamError(upstream, `status_${upstream.status}`);
         controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ error: `status_${upstream.status}` })}\n\n`)
+          encoder.encode(`data: ${JSON.stringify({ error: reason })}\n\n`)
         );
         controller.close();
         return;

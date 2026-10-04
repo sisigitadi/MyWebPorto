@@ -2,6 +2,20 @@ import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
 
+const targetDir = path.resolve("deploy_package");
+
+// WAJIB dihapus SEBELUM build, bukan sebelum copy: Next.js standalone tracer
+// menyertakan folder apa pun di root project yang ter-reach (deploy_package
+// berisi node_modules + server.js + package.json). Jika deploy_package lama
+// masih ada saat build, ia ikut ke .next/standalone, lalu di-copy kembali ke
+// deploy_package → nested deploy_package/deploy_package/... yang bertambah 1
+// level per siklus build+package (ditemukan 15 level, path >260 char di
+// Windows menyebabkan error "Filename too long").
+if (fs.existsSync(targetDir)) {
+  console.log("Membersihkan deploy_package lama sebelum build...");
+  fs.rmSync(targetDir, { recursive: true, force: true });
+}
+
 console.log("===================================================");
 console.log("[1/3] Menjalankan Next.js Build...");
 console.log("===================================================");
@@ -11,10 +25,6 @@ console.log("\n===================================================");
 console.log("[2/3] Mengemas berkas ke folder deploy_package...");
 console.log("===================================================");
 
-const targetDir = path.resolve("deploy_package");
-if (fs.existsSync(targetDir)) {
-  fs.rmSync(targetDir, { recursive: true, force: true });
-}
 fs.mkdirSync(targetDir, { recursive: true });
 
 // Helper to copy recursively

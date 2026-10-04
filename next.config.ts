@@ -12,6 +12,14 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1", "localhost"],
   // Gunakan standalone hanya untuk build mandiri VPS/PM2, biarkan default untuk Vercel
   output: process.env.VERCEL ? undefined : "standalone",
+  // deploy_package/ adalah output packaging ini sendiri (berisi app + node_modules
+  // lengkap). Jika ada saat `npm run build` berjalan, tracer standalone pernah
+  // menyalinnya ke .next/standalone → rekursi deploy_package/deploy_package/...
+  // yang bertambah 1 level per siklus (guard; root cause tetap di package-deploy.mjs
+  // yang menghapusnya sebelum build).
+  outputFileTracingExcludes: {
+    "/": ["./deploy_package/**/*"],
+  },
   // Next.js 16: tetap di experimental (diverifikasi via tipe NextConfig 16.3.5
   // — config-shared.d.ts:928; tidak ikut pindah ke top-level).
   experimental: {

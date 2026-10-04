@@ -9,6 +9,226 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 > external store + custom change event, dan pindahkan fetch list admin ke
 > Server Component (plan doc §5).
 
+### Fixed — Audit 2026-10-04: tracker analytics, label provider, & visibilitas fallback
+
+- **Fixed (code, `visitor-tracker.tsx`)**: hit analytics TIDAK PERNAH terkirim.
+  `navigator.sendBeacon` sesuai spesifikasi selalu berjalan dengan credentials
+  mode `include`, dan Blob `application/json` memicu preflight — worker tracker
+  membalas preflight dengan `Access-Control-Allow-Origin: *` tanpa
+  `Allow-Credentials` (diverifikasi via curl OPTIONS), sehingga browser MENOLAK
+  request dan error CORS muncul di console. Kini memakai `fetch` +
+  `credentials: "omit"` + `keepalive: true` — tetap tanpa cookie (desain anonim
+  tracker), preflight wildcard lolos, hit terverifikasi sampai (`POST /hit 200`).
+- **Fixed (code, `os-crt-terminal.tsx`)**: tag jawaban cloud terminal
+  meng-hardcode `"Gemini"` meski provider efektif bisa openai/anthropic/groq
+  dll. Registry kini punya `shortLabel` per provider (`getProviderShortLabel`)
+  dan `getCloudAIStatus` meneruskan provider aktif ke terminal.
+- **Fixed (code, `retro-bot.tsx`)**: `fallbackReason` dari meta SSE fallback
+  kini ditampilkan sebagai badge `⚠ Cloud gagal: <reason>` (bilingual, dengan
+  tooltip) di footer panel RetroBot — admin tak perlu buka devtools untuk tahu
+  kenapa jawaban jatuh ke lokal. Terverifikasi live: badge muncul dengan
+  `insufficient_user_quota`.
+- **Security (repo hygiene)**: `scratch/check-db.mjs` (skrap diagnosis sekali pakai
+  yang mengandung kredensial DB) ternyata masih ter-track di repo — ditambahkan
+  sebelum aturan `/scratch/` di `.gitignore` ada, dan lolos dari pembersihan
+  sebelumnya. Dihapus dari index. Catatan: file masih ada di history git lama;
+  rotasi kredensial DB disarankan jika isiinya pernah valid.
+- **Fixed (build, `scripts/package-deploy.mjs` + `next.config.ts`)**: rekursi
+  `deploy_package/deploy_package/…` sedalam 15 level di dalam `.next/standalone`.
+  Penyebab: `package-deploy.mjs` menghapus `deploy_package/` baru setelah
+  `npm run build` selesai, padahal Next.js standalone tracer ikut menyertakan
+  folder root `deploy_package/` yang tersisa dari siklus sebelumnya — lalu
+  hasilnya di-copy kembali ke `deploy_package`, bertambah 1 level per siklus
+  (path >260 char memicu error "Filename too long" dan membengkakkan ukuran
+  paket deploy). Kini `deploy_package/` dihapus SEBELUM build, plus guard
+  `outputFileTracingExcludes: { "/": ["./deploy_package/**/*"] }`. Terverifikasi:
+  setelah build dengan `deploy_package` 15-level masih ada di root,
+  `.next/standalone/deploy_package` tidak lagi terbentuk.
+- **Fixed (code, `ai-openai.ts`)**: `readUpstreamError` kini menerima
+  `error.code` NUMERIK (beberapa relay memakai `{"code":404}` sebagai angka)
+  sehingga reason tetap diagnostic, bukan `status_<http>`.
+- **Fixed (config DB)**: `settings.cloud_ai.model` masih `gpt-4o-mini` (relay
+  hanya menyajikan gemini-*) — penyebab 503 model_not_found terus berulang.
+  Diperbaiki ke `gemini-3.8-flash-high` (satu field, key/baseUrl utuh).
+  Tindak lanjut di luar kode: **kuota API key relay habis**
+  (`insufficient_user_quota`) —  top up di relay atau ganti provider via
+  `/admin/cloud-ai`.
+- **Fixed (code, `retrobot/route.ts` + `ai-provider.ts`)**: jawaban cloud
+  RetroBot terpotong di ~30-35 karakter. Akar masalah: cabang non-streaming
+  memanggil `submitToGeminiMessages` **tanpa** override `maxOutputTokens`,
+  sehingga memakai default 300 — di model flash keluarga 2.5+ token "thinking"
+  IKUT terhitung di `maxOutputTokens`, reasoning memakan hampir semua budget
+  dan `finishReason: MAX_TOKENS` memotong teks yang terlihat. Kini budget
+  token/char diturunkan dari `answerStyle` (concise 600/1800, friendly 900/2600,
+  detailed 1500/4000) dan diteruskan ke Gemini & Anthropic. Tambahan:
+  `trimAnswer` memotong di batas kalimat/kata terakhir yang utuh (bukan tengah
+  kata) saat jawaban melebihi `maxChars` — potongan mentah `slice(0, n)` sering
+  memotong kalimat di tengah dan terlihat seperti jawaban "truncated".
+  Terverifikasi live di browser: badge **CLOUD**, jawaban 1735 karakter utuh
+  (services + kontak), tanpa fallback note.
+- **Fixed (code, `ai-provider.ts` + `ai-anthropic.ts` + `retrobot/route.ts`)**:
+  path non-streaming Gemini/Anthropic menelan status HTTP saat gagal — semua
+  kegagalan dilaporkan ke client sebagai `fallbackReason: "empty_cloud"`,
+  sehingga badge "⚠ Cloud gagal" tidak membedakan quota habis (429), key
+  salah (401), overload sementara (503), atau timeout. Kini result membawa
+  field `reason` (`status_429` / `status_503` / `status_401` / `network` /
+  `empty_cloud`) dan route memakainya sebagai `fallbackReason`. Terverifikasi
+  live: saat quota free-tier Gemini habis, badge menampilkan `status_429`.
+- **Fixed (config DB)**: model `gemini-flash-latest` (alias → `gemini-3.8-flash`)
+  mengalami **429 `RESOURCE_EXHAUSTED`** — quota free-tier Gemini adalah
+  **per model** (`limit: 20 requests/window`), dan model itu habis dipakai
+  sesi pengujian; reset ~15 jam. Probe langsung ke ListModels +
+  `generateContent` untuk tiap kandidat menemukan bahwa model 2.x/1.5 sudah
+  **dipensiunkan** (404 "no longer available"), sedangkan `gemini-3.5-flash`
+  dan `gemini-3.5-flash-lite` **masih 200 OK**. Model diganti ke
+  `gemini-3.5-flash` (lebih baik dari varian `-lite`; terverifikasi menjawab
+  natural dalam Bahasa Indonesia, 951 karakter, `finishReason: STOP` —
+  bukan `MAX_TOKENS`). RetroBot langsung kembali ke cloud: `meta.source:
+  "cloud"` tanpa fallback, 1351 karakter utuh. Pelajaran: quota 429 Gemini
+  free-tier tidak perlu menunggu reset — cukup pilih model lain yang masih
+  punya jatah di `/admin/cloud-ai`.
+- **Fixed (code, `ai-provider.ts` + `ai-anthropic.ts`)**: konsistensi
+  `fallbackReason`. Jalur OpenAI sudah memancarkan `unconfigured` saat API
+  key masih placeholder, tapi early-return `isPlaceholderKey()` di
+  `submitToGemini`, `submitToGeminiMessages`, dan `submitToAnthropic`
+  mengembalikan result **tanpa** `reason` → route menjatuhkannya ke
+  `empty_cloud`, yang menyesatkan (cloud tidak kosong, tapi belum dikonfigurasi).
+  Ketiganya kini memancarkan `reason: "unconfigured"`, sejalan dengan jalur
+  OpenAI dan dokumentasi `fallbackReason` di route & CHANGELOG ini.
+
+- **Added (code, `mini-markdown.ts` + `mini-markdown.tsx`)**: jawaban Gemini
+  memakai markdown (`**bold**`, `*italic*`, list, heading), tapi RetroBot
+  menampilkannya mentah sebagai asterisk literal — terlihat seperti output
+  "rusak". Kini jawaban bot dirender sebagai teks terformat lewat parser
+  minimal (nol dependensi baru): `**bold**` → `<strong>`, `*italic*`/`_italic_`
+  → `<em>`, `` `code` `` → `<code>`, `[teks](url)` → `<a>`, serta list urut/
+  tidak-urut dan heading — disertai renderer React tanpa `dangerouslySetInnerHTML`
+  (XSS-proof: semua node dibangun dari string yang di-tokenisasi). Parser adalah
+  transformasi data murni agar tetap unit-testable di environment node vitest.
+  Aman terhadap streaming: markup yang belum ditutup (`**bo` tanpa penutup)
+  ditampilkan apa adanya sampai penandanya lengkap. Bubble pesan **user** tetap
+  dirender mentah (hanya jawaban AI yang diformat). Terminal CRT (`os-crt-terminal.tsx`)
+  dapat treatment sebaris (bold/italic/code/link per baris log) karena sudah
+  memecah jawaban per baris sendiri. Terverifikasi live: `<strong>`/`<em>` dan
+  `<ul>`/`<ol>` muncul di bubble bot, **nol** asterisk literal tersisa, console
+  bersih. Unit test: 21 kasus (semua token + streaming parsial).
+
+- **Added (code, `ai-provider.ts` + `retrobot/route.ts`)**: RetroBot kini
+  otomatis mencoba **model Gemini cadangan** saat model aktif kena 429 (quota
+  habis) atau 503 (overload), sebelum akhirnya jatuh ke jawaban lokal TF-IDF.
+  Sebelumnya satu quota habis langsung mematikan cloud untuk seluruh sesi
+  padahal quota Gemini dihitung **per-model**, jadi model lain biasanya masih
+  sehat. Perubahan: `submitToGeminiMessages` menerima opsi `fallbackModels`
+  (diisi route lewat `getGeminiFallbackModels(cloudCfg.model)` — default:
+  keluarga `gemini-*-flash`, bisa ditimpa via env `GEMINI_FALLBACK_MODELS`,
+  model aktif selalu dikecualikan karena sudah dicoba lebih dulu). Loop hanya
+  melanjutkan ke cadangan untuk status yang **mungkin sembuh** di model lain
+  (429/503); status seperti 401 (key salah) atau 404 (model tak dikenal) serta
+  kegagalan jaringan langsung berhenti dengan `reason` akurat — jangan buang
+  permintaan yang tak akan berbeda hasilnya. `CloudAIResult.model` menyimpan
+  model yang benar-benar menjawab, dan route memancarkan ulang event `meta`
+  berkoreksi bila jawaban datang dari cadangan, agar stream tetap jujur tentang
+  model mana yang dipakai. Kontrak lama tetap: tidak pernah throw, gagal total
+  → `success:false` + `reason`  (mis. `status_429` bila semua cadangan juga habis)
+  → fallback lokal + badge `⚠ Cloud gagal` seperti biasa. Unit test: 6 kasus
+  baru (retry sukses di cadangan pertama, semua model 429 dicoba satu per satu,
+  503 memicu retry, 401 tak memicu retry, eksklusi/dedup env override).
+
+- **Added (code, `gemini-quota.ts` + `ai-provider.ts` +
+  `admin/cloud-ai/page.tsx`)**: halaman `/admin/cloud-ai` kini menampilkan
+  **estimasi sisa quota free-tier Gemini** (Card "Estimasi Sisa Quota Gemini
+  (Free-Tier)") untuk model aktif + seluruh model cadangan: progress bar
+  pemakaian vs batas RPM (rolling window 60 detik) & RPD (24 jam), badge
+  status (Aman / Mendekati batas / Dibatasi), jam sampai pembatasan berakhir,
+  dan asal batas yang dipakai. Akar masalah: Gemini API **tidak punya endpoint
+  "sisa quota"**, jadi satu-satunya cara memperkirakannya adalah dengan
+  mencatat sendiri permintaan yang kita kirim dan mempelajari batas asli dari
+  error 429 yang dikembalikan Google.
+  - `recordGeminiRequest(model)` dipanggil SEBELUM setiap fetch di
+    `submitToGemini` (terminal/Redaksi) dan `submitToGeminiMessages`
+    (RetroBot, termasuk tiap model cadangan yang dicoba saat retry 429).
+  - `recordGeminiRateLimit(model, {status, body, retryAfter})` dipanggil pada
+    response non-ok: mempelajari batas asli dari pesan error Google
+    ("Requests per minute: N" / "Requests per day: N", cadangan terstruktur
+    `error.details[].metadata.quotaValue` + `quotaId`) dan masa pembatasan
+    dari header `Retry-After`. Learned limits **menimpa** default & env.
+  - Prioritas batas efektif: dipelajari dari 429 asli > env
+    (`GEMINI_FREE_RPM` / `GEMINI_FREE_RPD`) > tabel default per keluarga model
+    (flash/pro; varian preview dikecohkan via prefix-match, model tak
+    dikenal jatuh ke default global). Batas default sengaja konservatif dan
+    ditandai sebagai "perkiraan default" di UI — bila keliru, 429 pertama
+    mengoreksinya otomatis.
+  - Store tracker disimpan di **`globalThis`**, bukan variabel module-level:
+    `next dev` me-bundle tiap route ke module registry terpisah, sehingga
+    `const store = new Map()` akan berupa instance berbeda di route handler
+    `/api/retrobot` (mencatat) vs Server Component admin (membaca) → angka di
+    halaman admin selalu 0 meski sudah ada permintaan nyata. `globalThis`
+    bersifat per-proses (satu proses `next dev` untuk semua route node) sehingga
+    kedua route berbagi instance yang sama, dan hitungan tahan terhadap Fast
+    Refresh/HMR. Diverifikasi live: setelah POST nyata ke `/api/retrobot`,
+    reload admin menampilkan RPM/RPD `gemini-3.5-flash` naik ke 1.
+  - Limitasi jujur yang diungkapkan langsung di Card: tracker bersifat
+    **in-memory per-instance** (proses `next dev` ini / satu serverless
+    function Vercel) — restart/cold-start menghapus hitungan, dan bila belum
+    ada permintaan sejak server menyala, pemakaian menampilkan 0. Ini
+    ESTIMASI, bukan angka resmi Google.
+  - Unit test: 20 kasus baru — 17 di `tests/gemini-quota.test.ts` (rolling
+    window expiry RPM 60 detik & RPD 24 jam, learned limits menimpa env,
+    env override & nilai non-angka diabaikan, cadangan terstruktur
+    `quotaValue`, status ok → near (≥80%) → limited + kedaluwarsa
+    `limitedUntil`, independensi per-model, bentuk output, never-throw pada
+    body bukan-JSON) + 3 wiring test di `tests/ai-provider.test.ts` (permintaan
+    sukses tercatat di RPM/RPD, tiap model retry tercatat satu per satu, 429
+    nyata mempelajari batas + mencatat Retry-After).
+  - Verifikasi: `tsc --noEmit` EXIT 0, ESLint 0 error di berkas berubah,
+    `vitest run` **319/319** (27 file), dan live check UI di
+    `/admin/cloud-ai` (Card merender 5 model: aktif + 4 cadangan, batas
+    sesuai tabel default, badge status Aman, note + kode env terlihat).
+
+- **Chore**: hapus duplikat root `lib/og-image.ts(x)` (tak direferensi), file
+  notes berisi perintah git, log basi di root, dan dead code
+  `getProviderName()`.
+
+### Fixed — RetroBot tak pernah memakai Cloud AI meski diaktifkan (audit 503)
+
+RetroBot selalu jatuh ke jawaban lokal yang kaku meski Cloud AI sudah dianggap
+aktif. Audit langsung ke produksi (meta SSE → `fallbackReason: status_503`)
+menemukan akar masalah yang sebenarnya: **bukan** kode eskalasi (itu sudah benar
+sejak PR #54), melainkan model yang dikirim **tidak tersedia di endpoint**.
+
+Bukti audit (probe langsung ke `settings.cloud_ai` + endpoint relay):
+
+- Konfigurasi tersimpan: `provider=openai`, `baseUrl=https://router.juan.web.id/v1`
+  (gateway "New API"), API key **valid** (`GET /v1/models` → 200), tapi
+  `model=gpt-4o-mini`.
+- Relay tersebut **hanya menyajikan model Gemini** (`gemini-3.1-pro`,
+  `gemini-3.5-flash-lite`, `gemini-3.7/3.8-flash-high/low`). Karena itu
+  `POST /chat/completions` membalas **503 `model_not_found`**
+  ("No available channel for model gpt-4o-mini under group gemini"), dan RetroBot
+  memakai fallback TF-IDF — itulah jawaban robotiknya.
+
+- **Fixed (config)**: model diganti ke `gemini-3.8-flash-high` (terverifikasi
+  menjawab natural dalam Bahasa Indonesia, ~5-8 dtk). RetroBot langsung menjawab
+  dari cloud (`meta.source: "cloud"`, tanpa meta fallback).
+- **Fixed (code, `cloud-ai-config.ts`)**: `saveCloudAIConfig` tidak lagi
+  mereset paksa model lewat heuristik prefix ("provider openai harus gpt-*").
+  Provider `openai` adalah OpenAI-compatible **custom** — endpointnya bisa relay
+  yang justru hanya menyajikan model lain. Heuristik lama diam-diam mengembalikan
+  model yang sudah benar ke `gpt-4o-mini`, sehingga perbaikan via UI tak pernah
+  bertahan.
+- **Fixed (code, `ai-openai.ts`)**: `submitToOpenAIStream` kini meneruskan
+  `error.code` provider (mis. `model_not_found`, `invalid_api_key`) ke
+  `fallbackReason` — sebelumnya hanya `status_503` yang tertulis, sehingga
+  penyebab aslinya tak terlihat. Jatuh ke `status_<http>` bila body tak terbaca.
+- **Fixed (code, `ai-openai.ts`)**: `submitToOpenAI` (non-streaming, untuk
+  terminal & Redaksi) kini toleran terhadap relay yang **selalu memakai SSE**
+  meski `stream:false` — sebelumnya parse JSON gagal → salah dianggap cloud gagal.
+- **Added**: `tests/ai-openai.test.ts` (10 test) + 1 test regresi di
+  `tests/cloud-ai-config.test.ts`. Verifikasi: `tsc`/build 0 error, ESLint 0,
+  `vitest run` 267/267.
+
+
+
 ### Added & Fixed — Cloud AI, OAuth, Smart Fallback & Natural RetroBot
 
 - **Added**: Rute halaman terpisah `/admin/cloud-ai` di bawah grup God Mode untuk pengaturan Cloud AI, serta dukungan metode otentikasi ganda (`API Key` atau `OAuth Token / Login`).

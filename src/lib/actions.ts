@@ -1750,11 +1750,16 @@ async function aibotIp(): Promise<string> {
  * Sekarang lewat resolveCloudAIConfig: pengaturan admin (tabel settings) bisa
  * menimpa env — jadi status ini mencerminkan config efektif, bukan hanya env.
  */
-export async function getCloudAIStatus(): Promise<{ enabled: boolean; model: string }> {
+export async function getCloudAIStatus(): Promise<{
+  enabled: boolean;
+  model: string;
+  provider: CloudProvider;
+}> {
   const cfg = await resolveCloudAIConfig();
   return {
     enabled: cfg.provider !== "off" && !isPlaceholderKey(cfg.apiKey),
     model: cfg.model,
+    provider: cfg.provider,
   };
 }
 

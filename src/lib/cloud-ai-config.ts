@@ -175,9 +175,13 @@ export async function saveCloudAIConfig(input: StoredCloudAIConfig): Promise<voi
   const meta = getProviderMeta(provider);
   let model = (input.model || "").trim().slice(0, 64);
 
-  // Audit & safeguard: jika model kosong atau tidak sesuai dengan provider (misal provider gemini tapi model gpt-*),
-  // otomatis fallback ke defaultModel provider tersebut agar tidak terjadi error "tidak merespons".
-  if (!model || (provider === "gemini" && model.startsWith("gpt-")) || (provider === "openai" && model.startsWith("gemini-"))) {
+  // Model kosong → pakai default hemat provider. Sengaja TIDAK memaksa
+  // heuristik prefix (mis. "provider openai harus gpt-*"): provider `openai`
+  // adalah OpenAI-compatible CUSTOM — endpoint /v1/chat/completions milik
+  // siapa saja, termasuk relay/gateway yang justru hanya menyajikan model lain
+  // (mis. hanya gemini-*). Heuristik lama diam-diam mereset model tersebut ke
+  // gpt-4o-mini → 503 model_not_found di RetroBot (audit 2026-09-23).
+  if (!model) {
     model = meta?.defaultModel || FALLBACK_MODEL;
   }
 

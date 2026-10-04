@@ -29,6 +29,8 @@ export type ApiStyle = "gemini" | "openai-chat" | "anthropic";
 export interface ProviderMeta {
   id: CloudProvider;
   label: string;
+  /** Nama pendek untuk tag/log (mis. tag cloud terminal, badge admin). */
+  shortLabel: string;
   hint: string;
   apiStyle: ApiStyle | "off";
   /** Base URL endpoint (tanpa trailing slash). "" untuk gemini (endpoint tetap). */
@@ -52,6 +54,7 @@ const PROVIDER_METAS: Record<CloudProvider, ProviderMeta> = {
   off: {
     id: "off",
     label: "OFF — 100% lokal (TF-IDF)",
+    shortLabel: "Lokal",
     hint: "Default. Nol egress, tidak butuh key, jawaban tetap masuk akal untuk pertanyaan katalog.",
     apiStyle: "off",
     defaultBaseUrl: "",
@@ -64,6 +67,7 @@ const PROVIDER_METAS: Record<CloudProvider, ProviderMeta> = {
   gemini: {
     id: "gemini",
     label: "Gemini (Google AI Studio)",
+    shortLabel: "Gemini",
     hint: "Dipakai hanya jika confidence jawaban lokal rendah. Dapatkan key di aistudio.google.com (gratis).",
     apiStyle: "gemini",
     // Endpoint Gemini tetap (generativelanguage.googleapis.com) — baseUrl
@@ -78,6 +82,7 @@ const PROVIDER_METAS: Record<CloudProvider, ProviderMeta> = {
   openai: {
     id: "openai",
     label: "OpenAI-compatible — custom (OpenAI / Ollama / lainnya)",
+    shortLabel: "OpenAI-compatible",
     hint: "Endpoint /v1/chat/completions apapun. Isi Base URL & Model sesuai penyedia; untuk Ollama pakai http://localhost:11434/v1.",
     apiStyle: "openai-chat",
     defaultBaseUrl: "https://api.openai.com/v1",
@@ -90,6 +95,7 @@ const PROVIDER_METAS: Record<CloudProvider, ProviderMeta> = {
   anthropic: {
     id: "anthropic",
     label: "Anthropic Claude",
+    shortLabel: "Anthropic",
     hint: "Model keluarga Claude (messages API). Dapatkan key di console.anthropic.com.",
     apiStyle: "anthropic",
     defaultBaseUrl: "https://api.anthropic.com/v1",
@@ -102,6 +108,7 @@ const PROVIDER_METAS: Record<CloudProvider, ProviderMeta> = {
   deepseek: {
     id: "deepseek",
     label: "DeepSeek",
+    shortLabel: "DeepSeek",
     hint: "deepseek-chat / deepseek-reasoner. Dapatkan key di platform.deepseek.com.",
     apiStyle: "openai-chat",
     defaultBaseUrl: "https://api.deepseek.com/v1",
@@ -114,6 +121,7 @@ const PROVIDER_METAS: Record<CloudProvider, ProviderMeta> = {
   groq: {
     id: "groq",
     label: "Groq (Llama / Mixtral, sangat cepat)",
+    shortLabel: "Groq",
     hint: "Inferensi cepat model open-source. Dapatkan key di console.groq.com (gratis).",
     apiStyle: "openai-chat",
     defaultBaseUrl: "https://api.groq.com/openai/v1",
@@ -127,6 +135,7 @@ const PROVIDER_METAS: Record<CloudProvider, ProviderMeta> = {
   openrouter: {
     id: "openrouter",
     label: "OpenRouter (ratusan model, satu key)",
+    shortLabel: "OpenRouter",
     hint: "Agregator: Gemini, Claude, GPT, Llama, DeepSeek, dll. Format model wajib prefix vendor, mis. google/gemini-2.5-flash.",
     apiStyle: "openai-chat",
     defaultBaseUrl: "https://openrouter.ai/api/v1",
@@ -139,6 +148,7 @@ const PROVIDER_METAS: Record<CloudProvider, ProviderMeta> = {
   together: {
     id: "together",
     label: "Together AI",
+    shortLabel: "Together",
     hint: "Hosting model open-source (Llama, Qwen, DeepSeek). Dapatkan key di api.together.xyz.",
     apiStyle: "openai-chat",
     defaultBaseUrl: "https://api.together.xyz/v1",
@@ -151,6 +161,7 @@ const PROVIDER_METAS: Record<CloudProvider, ProviderMeta> = {
   mistral: {
     id: "mistral",
     label: "Mistral AI",
+    shortLabel: "Mistral",
     hint: "Model keluarga Mistral (hemat & multibahasa). Dapatkan key di console.mistral.ai.",
     apiStyle: "openai-chat",
     defaultBaseUrl: "https://api.mistral.ai/v1",
@@ -163,6 +174,7 @@ const PROVIDER_METAS: Record<CloudProvider, ProviderMeta> = {
   xai: {
     id: "xai",
     label: "xAI Grok",
+    shortLabel: "xAI Grok",
     hint: "Model keluarga Grok. Dapatkan key di console.x.ai.",
     apiStyle: "openai-chat",
     defaultBaseUrl: "https://api.x.ai/v1",
@@ -203,4 +215,11 @@ export function getApiStyle(
   id: CloudProvider | string | undefined | null
 ): ApiStyle | "off" {
   return getProviderMeta(id)?.apiStyle ?? "off";
+}
+
+/** Nama pendek provider untuk tag/log — fail-closed ke "Cloud" bila tak dikenal. */
+export function getProviderShortLabel(
+  id: CloudProvider | string | undefined | null
+): string {
+  return getProviderMeta(id)?.shortLabel ?? "Cloud";
 }
