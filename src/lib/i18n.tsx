@@ -335,6 +335,8 @@ export interface Translations {
   retrobot_close: string;
   retrobot_source_local: string;
   retrobot_source_cloud: string;
+  retrobot_fallback: string;
+  retrobot_fallback_hint: string;
   retrobot_context_profil: string;
   retrobot_context_layanan: string;
   retrobot_context_proyek: string;

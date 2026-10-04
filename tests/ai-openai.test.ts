@@ -138,6 +138,20 @@ describe("submitToOpenAIStream (streaming)", () => {
     expect(out).toContain("status_503");
   });
 
+  it("error upstream dengan code NUMERIK (mis. {\"code\":404}) tetap naik", async () => {
+    // Beberapa relay memakai error.code angka, bukan string. Tanpa dukungan
+    // numerik, reason jatuh ke status_<http> yang kurang diagnostic.
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ error: { code: 404, message: "model not found" } }), {
+        status: 503,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+    const out = await drain(submitToOpenAIStream([{ role: "user", content: "halo" }], { config: CFG }));
+    expect(out).toContain('"error":"404"');
+    expect(out).not.toContain("status_503");
+  });
+
   it("payload: messages, max_tokens, temperature, stream:true", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response('data: {"choices":[{"delta":{"content":"ok"}}]}\n\n', {

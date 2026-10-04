@@ -333,6 +333,9 @@ export const translations: Record<Language, Translations> = {
     retrobot_close: "Tutup",
     retrobot_source_local: "LOKAL",
     retrobot_source_cloud: "CLOUD",
+    retrobot_fallback: "Cloud gagal",
+    retrobot_fallback_hint:
+      "Model cloud tidak merespons — jawaban ini dari mesin lokal TF-IDF. Periksa Pengaturan Cloud AI di panel admin.",
     retrobot_context_profil: "Kamu sedang membuka Profil.exe — tanyakan tentang Sigit, keahlian, atau pengalaman.",
     retrobot_context_layanan: "Kamu sedang membuka Layanan.exe — tanyakan layanan web development atau AI/automation.",
     retrobot_context_proyek: "Kamu sedang membuka Proyek.exe — tanyakan proyek unggulan atau tech stack-nya.",
@@ -684,6 +687,9 @@ export const translations: Record<Language, Translations> = {
     retrobot_close: "Close",
     retrobot_source_local: "LOCAL",
     retrobot_source_cloud: "CLOUD",
+    retrobot_fallback: "Cloud failed",
+    retrobot_fallback_hint:
+      "The cloud model did not respond — this answer is from the local TF-IDF engine. Check Cloud AI settings in the admin panel.",
     retrobot_context_profil: "You're viewing Profile.exe — ask about Sigit, skills, or experience.",
     retrobot_context_layanan: "You're viewing Services.exe — ask about web development or AI/automation services.",
     retrobot_context_proyek: "You're viewing Projects.exe — ask about featured projects or their tech stack.",

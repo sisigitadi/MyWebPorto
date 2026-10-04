@@ -112,6 +112,10 @@ async function readUpstreamError(res: Response, fallback: string): Promise<strin
     const raw = await res.text();
     const code = (JSON.parse(raw) as { error?: { code?: unknown } })?.error?.code;
     if (typeof code === "string" && code.trim()) return code.trim().slice(0, 64);
+    // Beberapa relay memakai code NUMERIK (mis. {"error":{"code":404}}).
+    if (typeof code === "number" && Number.isFinite(code)) {
+      return String(code).slice(0, 64);
+    }
     return fallback;
   } catch {
     return fallback;

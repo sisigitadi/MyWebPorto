@@ -4,6 +4,7 @@ import {
   CLOUD_PROVIDER_IDS,
   getProviderMeta,
   getApiStyle,
+  getProviderShortLabel,
   isCloudProvider,
   type ProviderMeta,
 } from "@/lib/ai-providers";
@@ -95,6 +96,28 @@ describe("getApiStyle", () => {
     expect(getApiStyle(undefined)).toBe("off");
     expect(getApiStyle(null)).toBe("off");
     expect(getApiStyle("")).toBe("off");
+  });
+});
+
+describe("getProviderShortLabel", () => {
+  it("semua provider punya shortLabel non-kosong (tag cloud terminal)", () => {
+    for (const id of EVERY_PROVIDER) {
+      expect(getProviderShortLabel(id).trim()).toBeTruthy();
+    }
+  });
+
+  it("label pendek ≠ label panjang (dipakai di tag/log satu baris)", () => {
+    expect(getProviderShortLabel("gemini")).toBe("Gemini");
+    expect(getProviderShortLabel("openai")).toBe("OpenAI-compatible");
+    expect(getProviderShortLabel("groq")).toBe("Groq");
+    expect(getProviderShortLabel("off")).toBe("Lokal");
+  });
+
+  it("fail-closed: id tak dikenal → \"Cloud\" (bukan kosong/throw)", () => {
+    expect(getProviderShortLabel("claude")).toBe("Cloud");
+    expect(getProviderShortLabel(undefined)).toBe("Cloud");
+    expect(getProviderShortLabel(null)).toBe("Cloud");
+    expect(getProviderShortLabel("")).toBe("Cloud");
   });
 });
 

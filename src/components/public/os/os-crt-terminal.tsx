@@ -16,6 +16,7 @@ import {
 import { useTranslation } from "@/lib/i18n";
 import { queryAIEngine, type EngineContext } from "@/lib/ai-engine";
 import { askSigitBot, getCloudAIStatus } from "@/lib/actions";
+import { getProviderShortLabel } from "@/lib/ai-providers";
 import { useOSTheme, OSTheme } from "./theme-context";
 import { playOS } from "@/lib/os-sound";
 import { ProfileData, ServiceData, ProjectData, ArticleData } from "@/lib/dummy-data";
@@ -164,6 +165,9 @@ export function OSCrtTerminal({
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [copied, setCopied] = useState(false);
   const [cloudOn, setCloudOn] = useState(false);
+  // Label pendek provider aktif (dari registry) — sebelumnya tag cloud terminal
+  // meng-hardcode "Gemini" meski provider efektif bisa openai/anthropic/groq/dll.
+  const [cloudProviderLabel, setCloudProviderLabel] = useState("");
   // Default ON: speaker terminal aktif sejak halaman dimuat. speechSynthesis
   // tetap butuh gesture pengguna sebelum memutar suara (kebijakan autoplay
   // browser), tapi speak() hanya dipanggil setelah user mengetik perintah,
@@ -264,7 +268,10 @@ export function OSCrtTerminal({
     let cancelled = false;
     getCloudAIStatus()
       .then((s) => {
-        if (!cancelled) setCloudOn(s.enabled);
+        if (!cancelled) {
+          setCloudOn(s.enabled);
+          setCloudProviderLabel(getProviderShortLabel(s.provider));
+        }
       })
       .catch(() => {});
     return () => {
@@ -725,7 +732,7 @@ export function OSCrtTerminal({
             setLogs((prev) => [
               ...prev.filter((l) => !isPlaceholderLine(l)),
               t.terminal_cloud_tag
-                .replace("{provider}", "Gemini")
+                .replace("{provider}", cloudProviderLabel || "Cloud")
                 .replace("{intent}", cloud.intent),
               ...outputLines,
             ]);
