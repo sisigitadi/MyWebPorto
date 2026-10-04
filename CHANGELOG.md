@@ -8,6 +8,45 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 > Kerjaan terbuka berikutnya: migrasi provider context (theme/cart/i18n) ke
 > external store + custom change event, dan pindahkan fetch list admin ke
 > Server Component (plan doc §5).
+### Fixed — RetroBot tak pernah memakai Cloud AI meski diaktifkan (audit 503)
+
+RetroBot selalu jatuh ke jawaban lokal yang kaku meski Cloud AI sudah dianggap
+aktif. Audit langsung ke produksi (meta SSE → `fallbackReason: status_503`)
+menemukan akar masalah yang sebenarnya: **bukan** kode eskalasi (itu sudah benar
+sejak PR #54), melainkan model yang dikirim **tidak tersedia di endpoint**.
+
+Bukti audit (probe langsung ke `settings.cloud_ai` + endpoint relay):
+
+- Konfigurasi tersimpan: `provider=openai`, `baseUrl=https://router.juan.web.id/v1`
+  (gateway "New API"), API key **valid** (`GET /v1/models` → 200), tapi
+  `model=gpt-4o-mini`.
+- Relay tersebut **hanya menyajikan model Gemini** (`gemini-3.1-pro`,
+  `gemini-3.5-flash-lite`, `gemini-3.7/3.8-flash-high/low`). Karena itu
+  `POST /chat/completions` membalas **503 `model_not_found`**
+  ("No available channel for model gpt-4o-mini under group gemini"), dan RetroBot
+  memakai fallback TF-IDF — itulah jawaban robotiknya.
+
+- **Fixed (config)**: model diganti ke `gemini-3.8-flash-high` (terverifikasi
+  menjawab natural dalam Bahasa Indonesia, ~5-8 dtk). RetroBot langsung menjawab
+  dari cloud (`meta.source: "cloud"`, tanpa meta fallback).
+- **Fixed (code, `cloud-ai-config.ts`)**: `saveCloudAIConfig` tidak lagi
+  mereset paksa model lewat heuristik prefix ("provider openai harus gpt-*").
+  Provider `openai` adalah OpenAI-compatible **custom** — endpointnya bisa relay
+  yang justru hanya menyajikan model lain. Heuristik lama diam-diam mengembalikan
+  model yang sudah benar ke `gpt-4o-mini`, sehingga perbaikan via UI tak pernah
+  bertahan.
+- **Fixed (code, `ai-openai.ts`)**: `submitToOpenAIStream` kini meneruskan
+  `error.code` provider (mis. `model_not_found`, `invalid_api_key`) ke
+  `fallbackReason` — sebelumnya hanya `status_503` yang tertulis, sehingga
+  penyebab aslinya tak terlihat. Jatuh ke `status_<http>` bila body tak terbaca.
+- **Fixed (code, `ai-openai.ts`)**: `submitToOpenAI` (non-streaming, untuk
+  terminal & Redaksi) kini toleran terhadap relay yang **selalu memakai SSE**
+  meski `stream:false` — sebelumnya parse JSON gagal → salah dianggap cloud gagal.
+- **Added**: `tests/ai-openai.test.ts` (10 test) + 1 test regresi di
+  `tests/cloud-ai-config.test.ts`. Verifikasi: `tsc`/build 0 error, ESLint 0,
+  `vitest run` 267/267.
+
+
 
 ### Added & Fixed — Cloud AI, OAuth, Smart Fallback & Natural RetroBot
 

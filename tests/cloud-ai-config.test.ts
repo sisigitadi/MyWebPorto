@@ -156,6 +156,24 @@ describe("saveCloudAIConfig (validasi + prioritas admin)", () => {
     expect(cfg.model).toBe("gemini-2.0-flash");
     expect(cfg.apiKey).toBe("AIzaKeepMe123456");
   });
+  it("provider openai (custom) boleh menyimpan model non-gpt — mis. gemini-* di relay", async () => {
+    // Regresi audit 2026-09-23: heuristik prefix lama mereset model gemini-*
+    // menjadi gpt-4o-mini setiap kali provider=openai. Padahal `openai` adalah
+    // provider OpenAI-compatible CUSTOM — endpoint /v1/chat/completions siapa
+    // saja, termasuk relay yang justru hanya menyajikan model gemini-*. Akibat
+    // reset ini RetroBot menemui 503 model_not_found tanpa sebab yang jelas.
+    await saveCloudAIConfig({
+      provider: "openai",
+      apiKey: "TEST_OPENAI_KEY_FIXTURE",
+      baseUrl: "https://router.example.test/v1",
+      model: "gemini-3.8-flash-high",
+    });
+    const cfg = await resolveCloudAIConfig();
+    expect(cfg.model).toBe("gemini-3.8-flash-high");
+    expect(cfg.baseUrl).toBe("https://router.example.test/v1");
+  });
+
+
 
   it("provider baru (anthropic/groq) disimpan & di-resolve dengan benar", async () => {
     await saveCloudAIConfig({
