@@ -15,6 +15,10 @@
  */
 
 import { isPlaceholderKey } from "@/lib/env";
+import {
+  recordGeminiRateLimit,
+  recordGeminiRequest,
+} from "@/lib/gemini-quota";
 import { resolveCloudAIConfig, type ResolvedCloudAIConfig } from "@/lib/cloud-ai-config";
 import { getProviderMeta, isCloudProvider } from "@/lib/ai-providers";
 import type { ChatMessage } from "@/lib/ai-openai";
@@ -182,6 +186,80 @@ export function buildCloudMessages(
 export interface CloudAIResult {
   success: boolean;
   text: string;
+  /**
+   * Alasan gagal generik (tidak membocorkan key): "status_429" (quota habis),
+   * "status_503" (overload sementara), "status_401" (key salah/expired),
+   * "network" (timeout/gangguan), "empty_cloud" (200 tapi kosong). Dipakai
+   * route RetroBot sebagai fallbackReason supaya admin tahu kenapa jawaban
+   * jatuh ke lokal tanpa membuka devtools.
+   */
+  reason?: string;
+  /**
+   * Model yang benar-benar menghasilkan jawaban ini. Biasanya = cfg.model,
+   * tapi bila model aktif kena 429/503 dan retry ke model cadangan berhasil,
+   * field ini berisi nama cadangan tersebut — route RetroBot memakainya untuk
+   * mengoreksi meta SSE agar konsumen tahu model mana yang dipakai.
+   */
+  model?: string;
+}
+
+/**
+ * Daftar model Gemini cadangan untuk retry saat model aktif kena 429
+ * (quota habis). Mencoba model lain lebih murah daripada langsung jatuh ke
+ * jawaban lokal TF-IDF — quota per-model terpisah, jadi model cadangan
+ * biasanya masih bisa menjawab.
+ *
+ * Sumber: env `GEMINI_FALLBACK_MODELS` (comma-separated) bila diisi, jika
+ * tidak pakai default hemat flash keluarga 2.x/3.x. Model yang sedang
+ * aktif selalu dikecualikan karena sudah dicoba lebih dulu.
+ */
+const DEFAULT_GEMINI_FALLBACK_MODELS = [
+  "gemini-3.5-flash",
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-flash-latest",
+];
+
+/**
+ * Model cadangan (selain model aktif) untuk retry 429, urut dari paling
+ * disukai. Dipakai RetroBot sebelum jatuh ke jawaban lokal.
+ */
+export function getGeminiFallbackModels(activeModel: string): string[] {
+  const fromEnv = process.env.GEMINI_FALLBACK_MODELS;
+  const list =
+    fromEnv && fromEnv.trim()
+      ? fromEnv
+          .split(",")
+          .map((m) => m.trim())
+          .filter(Boolean)
+      : DEFAULT_GEMINI_FALLBACK_MODELS;
+  const active = (activeModel || "").trim().toLowerCase();
+  // Hilangkan duplikat & model aktif (sudah dicoba pertama kali).
+  return [...new Set(list)].filter((m) => m.toLowerCase() !== active);
+}
+
+/**
+ * Potong jawaban di batas kalimat (atau kata) terakhir yang masih utuh,
+ * bukan di tengah kata. Potongan mentah di maxChars sering memotong kalimat
+ * di tengah dan terlihat seperti jawaban "truncated" di panel RetroBot,
+ * padahal teksnya hanya habis di angka aman. Ellipsis menandai batas kapasitas.
+ */
+function trimAnswer(text: string, maxChars: number): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= maxChars) return trimmed;
+  const cut = trimmed.slice(0, maxChars);
+  // Batas kalimat kuat (. ! ? atau baris baru) hanya dipakai bila cukup dekat
+  // dengan ujung potongan, jika tidak jawaban akan terlalu pendek.
+  const stop = Math.max(
+    cut.lastIndexOf("."),
+    cut.lastIndexOf("!"),
+    cut.lastIndexOf("?"),
+    cut.lastIndexOf("\n")
+  );
+  if (stop >= maxChars * 0.6) return `${cut.slice(0, stop + 1).trimEnd()}…`;
+  const space = cut.lastIndexOf(" ");
+  return `${(space > 0 ? cut.slice(0, space) : cut).trimEnd()}…`;
 }
 
 /** Panggil Gemini via REST (tanpa SDK). Tidak pernah throw. */
@@ -193,7 +271,10 @@ export async function submitToGemini(
   const cfg = options.config ?? (await resolveCloudAIConfig());
   const apiKey = cfg.apiKey;
   if (isPlaceholderKey(apiKey)) {
-    return { success: false, text: "" };
+    // Key belum diisi (placeholder) — bukan error cloud, tapi "belum dikonfigurasi".
+    // reason "unconfigured" sejalan dengan jalur OpenAI (ai-openai.ts) supaya
+    // badge fallback RetroBot menjelaskan, bukan generik empty_cloud.
+    return { success: false, text: "", reason: "unconfigured" };
   }
   const model = cfg.model;
   // Batas default 300 token & 2000 char cocok untuk jawaban bot pendek. Redaksi
@@ -201,6 +282,9 @@ export async function submitToGemini(
   // pemanggilan yang sudah ada.
   const maxOutputTokens = options.maxOutputTokens ?? 300;
   const maxChars = options.maxChars ?? 2000;
+  // Catat permintaan keluar untuk rolling window RPM/RPD estimasi quota
+  // (dipanggil sebelum fetch: permintaan yang ditolak tetap dihitung).
+  recordGeminiRequest(model);
   try {
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
@@ -210,7 +294,7 @@ export async function submitToGemini(
           "Content-Type": "application/json",
           ...(cfg.authMode === "oauth"
             ? { Authorization: `Bearer ${apiKey}` }
-            : { "x-goog-api-key": apiKey }),
+            : { "x-goog-api-key": apiKey}),
         },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
@@ -220,16 +304,27 @@ export async function submitToGemini(
       }
     );
     if (!response.ok) {
-      return { success: false, text: "" };
+      // Pelajari batas quota asli dari error 429 (sebelum return) agar estimasi
+      // sisa quota di /admin/cloud-ai akurat setelah kejadian nyata.
+      const errorBody = await response.text().catch(() => "");
+      recordGeminiRateLimit(model, {
+        status: response.status,
+        body: errorBody,
+        retryAfter: response.headers.get("retry-after"),
+      });
+      // Sebar status HTTP ke pemanggil (mis. status_429 = quota habis) lewat
+      // reason, supaya badge fallback RetroBot diagnostik, bukan generik.
+      return { success: false, text: "", reason: `status_${response.status}` };
     }
     const data = (await response.json()) as {
       candidates?: { content?: { parts?: { text?: string }[] } }[];
     };
     const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
-    if (!text.trim()) return { success: false, text: "" };
-    return { success: true, text: text.trim().slice(0, maxChars) };
+    if (!text.trim()) return { success: false, text: "", reason: "empty_cloud" };
+    return { success: true, text: trimAnswer(text, maxChars) };
   } catch {
-    return { success: false, text: "" };
+    // Timeout (AbortSignal 30s) / gangguan jaringan → reason "network".
+    return { success: false, text: "", reason: "network" };
   }
 }
 
@@ -252,12 +347,23 @@ export async function submitToGemini(
  */
 export async function submitToGeminiMessages(
   messages: ChatMessage[],
-  options: { config?: ResolvedCloudAIConfig; maxOutputTokens?: number; maxChars?: number } = {}
+  options: {
+    config?: ResolvedCloudAIConfig;
+    maxOutputTokens?: number;
+    maxChars?: number;
+    /**
+     * Model cadangan untuk retry saat model aktif kena 429 (quota habis) atau
+     * 503 (overload). Diisi route RetroBot lewat getGeminiFallbackModels();
+     * panggilan tanpa opsi ini (mis. submitToGemini string) tetap tanpa retry.
+     */
+    fallbackModels?: string[];
+  } = {}
 ): Promise<CloudAIResult> {
   const cfg = options.config ?? (await resolveCloudAIConfig());
   const apiKey = cfg.apiKey;
   if (isPlaceholderKey(apiKey)) {
-    return { success: false, text: "" };
+    // Key belum diisi (placeholder) — lihat catatan di submitToGemini di atas.
+    return { success: false, text: "", reason: "unconfigured" };
   }
   const model = cfg.model;
   const maxOutputTokens = options.maxOutputTokens ?? 300;
@@ -289,34 +395,74 @@ export async function submitToGeminiMessages(
   }
   if (!contents.length) contents.push({ role: "user", parts: [{ text: "." }] });
 
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(cfg.authMode === "oauth"
-            ? { Authorization: `Bearer ${apiKey}` }
-            : { "x-goog-api-key": apiKey }),
-        },
-        body: JSON.stringify({
-          contents,
-          generationConfig: { maxOutputTokens, temperature: 0.4 },
-        }),
-        signal: AbortSignal.timeout(30_000),
+  // Model aktif dicoba pertama; bila kena 429 (quota habis) / 503 (overload),
+  // coba setiap model cadangan sebelum menyerah ke fallback lokal. Quota &
+  // kapasitas Gemini dihitung per-model, jadi model cadangan biasanya masih
+  // bisa menjawab meski model utama sudah habis kuotanya.
+  const tryModels = [model, ...(options.fallbackModels ?? [])];
+  // Alasan kegagalan percobaan terakhir — dipakai bila SEMUA model gagal, supaya
+  // badge fallback RetroBot tetap diagnostik (mis. "status_429").
+  let lastReason = "network";
+  for (const tryModel of tryModels) {
+    try {
+      // Catat permintaan keluar untuk rolling window RPM/RPD estimasi quota
+      // (dipanggil sebelum fetch: permintaan yang ditolak tetap dihitung).
+      recordGeminiRequest(tryModel);
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(tryModel)}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(cfg.authMode === "oauth"
+              ? { Authorization: `Bearer ${apiKey}` }
+              : { "x-goog-api-key": apiKey }),
+          },
+          body: JSON.stringify({
+            contents,
+            generationConfig: { maxOutputTokens, temperature: 0.4 },
+          }),
+          signal: AbortSignal.timeout(30_000),
+        }
+      );
+      if (!response.ok) {
+        lastReason = `status_${response.status}`;
+        // Pelajari batas quota asli + masa pembatasan dari error 429 Google
+        // (sebelum lanjut ke cadangan) agar estimasi quota admin akurat.
+        const errorBody = await response.text().catch(() => "");
+        recordGeminiRateLimit(tryModel, {
+          status: response.status,
+          body: errorBody,
+          retryAfter: response.headers.get("retry-after"),
+        });
+        // 429 (quota habis) & 503 (overload sementara) BISA sembuh dengan model
+        // lain → lanjut ke cadangan berikutnya. Status lain (401 key salah,
+        // 404 model tak dikenal) tidak akan berbeda hasilnya di model lain, dan
+        // setiap percobaan memakan waktu → berhenti & laporkan reason akurat.
+        if (response.status !== 429 && response.status !== 503) break;
+        continue;
       }
-    );
-    if (!response.ok) {
-      return { success: false, text: "" };
+      const data = (await response.json()) as {
+        candidates?: { content?: { parts?: { text?: string }[] } }[];
+      };
+      const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
+      if (!text.trim()) {
+        lastReason = "empty_cloud";
+        // 200 tapi kandidat kosong (mis. filter keamanan menolak): cakupan
+        // retry adalah 429/503 (kuota/kapasitas), bukan kebijakan per-model,
+        // jadi berhenti seperti perilaku semula.
+        break;
+      }
+      // Sukses — bila tryModel adalah cadangan, field model menyimpan nama
+      // cadangan tersebut untuk dikoreksi di meta SSE RetroBot.
+      return { success: true, text: trimAnswer(text, maxChars), model: tryModel };
+    } catch {
+      // Timeout (AbortSignal 30s) / gangguan jaringan untuk model ini. Retry ke
+      // model lain tak akan membantu bila jaringannya bermasalah (endpoint
+      // sama), dan setiap timeout berpotensi memblokir 30 detik → berhenti.
+      lastReason = "network";
+      break;
     }
-    const data = (await response.json()) as {
-      candidates?: { content?: { parts?: { text?: string }[] } }[];
-    };
-    const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
-    if (!text.trim()) return { success: false, text: "" };
-    return { success: true, text: text.trim().slice(0, maxChars) };
-  } catch {
-    return { success: false, text: "" };
   }
+  return { success: false, text: "", reason: lastReason };
 }

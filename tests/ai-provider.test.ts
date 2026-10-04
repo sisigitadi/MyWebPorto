@@ -2,10 +2,12 @@ import { describe, expect, it, vi, afterEach } from "vitest";
 import {
   buildCloudPrompt,
   buildCloudMessages,
+  getGeminiFallbackModels,
   isCloudAIEnabled,
   submitToGeminiMessages,
   type LiveContext,
 } from "@/lib/ai-provider";
+import { getGeminiQuotaSnapshot } from "@/lib/gemini-quota";
 import type { ResolvedCloudAIConfig } from "@/lib/cloud-ai-config";
 
 const OLD_PROVIDER = process.env.AI_PROVIDER;
@@ -116,7 +118,7 @@ function geminiLastBody(fetchMock: ReturnType<typeof vi.spyOn>): Record<string, 
 }
 
 describe("submitToGeminiMessages", () => {
-  it("sukses: ambil text dari candidates.parts, potong maxChars", async () => {
+  it("sukses: ambil text dari candidates.parts, potong maxChars di batas kata", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       GEMINI_OK({
         candidates: [
@@ -133,7 +135,24 @@ describe("submitToGeminiMessages", () => {
       maxChars: 10,
     });
     expect(res.success).toBe(true);
-    expect(res.text).toBe("Halo, saya"); // slice(0, 10) setelah trim
+    // Tidak memotong tengah kata: potong di spasi terakhir + ellipsis.
+    expect(res.text).toBe("Halo,…");
+    fetchMock.mockRestore();
+  });
+
+  it("potong maxChars di batas kalimat bila ada dekat ujung potongan", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      GEMINI_OK({
+        candidates: [{ content: { parts: [{ text: "Saya bisa web. Dan juga AI." }] } }]
+      })
+    );
+    const res = await submitToGeminiMessages([{ role: "user", content: "halo" }], {
+      config: GEMINI_CFG,
+      maxChars: 20,
+    });
+    expect(res.success).toBe(true);
+    // Tanda titik di index 14 (>= 60% dari 20) → utamakan batas kalimat utuh.
+    expect(res.text).toBe("Saya bisa web.…");
     fetchMock.mockRestore();
   });
 
@@ -237,5 +256,168 @@ describe("submitToGeminiMessages", () => {
       (await submitToGeminiMessages([{ role: "user", content: "halo" }], { config: GEMINI_CFG }))
         .success
     ).toBe(false);
+  });
+
+  it("429 di model aktif → retry ke cadangan pertama yang sehat (bukan jatuh ke lokal)", async () => {
+    // Panggilan pertama (model aktif) kena 429 quota habis; cadangan pertama
+    // masih sehat → jawaban tetap dari cloud, model aktual dicatat di result.
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const model = String(input).split("/models/")[1]?.split(":")[0];
+      if (model === "gemini-2.5-flash") {
+        return new Response(JSON.stringify({ error: { code: 429, message: "quota" } }), {
+          status: 429,
+        });
+      }
+      return GEMINI_OK({ candidates: [{ content: { parts: [{ text: "dari cadangan" }] } }] });
+    });
+
+    const res = await submitToGeminiMessages([{ role: "user", content: "halo" }], {
+      config: GEMINI_CFG,
+      fallbackModels: ["gemini-2.0-flash", "gemini-1.5-flash"],
+    });
+    expect(res.success).toBe(true);
+    expect(res.text).toBe("dari cadangan");
+    expect(res.model).toBe("gemini-2.0-flash");
+    // Model aktif sekali + cadangan pertama sekali = berhenti begitu dapat.
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(String(fetchMock.mock.calls[1][0])).toContain(
+      "/models/gemini-2.0-flash:generateContent"
+    );
+    fetchMock.mockRestore();
+  });
+
+  it("semua model 429 → success false + reason status_429 (coba semua cadangan)", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ error: { code: 429, message: "quota" } }), { status: 429 })
+    );
+    const res = await submitToGeminiMessages([{ role: "user", content: "halo" }], {
+      config: GEMINI_CFG,
+      fallbackModels: ["gemini-2.0-flash", "gemini-1.5-flash"],
+    });
+    expect(res.success).toBe(false);
+    expect(res.reason).toBe("status_429");
+    // Model aktif + tiap cadangan dicoba semua sebelum menyerah ke lokal.
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    const calledModels = fetchMock.mock.calls.map(
+      (c) => String(c[0]).split("/models/")[1]?.split(":")[0]
+    );
+    expect(calledModels).toEqual(["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]);
+    fetchMock.mockRestore();
+  });
+
+  it("503 overload juga memicu retry cadangan, sukses", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const model = String(input).split("/models/")[1]?.split(":")[0];
+      if (model === "gemini-2.5-flash") {
+        return new Response(JSON.stringify({ error: { code: 503 } }), { status: 503 });
+      }
+      return GEMINI_OK({ candidates: [{ content: { parts: [{ text: "ok" }] } }] });
+    });
+    const res = await submitToGeminiMessages([{ role: "user", content: "halo" }], {
+      config: GEMINI_CFG,
+      fallbackModels: ["gemini-2.0-flash"],
+    });
+    expect(res.success).toBe(true);
+    expect(res.model).toBe("gemini-2.0-flash");
+    fetchMock.mockRestore();
+  });
+
+  it("status non-retryable (401 key salah) → tidak mencoba cadangan", async () => {
+    // Key salah/expired memberi hasil sama di model manapun → jangan buang
+    // permintaan tambahan; langsung gagal dengan reason yang akurat.
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ error: { code: 401 } }), { status: 401 })
+    );
+    const res = await submitToGeminiMessages([{ role: "user", content: "halo" }], {
+      config: GEMINI_CFG,
+      fallbackModels: ["gemini-2.0-flash", "gemini-1.5-flash"],
+    });
+    expect(res.success).toBe(false);
+    expect(res.reason).toBe("status_401");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    fetchMock.mockRestore();
+  });
+});
+
+describe("getGeminiFallbackModels", () => {
+  const OLD_FALLBACK = process.env.GEMINI_FALLBACK_MODELS;
+  afterEach(() => {
+    if (OLD_FALLBACK === undefined) delete process.env.GEMINI_FALLBACK_MODELS;
+    else process.env.GEMINI_FALLBACK_MODELS = OLD_FALLBACK;
+  });
+
+  it("default: daftar flash hemat; model aktif selalu dikecualikan", () => {
+    delete process.env.GEMINI_FALLBACK_MODELS;
+    const list = getGeminiFallbackModels("gemini-3.5-flash");
+    // Model aktif sudah dicoba lebih dulu oleh pemanggil, jangan ulangi.
+    expect(list).not.toContain("gemini-3.5-flash");
+    expect(list).toContain("gemini-2.5-flash");
+    expect(list.length).toBeGreaterThan(0);
+  });
+
+  it("env GEMINI_FALLBACK_MODELS menimpa default; duplikat & kosong dibersihkan", () => {
+    process.env.GEMINI_FALLBACK_MODELS =
+      "gemini-2.5-flash, custom-model ,, gemini-1.5-flash, custom-model";
+    const list = getGeminiFallbackModels("GEMINI-2.5-FLASH");
+    // Eksklusi case-insensitive, urutan dipertahankan, duplikat & entry kosong
+    // (double comma) dibuang.
+    expect(list).toEqual(["custom-model", "gemini-1.5-flash"]);
+  });
+});
+
+describe("pelacakan quota (wiring gemini-quota)", () => {
+  // Model unik per test: store tracker bersifat module-level, jadi nama model
+  // berbeda mencegah kontaminasi antar test.
+  it("permintaan sukses tercatat di rolling window RPM/RPD", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      GEMINI_OK({ candidates: [{ content: { parts: [{ text: "ok" }] } }] })
+    );
+    await submitToGeminiMessages([{ role: "user", content: "halo" }], {
+      config: { ...GEMINI_CFG, model: "gemini-2.5-flash-tracked" },
+    });
+    const snap = getGeminiQuotaSnapshot(["gemini-2.5-flash-tracked"]);
+    expect(snap.models[0].rpmUsed).toBe(1);
+    expect(snap.models[0].rpdUsed).toBe(1);
+    vi.restoreAllMocks();
+  });
+
+  it("setiap model yang dicoba retry tercatat masing-masing sekali", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ error: { code: 429 } }), { status: 429 })
+    );
+    await submitToGeminiMessages([{ role: "user", content: "halo" }], {
+      config: { ...GEMINI_CFG, model: "gemini-2.5-flash-tracked2" },
+      fallbackModels: ["gemini-2.0-flash-tracked2"],
+    });
+    const snap = getGeminiQuotaSnapshot([
+      "gemini-2.5-flash-tracked2",
+      "gemini-2.0-flash-tracked2",
+    ]);
+    expect(snap.models[0].rpmUsed).toBe(1);
+    expect(snap.models[1].rpmUsed).toBe(1);
+    vi.restoreAllMocks();
+  });
+
+  it("429 nyata: batas dipelajari dari tubuh error + Retry-After tercatat", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: {
+            code: 429,
+            message: "Requests per minute: 10. Requests per day: 250.",
+          },
+        }),
+        { status: 429, headers: { "Retry-After": "30" } }
+      )
+    );
+    await submitToGeminiMessages([{ role: "user", content: "halo" }], {
+      config: { ...GEMINI_CFG, model: "gemini-2.5-flash-tracked3" },
+    });
+    const snap = getGeminiQuotaSnapshot(["gemini-2.5-flash-tracked3"]);
+    expect(snap.models[0].rpmLimit).toBe(10);
+    expect(snap.models[0].rpdLimit).toBe(250);
+    expect(snap.models[0].limitSource).toBe("learned");
+    expect(snap.models[0].status).toBe("limited");
+    vi.restoreAllMocks();
   });
 });
