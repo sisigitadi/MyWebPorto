@@ -30,11 +30,6 @@ export interface OpenAIResult {
   text: string;
 }
 
-/** Nama provider untuk log/badge — tidak pernah membocorkan key. */
-export function getProviderName(): string {
-  return "openai";
-}
-
 /** Base URL endpoint (tanpa trailing slash). */
 export function getOpenAIBaseUrl(): string {
   const raw = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").trim();
