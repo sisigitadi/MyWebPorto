@@ -24,7 +24,18 @@
 
 /** Batas default free-tier (per menit / per hari) per keluarga model. */
 const DEFAULT_GEMINI_FREE_LIMITS: Record<string, { rpm: number; rpd: number }> = {
+  // Audit 2026-10-05: keluarga 2.x/1.5 sudah pensiun (404) — entri tetap
+  // dipertahankan untuk prefix-matching varian preview lama & request historis.
+  // Model 3.x sehat; flash-lite paling longgar (alias -latest), flash biasa
+  // lebih ketat. Angka konservatif: 429 pertama mengoreksi otomatis (learned
+  // limits menimpa default).
   "gemini-3.5-flash": { rpm: 10, rpd: 250 },
+  "gemini-3.5-flash-lite": { rpm: 15, rpd: 1500 },
+  "gemini-3.7-flash": { rpm: 10, rpd: 250 },
+  "gemini-3.6-flash": { rpm: 10, rpd: 250 },
+  "gemini-3.1-flash-lite": { rpm: 15, rpd: 1500 },
+  "gemini-3-flash-preview": { rpm: 10, rpd: 250 },
+  "gemini-flash-lite-latest": { rpm: 15, rpd: 1500 },
   "gemini-2.5-flash": { rpm: 10, rpd: 250 },
   "gemini-2.5-pro": { rpm: 5, rpd: 50 },
   "gemini-2.0-flash": { rpm: 15, rpd: 1500 },

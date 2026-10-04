@@ -67,7 +67,9 @@ describe("resolveCloudAIConfig (fallback env)", () => {
     const cfg = await resolveCloudAIConfig();
     expect(cfg.provider).toBe("off");
     expect(cfg.apiKey).toBe("");
-    expect(cfg.model).toBe("gemini-2.5-flash");
+    // Audit 2026-10-05: gemini-2.5-flash sudah pensiun (404); default jaring
+    // terakhir pakai alias -latest yang mengikuti model flash hemat terbaru.
+    expect(cfg.model).toBe("gemini-flash-lite-latest");
     expect(cfg.baseUrl).toBe("https://api.openai.com/v1");
     expect(cfg.source).toBe("env");
   });

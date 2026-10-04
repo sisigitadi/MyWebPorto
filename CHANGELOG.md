@@ -9,6 +9,45 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 > external store + custom change event, dan pindahkan fetch list admin ke
 > Server Component (plan doc §5).
 
+### Fixed — Audit 2026-10-05: model Gemini default & cadangan menyasar model pensiun (404)
+
+Probe langsung ke API Gemini (ListModels + `generateContent` per kandidat,
+key diambil dari `settings.cloud_ai`) membuktikan beberapa model yang dikodekan
+sebagai default/cadangan SUDAH dipensiunkan Google (404 "no longer
+available"), sehingga jalur default & beberapa retry menyasar model mati:
+
+- **404 (pensiun, dikeluarkan)**: `gemini-2.5-flash`, `gemini-2.0-flash`,
+  `gemini-1.5-flash`, `gemini-2.5-pro`. `gemini-2.5-flash` adalah default
+  string terakhir di tiga tempat, jadi installasi baru tanpa pengaturan admin
+  default-nya model yang tidak bisa dipanggil.
+- **200 OK (sehat, dipakai)**: `gemini-3.5-flash-lite`, `gemini-3.7-flash`,
+  `gemini-3.6-flash`, `gemini-3.1-flash-lite`, `gemini-3-flash-preview`.
+- **429 (hidup, hanya quota free-tier habis karena probing)**:
+  `gemini-3.5-flash`, `gemini-flash-latest`, `gemini-3.8-flash` — BUKAN
+  pensiun; tetap layak dicoba (quota per-model terpisah, bisa sembuh).
+
+**Yang diubah:**
+
+- **Daftar model cadangan (`ai-provider.ts`)**: ekor berisi
+  `gemini-2.5/2.0/1.5-flash` (semua 404 pasti) diganti dengan model 3.x sehat.
+  Fix sebelumnya membuat loop retry melompati 404 dengan aman, tapi setiap
+  request ke model yang tak akan pernah berhasil tetap membuang waktu dan
+  memperlambat cadangan sehat pertama saat quota habis.
+- **Default model hemat (`ai-providers.ts`, `cloud-ai-config.ts`,
+  `ai-provider.ts`)**: `gemini-2.5-flash` (404) diganti ke alias
+  `gemini-flash-lite-latest` yang selalu mengikuti model flash hemat terbaru,
+  sehingga tidak stagnan saat Google memensiunkan versi spesifik. Model aktif
+  utama tetap dari resolved config (DB admin/env); konstanta ini hanya jaring
+  terakhir bila keduanya kosong.
+- **Tabel quota free-tier (`gemini-quota.ts`)**: limit RPM/RPD ditambah untuk
+  model 3.x sehat (`3.5-flash-lite`, `3.7-flash`, `3.6-flash`,
+  `3.1-flash-lite`, `3-flash-preview`, `flash-lite-latest`) yang sebelumnya
+  jatuh ke `GLOBAL_DEFAULT` kurang akurat. Entri keluarga 2.x/1.5 tetap
+  dipertahankan untuk prefix-matching varian preview lama & request historis.
+- **Terverifikasi**: `tsc --noEmit` EXIT 0, `eslint` 0 error, `vitest` 327/327
+  (termasuk test baru: keluarga pensiun pasti tidak ada di daftar cadangan
+  default; model sehat didahulukan).
+
 ### Fixed — Audit 2026-10-04: tracker analytics, label provider, & visibilitas fallback
 
 - **Fixed (code, `visitor-tracker.tsx`)**: hit analytics TIDAK PERNAH terkirim.

@@ -87,7 +87,11 @@ export function getAnswerStyleBudget(
 // agar UI/status tetap menampilkan placeholder). Dilestarikan dari versi lama
 // agar test & tampilan tidak berubah.
 const FALLBACK_BASE_URL = "https://api.openai.com/v1";
-const FALLBACK_MODEL = "gemini-2.5-flash";
+// Audit 2026-10-05: gemini-2.5-flash sudah dipensiunkan (404) — fallback
+// string terakhir ke alias -latest yang selalu mengikuti model flash hemat
+// terbaru. Model aktif utamanya ditentukan oleh resolved config (DB admin/
+// env), konstanta ini hanya jaring terakhir bila keduanya kosong.
+const FALLBACK_MODEL = "gemini-flash-lite-latest";
 
 function envProvider(): CloudProvider {
   const p = (process.env.AI_PROVIDER || "off").toLowerCase();
