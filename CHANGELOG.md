@@ -33,6 +33,17 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
   sebelum aturan `/scratch/` di `.gitignore` ada, dan lolos dari pembersihan
   sebelumnya. Dihapus dari index. Catatan: file masih ada di history git lama;
   rotasi kredensial DB disarankan jika isiinya pernah valid.
+- **Fixed (build, `scripts/package-deploy.mjs` + `next.config.ts`)**: rekursi
+  `deploy_package/deploy_package/…` sedalam 15 level di dalam `.next/standalone`.
+  Penyebab: `package-deploy.mjs` menghapus `deploy_package/` baru setelah
+  `npm run build` selesai, padahal Next.js standalone tracer ikut menyertakan
+  folder root `deploy_package/` yang tersisa dari siklus sebelumnya — lalu
+  hasilnya di-copy kembali ke `deploy_package`, bertambah 1 level per siklus
+  (path >260 char memicu error "Filename too long" dan membengkakkan ukuran
+  paket deploy). Kini `deploy_package/` dihapus SEBELUM build, plus guard
+  `outputFileTracingExcludes: { "/": ["./deploy_package/**/*"] }`. Terverifikasi:
+  setelah build dengan `deploy_package` 15-level masih ada di root,
+  `.next/standalone/deploy_package` tidak lagi terbentuk.
 - **Fixed (code, `ai-openai.ts`)**: `readUpstreamError` kini menerima
   `error.code` NUMERIK (beberapa relay memakai `{"code":404}` sebagai angka)
   sehingga reason tetap diagnostic, bukan `status_<http>`.
