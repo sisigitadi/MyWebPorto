@@ -68,10 +68,19 @@ export async function uploadImageLocal(formData: FormData): Promise<{
       return { success: true, url: remote.url };
     }
 
-    const uniqueFileName = `${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${extension}`;
+    // Di serverless (Vercel) filesystem read-only selain /tmp — tulis ke
+    // public/uploads pasti EROFS. Tolak eksplisit dengan pesan yang bisa ditindaklanjuti
+    // daripada membiarkan EROFS samar muncul ke permukaan.
     if (process.env.VERCEL) {
-      console.warn("uploadImageLocal: Vercel FS ephemeral — file tidak persisten, gunakan Bunny CDN/S3 untuk prod");
+      return {
+        success: false,
+        error:
+          "Upload lokal tidak didukung di serverless (filesystem read-only). " +
+          "Set BUNNY_STORAGE_ZONE_NAME + BUNNY_STORAGE_API_KEY di Environment Variables Vercel.",
+      };
     }
+
+    const uniqueFileName = `${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${extension}`;
     const uploadDir = path.join(process.cwd(), "public", "uploads");
 
     try {

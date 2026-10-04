@@ -4,7 +4,29 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
-> E2E CI diperbaiki (lihat `Fixed` di bawah) — 20/20 test hijau dan masuk ke CI.
+### Fixed — Upload gambar gagal di Vercel (EROFS: read-only file system)
+
+Upload gambar artikel & avatar di produksi memunculkan
+`EROFS: read-only file system, open '/var/task/public/uploads/…'`.
+Penyebab: environment variable `BUNNY_STORAGE_ZONE_NAME` dan
+`BUNNY_STORAGE_API_KEY` belum diisi, sehingga upload jatuh ke fallback
+`public/uploads/` — filesystem Vercel serverless read-only selain `/tmp`,
+jadi tulisan pasti gagal.
+
+Adapter storage sudah benar; masalahnya konfigurasi. Kini saat terdeteksi
+lingkungan serverless tanpa Bunny terkonfigurasi, upload gagal cepat dengan
+pesan yang menyebut env yang harus diset (bukan `EROFS` samar yang
+menyesatkan):
+
+> Upload lokal tidak didukung di serverless (filesystem read-only).
+> Set BUNNY_STORAGE_ZONE_NAME + BUNNY_STORAGE_API_KEY di Environment
+> Variables Vercel.
+
+**Solusi produksi (aksi admin, bukan kode):** isi
+`BUNNY_STORAGE_ZONE_NAME`, `BUNNY_STORAGE_API_KEY`, dan
+`NEXT_PUBLIC_BUNNY_PULL_ZONE_URL` di Settings → Environment Variables
+Vercel. `.env.local` hanya untuk dev lokal dan tidak dibaca Vercel.
+
 > Kerjaan terbuka berikutnya: migrasi provider context (theme/cart/i18n) ke
 > external store + custom change event, dan pindahkan fetch list admin ke
 > Server Component (plan doc §5).
