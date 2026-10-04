@@ -5,6 +5,7 @@ import {
   resolveCloudAIConfig,
   saveCloudAIConfig,
   maskKey,
+  getAnswerStyleBudget,
   type StoredCloudAIConfig,
 } from "@/lib/cloud-ai-config";
 
@@ -219,6 +220,32 @@ describe("saveCloudAIConfig (validasi + prioritas admin)", () => {
     const cfg = await resolveCloudAIConfig();
     expect(cfg.systemPrompt).toBe("");
     expect(cfg.answerStyle).toBe("concise");
+  });
+});
+
+// Budget adalah satu-sumber-kebenaran untuk route RetroBot & askSigitBot:
+// bila nilai berubah, kedua jalur harus berubah bersama — test ini menjaga
+// tabel tetap sinkron dengan dokumentasi di getAnswerStyleBudget.
+describe("getAnswerStyleBudget", () => {
+  it("detailed = budget terbesar (artikel/jawaban panjang)", () => {
+    expect(getAnswerStyleBudget("detailed")).toEqual({ tokens: 1500, chars: 4000 });
+  });
+
+  it("friendly = budget menengah", () => {
+    expect(getAnswerStyleBudget("friendly")).toEqual({ tokens: 900, chars: 2600 });
+  });
+
+  it("concise = budget terkecil, juga default untuk nilai tak dikenal", () => {
+    expect(getAnswerStyleBudget("concise")).toEqual({ tokens: 600, chars: 1800 });
+  });
+
+  it("token selalu di atas default provider 300 yang memicu MAX_TOKENS", () => {
+    // Char clamp boleh lebih kecil dari default 2000 (concise = 1800): clamp
+    // hanya memotong prompt masuk, sedangkan truncation jawaban nyata
+    // disebabkan maxOutputTokens 300 — itulah yang harus selalu dinaikkan.
+    for (const style of ["concise", "detailed", "friendly"] as const) {
+      expect(getAnswerStyleBudget(style).tokens).toBeGreaterThan(300);
+    }
   });
 });
 

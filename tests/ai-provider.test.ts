@@ -322,6 +322,79 @@ describe("submitToGeminiMessages", () => {
     fetchMock.mockRestore();
   });
 
+  it("404 model dipensiunkan di cadangan pertama → lanjut ke cadangan sehat berikutnya", async () => {
+    // Audit 2026-10-04: keluarga 2.x/1.5 sudah dipensiunkan Google (404), tapi
+    // 3.5-flash masih sehat. Sebelumnya 404 memutus seluruh rantai cadangan;
+    // sekarang dilompati seperti 429/503.
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const model = String(input).split("/models/")[1]?.split(":")[0];
+      if (model === "gemini-2.5-flash") {
+        return new Response(JSON.stringify({ error: { code: 429, message: "quota" } }), {
+          status: 429,
+        });
+      }
+      if (model === "gemini-2.0-flash") {
+        return new Response(
+          JSON.stringify({ error: { code: 404, message: "no longer available" } }),
+          { status: 404 }
+        );
+      }
+      return GEMINI_OK({ candidates: [{ content: { parts: [{ text: "dari cadangan" }] } }] });
+    });
+
+    const res = await submitToGeminiMessages([{ role: "user", content: "halo" }], {
+      config: GEMINI_CFG,
+      fallbackModels: ["gemini-2.0-flash", "gemini-1.5-flash"],
+    });
+    expect(res.success).toBe(true);
+    expect(res.text).toBe("dari cadangan");
+    // Cadangan pertama kena 404 (dipensiunkan) → dilompati, cadangan kedua sehat.
+    expect(res.model).toBe("gemini-1.5-flash");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    fetchMock.mockRestore();
+  });
+
+  it("404 di model aktif → tetap mencoba cadangan (tidak break)", async () => {
+    // Model aktif sendiri bisa jadi yang dipensiunkan; 404 di percobaan
+    // pertama tidak boleh membunuh kesempatan di cadangan.
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const model = String(input).split("/models/")[1]?.split(":")[0];
+      if (model === "gemini-2.5-flash") {
+        return new Response(
+          JSON.stringify({ error: { code: 404, message: "no longer available" } }),
+          { status: 404 }
+        );
+      }
+      return GEMINI_OK({ candidates: [{ content: { parts: [{ text: "dari cadangan" }] } }] });
+    });
+
+    const res = await submitToGeminiMessages([{ role: "user", content: "halo" }], {
+      config: GEMINI_CFG,
+      fallbackModels: ["gemini-2.0-flash", "gemini-1.5-flash"],
+    });
+    expect(res.success).toBe(true);
+    expect(res.model).toBe("gemini-2.0-flash");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    fetchMock.mockRestore();
+  });
+
+  it("semua model 404 → success false + reason status_404 (coba semua cadangan)", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ error: { code: 404, message: "no longer available" } }), {
+        status: 404,
+      })
+    );
+    const res = await submitToGeminiMessages([{ role: "user", content: "halo" }], {
+      config: GEMINI_CFG,
+      fallbackModels: ["gemini-2.0-flash", "gemini-1.5-flash"],
+    });
+    expect(res.success).toBe(false);
+    expect(res.reason).toBe("status_404");
+    // Semua dicoba: aktif + 2 cadangan — tidak ada yang break di tengah.
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    fetchMock.mockRestore();
+  });
+
   it("status non-retryable (401 key salah) → tidak mencoba cadangan", async () => {
     // Key salah/expired memberi hasil sama di model manapun → jangan buang
     // permintaan tambahan; langsung gagal dengan reason yang akurat.
@@ -353,6 +426,18 @@ describe("getGeminiFallbackModels", () => {
     expect(list).not.toContain("gemini-3.5-flash");
     expect(list).toContain("gemini-2.5-flash");
     expect(list.length).toBeGreaterThan(0);
+  });
+
+  it("default: model sehat (3.5-flash-lite) didahulukan sebelum yang dipensiunkan", () => {
+    // Audit 2026-10-04: 2.x/1.5 sudah 404, 3.5-flash-lite masih 200 OK.
+    // Urutan menentukan cadangan mana yang dicoba lebih dulu saat retry.
+    delete process.env.GEMINI_FALLBACK_MODELS;
+    const list = getGeminiFallbackModels("gemini-flash-latest");
+    const healthy = list.indexOf("gemini-3.5-flash-lite");
+    const retired = list.indexOf("gemini-2.5-flash");
+    expect(healthy).toBeGreaterThanOrEqual(0);
+    expect(retired).toBeGreaterThanOrEqual(0);
+    expect(healthy).toBeLessThan(retired);
   });
 
   it("env GEMINI_FALLBACK_MODELS menimpa default; duplikat & kosong dibersihkan", () => {

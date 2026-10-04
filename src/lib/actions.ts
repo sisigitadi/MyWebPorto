@@ -41,6 +41,7 @@ import { buildCloudPrompt, buildCloudMessages, submitToGemini } from "@/lib/ai-p
 import {
   resolveCloudAIConfig,
   saveCloudAIConfig,
+  getAnswerStyleBudget,
   type StoredCloudAIConfig,
   type CloudProvider,
 } from "@/lib/cloud-ai-config";
@@ -1781,15 +1782,33 @@ async function submitToCloud(
   // Persona & gaya jawaban kustom dari pengaturan admin (bila diisi).
   const custom = { systemPrompt: cfg.systemPrompt, answerStyle: cfg.answerStyle };
   const style = getApiStyle(cfg.provider);
+  // Budget jawaban per answerStyle — SAMA dengan route /api/retrobot
+  // (getAnswerStyleBudget). Tanpa ini ketiga submit memakai default provider
+  // (300 token / 2000 char) dan jawaban terminal terpotong di tengah (bug:
+  // jawaban askSigitBot hanya ~30-35 char karena token "thinking" model flash
+  // 2.5+ memakan hampir seluruh maxOutputTokens).
+  const budget = getAnswerStyleBudget(cfg.answerStyle);
   if (style === "anthropic") {
     // Anthropic pakai messages API; system prompt jadi field top-level.
-    return submitToAnthropic(buildCloudMessages(query, ctx, lang, custom), { config: cfg });
+    return submitToAnthropic(buildCloudMessages(query, ctx, lang, custom), {
+      config: cfg,
+      maxTokens: budget.tokens,
+      maxChars: budget.chars,
+    });
   }
   if (style === "openai-chat") {
     // OpenAI-compatible memakai format messages; prompt tetap katalog publik.
-    return submitToOpenAI(buildCloudMessages(query, ctx, lang, custom), { config: cfg });
+    return submitToOpenAI(buildCloudMessages(query, ctx, lang, custom), {
+      config: cfg,
+      maxTokens: budget.tokens,
+      maxChars: budget.chars,
+    });
   }
-  return submitToGemini(buildCloudPrompt(query, ctx, lang, custom), { config: cfg });
+  return submitToGemini(buildCloudPrompt(query, ctx, lang, custom), {
+    config: cfg,
+    maxOutputTokens: budget.tokens,
+    maxChars: budget.chars,
+  });
 }
 
 export async function askSigitBot(

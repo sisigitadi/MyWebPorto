@@ -62,6 +62,27 @@ export interface ResolvedCloudAIConfig {
 
 const SETTING_KEY = "cloud_ai";
 
+/**
+ * Budget jawaban (token output + clamp char) per answerStyle — SATU sumber
+ * kebenaran untuk semua jalur cloud: route /api/retrobot (streaming) maupun
+ * submitToCloud → askSigitBot (terminal, non-streaming). Sebelumnya tabel ini
+ * diduplikasi implisit: jalur terminal memakai default provider (300 token /
+ * 2000 char) sehingga jawaban terpotong padahal route RetroBot sudah pakai
+ * nilai lebih besar — kedua jalur kini baca dari sini agar tidak drift lagi.
+ *
+ * Default 300/2000 terlalu kecil untuk model flash keluarga 2.5+: token
+ * "thinking" ikut terhitung di maxOutputTokens, sehingga reasoning memakan
+ * hampir seluruh budget dan teks yang terlihat terpotong (finishReason
+ * MAX_TOKENS → jawaban terminal hanya ~30-35 char).
+ */
+export function getAnswerStyleBudget(
+  answerStyle: "concise" | "detailed" | "friendly"
+): { tokens: number; chars: number } {
+  if (answerStyle === "detailed") return { tokens: 1500, chars: 4000 };
+  if (answerStyle === "friendly") return { tokens: 900, chars: 2600 };
+  return { tokens: 600, chars: 1800 };
+}
+
 // Default saat provider "off" (tidak dipakai untuk panggilan apa pun — murni
 // agar UI/status tetap menampilkan placeholder). Dilestarikan dari versi lama
 // agar test & tampilan tidak berubah.
