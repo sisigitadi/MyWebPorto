@@ -66,6 +66,24 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
   memotong kalimat di tengah dan terlihat seperti jawaban "truncated".
   Terverifikasi live di browser: badge **CLOUD**, jawaban 1735 karakter utuh
   (services + kontak), tanpa fallback note.
+- **Fixed (code, `actions.ts` + `cloud-ai-config.ts` + `retrobot/route.ts`)**:
+  saudara dari entri di atas di **jalur terminal** (`askSigitBot` →
+  `submitToCloud`, dipakai `os-crt-terminal.tsx`): jawaban terminal masih
+  terpotong ~30-35 karakter meski RetroBot sudah diperbaiki. Akar masalahnya
+  sekelas, tapi tempatnya berbeda — `submitToCloud` memanggil `submitToGemini`
+  / `submitToOpenAI` / `submitToAnthropic` **hanya** dengan `{ config }`, tanpa
+  meneruskan `maxOutputTokens` / `maxTokens` / `maxChars`, sehingga ketiganya
+  jatuh ke default provider (300 token / 2000 char) dan token "thinking"
+  kembali memakan hampir seluruh budget. Tabel budget kini diekstrak menjadi
+  satu helper terpusat `getAnswerStyleBudget()` di `cloud-ai-config.ts` (satu
+  sumber kebenaran untuk kedua jalur), diteruskan ke ketiga cabang provider di
+  `submitToCloud`, dan route RetroBot direfaktor memakai helper yang sama —
+  bug ini sendiri muncul karena tabel budget hanya ada di satu jalur, sehingga
+  keduanya diam-diam drift. Terverifikasi live di terminal: badge
+  **[Sigit_Bot.ai Cloud | Gemini]**, jawaban utuh 1557 karakter (4 poin,
+  penutup natural), tanpa potongan. Unit test: 4 kasus baru untuk
+  `getAnswerStyleBudget` (token selalu di atas default provider 300 yang
+  memicu `MAX_TOKENS`).
 - **Fixed (code, `ai-provider.ts` + `ai-anthropic.ts` + `retrobot/route.ts`)**:
   path non-streaming Gemini/Anthropic menelan status HTTP saat gagal — semua
   kegagalan dilaporkan ke client sebagai `fallbackReason: "empty_cloud"`,
@@ -123,9 +141,12 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
   keluarga `gemini-*-flash`, bisa ditimpa via env `GEMINI_FALLBACK_MODELS`,
   model aktif selalu dikecualikan karena sudah dicoba lebih dulu). Loop hanya
   melanjutkan ke cadangan untuk status yang **mungkin sembuh** di model lain
-  (429/503); status seperti 401 (key salah) atau 404 (model tak dikenal) serta
-  kegagalan jaringan langsung berhenti dengan `reason` akurat — jangan buang
-  permintaan yang tak akan berbeda hasilnya. `CloudAIResult.model` menyimpan
+  (429/503); status seperti 401 (key salah) serta kegagalan jaringan langsung
+  berhenti dengan `reason` akurat — jangan buang permintaan yang tak akan
+  berbeda hasilnya. (Catatan: 404 model tak dikenal awalnya juga berhenti,
+  tapi itu bug — 404 per-model justru harus dilompati; lihat entri Fixed
+  "retry model cadangan Gemini putus terlalu dini" di bawah.)
+  `CloudAIResult.model` menyimpan
   model yang benar-benar menjawab, dan route memancarkan ulang event `meta`
   berkoreksi bila jawaban datang dari cadangan, agar stream tetap jujur tentang
   model mana yang dipakai. Kontrak lama tetap: tidak pernah throw, gagal total
@@ -133,6 +154,29 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
   → fallback lokal + badge `⚠ Cloud gagal` seperti biasa. Unit test: 6 kasus
   baru (retry sukses di cadangan pertama, semua model 429 dicoba satu per satu,
   503 memicu retry, 401 tak memicu retry, eksklusi/dedup env override).
+
+- **Fixed (code, `ai-provider.ts`)**: retry model cadangan Gemini **putus
+  terlalu dini** — satu model yang dipensiunkan Google membunuh seluruh
+  rantai cadangan, sehingga fallback sehat tak pernah dicoba dan RetroBot
+  langsung jatuh ke jawaban lokal. Akar masalah: loop retry memperlakukan 404
+  (model tak dikenal) sama dengan 401 (key salah) — keduanya `break`. Padahal
+  401 bersifat **global** (key yang sama dipakai untuk semua model, jadi
+  percobaan lain pasti sama hasilnya), tapi 404 bersifat **per-model**:
+  audit 2026-10-04 membuktikan keluarga `gemini-2.x`/`1.5` sudah dipensiunkan
+  (404 "no longer available") sementara `gemini-3.5-flash` &
+  `gemini-3.5-flash-lite` masih 200 OK. Saat model aktif kena 429 dan cadangan
+  pertama adalah model yang dipensiunkan, loop `break` di 404 itu → model sehat
+  di belakangnya (`flash-latest`, `3.5-flash-lite`) tak pernah disentuh.
+  Kini 404 dilompati ke cadangan berikutnya (`continue`) seperti 429/503;
+  hanya status yang hasilnya pasti sama di model manapun (401/403 key salah)
+  yang tetap berhenti. Tambahan: `DEFAULT_GEMINI_FALLBACK_MODELS` diurutkan
+  **sehat-di-depan** (`gemini-3.5-flash-lite`, `gemini-3.5-flash`,
+  `gemini-flash-latest`) sebelum model yang dipensiunkan (`2.5`/`2.0`/`1.5`)
+  sebagai cadangan ekor — model sehat tetap disimpan untuk kasus Google
+  mengaktifkan kembali, dan urutan menentukan mana dicoba lebih dulu. Unit
+  test: 4 kasus baru (404 di cadangan pertama dilompati ke cadangan kedua yang
+  sehat, 404 di model aktif tetap lanjut ke cadangan, semua model 404 dicoba
+  satu per satu + `reason: status_404`, urutan default model sehat di depan).
 
 - **Added (code, `gemini-quota.ts` + `ai-provider.ts` +
   `admin/cloud-ai/page.tsx`)**: halaman `/admin/cloud-ai` kini menampilkan

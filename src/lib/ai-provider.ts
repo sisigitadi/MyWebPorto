@@ -210,15 +210,26 @@ export interface CloudAIResult {
  * biasanya masih bisa menjawab.
  *
  * Sumber: env `GEMINI_FALLBACK_MODELS` (comma-separated) bila diisi, jika
- * tidak pakai default hemat flash keluarga 2.x/3.x. Model yang sedang
+ * tidak pakai default hemat flash. Urutan default menempatkan model yang
+ * masih sehat lebih dulu (audit 2026-10-04: `gemini-3.5-flash` & `-lite`
+ * masih 200 OK, keluarga 2.x/1.5 sudah dipensiunkan 404) — loop retry kini
+ * melompati 404 sehingga model yang dipensiunkan tetap aman sebagai cadangan
+ * ekor, tapi urutan menentukan mana yang dicoba lebih dulu. Model yang sedang
  * aktif selalu dikecualikan karena sudah dicoba lebih dulu.
  */
 const DEFAULT_GEMINI_FALLBACK_MODELS = [
+  // Urut sehat-di-depan. Audit 2026-10-04 (probe ListModels + generateContent):
+  // gemini-3.5-flash & -lite masih 200 OK; keluarga 2.x/1.5 sudah dipensiunkan
+  // (404 "no longer available"). Model sehat lebih dulu agar cadangan pertama
+  // langsung berhasil; yang dipensiunkan tetap disimpan sebagai kedalaman
+  // terakhir karena loop retry kini melompati 404, bukan berhenti (lihat
+  // bawah). gemini-flash-latest adalah alias ke model flash terbaru.
+  "gemini-3.5-flash-lite",
   "gemini-3.5-flash",
+  "gemini-flash-latest",
   "gemini-2.5-flash",
   "gemini-2.0-flash",
   "gemini-1.5-flash",
-  "gemini-flash-latest",
 ];
 
 /**
@@ -436,10 +447,14 @@ export async function submitToGeminiMessages(
           retryAfter: response.headers.get("retry-after"),
         });
         // 429 (quota habis) & 503 (overload sementara) BISA sembuh dengan model
-        // lain → lanjut ke cadangan berikutnya. Status lain (401 key salah,
-        // 404 model tak dikenal) tidak akan berbeda hasilnya di model lain, dan
-        // setiap percobaan memakan waktu → berhenti & laporkan reason akurat.
-        if (response.status !== 429 && response.status !== 503) break;
+        // lain → lanjut ke cadangan berikutnya. 404 (model tak dikenal /
+        // dipensiunkan Google) juga PER-MODEL — audit 2026-10-04: keluarga
+        // 2.x/1.5 sudah 404 padahal 3.5-flash masih sehat, jadi cadangan
+        // berikutnya tetap layak dicoba. Hanya status yang hasilnya pasti sama
+        // di model manapun (401/403 key salah) yang berhenti — jangan buang
+        // permintaan yang tak akan berbeda hasilnya.
+        if (response.status !== 429 && response.status !== 503 && response.status !== 404)
+          break;
         continue;
       }
       const data = (await response.json()) as {

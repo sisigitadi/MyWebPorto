@@ -4,7 +4,7 @@ import { queryAIEngine, type EngineContext } from "@/lib/ai-engine";
 import { buildCloudMessages, getGeminiFallbackModels, submitToGeminiMessages } from "@/lib/ai-provider";
 import { submitToOpenAIStream } from "@/lib/ai-openai";
 import { submitToAnthropic } from "@/lib/ai-anthropic";
-import { resolveCloudAIConfig, isCloudAIConfigEnabled } from "@/lib/cloud-ai-config";
+import { resolveCloudAIConfig, isCloudAIConfigEnabled, getAnswerStyleBudget } from "@/lib/cloud-ai-config";
 import { getApiStyle } from "@/lib/ai-providers";
 import { resolveFeatures } from "@/lib/features-config";
 import { rateLimit, cleanupRateLimits } from "@/lib/rate-limit";
@@ -296,17 +296,14 @@ export async function POST(req: NextRequest) {
           // (Sebelumnya cabang Gemini memakai buildCloudPrompt string tunggal
           //  → eskalasi Gemini single-turn. submitToGeminiMessages memetakan
           //  assistant → "model" dan melekatkan "system" ke user pertama.)
-          // Budget jawaban per answerStyle. Default ai-provider (300 token /
-          // 2000 char) terlalu kecil untuk model flash keluarga 2.5+: token
-          // "thinking" ikut terhitung di maxOutputTokens, sehingga reasoning
-          // memakan hampir seluruh budget dan teks yang terlihat terpotong
-          // (finishReason MAX_TOKENS → jawaban RetroBot hanya ~30-35 char).
-          const budget =
-            cloudCfg.answerStyle === "detailed"
-              ? { tokens: 1500, chars: 4000 }
-              : cloudCfg.answerStyle === "friendly"
-                ? { tokens: 900, chars: 2600 }
-                : { tokens: 600, chars: 1800 };
+          // Budget jawaban per answerStyle (satu sumber kebenaran bersama
+          // submitToCloud / askSigitBot di actions.ts). Default ai-provider
+          // (300 token / 2000 char) terlalu kecil untuk model flash keluarga
+          // 2.5+: token "thinking" ikut terhitung di maxOutputTokens, sehingga
+          // reasoning memakan hampir seluruh budget dan teks yang terlihat
+          // terpotong (finishReason MAX_TOKENS → jawaban RetroBot hanya ~30-35
+          // char).
+          const budget = getAnswerStyleBudget(cloudCfg.answerStyle);
           const answer =
             style === "anthropic"
               ? await submitToAnthropic(messages, {
