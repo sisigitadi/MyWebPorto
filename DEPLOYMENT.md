@@ -140,6 +140,73 @@ Catatan: butuh `DATABASE_URL`. Tanpa itu blok live di-skip (CI memang
 berjalan tanpa DB) — pastikan env prod sudah terisi sebelum menjalankan gate.
 
 ---
+## Gate Produksi Otomatis (`check:prod`)
+
+Gate di atas memeriksa **data di database**. Gate ini memeriksa **URL
+nyatanya di server produksi**, karena keduanya bisa hijau bersamaan saat
+route-nya belum ter-deploy. Contoh nyata 2026-10-05: `profiles.avatar_url
+sudah menunjuk baris `media`, tapi route `GET /api/media/[id]` belum ikut
+naik ke produksi sehingga avatar dan dua cover artikel membalas 404
+selama berjam-jam — sementara `tsc`, `eslint`, `vitest`, dan `next build`
+tetap hijau penuh, karena tidak ada satupun yang menyentuh URL produksi.
+
+```bash
+npm run check:prod
+```
+
+Exit code non-nol bila salah satu hal ini rusak:
+
+- Endpoint inti (`/`, `/robots.txt`, `/sitemap.xml`, `/feed.xml`,
+  `/llms.txt`, `/opengraph-image`, `/icon`) tidak 200 atau `content-type`
+  tidak sesuai.
+- Ada referensi `/api/media/<id>` di HTML homepage yang tidak membalas
+  `200 image/*` — ini tepat menangkap kasus avatar 404.
+- Masih ada referensi `/uploads/` di halaman publik.
+- Slug tak dikenal di `/toko`, `/artikel`, `/proyek` membalas bukan 404.
+- `og:image` artikel bukan URL absolut, atau tidak bisa diambil.
+- Host alias (`www.`) tidak mengalihkan ke apex.
+
+Override host bila perlu:
+
+```bash
+PROD_HEALTH_BASE_URL=https://preview.example.com npm run check:prod
+```
+
+### Menjalankan otomatis
+
+Workflow **`.github/workflows/prod-health.yml`** menjalankan skrip yang
+sama setiap 6 jam (dan bisa dijalankan manual dari tab Actions). Bila
+gagal, workflow membuka issue berisi log supaya tidak diam saja. Job yang
+gagal juga mengirim email ke pemilik repo, jadi email itu yang biasanya
+lebih dulu memberi tahu.
+
+> GitHub menunda jadwal (`schedule`) bila repo lama tidak aktif, jadi
+> frekuensi sebenarnya bisa lebih jarang dari 6 jam. Jalankan manual dari
+> tab Actions setelah deploy besar bila perlu kepastian segera.
+
+---
+## Minta Reindex: IndexNow (Bing) vs Google Search Console
+
+Setelah konten atau gambar Artikel berubah, IndexNow di `/admin/seo`
+menodong Bing, Yandex, Seznam, dan Naver. **Google tidak ada di sini.**
+
+Google Search Console tidak punya API submit terbuka yang bisa dipakai
+otomatis dari aplikasi ini: Google Publishing/Indexing API hanya berlaku
+untuk halaman Job Posting/BroadcastEvent, dan API Search Console lain
+membutuhkan OAuth service account yang diberi akses ke properti
+tersebut. Proyek ini **tidak punya kredensial OAuth itu** (hanya ada
+`INDEXNOW_KEY`, dan itu bukan rahasia). Jadi:
+
+1. Ping IndexNow dari `/admin/seo` untuk Bing dan sekutunya.
+2. Untuk Google, kirim ulang indeks secara manual lewat
+   **Search Console → Inspeksi URL → Minta indeks** untuk URL yang berubah.
+
+Menambahkannya jadi otomatis butuh dua hal yang belum ada: service
+account Google yang punya akses ke properti `sigitadi.id`, lalu token OAuth
+yang disimpan di `/admin/system`. Tanpa itu, jangan andalkan Google
+menyusul cepat hanya karena IndexNow diklik.
+
+---
 ## Keamanan Pra-Deploy (Hardening v2)
 
 Pastikan sudah memenuhi checklist berikut sebelum produksi (lihat `SECURITY.md` §4):
@@ -155,6 +222,7 @@ Pastikan sudah memenuhi checklist berikut sebelum produksi (lihat `SECURITY.md` 
 - [ ] Uji `GET /api/indexnow` → 405; `POST /api/indexnow` tanpa login → 401; non-admin → 403/404.
 - [ ] Storage gambar: tabel `media` (bytea Postgres) sudah dibuat migrasi `drizzle/0010` — persisten di serverless, tidak perlu CDN terpisah.
 - [ ] `npm run check:media` pass — audit URL gambar tersimpan (lihat "Gate URL Gambar" di atas). Menangkap referensi `/uploads/...` yang hanya ada di mesin lokal dan akan 404 di produksi.
+- [ ] `npm run check:prod` pass — smoke test URL produksi (lihat "Gate Produksi Otomatis"). Jalankan **setelah** deploy, bukan sebelum: ia menguji server yang sedang berjalan.
 
 Lihat detail lengkap di [SECURITY.md](./SECURITY.md).
 
