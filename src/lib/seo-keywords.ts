@@ -331,7 +331,7 @@ export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
   const h2Count = (content.match(/^##\s+/gm) || []).length;
   const h3Count = (content.match(/^###\s+/gm) || []).length;
   const internalLinkCount = (content.match(/\]\(\//g) || []).length;
-  // Metrik GEO — كلها deterministik, tanpa LLM.
+  // Metrik GEO — semuanya deterministik, tanpa LLM.
   const answerFirst = answerFirstWords(content);
   const questionHeadings = countQuestionHeadings(content);
   const quotableFacts = countQuotableFacts(content);
