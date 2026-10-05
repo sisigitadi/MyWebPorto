@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { ContentEditor } from "@/components/admin/content-editor";
 import { SeoAnalyzerPanel } from "@/components/admin/seo-analyzer-panel";
 import type { SeoAnalysis } from "@/lib/seo-keywords";
+import type { DraftSeoReport } from "@/lib/seo-remediate";
 import {
   analyzeContentSeoAction,
   draftContentWithAIAction,
@@ -303,6 +304,9 @@ export function RedaksiComposer({
   // ketikan — hasil analisis harus merujuk pada draf yang benar-benar dianalisis.
   const [seoAnalysis, setSeoAnalysis] = useState<SeoAnalysis | null>(null);
   const [seoBusy, setSeoBusy] = useState(false);
+  // Laporan sinkronisasi SEO+GEO dari draf AI terakhir: apa yang diperbaiki
+  // otomatis dan apa yang masih perlu tangan manusia.
+  const [seoReport, setSeoReport] = useState<DraftSeoReport | null>(null);
 
   const tdef = getRedaksiType(type);
   const fields = COMPOSER_FIELDS[type];
@@ -320,6 +324,8 @@ export function RedaksiComposer({
     setValues(initialFormValues(next, profile));
     setBrief("");
     setError("");
+    setSeoAnalysis(null);
+    setSeoReport(null);
   };
 
   /** Minta draf AI (server action: verifyAdmin + rate-limit + validasi draf). */
@@ -331,6 +337,8 @@ export function RedaksiComposer({
         setError(res.error);
         return;
       }
+      setSeoReport(res.seoReport);
+      setSeoAnalysis(null);
       const draft = res.draft as Record<string, unknown>;
       setValues((prev) => {
         const merged = { ...prev };
@@ -352,7 +360,12 @@ export function RedaksiComposer({
         }
         return merged;
       });
-      toast.success("Draf AI berhasil dimuat. Tinjau & lengkapi sebelum menyimpan.");
+      const fixes = res.seoReport.applied.length;
+      toast.success(
+        fixes > 0
+          ? `Draf AI dimuat dan ${fixes} masalah SEO/GEO diperbaiki otomatis. Tinjau sebelum menyimpan.`
+          : "Draf AI berhasil dimuat. Tinjau & lengkapi sebelum menyimpan."
+      );
     });
   };
 
@@ -769,6 +782,42 @@ export function RedaksiComposer({
         </div>
 
         {fields.map(renderField)}
+
+        {seoReport ? (
+          <div
+            className="space-y-1.5 border-2 rounded-md p-3"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <p className="flex items-center gap-1.5 text-sm font-semibold">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Sinkronisasi SEO + GEO draf AI
+            </p>
+            {seoReport.applied.length > 0 ? (
+              <ul className="list-disc space-y-0.5 pl-5 text-[11px] text-emerald-700 dark:text-emerald-400">
+                {seoReport.applied.map((fix) => (
+                  <li key={fix}>{fix}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-[11px] text-muted-foreground">
+                Tidak ada perbaikan otomatis yang perlu dijalankan pada draf ini.
+              </p>
+            )}
+            {seoReport.remaining.length > 0 ? (
+              <>
+                <p className="text-[11px] font-semibold">Masih perlu tanganmu:</p>
+                <ul className="list-disc space-y-0.5 pl-5 text-[11px] text-muted-foreground">
+                  {seoReport.remaining.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+            <p className="text-[10px] text-muted-foreground">
+              Jalankan “Analisis SEO” untuk melihat skor lengkap dan rincian temuan.
+            </p>
+          </div>
+        ) : null}
 
         {seoAnalysis ? (
           <SeoAnalyzerPanel

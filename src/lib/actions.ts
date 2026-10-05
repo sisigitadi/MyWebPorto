@@ -76,7 +76,11 @@ import {
   getSettingHistoryById,
   type SettingHistoryRecord,
 } from "@/lib/settings";
-import { draftContentWithAI, type DraftPublicContext } from "@/lib/redaksi-draft";
+import {
+  draftContentWithAI,
+  type DraftPublicContext,
+  type DraftSeoReport,
+} from "@/lib/redaksi-draft";
 import {
   resolveRedaksiAutomation,
   saveRedaksiAutomation,
@@ -2346,16 +2350,43 @@ const REDAKSI_DRAFT_LIMIT = 20;
 const REDAKSI_DRAFT_WINDOW_MS = 5 * 60_000;
 
 /**
+ * Daftar halaman PUBLIK yang sudah terbit — satu-satunya sumber path internal
+ * yang boleh muncul di draf. Dipakai dua tempat: prompt AI (supaya model tidak
+ * mengarang tautan) dan analyzer (saran internal link). Satu helper agar
+ * keduanya tidak bisa berbeda.
+ */
+async function listPublishedRelatedLinks(): Promise<{ title: string; href: string }[]> {
+  const [articles, projects, products] = await Promise.all([
+    getArticles(),
+    getProjects(),
+    getProducts(),
+  ]);
+  return [
+    ...articles
+      .filter((a) => a.published)
+      .map((a) => ({ title: a.title, href: `/artikel/${a.slug}` })),
+    ...projects
+      .filter((p) => p.published)
+      .map((p) => ({ title: p.title, href: `/proyek/${p.slug}` })),
+    ...products
+      .filter((p) => p.published)
+      .map((p) => ({ title: p.title, href: `/toko/${getProductSlug(p)}` })),
+  ];
+}
+
+/**
  * Buat draf konten via Cloud AI untuk composer Redaksi. verifyAdmin + rate-limit
- * per IP. Hasil sudah divalidasi terhadap schema draf (lihat redaksi-draft.ts);
- * penyimpanan final tetap lewat action save* dengan validasi schema PENUH.
+ * per IP. Hasil sudah divalidasi terhadap schema draf (lihat redaksi-draft.ts)
+ * lalu dirapikan agar sesuai aturan SEO+GEO yang sama dengan analyzer
+ * (lib/seo-rules.ts). Penyimpanan final tetap lewat action save* dengan
+ * validasi schema PENUH.
  */
 export async function draftContentWithAIAction(
   type: string,
   brief: string,
   lang: "id" | "en" = "id"
 ): Promise<
-  | { ok: true; draft: unknown }
+  | { ok: true; draft: unknown; seoReport: DraftSeoReport }
   | { ok: false; error: string }
 > {
   await verifyAdmin();
@@ -2380,15 +2411,18 @@ export async function draftContentWithAIAction(
       headline: profile.headline,
       skills: profile.skills || [],
     };
-    const result = await draftContentWithAI(type, brief, lang, publicCtx);
+    // Halaman terbit = satu-satunya sumber path internal yang BOLEH ditautkan
+    // di draf. Model tidak pernah mengarang path; daftar ini yang diberikan.
+    const related = await listPublishedRelatedLinks();
+    const result = await draftContentWithAI(type, brief, lang, publicCtx, related);
     if (!result.ok) return { ok: false, error: result.error };
     await logAudit({
       action: "create",
       entity: "redaksi_draft",
       entityId: type,
-      detail: `brief=${brief.trim().slice(0, 80)}`,
+      detail: `brief=${brief.trim().slice(0, 80)} seoFixes=${result.seoReport.applied.length}`,
     });
-    return { ok: true, draft: result.draft.data };
+    return { ok: true, draft: result.draft.data, seoReport: result.seoReport };
   } catch (err) {
     return { ok: false, error: sanitizeError(err) };
   }
@@ -2532,17 +2566,7 @@ export async function analyzeContentSeoAction(input: {
   }
 
   try {
-    const [articles, projects, products] = await Promise.all([
-      getArticles(),
-      getProjects(),
-      getProducts(),
-    ]);
-
-    const related = [
-      ...articles.filter((a) => a.published).map((a) => ({ title: a.title, href: `/artikel/${a.slug}` })),
-      ...projects.filter((p) => p.published).map((p) => ({ title: p.title, href: `/proyek/${p.slug}` })),
-      ...products.filter((p) => p.published).map((p) => ({ title: p.title, href: `/toko/${getProductSlug(p)}` })),
-    ];
+    const related = await listPublishedRelatedLinks();
 
     const analysis = analyzeSeo({
       title: input.title,
@@ -2661,11 +2685,20 @@ export async function runRedaksiAutomationAction(): Promise<
     skills: profile.skills || [],
   };
   const intent = computePublishIntent(cfg);
+  // Draf otomatis mendapat perlakuan SEO+GEO yang sama dengan tombol
+  // "Bantuan AI": daftar tautan internal disuntikkan SEKALI untuk seluruh
+  // pekerjaan di batch ini, bukan diambil ulang per topik.
+  let related: { title: string; href: string }[] = [];
+  try {
+    related = await listPublishedRelatedLinks();
+  } catch {
+    related = [];
+  }
 
   const results: AutomationJobResult[] = [];
   for (const job of limited) {
     try {
-      const r = await draftContentWithAI(job.type, job.topic, "id", publicCtx);
+      const r = await draftContentWithAI(job.type, job.topic, "id", publicCtx, related);
       if (!r.ok) {
         results.push({ type: job.type, topic: job.topic, ok: false, error: r.error });
         continue;

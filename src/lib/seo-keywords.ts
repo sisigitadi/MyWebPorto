@@ -10,9 +10,10 @@
  * heading-nya baik, apakah konten cukup dalam, dan ke halaman mana konten ini
  * sebaiknya ditautkan (internal link = sinyal crawl + pemindahan otoritas).
  *
- * Ambang panjang mengikuti praktik umum SERP: judul 30-65 karakter (dipotong
- * di SERP), meta 120-165, slug maksimal 6 kata, konten minimal 600 kata, dan
- * density frasa utama 0,3-3 persen (di atas itu terbaca stuffing).
+ * Ambang panjang TIDAK ditulis di sini — semuanya diturunkan dari
+ * `seo-rules.ts` (`SEO_RULES` / `GEO_RULES`), modul yang sama dengan prompt
+ * bantuan AI. Kalau angkanya dipisah, prompt dan analyzer pasti memakai ambang
+ * berbeda dan draf AI akan selalu gagal dianalisis.
  */
 
 /** Kata yang tidak pernah layak jadi keyword (Indonesia + Inggris). */
@@ -31,6 +32,17 @@ const STOPWORDS = new Set([
   "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "has",
   "in", "is", "it", "of", "on", "or", "that", "the", "to", "with",
 ]);
+
+import {
+  GEO_RULES,
+  SEO_RULES,
+  answerFirstWords,
+  countListItems,
+  countQuotableFacts,
+  countQuestionHeadings,
+  longestParagraphWords,
+  scoreFromFindings,
+} from "@/lib/seo-rules";
 
 export type SeoSeverity = "critical" | "warning" | "opportunity";
 export type SeoField = "title" | "slug" | "meta" | "content";
@@ -63,6 +75,16 @@ export interface SeoMetrics {
   h3Count: number;
   internalLinkCount: number;
   avgSentenceWords: number;
+  /** Kata pada ringkasan pembuka sebelum H2 pertama (aturan GEO). */
+  answerFirstWords: number;
+  /** Sub-judul yang berbentuk pertanyaan (aturan GEO). */
+  questionHeadings: number;
+  /** Fakta berangka yang bisa dikutip mesin answer (aturan GEO). */
+  quotableFacts: number;
+  /** Item daftar bullet/bernomor (aturan GEO). */
+  listItems: number;
+  /** Kata pada paragraf terpanjang (aturan GEO). */
+  longestParagraphWords: number;
 }
 
 export interface RelatedContentSuggestion {
@@ -77,6 +99,13 @@ export interface SeoAnalysis {
   keywords: KeywordCandidate[];
   findings: SeoFinding[];
   metrics: SeoMetrics;
+  /**
+   * Skor 0-100 hasil pemotongan temuan. BUKAN prediksi peringkat: ini hanya
+   * "berapa masalah teknis yang tersisa", supaya dua draf bisa dibandingkan.
+   */
+  score: number;
+  /** Skor hanya dari temuan GEO (mesin answer), 0-100. */
+  geoScore: number;
   suggestions: {
     titles: string[];
     slug: string;
@@ -236,7 +265,10 @@ function suggestTitles(keyword: string | null, current: string): string[] {
 }
 
 function suggestMeta(keyword: string | null, current: string, content: string): string {
-  if (current.trim().length >= 120) return current.trim();
+  const trimmed = current.trim();
+  const hasKeyword = Boolean(keyword && trimmed.toLowerCase().includes(keyword));
+  // Sudah memenuhi panjang DAN memuat kata kunci → biarkan saja.
+  if (trimmed.length >= SEO_RULES.meta.min && hasKeyword) return trimmed;
   const firstSentences = (content || "")
     .replace(/[#*_>`[\]]/g, "")
     .split(/(?<=[.!?])\s+/)
@@ -244,12 +276,14 @@ function suggestMeta(keyword: string | null, current: string, content: string): 
     .filter(Boolean)
     .slice(0, 2)
     .join(" ");
-  const base = firstSentences || current.trim();
-  if (!keyword) return base.slice(0, 160);
+  const base = firstSentences || trimmed;
+  if (!keyword) return base.slice(0, SEO_RULES.meta.max);
   const withKeyword = base.toLowerCase().includes(keyword)
     ? base
     : `${base} Pelajari ${keyword} secara lengkap.`;
-  return withKeyword.length > 165 ? `${withKeyword.slice(0, 162).trimEnd()}...` : withKeyword;
+  return withKeyword.length > SEO_RULES.meta.max
+    ? `${withKeyword.slice(0, SEO_RULES.meta.max - 3).trimEnd()}...`
+    : withKeyword;
 }
 
 /**
@@ -297,6 +331,12 @@ export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
   const h2Count = (content.match(/^##\s+/gm) || []).length;
   const h3Count = (content.match(/^###\s+/gm) || []).length;
   const internalLinkCount = (content.match(/\]\(\//g) || []).length;
+  // Metrik GEO — كلها deterministik, tanpa LLM.
+  const answerFirst = answerFirstWords(content);
+  const questionHeadings = countQuestionHeadings(content);
+  const quotableFacts = countQuotableFacts(content);
+  const listItems = countListItems(content);
+  const longestParagraph = longestParagraphWords(content);
   const keywordDensity =
     primaryKeyword && wordCount > 0
       ? Number(
@@ -321,21 +361,21 @@ export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
       message: "Isi judul sebelum menyimpan; ini elemen peringkat pertama di SERP.",
     });
   } else {
-    if (title.length < 30) {
+    if (title.length < SEO_RULES.title.min) {
       add({
         id: "title-short",
         severity: "warning",
         field: "title",
         label: "Judul terlalu pendek",
-        message: `Panjang ${title.length} karakter, ideal 30-65. Tambahkan kata kunci utama beserta konteksnya.`,
+        message: `Panjang ${title.length} karakter, ideal ${SEO_RULES.title.min}-${SEO_RULES.title.max}. Tambahkan kata kunci utama beserta konteksnya.`,
       });
-    } else if (title.length > 65) {
+    } else if (title.length > SEO_RULES.title.max) {
       add({
         id: "title-long",
         severity: "warning",
         field: "title",
         label: "Judul terlalu panjang",
-        message: `Panjang ${title.length} karakter, ideal 30-65. Google memotong sekitar 60 karakter di SERP.`,
+        message: `Panjang ${title.length} karakter, ideal ${SEO_RULES.title.min}-${SEO_RULES.title.max}. Google memotong sekitar 60 karakter di SERP.`,
       });
     }
     if (primaryKeyword && !title.toLowerCase().includes(primaryKeyword)) {
@@ -367,13 +407,13 @@ export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
         message: "Slug hanya boleh huruf kecil, angka, dan tanda hubung: tanpa spasi, underscore, atau huruf besar.",
       });
     }
-    if (slugWords > 6) {
+    if (slugWords > SEO_RULES.slug.maxWords) {
       add({
         id: "slug-long",
         severity: "warning",
         field: "slug",
         label: "Slug terlalu panjang",
-        message: `${slugWords} kata; ideal maksimal 6 agar URL tetap ringkas.`,
+        message: `${slugWords} kata; ideal maksimal ${SEO_RULES.slug.maxWords} agar URL tetap ringkas.`,
       });
     }
     if (primaryKeyword && !slug.toLowerCase().includes(primaryKeyword.replace(/\s+/g, "-"))) {
@@ -396,21 +436,21 @@ export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
       message: "Tanpa deskripsi, Google memotong kalimat acak dari body dan click-through rate turun.",
     });
   } else {
-    if (meta.length < 120) {
+    if (meta.length < SEO_RULES.meta.min) {
       add({
         id: "meta-short",
         severity: "warning",
         field: "meta",
         label: "Deskripsi terlalu pendek",
-        message: `Panjang ${meta.length} karakter, ideal 120-165 untuk mengisi slot SERP.`,
+        message: `Panjang ${meta.length} karakter, ideal ${SEO_RULES.meta.min}-${SEO_RULES.meta.max} untuk mengisi slot SERP.`,
       });
-    } else if (meta.length > 165) {
+    } else if (meta.length > SEO_RULES.meta.max) {
       add({
         id: "meta-long",
         severity: "warning",
         field: "meta",
         label: "Deskripsi terlalu panjang",
-        message: `Panjang ${meta.length} karakter; bagian setelah sekitar 165 karakter terpotong di SERP.`,
+        message: `Panjang ${meta.length} karakter; bagian setelah sekitar ${SEO_RULES.meta.max} karakter terpotong di SERP.`,
       });
     }
     if (primaryKeyword && !meta.toLowerCase().includes(primaryKeyword)) {
@@ -433,13 +473,13 @@ export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
       message: "Belum ada isi artikel.",
     });
   } else {
-    if (wordCount < 600) {
+    if (wordCount < SEO_RULES.content.minWords) {
       add({
         id: "content-thin",
         severity: "warning",
         field: "content",
         label: "Konten masih tipis",
-        message: `${wordCount} kata; halaman yang bersaing di halaman satu biasanya 600 kata atau lebih. Perluas dengan contoh, langkah praktis, dan jawaban atas pertanyaan pembaca.`,
+        message: `${wordCount} kata; halaman yang bersaing di halaman satu biasanya ${SEO_RULES.content.minWords} kata atau lebih. Perluas dengan contoh, langkah praktis, dan jawaban atas pertanyaan pembaca.`,
       });
     }
     if (h2Count === 0) {
@@ -450,7 +490,7 @@ export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
         label: "Tidak ada sub-judul (H2)",
         message: "Tambahkan H2 (##) agar mesin bisa memotong halaman menjadi bagian yang bisa dilompat di hasil pencarian.",
       });
-    } else if (h2Count < 3) {
+    } else if (h2Count < SEO_RULES.content.h2Preferred) {
       add({
         id: "content-few-h2",
         severity: "opportunity",
@@ -459,7 +499,7 @@ export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
         message: `Hanya ${h2Count} sub-judul H2. Sub-judul H2/H3 memecah topik panjang dan membuka peluang featured snippet.`,
       });
     }
-    if (internalLinkCount === 0) {
+    if (internalLinkCount < SEO_RULES.content.internalLinkMin) {
       add({
         id: "content-no-internal-link",
         severity: "warning",
@@ -468,13 +508,13 @@ export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
         message: "Tautkan artikel atau proyek terkait; ini cara tercepat memindahkan otoritas antarhalaman.",
       });
     }
-    if (keywordDensity > 3) {
+    if (keywordDensity > SEO_RULES.density.max) {
       add({
         id: "content-stuffing",
         severity: "warning",
         field: "content",
         label: "Kata kunci terlalu sering",
-        message: `Density ${keywordDensity}% untuk "${primaryKeyword}". Di atas sekitar 3% dibaca sebagai keyword stuffing.`,
+        message: `Density ${keywordDensity}% untuk "${primaryKeyword}". Di atas sekitar ${SEO_RULES.density.max}% dibaca sebagai keyword stuffing.`,
       });
     } else if (primaryKeyword && keywordDensity === 0) {
       add({
@@ -486,13 +526,62 @@ export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
       });
     }
     const avgSentence = averageSentenceWords(content);
-    if (avgSentence > 32) {
+    if (avgSentence > SEO_RULES.sentence.maxWords) {
       add({
         id: "content-long-sentence",
         severity: "opportunity",
         field: "content",
         label: "Kalimat terlalu panjang",
         message: `Rata-rata ${avgSentence} kata per kalimat. Pecah menjadi kalimat lebih pendek agar lebih mudah dipindai pembaca dan mesin.`,
+      });
+    }
+
+    // ---- GEO: apa yang dibutuhkan mesin answer (ChatGPT, Gemini, Perplexity) ----
+    // Aturan yang sama persis dengan yang dikirim ke model lewat seoGeoPromptBlock(),
+    // jadi draf "Bantuan AI" dan draf manual dinilai dengan standar yang sama.
+    if (answerFirst < GEO_RULES.answerFirstMinWords) {
+      add({
+        id: "geo-no-answer-first",
+        severity: "warning",
+        field: "content",
+        label: "GEO: tidak ada jawaban di awal",
+        message: `Blok pembuka hanya ${answerFirst} kata. Mesin answer mengutip bagian yang langsung menjawab; tulis ringkasan mandiri minimal ${GEO_RULES.answerFirstMinWords} kata sebelum sub-judul pertama.`,
+      });
+    }
+    if (questionHeadings < GEO_RULES.questionHeadingsMin) {
+      add({
+        id: "geo-no-question-heading",
+        severity: "opportunity",
+        field: "content",
+        label: "GEO: sub-judul bukan pertanyaan",
+        message: `Hanya ${questionHeadings} sub-judul berbentuk pertanyaan. Ubah sebagian jadi pertanyaan sungguhan ("## Apa itu ...?") agar mudah jadi potongan jawaban.`,
+      });
+    }
+    if (quotableFacts < GEO_RULES.quotableFactsMin) {
+      add({
+        id: "geo-no-fact",
+        severity: "opportunity",
+        field: "content",
+        label: "GEO: belum ada fakta berangka",
+        message: "Sisipkan minimal satu angka dengan satuan (mis. 40%, 250 ms, 2 detik). Fakta berangka adalah yang paling sering dikutip mesin answer.",
+      });
+    }
+    if (listItems < GEO_RULES.listsMin) {
+      add({
+        id: "geo-no-list",
+        severity: "opportunity",
+        field: "content",
+        label: "GEO: belum ada daftar",
+        message: "Tambahkan minimal satu daftar bullet atau bernomor; daftar bisa disalin utuh oleh AI overview.",
+      });
+    }
+    if (longestParagraph > GEO_RULES.maxParagraphWords) {
+      add({
+        id: "geo-long-paragraph",
+        severity: "opportunity",
+        field: "content",
+        label: "GEO: paragraf terlalu panjang",
+        message: `Paragraf terpanjang ${longestParagraph} kata. Pecah menjadi blok maksimal ${GEO_RULES.maxParagraphWords} kata agar mudah dipindai.`,
       });
     }
   }
@@ -512,7 +601,14 @@ export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
       h3Count,
       internalLinkCount,
       avgSentenceWords: averageSentenceWords(content),
+      answerFirstWords: answerFirst,
+      questionHeadings,
+      quotableFacts,
+      listItems,
+      longestParagraphWords: longestParagraph,
     },
+    score: scoreFromFindings(findings),
+    geoScore: scoreFromFindings(findings.filter((f) => f.id.startsWith("geo-"))),
     suggestions: {
       titles: suggestTitles(primaryKeyword, title),
       slug: slugify(primaryKeyword || title, 6),
