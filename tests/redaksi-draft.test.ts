@@ -8,6 +8,8 @@ import {
 } from "@/lib/redaksi-draft";
 import { analyzeSeo } from "@/lib/seo-keywords";
 import { GEO_RULES, SEO_RULES } from "@/lib/seo-rules";
+import { sanitizeProviderError } from "@/lib/ai-provider";
+import { describeProviderFailure } from "@/lib/redaksi-draft";
 
 /**
  * Fungsi murni — tidak menyentuh settings/DB, jadi aman jalan paralel.
@@ -171,6 +173,66 @@ describe("parseDraft — penolakan & keamanan", () => {
     const draft = (r as Extract<DraftResult, { ok: true }>).draft;
     expect(draft.type).toBe("service");
     expect(draft.data).toMatchObject({ title: "Web Dev", description: "Pembuatan aplikasi web" });
+  });
+});
+
+// Bug yang dilaporkan: "Provider AI gagal merespons" tetap muncul setelah
+// provider dan API key diganti beberapa kali. Penyebabnya information loss
+// dua lapis: ai-openai.ts membuang status + body, lalu redaksi-draft.ts
+// membuang bahkan `reason` yang sudah disediakan. Akibatnya HTTP 403
+// "no active subscription" (tagihan akun belum aktif) terlihat identik
+// dengan HTTP 401 "kunci salah" — dua masalah yang solusinya sepenuhnya
+// BERbeda, tapi keduanya membuat admin mengganti kunci tanpa henti.
+describe("diagnosis kegagalan provider", () => {
+  it("403 dari relay menyingkap soal tagihan, bukan masalah kunci", () => {
+    // Balasan nyata dari relay yang dipakai admin:
+    const body =
+      '{"error":{"message":"insufficient quota: no active subscription","code":"insufficient_user_quota"}}';
+    const msg = describeProviderFailure("openai", "status_403", sanitizeProviderError(body));
+    expect(msg).toMatch(/403/);
+    expect(msg).toMatch(/langganan\/quota akun provider belum aktif/);
+    // Petunjuk paling berguna harus ikut: kode dari provider.
+    expect(msg).toContain("insufficient_user_quota");
+  });
+
+  it("setiap kodeHTTP punya tindakan yang spesifik", () => {
+    expect(describeProviderFailure("openai", "status_401")).toMatch(/kunci salah|kedaluwarsa/);
+    expect(describeProviderFailure("openai", "status_404")).toMatch(/tidak ditemukan/);
+    expect(describeProviderFailure("openai", "status_429")).toMatch(/[Kk]uota/);
+    expect(describeProviderFailure("openai", "status_400")).toMatch(/[Bb]iasanya nama model/);
+    expect(describeProviderFailure("openai", "network")).toMatch(/[Tt]idak ada respons/);
+    expect(describeProviderFailure("openai", "empty_cloud")).toMatch(/kosong/);
+    expect(describeProviderFailure("openai", "unconfigured")).toMatch(/belum dikonfigurasi/);
+  });
+
+  it("kode 5xx disebut sebagai gangguan layanan, bukan masalah akun", () => {
+    expect(describeProviderFailure("openai", "status_503")).toMatch(/bermasalah/);
+  });
+
+  it("tanpa kode tetap memberi tahu provider mana yang dipakai", () => {
+    expect(describeProviderFailure("gemini", undefined)).toContain("gemini");
+  });
+
+  it("pesan error tidak membocorkan kunci API", () => {
+    const key = "sk-hgkTrpB9yjYg2RKKMF3Z4SHw8oP6tgoV9bE6oyn9xa0zAo4V";
+    const dirty = sanitizeProviderError(`invalid key ${key} supplied`, key);
+    expect(dirty).not.toContain(key);
+    expect(dirty).toContain("[disembunyikan]");
+  });
+
+  it("pesan error dipangkas 200 karakter agar tidak membanjiri UI", () => {
+    const long = sanitizeProviderError("x".repeat(1000));
+    expect(long.length).toBeLessThanOrEqual(200);
+  });
+
+  it("whitespace diratakan menjadi satu baris", () => {
+    expect(sanitizeProviderError("a\n\n  b\t c")).toBe("a b c");
+  });
+
+  it("body kosong tidak menghasilkan pesan kosong yang membingungkan", () => {
+    expect(describeProviderFailure("openai", "status_500", sanitizeProviderError(""))).toMatch(
+      /bermasalah/
+    );
   });
 });
 

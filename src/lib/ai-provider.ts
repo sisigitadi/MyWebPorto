@@ -186,6 +186,21 @@ export function buildCloudMessages(
   ];
 }
 
+/**
+ * Ringkas pesan error provider menjadi satu baris yang aman ditampilkan ke
+ * admin: buang token/secret yang mungkin ikut bocor di body, pangkas 200
+ * karakter. Tanpa ini, "gagal" tanpa keterangan membuat admin menebak-nebak
+ * (ganti provider, ganti kunci) padahal masalahnya bisa di luar kendalinya.
+ */
+export function sanitizeProviderError(body: string, apiKey?: string): string {
+  let text = (body || "").replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  // Buang nilai yang mirip kredensial sebelum kredensial itu sampai ke UI.
+  text = text.replace(/\b(sk|pk|key|token|bearer)[-_]?[A-Za-z0-9_-]{12,}/gi, "[disembunyikan]");
+  if (apiKey && apiKey.length > 6) text = text.split(apiKey).join("[disembunyikan]");
+  return text.slice(0, 200);
+}
+
 /** Hasil panggilan cloud (gemini/openai). success=false → fallback lokal. */
 export interface CloudAIResult {
   success: boolean;
@@ -198,6 +213,13 @@ export interface CloudAIResult {
    * jatuh ke lokal tanpa membuka devtools.
    */
   reason?: string;
+  /**
+   * Cuplikan pesan error dari provider (mis. "no active subscription",
+   * "insufficient_user_quota"), dipangkas + diredaksi. Ini yang sering
+   * menjadi satu-satunya petunjuk actionable: HTTP 403 dari relay bisa berarti
+   * tagihan belum aktif, sedangkan "status_403" saja tidak menjelaskan apa pun.
+   */
+  detail?: string;
   /**
    * Model yang benar-benar menghasilkan jawaban ini. Biasanya = cfg.model,
    * tapi bila model aktif kena 429/503 dan retry ke model cadangan berhasil,
@@ -332,7 +354,15 @@ export async function submitToGemini(
       });
       // Sebar status HTTP ke pemanggil (mis. status_429 = quota habis) lewat
       // reason, supaya badge fallback RetroBot diagnostik, bukan generik.
-      return { success: false, text: "", reason: `status_${response.status}` };
+      return {
+        success: false,
+        text: "",
+        reason: `status_${response.status}`,
+        // errorBody sudah dibaca di atas untuk recordGeminiRateLimit; kirim juga
+        // ke pemanggil supaya "kuota habis" vs "model tidak dikenal" bisa
+        // dibedakan admin tanpa membuka devtools.
+        detail: sanitizeProviderError(errorBody, apiKey),
+      };
     }
     const data = (await response.json()) as {
       candidates?: { content?: { parts?: { text?: string }[] } }[];

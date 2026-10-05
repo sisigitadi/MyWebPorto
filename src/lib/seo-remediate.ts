@@ -43,6 +43,13 @@ export interface DraftSeoReport {
    * "Draf AI berhasil" padahal isinya templat — genau sumber kebingungan admin.
    */
   usedFallback: boolean;
+  /**
+   * Alasan provider gagal, dalam Bahasa Indonesia, sudah termasuk cuplikan
+   * pesan asli dari provider. WAJIB ditampilkan: tanpa ini admin hanya melihat
+   * "gagal" lalu menebak-nebak (ganti provider, ganti kunci) padahal penyebabnya
+   * bisa di luar kendalinya — misalnya langganan relay yang belum aktif.
+   */
+  providerError?: string;
 }
 
 export interface RemediationInput {
