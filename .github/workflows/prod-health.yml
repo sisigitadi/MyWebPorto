@@ -1,0 +1,67 @@
+# ---------------------------------------------------------------------------
+# Prod Health — smoke test URL produksi
+#
+# Mengisi celah yang tidak bisa ditutup CI biasa: build, lint, dan unit test
+# hanya membuktikan kode benar, bukan bahwa URL publiknya benar-benar melayani
+# gambar. Pada 2026-10-05 avatar dan dua cover artikel menjawab 404 di produksi
+# selama berjam-jam karena route /api/media/[id] belum ikut ter-deploy —
+# seluruh gerbang lokal tetap hijau sepanjang waktu.
+#
+# Skrip: scripts/prod-health.mjs (npm run check:prod). Exit non-nol bila ada
+# yang rusak, dan langkah terakhir membuka issue agar kegagalan tidak diam saja.
+# ---------------------------------------------------------------------------
+name: prod-health
+
+on:
+  schedule:
+    # Setiap 6 jam. GitHub menunda jadwal saat repo lama tak aktif, jadi
+    # angka ini adalah batas atas, bukan jaminan frekuensi.
+    - cron: "17 */6 * * *"
+  workflow_dispatch: # tombol "Run workflow" untuk cek manual
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: prod-health
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: Smoke test sigitadi.id
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5.1.0 (pinned)
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v5.0.0 (pinned)
+        with:
+          node-version: "20"
+
+      # `tee` sekaligus menyimpan keluaran dan menyimpan exit status skrip di
+      # PIPESTATUS, supaya langkah issue tetap punya log meski tes gagal.
+      # Skrip hanya memakai fetch bawaan Node 20, jadi `npm ci` tidak diperlukan
+      # dan pemeriksaan tetap jalan walau install dependensi bermasalah.
+      - name: Health check produksi
+        env:
+          PROD_HEALTH_BASE_URL: https://sigitadi.id
+        run: |
+          set -o pipefail
+          node scripts/prod-health.mjs 2>&1 | tee prod-health-output.txt
+
+      # Job yang gagal sudah mengirim email ke pemilik repo. Issue dipakai
+      # tambahan supaya ada jejak yang bisa dicari dan ditutup manual saat
+      # kegagalan terjadi di luar jam bangun.
+      - name: Buka issue saat produksi tidak sehat
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --title "[prod-health] sigitadi.id tidak sehat" \
+            --body "$(printf 'Pemeriksaan produksi otomatis gagal.\n\n```\n%s\n```\n\nRun: %s\n' \
+              "$(cat prod-health-output.txt)" \
+              "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID")"
