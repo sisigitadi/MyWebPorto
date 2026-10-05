@@ -227,7 +227,7 @@ describe("remediateDraft — perbaikan deterministik", () => {
     expect((lowered.match(/ulasan/g) || []).length).toBeLessThanOrEqual(1);
   });
 
-  it("menyuntikkan kata kunci ke deskripsi bila isinya cukup panjang", () => {
+  it("menyuntikkan kata kunci yang PERSIS sama dengan yang dihitung analyzer", () => {
     const longBody = `${"Kalimat pendukung yang menjelaskan topik secara wajar. ".repeat(40)}\n\n## Bagian\n\nIsi.`;
     const result = remediateDraft({
       title: "Optimasi Gambar Next.js",
@@ -236,21 +236,52 @@ describe("remediateDraft — perbaikan deterministik", () => {
       body: longBody,
       bodyField: "content",
     });
-    expect(result.meta.toLowerCase()).toContain("optimasi gambar");
+    // Kontrak yang diuji: remediator dan analyzer menebak kata kunci dengan
+    // algoritma yang sama. Dulu remediator menebaknya dari judul (frasa
+    // berbeda), sehingga deskripsi bisa sudah "diberi kata kunci" dan tetap
+    // ditolak temuan `meta-keyword`.
+    const keyword = analyzeSeo({
+      title: result.title,
+      slug: result.slug,
+      meta: result.meta,
+      content: result.body,
+    }).primaryKeyword;
+    expect(keyword).toBeTruthy();
+    expect(result.meta.toLowerCase()).toContain(String(keyword).toLowerCase());
     expect(result.meta.length).toBeLessThanOrEqual(SEO_RULES.meta.max);
+    expect(result.meta.length).toBeGreaterThanOrEqual(SEO_RULES.meta.min);
   });
 
-  it("TIDAK menyuntikkan kata kunci pada draf pendek (mencegah keyword stuffing)", () => {
+  it("suntikan kata kunci tidak menaikkan density isi (tidak memicu stuffing baru)", () => {
+    const body = "Optimasi gambar penting. Format AVIF membantu.";
     const result = remediateDraft({
       title: "Panduan Optimasi Gambar Next.js",
       slug: "panduan-optimasi-gambar-nextjs",
       meta: "Ulasan singkat.",
-      body: "Optimasi gambar penting. Format AVIF membantu.",
+      body,
       bodyField: "content",
     });
-    expect(result.meta.toLowerCase()).not.toContain("panduan optimasi gambar");
-    // Density tinggi wajib dilaporkan sebagai sisa pekerjaan, bukan disembunyikan.
-    expect(result.remaining.some((r) => r.includes("Density"))).toBe(true);
+    // Density hanya dihitung dari isi. Menyuntik frasa kunci ke deskripsi
+    // tidak boleh menarik frasa itu ke dalam isi draf pendek; itu yang dulu
+    // membuat satu suntikan memunculkan temuan `content-stuffing`.
+    const before = analyzeSeo({
+      title: "Panduan Optimasi Gambar Next.js",
+      slug: "panduan-optimasi-gambar-nextjs",
+      meta: "Ulasan singkat.",
+      content: body,
+    });
+    const after = analyzeSeo({
+      title: result.title,
+      slug: result.slug,
+      meta: result.meta,
+      content: result.body,
+    });
+    expect(after.primaryKeyword).toBe(before.primaryKeyword);
+    expect(after.metrics.keywordDensity).toBe(before.metrics.keywordDensity);
+    // Density tinggi dari draf asal tetap dilaporkan, bukan disembunyikan.
+    if (after.metrics.keywordDensity > SEO_RULES.density.max) {
+      expect(result.remaining.some((r) => r.includes("Density"))).toBe(true);
+    }
   });
 
   it("menyisipkan ringkasan pembuka GEO sebelum sub-judul pertama", () => {
@@ -289,7 +320,7 @@ describe("remediateDraft — perbaikan deterministik", () => {
       related: [],
     });
     expect(result.body).not.toContain("](");
-    expect(result.remaining.some((r) => r.includes("Internal link"))).toBe(true);
+    expect(result.remaining.some((r) => /internal link/i.test(r))).toBe(true);
   });
 
   it("menyisipkan tautan tanpa merusak blok kode", () => {
@@ -314,7 +345,9 @@ describe("remediateDraft — perbaikan deterministik", () => {
       body: "satu dua tiga.",
       bodyField: "content",
     });
-    expect(result.remaining.some((r) => r.includes(`target ${SEO_RULES.content.minWords}`))).toBe(true);
+    // Sisa masalah adalah temuan analyzer apa adanya, jadi ambangnya ikut
+    // diturunkan dari SEO_RULES dan tidak bisa drift.
+    expect(result.remaining.some((r) => r.includes(`${SEO_RULES.content.minWords} kata`))).toBe(true);
     expect(result.remaining.some((r) => r.includes("H2"))).toBe(true);
   });
 });

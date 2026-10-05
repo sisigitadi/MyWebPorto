@@ -114,3 +114,57 @@ export function getRedaksiType(key: string): RedaksiTypeDef | undefined {
 export function isRedaksiContentType(key: string): key is RedaksiContentType {
   return REDAKSI_TYPES.some((t) => t.key === key);
 }
+
+/**
+ * Field mana yang berperan sebagai meta description per tipe.
+ *
+ * Hanya artikel dan proyek yang punya ringkasan terpisah. Pada produk dan
+ * layanan, field `description` adalah isi kartu DAN sumber meta description
+ * (halaman toko memakai `description.slice(0, 160)`), sehingga memandangnya
+ * sebagai field meta akan membuat analyzer memotong deskripsi jadi 165
+ * karakter. Testimoni dan profil tidak punya field meta sama sekali.
+ */
+export function metaFieldFor(key: string): "summary" | null {
+  if (key === "article" || key === "project") return "summary";
+  return null;
+}
+
+/** Field yang dipantau analyzer untuk sebuah tipe konten. */
+export interface RedaksiSeoFields {
+  title: string;
+  /** Null bila tipe ini tidak punya slug (layanan, testimoni, profil). */
+  slug: string | null;
+  /** Null bila tipe ini tidak punya meta description terpisah. */
+  meta: string | null;
+  body: string;
+}
+
+/**
+ * Ambil field analyzer dari nilai form mentah.
+ *
+ * Composer dan sinkronisasi draf AI WAJIB memakai fungsi ini, tidak boleh
+ * menebak sendiri field-nya. Dulu keduanya berbeda: sinkronisasi draf memakai
+ * `clientName` dan `name` sebagai judul, sedangkan panel analisis mengirim
+ * `values.title` yang kosong untuk testimoni dan profil. Akibatnya tiga
+ * temuan kritis permanen muncul padahal field-nya memang tidak ada.
+ * Mengosongkan field yang tidak berlaku juga membuat analyzer tahu itu
+ * bukan kelalaian admin.
+ */
+export function seoFieldsFor(
+  type: RedaksiContentType,
+  values: Record<string, unknown>
+): RedaksiSeoFields {
+  const tdef = getRedaksiType(type);
+  const read = (key: string): string =>
+    typeof values[key] === "string" ? (values[key] as string) : "";
+  if (!tdef) {
+    return { title: read("title"), slug: read("slug") || null, meta: null, body: "" };
+  }
+  const metaKey = metaFieldFor(type);
+  return {
+    title: read(tdef.titleField),
+    slug: read("slug") || null,
+    meta: metaKey ? read(metaKey) || null : null,
+    body: read(tdef.bodyField),
+  };
+}

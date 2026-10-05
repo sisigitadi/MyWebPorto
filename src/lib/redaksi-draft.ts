@@ -33,10 +33,17 @@ import {
   INTERNAL_LINKS_MARKER,
   internalLinksPromptBlock,
   seoGeoPromptBlock,
+  seoScopeFor,
 } from "@/lib/seo-rules";
 import type { RedaksiContentType } from "@/lib/redaksi-meta";
-import { getRedaksiType, isRedaksiContentType } from "@/lib/redaksi-meta";
+import {
+  getRedaksiType,
+  isRedaksiContentType,
+  metaFieldFor,
+  seoFieldsFor,
+} from "@/lib/redaksi-meta";
 import { remediateDraft, type DraftSeoReport } from "@/lib/seo-remediate";
+import { analyzeSeo } from "@/lib/seo-keywords";
 
 export type { DraftSeoReport };
 
@@ -219,30 +226,58 @@ export function describeProviderFailure(
   }
 }
 
-function buildPrompt(type: RedaksiContentType, brief: string, lang: "id" | "en"): string {
+/**
+ * Susun prompt lengkap untuk sebuah tipe konten.
+ *
+ * Dua hal di sini yang menentukan apakah bantuan AI benar-benar sinkron dengan
+ * Analisis SEO:
+ *  1. Blok persyaratan SEO+GEO menurunkan angkanya dari `seo-rules.ts` SESUAI
+ *     SKOP tipe. Tanpa ini, model diminta menulis 600 kata untuk testimoni yang
+ *     field-nya dibatasi 2.000 karakter, dan drafnya justru ditolak Zod.
+ *  2. Aturan yang tidak berlaku (slug, meta, internal link) tidak ikut
+ *     dicetak, jadi model tidak membuang token dan tidak mengarang.
+ *
+ * Diekspor supaya kontrak ini bisa diuji tanpa memanggil provider.
+ */
+export function buildPrompt(type: RedaksiContentType, brief: string, lang: "id" | "en"): string {
   const langLabel = lang === "en" ? "Inggris" : "Bahasa Indonesia";
-  return [
+  const scope = seoScopeFor(type);
+  const lines = [
     "Anda adalah asisten redaksi untuk situs portofolio pemilik.",
     intentLine(type),
     "",
     "FORMAT ISI PANJANG: teks polos bertanda. Gunakan '## ' untuk judul bagian, '### ' untuk sub bagian, '> ' untuk kutipan, dan blok kode diapit tiga backtick (```).",
     "DILARANG menulis tag HTML, URL gambar, atau tautan ke luar situs (http/https).",
-    "TAUTAN internal BOLEH dipakai dan WAJIB ada minimal satu: tulis persis [teks anchor](/path) memakai path dari daftar halaman di bawah. Jangan mengarang path yang tidak ada di daftar.",
+  ];
+  if (scope.internalLinkMin > 0) {
+    lines.push(
+      "TAUTAN internal BOLEH dipakai dan WAJIB ada minimal satu: tulis persis [teks anchor](/path) memakai path dari daftar halaman di bawah. Jangan mengarang path yang tidak ada di daftar."
+    );
+  }
+  lines.push(
     `Bahasa jawaban: ${langLabel}.`,
     "",
-    fieldList(type),
-    "- slug: kebab-case, huruf kecil, tanpa spasi/tanda baca.",
+    fieldList(type)
+  );
+  if (scope.slug) {
+    lines.push("- slug: kebab-case, huruf kecil, tanpa spasi/tanda baca.");
+  }
+  lines.push(
     "- Output HANYA satu objek JSON yang valid. Tanpa kalimat pembuka, tanpa penjelasan, tanpa pembungkus markdown.",
     "",
-    seoGeoPromptBlock(lang),
-    "",
-    INTERNAL_LINKS_MARKER,
-    "",
+    seoGeoPromptBlock(lang, scope),
+    ""
+  );
+  if (scope.internalLinkMin > 0) {
+    lines.push(INTERNAL_LINKS_MARKER, "");
+  }
+  lines.push(
     "Brief dari admin:",
     brief.trim().slice(0, 1500),
     "",
     PROFILE_CONTEXT_MARKER,
-  ].join("\n");
+  );
+  return lines.join("\n");
 }
 
 // ============================================================
@@ -509,11 +544,15 @@ export async function draftContentWithAI(
   const prompt = buildPrompt(type, briefTrim, lang)
     .replace(PROFILE_CONTEXT_MARKER, ctx)
     .replace(INTERNAL_LINKS_MARKER, internalLinksPromptBlock(related || []));
-  // Isi panjang (artikel/proyek/profil) butuh token jauh lebih besar daripada
-  // jawaban bot; layanan/testimoni/produk tetap kecil.
-  const isLong = type === "article" || type === "project" || type === "profile";
-  const maxOutputTokens = isLong ? 2400 : 700;
-  const maxChars = isLong ? 20000 : 5000;
+  // Isi panjang butuh token jauh lebih besar daripada jawaban pendek. Batas
+  // lamanya (2.400) hampir tidak menyisakan ruang untuk amplop JSON di sekitar
+  // 600 kata isi: begitu terpotong, `extractJsonObject` tidak menemukan kurung
+  // penutup dan SELURUH draf dibuang dengan pesan "AI tidak mengembalikan JSON".
+  // Ini plafon, bukan biaya: model hanya memakai yang benar-benar perlu.
+  const scope = seoScopeFor(type);
+  const isLong = scope.minWords >= 400;
+  const maxOutputTokens = isLong ? 4096 : 900;
+  const maxChars = isLong ? 24000 : 6000;
 
   // Instruksi redaksi sama untuk semua gaya API; hanya format pesan yang beda.
   const redaksiMessages = [
@@ -559,35 +598,39 @@ export async function draftContentWithAI(
     text = "";
   }
 
-  if (!text.trim()) {
+  // SATU-SATUNYA titik yang mengubah draf menjadi DraftResult. Baik jawaban
+  // model maupun kerangka lokal wajib lewat sini, sehingga tidak ada lagi
+  // jalur yang mengembalikan draf tanpa dirapikan. Dulu jalur model langsung
+  // mengembalikan hasil parse apa adanya: tombol "Bantuan AI" tidak pernah
+  // memperbaiki apa pun, jadi "Analisis SEO" yang ditekan sesudahnya
+  // menunjukkan temuan yang sama seperti sebelumnya.
+  let draft: RedaksiDraft;
+  let usedFallback = false;
+  if (text.trim()) {
+    const parsed = parseDraft(type, text);
+    if (!parsed.ok) return parsed;
+    draft = parsed.draft;
+  } else {
     console.warn(`[Redaksi AI] Cloud provider (${cfg.provider}) gagal merespons / jaringan error. Menggunakan draf lokal pintar (smart local fallback).`);
-    const synced = applySeoSync(type, generateLocalFallbackDraft(type, briefTrim), related, true);
-    return { ...synced, seoReport: { ...synced.seoReport, providerError } };
+    draft = generateLocalFallbackDraft(type, briefTrim);
+    usedFallback = true;
   }
 
-  const parsed = parseDraft(type, text);
-  if (!parsed.ok) return parsed;
-  return { ok: true, draft: parsed.draft, seoReport: parsed.seoReport };
-}
-
-/**
- * Field mana yang berperan sebagai "meta description" per tipe konten. Editor memakai
- * `summary` untuk artikel/proyek dan `description` untuk produk/layanan, jadi
- * remediator harus tahu nama field-nya, bukan menebak.
- */
-function metaFieldFor(type: RedaksiContentType): "summary" | "description" | null {
-  if (type === "article" || type === "project") return "summary";
-  if (type === "product" || type === "service") return "description";
-  return null;
+  const synced = applySeoSync(type, draft, related, usedFallback);
+  return { ...synced, seoReport: { ...synced.seoReport, providerError } };
 }
 
 /**
  * Titik sinkronisasi tunggal: draf (dari model ATAU fallback lokal) dirapikan
- * terhadap aturan yang sama dengan analyzer, lalu dianalisis ulang untuk
- * menghitung sisa masalah. Tidak ada I/O — daftar `related` sudah diteruskan
- * dari server action.
+ * terhadap aturan yang sama dengan analyzer, lalu dianalisis ulang dengan
+ * analyzer itu juga untuk menghitung sisa masalah dan skornya. Tidak ada I/O —
+ * daftar `related` sudah diteruskan dari server action.
+ *
+ * Diekspor karena ini titik di mana "bantuan AI" dan "analisa SEO" bertemu:
+ * test memverifikasi bahwa draf yang sudah disinkronkan dianalisis dengan
+ * standar yang sama.
  */
-function applySeoSync(
+export function applySeoSync(
   type: RedaksiContentType,
   draft: RedaksiDraft,
   related?: readonly { title: string; href: string }[],
@@ -606,12 +649,16 @@ function applySeoSync(
     body: typeof data[tdef.bodyField] === "string" ? (data[tdef.bodyField] as string) : "",
     bodyField: tdef.bodyField,
     related: related ? related.map((l) => ({ title: l.title, href: l.href })) : [],
+    type,
   });
 
   const next: Record<string, unknown> = { ...data };
   if (fixed.title) next[tdef.titleField] = fixed.title;
   // Hanya tipe yang punya slug di schema yang boleh diperbaiki.
   if (fixed.slug && typeof next.slug === "string") next.slug = fixed.slug;
+  // `metaKey` hanya diisi untuk tipe yang punya field deskripsi terpisah; pada
+  // produk dan layanan `description` adalah isi, bukan meta, jadi memotongnya
+  // ke 165 karakter akan menghapus isi kartu.
   if (metaKey && fixed.meta) next[metaKey] = fixed.meta;
   if (fixed.body) next[tdef.bodyField] = fixed.body;
 
@@ -631,6 +678,19 @@ function applySeoSync(
     return { ok: true, draft, seoReport: { applied: [], remaining: [], usedFallback } };
   }
 
+  // Skor dihitung dengan pemetaan field yang PERSIS sama dengan yang akan
+  // dikirim composer ke "Analisis SEO" (seoFieldsFor), jadi kedua layar bisa
+  // dibandingkan tanpa mungkin berbeda angka.
+  const fields = seoFieldsFor(type, reparsed.data as Record<string, unknown>);
+  const analysis = analyzeSeo({
+    type,
+    title: fields.title,
+    slug: fields.slug,
+    meta: fields.meta,
+    content: fields.body,
+    related: related ? related.map((l) => ({ title: l.title, href: l.href })) : [],
+  });
+
   return {
     ok: true,
     draft: { type, data: reparsed.data } as RedaksiDraft,
@@ -638,6 +698,8 @@ function applySeoSync(
       applied: fixed.applied,
       remaining: fixed.remaining,
       usedFallback,
+      score: analysis.score,
+      geoScore: analysis.geoScore,
     } as DraftSeoReport,
   };
 }

@@ -67,6 +67,150 @@ export const GEO_RULES = {
   maxParagraphWords: 120,
 } as const;
 
+/**
+ * TIPE KONTEN = SKOP ATURAN YANG BERLAKU.
+ *
+ * Angka di atas (SEO_RULES/GEO_RULES) adalah ambang untuk HALAMAN ARTIKEL:
+ * satu halaman panjang yang berdiri sendiri. Ada tipe Redaksi lain yang tidak
+ * punya struktur itu. Masalahnya, satu set aturan SELALU diterjemahkan mentah
+ * ke semua tipe, dan itu memunculkan tiga desync nyata:
+ *  1. Prompt meminta "minimal 600 kata" untuk TESTIMONI, padahal schema
+ *     TestimonialSchema membatasi `content` di 2.000 karakter (~300 kata).
+ *     Model patuh → draf ditolak Zod dengan pesan "tidak memenuhi format".
+ *  2. Analyzer menghitung `title`, `slug`, dan `meta` untuk SEMUA tipe.
+ *     Testimoni tidak punya ketiganya (field-nya clientName + content), jadi
+ *     setelah menekan "Bantuan AI" lalu "Analisis SEO" admin selalu melihat
+ *     tiga temuan KRITIS yang tidak bisa diperbaiki: field-nya memang tidak ada.
+ *  3. Aturan GEO (sub-judul tanya, fakta berangka, daftar) tidak masuk akal
+ *     untuk kartu produk atau testimoni, tapi tetap dinagih.
+ *
+ * Jadi ambangnya tetap SATU sumber kebenaran; yang dibedakan hanya aturan
+ * mana yang berlaku. `analyzeSeo`, `remediateDraft`, dan `buildPrompt`
+ * membaca skop yang sama di sini, sehingga tidak bisa berbeda lagi.
+ */
+export type SeoScopeKey =
+  | "article"
+  | "project"
+  | "product"
+  | "service"
+  | "testimonial"
+  | "profile";
+
+/** Seberapa aturan GEO berlaku untuk sebuah tipe. */
+export type SeoGeoLevel =
+  /** Semua aturan GEO: jawaban di awal, sub-judul tanya, fakta, daftar. */
+  | "full"
+  /** Hanya ringkasan pembuka + paragraf pendek; sisanya tidak relevan. */
+  | "basic"
+  /** Bukan halaman jawaban — jangan nagih struktur GEO sama sekali. */
+  | "none";
+
+export interface SeoScope {
+  key: SeoScopeKey;
+  /** Tipe punya slug sendiri → aturan slug berlaku (validations.ts). */
+  slug: boolean;
+  /** Tipe punya field meta description terpisah → aturan meta berlaku. */
+  meta: boolean;
+  /** Minimal kata isi yang realistis untuk tipe ini. */
+  minWords: number;
+  /** Minimal sub-judul H2. 0 = struktur heading tidak wajib. */
+  h2Min: number;
+  /** Sub-judul H2 yang diharapkan; di atas h2Min → temuan peluang. */
+  h2Preferred: number;
+  /** Internal link yang diharapkan. 0 = jangan nagih. */
+  internalLinkMin: number;
+  /** Density kata kunci bermakna? Tidak untuk teks pendek & bio. */
+  density: boolean;
+  /** Tingkat aturan GEO. */
+  geo: SeoGeoLevel;
+}
+
+/**
+ * Skop artikel: default dan nilai standar. Dipakai ketika pemanggil tidak
+ * menyebut tipe, sehingga analyzer tanpa tipe berperilaku seperti sebelumnya.
+ */
+export const FULL_SCOPE: SeoScope = {
+  key: "article",
+  slug: true,
+  meta: true,
+  minWords: SEO_RULES.content.minWords,
+  h2Min: SEO_RULES.content.h2Min,
+  h2Preferred: SEO_RULES.content.h2Preferred,
+  internalLinkMin: SEO_RULES.content.internalLinkMin,
+  density: true,
+  geo: "full",
+};
+
+/**
+ * Peta tipe → skop. Angka diturunkan dari BATAS schema di `validations.ts`,
+ * bukan dari tebakan: `minWords` tidak boleh lebih besar dari yang muat di
+ * field, kalau tidak aturannya mustahil dipenuhi dan hanya menambah frustrasi.
+ */
+const SCOPES: Record<SeoScopeKey, SeoScope> = {
+  article: FULL_SCOPE,
+  // Studi kasus portofolio: halaman panjang, punya slug + ringkasan.
+  project: { ...FULL_SCOPE, key: "project" },
+  // Kartu produk: `description` (maks 5.000 karakter) sekaligus isi kartu.
+  // Tidak ada field meta description terpisah; halaman toko memakai 160
+  // karakter pertama deskripsi, jadi aturan meta dimatikan di sini.
+  product: {
+    key: "product",
+    slug: true,
+    meta: false,
+    minWords: 250,
+    h2Min: 1,
+    h2Preferred: 2,
+    internalLinkMin: 0,
+    density: true,
+    geo: "basic",
+  },
+  // Layanan: tanpa slug, tanpa meta; isi 150 kata + 2 sub-judul sudah layak.
+  service: {
+    key: "service",
+    slug: false,
+    meta: false,
+    minWords: 150,
+    h2Min: 1,
+    h2Preferred: 2,
+    internalLinkMin: 0,
+    density: true,
+    geo: "basic",
+  },
+  // Testimoni: field `content` dibatasi 2.000 karakter (~300 kata), dan
+  // ulasannya harus terdengar seperti manusia. Struktur GEO memaksa gaya
+  // yang justru membuatnya palsu.
+  testimonial: {
+    key: "testimonial",
+    slug: false,
+    meta: false,
+    minWords: 60,
+    h2Min: 0,
+    h2Preferred: 0,
+    internalLinkMin: 0,
+    density: false,
+    geo: "none",
+  },
+  // Bio: field `name`/`headline`/`bio`, tanpa slug/meta. Menempelkan ringkasan
+  // pembuka di depan bio orang terasa seperti iklan, jadi GEO dimatikan.
+  profile: {
+    key: "profile",
+    slug: false,
+    meta: false,
+    minWords: 120,
+    h2Min: 0,
+    h2Preferred: 0,
+    internalLinkMin: 0,
+    density: false,
+    geo: "none",
+  },
+};
+
+/** Skop aturan untuk sebuah tipe konten; tipe tak dikenal → skop artikel. */
+export function seoScopeFor(type?: string | null): SeoScope {
+  if (!type) return FULL_SCOPE;
+  return SCOPES[type as SeoScopeKey] ?? FULL_SCOPE;
+}
+
 /** Kata tanya yang muncul di awal sub-judul = pola heading pertanyaan. */
 export const QUESTION_WORDS = [
   "apa",
@@ -178,54 +322,134 @@ export function scoreFromFindings(findings: readonly { severity: SeoRuleSeverity
 }
 
 /**
- * Blok instruksi SEO+GEO untuk prompt AI — DITURUNKAN dari konstanta di atas.
+ * Blok instruksi SEO+GEO untuk prompt AI, DITURUNKAN dari konstanta dan skop
+ * di atas.
  *
- * Ini yang membuat "bantuan AI" dan "analisa SEO" tidak lagi bertengkar: model
+ * Inilah yang membuat "bantuan AI" dan "analisa SEO" tidak bertengkar: model
  * menerima angka yang persis sama dengan yang nanti dipakai analyzer untuk
- * menilai keluarannya. Mengubah `SEO_RULES.title.max` otomatis mengubah
- * prompt ini, tidak ada duplikasi angka.
+ * menilai keluarannya, dan HANYA aturan yang berlaku untuk tipenya. Mengubah
+ * `SEO_RULES.title.max` atau menambah tipe baru di SCOPES otomatis mengubah
+ * prompt ini, tanpa ada duplikasi angka.
  */
-export function seoGeoPromptBlock(lang: "id" | "en" = "id"): string {
+export function seoGeoPromptBlock(
+  lang: "id" | "en" = "id",
+  scope: SeoScope = FULL_SCOPE
+): string {
   const en = lang === "en";
-  const lines = en
-    ? [
-        "SEO + GEO REQUIREMENTS (these are the exact thresholds the analyzer will check):",
-        `- title: ${SEO_RULES.title.min}-${SEO_RULES.title.max} characters.`,
-        `- meta/description: ${SEO_RULES.meta.min}-${SEO_RULES.meta.max} characters.`,
-        `- slug: kebab-case, lowercase, at most ${SEO_RULES.slug.maxWords} words.`,
-        `- body: at least ${SEO_RULES.content.minWords} words.`,
-        `- sub-headings: at least ${SEO_RULES.content.h2Preferred} "## " sections (use "### " for nested points).`,
-        `- internal links: at least ${SEO_RULES.content.internalLinkMin} markdown link to another page of this site, written as [anchor](/path).`,
-        `- keep the main keyword at ${SEO_RULES.density.min}-${SEO_RULES.density.max}% density: it must appear in the title, the slug, the meta and at least one sub-heading. Never above ${SEO_RULES.density.max}% (keyword stuffing).`,
-        `- average sentence under ${SEO_RULES.sentence.maxWords} words.`,
-        "",
-        "GEO (answer engines: ChatGPT, Gemini, Perplexity, AI Overviews):",
-        `- Open with a standalone summary of at least ${GEO_RULES.answerFirstMinWords} words that answers the topic directly, before any "## " heading.`,
-        `- Write at least ${GEO_RULES.questionHeadingsMin} sub-headings as real questions ("## Apa itu ...?").`,
-        `- Include at least ${GEO_RULES.quotableFactsMin} concrete fact with a number and a unit (%, ms, seconds, requests, size).`,
-        `- Include at least ${GEO_RULES.listsMin} bullet or numbered list.`,
-        `- Keep every paragraph under ${GEO_RULES.maxParagraphWords} words.`,
-        `- State the subject explicitly in the first sentence so the page can be quoted out of context.`,
-      ]
-    : [
-        "PERSYARATAN SEO + GEO (angka ini persis sama dengan yang nanti dianalisis):",
-        `- Judul: ${SEO_RULES.title.min}-${SEO_RULES.title.max} karakter.`,
+  // Satu helper bilingual: setiap aturan ditulis sekali untuk dua bahasa,
+  // sehingga angka dan syaratnya tidak mungkin berbeda antar prompt.
+  const line = (id: string, english: string): string => (en ? english : id);
+  const lines: string[] = [
+    line(
+      "PERSYARATAN SEO + GEO (angka ini persis sama dengan yang nanti dianalisis):",
+      "SEO + GEO REQUIREMENTS (these are the exact thresholds the analyzer will check):"
+    ),
+    line(
+      `- Judul: ${SEO_RULES.title.min}-${SEO_RULES.title.max} karakter.`,
+      `- title: ${SEO_RULES.title.min}-${SEO_RULES.title.max} characters.`
+    ),
+  ];
+
+  // Hanya aturan yang field-nya benar-benar ada di tipe ini. Meminta meta
+  // description atau internal link untuk konten yang tidak punya field itu
+  // hanya membuat model mengarang atau menganggur.
+  if (scope.meta) {
+    lines.push(
+      line(
         `- Deskripsi/meta: ${SEO_RULES.meta.min}-${SEO_RULES.meta.max} karakter.`,
+        `- meta/description: ${SEO_RULES.meta.min}-${SEO_RULES.meta.max} characters.`
+      )
+    );
+  }
+  if (scope.slug) {
+    lines.push(
+      line(
         `- Slug: kebab-case, huruf kecil, maksimal ${SEO_RULES.slug.maxWords} kata.`,
-        `- Isi: minimal ${SEO_RULES.content.minWords} kata.`,
-        `- Sub-judul: minimal ${SEO_RULES.content.h2Preferred} bagian "## " (gunakan "### " untuk detail).`,
-        `- Internal link: minimal ${SEO_RULES.content.internalLinkMin} tautan markdown ke halaman lain di situs ini, ditulis [teks](/path).`,
-        `- Density kata kunci utama ${SEO_RULES.density.min}-${SEO_RULES.density.max} persen: frasa itu wajib muncul di judul, slug, deskripsi, dan minimal satu sub-judul. Jangan pernah di atas ${SEO_RULES.density.max} persen (keyword stuffing).`,
-        `- Rata-rata kalimat maksimal ${SEO_RULES.sentence.maxWords} kata.`,
-        "",
+        `- slug: kebab-case, lowercase, at most ${SEO_RULES.slug.maxWords} words.`
+      )
+    );
+  }
+  lines.push(
+    line(`- Isi: minimal ${scope.minWords} kata.`, `- body: at least ${scope.minWords} words.`)
+  );
+  if (scope.h2Min > 0) {
+    lines.push(
+      line(
+        `- Sub-judul: minimal ${scope.h2Preferred} bagian "## " (gunakan "### " untuk detail).`,
+        `- sub-headings: at least ${scope.h2Preferred} "## " sections (use "### " for nested points).`
+      )
+    );
+  }
+  if (scope.internalLinkMin > 0) {
+    lines.push(
+      line(
+        `- Internal link: minimal ${scope.internalLinkMin} tautan markdown ke halaman lain di situs ini, ditulis [teks](/path).`,
+        `- internal links: at least ${scope.internalLinkMin} markdown link to another page of this site, written as [anchor](/path).`
+      )
+    );
+  }
+  if (scope.density) {
+    lines.push(
+      line(
+        `- Density kata kunci utama ${SEO_RULES.density.min}-${SEO_RULES.density.max} persen: frasa itu wajib muncul di judul dan minimal satu sub-judul. Jangan pernah di atas ${SEO_RULES.density.max} persen (keyword stuffing).`,
+        `- keep the main keyword at ${SEO_RULES.density.min}-${SEO_RULES.density.max}% density: it must appear in the title and at least one sub-heading. Never above ${SEO_RULES.density.max}% (keyword stuffing).`
+      )
+    );
+  }
+  lines.push(
+    line(
+      `- Rata-rata kalimat maksimal ${SEO_RULES.sentence.maxWords} kata.`,
+      `- average sentence under ${SEO_RULES.sentence.maxWords} words.`
+    )
+  );
+
+  if (scope.geo !== "none") {
+    lines.push("");
+    lines.push(
+      line(
         "GEO (mesin answer: ChatGPT, Gemini, Perplexity, AI Overviews):",
+        "GEO (answer engines: ChatGPT, Gemini, Perplexity, AI Overviews):"
+      )
+    );
+    lines.push(
+      line(
         `- Buka dengan ringkasan mandiri minimal ${GEO_RULES.answerFirstMinWords} kata yang langsung menjawab topik, SEBELUM sub-judul "## " pertama.`,
-        `- Tulis minimal ${GEO_RULES.questionHeadingsMin} sub-judul sebagai pertanyaan sungguhan ("## Apa itu ...?").`,
-        `- Sertakan minimal ${GEO_RULES.quotableFactsMin} fakta konkret dengan angka dan satuan (%, ms, detik, request, ukuran).`,
-        `- Sertakan minimal ${GEO_RULES.listsMin} daftar bullet atau bernomor.`,
+        `- Open with a standalone summary of at least ${GEO_RULES.answerFirstMinWords} words that answers the topic directly, before any "## " heading.`
+      )
+    );
+    if (scope.geo === "full") {
+      lines.push(
+        line(
+          `- Tulis minimal ${GEO_RULES.questionHeadingsMin} sub-judul sebagai pertanyaan sungguhan ("## Apa itu ...?").`,
+          `- Write at least ${GEO_RULES.questionHeadingsMin} sub-headings as real questions ("## Apa itu ...?").`
+        )
+      );
+      lines.push(
+        line(
+          `- Sertakan minimal ${GEO_RULES.quotableFactsMin} fakta konkret dengan angka dan satuan (%, ms, detik, request, ukuran).`,
+          `- Include at least ${GEO_RULES.quotableFactsMin} concrete fact with a number and a unit (%, ms, seconds, requests, size).`
+        )
+      );
+      lines.push(
+        line(
+          `- Sertakan minimal ${GEO_RULES.listsMin} daftar bullet atau bernomor.`,
+          `- Include at least ${GEO_RULES.listsMin} bullet or numbered list.`
+        )
+      );
+    }
+    lines.push(
+      line(
         `- Setiap paragraf maksimal ${GEO_RULES.maxParagraphWords} kata.`,
-        `- Sebut subjeknya secara eksplisit di kalimat pertama agar halaman ini bisa dikutip tanpa konteks.`,
-      ];
+        `- Keep every paragraph under ${GEO_RULES.maxParagraphWords} words.`
+      )
+    );
+    lines.push(
+      line(
+        "- Sebut subjeknya secara eksplisit di kalimat pertama agar halaman ini bisa dikutip tanpa konteks.",
+        "- State the subject explicitly in the first sentence so the page can be quoted out of context."
+      )
+    );
+  }
 
   return lines.join("\n");
 }

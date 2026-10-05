@@ -4,6 +4,70 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Fixed — Bantuan AI dan Analisis SEO kini satu standar, termasuk per tipe konten
+
+Revisi lanjutan sinkronisasi yang diperbaiki di entri sebelumnya. Amendedanya
+masalah: satu set aturan artikel masih diterjemahkan mentah ke semua tipe
+Redaksi, dan sinkronisasi draf AI ternyata tidak pernah jalan pada jawaban
+dari model.
+
+**1. Draf dari model tidak pernah disinkronkan sama sekali.**
+`draftContentWithAI` memanggil `applySeoSync` hanya pada jalur kerangka lokal.
+Saat provider merespons, jalur itu langsung mengembalikan hasil `parseDraft`
+apa adanya, sehingga `seoReport.applied` selalu kosong dan panel "Analisis
+SEO" yang ditekan sesudahnya menampilkan temuan yang sama seperti sebelum
+draf dibuat. Sekarang hanya ada satu titik yang mengubah draf menjadi
+`DraftResult` (jawaban model maupun kerangka lokal wajib lewat situ), jadi
+tidak ada lagi jalur yang bisa melewati sinkronisasi.
+
+**2. Analyzer menagih field yang memang tidak ada pada sebuah tipe.**
+Panel analisis selalu mengirim `values.title` dan `values.slug`, sedangkan
+testimoni memakai `clientName` + `content` dan profil memakai `name` +
+`bio` — keduanya tanpa slug dan tanpa meta description. Akibatnya setiap
+testimoni dan profil hasil "Bantuan AI" langsung menampilkan tiga temuan
+KRITIS (`title-empty`, `slug-empty`, `meta-empty`) yang mustahil diperbaiki.
+Semua field kini diambil lewat satu helper `seoFieldsFor()` yang dipakai
+composer maupun sinkronisasi draf, dan hasilnya null untuk field yang
+tidak ada pada tipenya.
+
+**3. Prompt meminta hal yang tidak muat di schema.**
+Aturan "minimal 600 kata" ikut diminta untuk testimoni, padahal
+`TestimonialSchema` membatasi `content` di 2.000 karakter (~300 kata).
+Model yang patuh menghasilkan draf yang ditolak Zod dengan pesan "tidak
+memenuhi format". `SEO_RULES` kini punya **`SEO_SCOPES` per tipe** — panjang
+isi, sub-judul, internal link, density, dan tingkat GEO — yang diturunkan
+dari batas schema di `validations.ts`. Prompt, analyzer, dan remediator
+semuanya membaca skop yang sama, jadi tidak bisa berbeda lagi.
+
+**4. `description` produk dan layanan dipotong jadi meta description.**
+`metaFieldFor` lama mengembalikan `description` untuk produk dan layanan,
+padahal field itu adalah isi kartu. Perbaikannya sekarang berbasis skop:
+hanya artikel dan proyek yang punya meta description terpisah.
+
+**5. Laporan sinkronisasi memakai mesin aturan kedua.**
+`seo-remediate.ts` punya penghitung kata, density, dan H2 sendiri dengan
+tokenizer berbeda dari analyzer, jadi "sisa masalah" yang ditampilkan ke
+admin bisa berbeda dari temuan di panel analisis. Modul itu sekarang
+menjalankan `analyzeSeo` yang sama dan melaporkan temuan apa adanya
+(urut kritis, perhatian, peluang), dan kata kunci untuk disuntik ke
+deskripsi diambil dari `pickPrimaryKeyword` — algoritma yang sama dengan
+analyzer. Kebetulan ini juga menghapus sumber keyword stuffing pada draf
+pendek: penyuntikan frasa kunci ke deskripsi dijalankan SETELAH lead GEO
+disusun, sehingga tidak menarik frasa itu ke dalam isi.
+
+**6. Batas token terlalu kecil untuk isi yang diminta.**
+`maxOutputTokens` 2.400 hampir tidak menyisakan ruang untuk amplop JSON di
+sekitar 600 kata isi. Begitu terpotong, `extractJsonObject` tidak menemukan
+kurung penutup dan seluruh draf dibuang. Dinaikkan ke 4.096 (plafon, bukan
+biaya) dan 24.000 karakter.
+
+Perubahan lain: laporan draf AI kini membawa `score` dan `geoScore` dari
+analyzer yang sama, sehingga bisa dibandingkan langsung dengan panel
+Analisis SEO; panel menyembunyikan saran slug/meta yang tidak berlaku untuk
+tipenya; dan tombol "Terapkan judul" menulis ke `clientName`/`name` sesuai
+tipe, bukan selalu ke `title`.
+
+
 ### Fixed — Tombol gambar AI hilang di artikel & draf AI diam-diam jadi templat
 
 Dua masalah yang dilaporkan dari pemakaian nyata di Redaksi.
