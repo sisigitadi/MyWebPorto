@@ -30,6 +30,7 @@ Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager int
 - Dashboard ringkasan konten + tombol Visitor Analytics.
 - CRUD profil, proyek, layanan, produk, testimoni, dan artikel.
 - **Sistem & Logs** di `/admin/system`: kelayakan deploy (validasi env terpusat), tracing `x-request-id`, dan audit log mutasi.
+- **Redaksi** di `/admin/redaksi`: composer draf untuk 6 tipe konten (artikel, proyek, layanan, produk, testimoni, profil) dengan tombol **"Bantuan AI"** (Cloud AI) dan **"Analisis SEO"**. Draf AI selalu melewati sinkronisasi otomatis terhadap aturan yang sama persis dengan analyzer — judul/slug/deskripsi dirapikan, lead GEO dan internal link disisipkan dari halaman terbit — lalu laporan menampilkan skor, apa yang diperbaiki, dan sisa masalah yang hanya bisa ditulis manusia. Kelengkapan kontrak ini (satu sumber ambang, skop per tipe, satu pemetaan field) dijelaskan di **`SEO_GEO_SYNC.md`**.
 - **Media Library** di `/admin/media`: daftar gambar di database (tabel `media`, bytea Postgres) dengan hapus.
 - **SEO & SEM** di `/admin/seo`: token verifikasi **Google Search Console** & **Bing Webmaster**, key **IndexNow** + ping manual semua URL, dan override **Open Graph** (judul/deskripsi/gambar) dengan pratinjau kartu sosial. Disimpan di tabel `settings` (key `"seo"`) — ganti token/key/OG tanpa redeploy.
 - **Konfigurasi Cloud AI** di `/admin/system`: pilih 1 dari 10 provider (OFF 100% lokal TF-IDF, Gemini, OpenAI-compatible custom, Anthropic Claude, DeepSeek, Groq, OpenRouter, Together, Mistral, xAI Grok), isi API key (+ base URL untuk gaya OpenAI-compatible/Anthropic), **ambil daftar model otomatis & realtime** dari endpoint provider, serta atur **prompt & cara menjawab** (concise / detailed / friendly). Disimpan di tabel `settings` (key `cloud_ai`), menimpa env per-field — ganti provider/model tanpa redeploy.
@@ -159,6 +160,11 @@ src/
     |-- publish.ts         # Filter published/publishAt (draft & schedule)
     |-- indexnow.ts        # Ping IndexNow best-effort
     |-- seo.ts             # Helper SEO
+    |-- seo-rules.ts       # SATU sumber ambang SEO+GEO + skop per tipe + blok prompt
+    |-- seo-keywords.ts    # analyzeSeo(): analyzer SEO+GEO (deterministik, murni)
+    |-- seo-remediate.ts   # remediateDraft(): perbaikan draf AI + laporan temuan
+    |-- redaksi-meta.ts    # Registry tipe Redaksi + seoFieldsFor() pemetaan field
+    |-- redaksi-draft.ts   # Prompt draf AI, applySeoSync(), kerangka lokal
     |-- json-ld.ts         # safeJsonLd() (escape </script>)
     |-- content-edit.ts    # Parser sintaks konten (H2/H3/quote/kode)
     |-- os-sound.ts        # SFX retro (WebAudio)
@@ -425,4 +431,5 @@ Upload gambar disimpan di Postgres (tabel `media`, bytea) — tidak ada langkah 
 - Field Inggris diisi manual, lewat tombol Terjemahkan, atau dibiarkan kosong (mode EN lalu memakai teks Indonesia).
 - Produk adalah katalog + **checkout WhatsApp** (keranjang ringan di `localStorage`, pesan dirakit oleh `src/lib/whatsapp-order.ts`). Tidak ada payment gateway — pembayaran tetap manual di luar aplikasi.
 - Admin adalah single-owner CMS, bukan sistem multi-user publik.
+- **Angka aturan SEO/GEO hanya boleh ditulis di `src/lib/seo-rules.ts`.** Prompt "Bantuan AI", analyzer, dan remediator membacanya dari sana; tidak boleh ada salinan angka atau mesin aturan kedua (mis. penghitung kata sendiri di remediator). Kalau aturan baru ditambahkan, tambahkan di situ lalu ikuti daftarnya di `SEO_GEO_SYNC.md` — tanpa itu tombol "Bantuan AI" dan "Analisis SEO" akan kembali tidak sinkron.
 - **God Mode** adalah upaya bertahap memindahkan konfigurasi hardcode ke tabel `settings` agar bisa diatur dari admin tanpa redeploy. Fase 1 (app SigitOS: aktif + urutan, `/admin/appearance`) sudah jalan. Fase 2 (editor teks UI, overlay di atas default i18n), Fase 3 (feature flag global), dan Fase 4 (draft/preview + undo) menyusul — tiap fase satu PR terpisah. Prinsip: lapisan DB adalah *overlay*, bukan pengganti — DB kosong/korup harus tetap jatuh ke default di kode.
