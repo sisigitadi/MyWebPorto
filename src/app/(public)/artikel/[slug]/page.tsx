@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getArticles, getProfile } from "@/lib/actions";
 import { resolveFeatures } from "@/lib/features-config";
 import { safeJsonLd } from "@/lib/json-ld";
-import { absoluteImageUrl, localeAlternates } from "@/lib/seo";
+import { localeAlternates, shareImage } from "@/lib/seo";
 import { ArticleDetailContent } from "@/components/public/article-detail-content";
 
 interface ArticleDetailPageProps {
@@ -43,7 +43,7 @@ export async function generateMetadata({ params }: ArticleDetailPageProps) {
   // Gambar share: cover artikel; bila kosong → kartu /opengraph-image (avatar).
   // WAJIB diisi — objek openGraph di sini meng-*replace* seluruh openGraph
   // layout, jadi tanpa `images` halaman ini kehilangan og:image total.
-  const image = absoluteImageUrl(article.imageUrl, baseUrl);
+  const image = shareImage(article.imageUrl, baseUrl, article.title);
   return {
     title,
     description,
@@ -53,7 +53,7 @@ export async function generateMetadata({ params }: ArticleDetailPageProps) {
       description,
       url,
       type: "article",
-      images: [{ url: image, alt: article.title }],
+      images: [image],
       publishedTime: new Date(article.createdAt).toISOString(),
       modifiedTime: new Date(article.updatedAt || article.createdAt).toISOString(),
       authors: ["Sigit Adi Irianto"],
@@ -63,7 +63,7 @@ export async function generateMetadata({ params }: ArticleDetailPageProps) {
       card: "summary_large_image",
       title,
       description,
-      images: [image],
+      images: [image.url],
     },
   };
 }

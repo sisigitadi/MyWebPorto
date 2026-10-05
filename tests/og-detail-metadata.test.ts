@@ -127,6 +127,7 @@ describe("generateMetadata — halaman detail artikel", () => {
     const { generateMetadata } = await import("@/app/(public)/artikel/[slug]/page");
     const md = await generateMetadata({ params: params("judul-artikel") });
 
+    // Cover konten tidak diberi dimensi karangan — lihat shareImage di lib/seo.
     expect(md.openGraph?.images).toEqual([{ url: cover, alt: "Judul Artikel" }]);
     expect(md.twitter?.images).toEqual([cover]);
     expect(md.twitter?.card).toBe("summary_large_image");
@@ -141,8 +142,16 @@ describe("generateMetadata — halaman detail artikel", () => {
     const { generateMetadata } = await import("@/app/(public)/artikel/[slug]/page");
     const md = await generateMetadata({ params: params("judul-artikel") });
 
+    // Kartu OG hasil generate sendiri: dimensi dan MIME diketahui pasti, dan
+    // WhatsApp/Facebook butuh og:image:width/height/type untuk merender.
     expect(md.openGraph?.images).toEqual([
-      { url: `${BASE}/opengraph-image`, alt: "Judul Artikel" },
+      {
+        url: `${BASE}/opengraph-image`,
+        alt: "Judul Artikel",
+        width: 1200,
+        height: 630,
+        type: "image/png",
+      },
     ]);
     expect(md.twitter?.images).toEqual([`${BASE}/opengraph-image`]);
   });
@@ -190,7 +199,13 @@ describe("generateMetadata — halaman detail proyek", () => {
     const md = await generateMetadata({ params: params("proyek-keren") });
 
     expect(md.openGraph?.images).toEqual([
-      { url: `${BASE}/opengraph-image`, alt: "Proyek Keren" },
+      {
+        url: `${BASE}/opengraph-image`,
+        alt: "Proyek Keren",
+        width: 1200,
+        height: 630,
+        type: "image/png",
+      },
     ]);
     expect(md.twitter?.images).toEqual([`${BASE}/opengraph-image`]);
   });

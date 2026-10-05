@@ -5,7 +5,7 @@ import { getProducts, getProfile } from "@/lib/actions";
 import { safeJsonLd } from "@/lib/json-ld";
 import { getProductSlug } from "@/lib/product-link";
 import { buildProductSchema } from "@/lib/product-schema";
-import { absoluteImageUrl, generateDynamicMetadata, localeAlternates } from "@/lib/seo";
+import { generateDynamicMetadata, localeAlternates, shareImage } from "@/lib/seo";
 import { SITE_BRAND } from "@/lib/seo-config";
 import { STORE_NAME } from "@/lib/store";
 
@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   // objek sejenis di layout. Sebelumnya halaman ini hanya mengisi openGraph —
   // akibatnya twitter:image mewarisi kartu /opengraph-image (beda dari og:image)
   // dan twitter:title mewarisi judul profil, bukan judul produk.
-  const image = absoluteImageUrl(product.thumbnailUrl, baseUrl);
+  const image = shareImage(product.thumbnailUrl, baseUrl, product.title);
   return {
     title: product.title + " \u2014 " + STORE_NAME,
     description,
@@ -37,13 +37,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: product.title,
       description,
       url,
-      images: [{ url: image, alt: product.title }],
+      type: "website",
+      images: [image],
     },
     twitter: {
       card: "summary_large_image",
       title: product.title,
       description,
-      images: [image],
+      images: [image.url],
     },
   };
 }
