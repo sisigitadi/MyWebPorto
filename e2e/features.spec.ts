@@ -74,11 +74,13 @@ test.describe("God Mode: settings.features mengendalikan situs publik", () => {
     // Mode mobile: seluruh section ada di satu dokumen. Saat flag OFF, app
     // artikel di-exclude dari daftar OS (os-desktop-manager) → section hilang.
     await expect(page.locator("#artikel")).toHaveCount(0);
-    // Gate server-side route: "off" harus benar-benar off. Status HTTP tetap
-    // 200 karena Suspense boundary (public)/loading.tsx (Ruling 7 di ledger),
-    // jadi yang diuji adalah BODY: UI not-found muncul + konten artikel absen.
+    // Gate server-side route: "off" harus benar-benar off. Dulu statusnya 200
+    // karena Suspense boundary (public)/loading.tsx membilas respons sebelum
+    // notFound() sempat berjalan — artefak itu justru membuat slug tak dikenal
+    // ikut dijawab 200. Boundary tersebut sudah dipindah ke (home)/, jadi
+    // /artikel kini 404 sungguhan, sama seperti slug artikel yang tidak ada.
     const res = await page.goto(freshUrl("/artikel"));
-    expect(res?.status()).toBe(200);
+    expect(res?.status()).toBe(404);
     await expect(page.getByText(/could not be found/i)).toBeVisible();
     await expect(page.locator("#artikel")).toHaveCount(0);
   });
