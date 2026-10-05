@@ -301,10 +301,26 @@ export function parseDraft(type: RedaksiContentType, raw: string): DraftResult {
     };
   }
   const draft = { type, data: result.data } as RedaksiDraft;
-  return { ok: true, draft, seoReport: { applied: [], remaining: [] } };
+  return { ok: true, draft, seoReport: { applied: [], remaining: [], usedFallback: false } };
 }
 
-function generateLocalFallbackDraft(type: RedaksiContentType, brief: string): RedaksiDraft {
+/**
+ * Kerangka lokal saat provider gagal (kuota habis / jaringan). INI BUKAN hasil
+ * AI — hanya kerangka yang(admin isi. Yang penting kerangka ini sudah mengikuti
+ * aturan struktur yang sama dengan draf AI (ringkasan pembuka, minimal 3 H2,
+ * sub-judul berbentuk pertanyaan, satu daftar), supaya waktu admin terbuang
+ * bukan pada pekerjaan format.
+ *
+ * Yang TIDAK bisa dan tidak boleh dikarang di sini: fakta berangka, angka, dan
+ * pengalaman nyata. Semuanya butuh data asli. Kerangka hanya memberi tempat untuk
+ * meletakkannya, dan temuan GEO "belum ada fakta berangka" sengaja dibiarkan
+ * menyala supaya admin tahu itu belum terpenuhi.
+ *
+ * Diekspor agar kelengkapan GEO-nya bisa dikunci test: kerangka ini adalah
+ * satu-satunya draf yang muncul tanpa lewat model, jadi tidak boleh
+ * diam-diam turun standarnya.
+ */
+export function generateLocalFallbackDraft(type: RedaksiContentType, brief: string): RedaksiDraft {
   const briefTrim = brief.trim();
   const slug = briefTrim.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 100);
   switch (type) {
@@ -315,7 +331,36 @@ function generateLocalFallbackDraft(type: RedaksiContentType, brief: string): Re
           title: briefTrim,
           slug: slug || "artikel-baru",
           summary: `Ringkasan singkat untuk ${briefTrim}.`,
-          content: `## Pendahuluan\n\n${briefTrim}\n\n### Pembahasan\n\nArtikel ini disusun secara otomatis berdasarkan brief yang Anda berikan. Anda dapat memperluas penjelasan, menambahkan sub-bagian, dan memformat teks menggunakan editor.\n\n### Kesimpulan\n\nTerus kembangkan konten agar semakin menarik bagi pembaca portofolio.`,
+          content: [
+            `Halaman ini membahas ${briefTrim}. Tulis ringkasan mandiri di sini yang`,
+            `langsung menjawab topiknya dalam beberapa kalimat, sebelum sub-judul pertama —`,
+            `mesin answer mengutip bagian ini apa adanya. Cantumkan satu fakta berangka`,
+            `yang nyata, misalnya waktu muat 250 ms atau penghematan 40%.`,
+            ``,
+            `## Apa itu ${briefTrim}?`,
+            ``,
+            `Jelaskan definisinya dalam satu atau dua kalimat. Jawaban ini akan dikutip`,
+            `utuh oleh mesin answer, jadi langsung ke inti dan tanpa jargon.`,
+            ``,
+            `## Mengapa ${briefTrim} penting?`,
+            ``,
+            `Uraikan dampaknya, lalu tambahkan angka nyata di sini — ukuran, durasi,`,
+            `jumlah, atau persentase — supaya klaimnya bisa diverifikasi dan layak dikutip.`,
+            ``,
+            `## Bagaimana cara mulai menggunakan ${briefTrim}?`,
+            ``,
+            `- Langkah pertama yang perlu disiapkan.`,
+            `- Langkah kedua dan prasyaratnya.`,
+            `- Langkah ketiga, termasuk kesalahan umum yang sering terjadi.`,
+            ``,
+            `### Apa kesalahan yang paling sering terjadi?`,
+            ``,
+            `Sebutkan satu kesalahan umum beserta cara memperbaikinya.`,
+            ``,
+            `## Kesimpulan`,
+            ``,
+            `Ringkas poin utama dan arahkan pembaca ke langkah berikutnya.`,
+          ].join("\n"),
           tags: ["artikel", "portofolio"],
         },
       };
@@ -461,7 +506,7 @@ export async function draftContentWithAI(
 
   if (!text.trim()) {
     console.warn(`[Redaksi AI] Cloud provider (${cfg.provider}) gagal merespons / jaringan error. Menggunakan draf lokal pintar (smart local fallback).`);
-    return applySeoSync(type, generateLocalFallbackDraft(type, briefTrim), related);
+    return applySeoSync(type, generateLocalFallbackDraft(type, briefTrim), related, true);
   }
 
   const parsed = parseDraft(type, text);
@@ -489,11 +534,12 @@ function metaFieldFor(type: RedaksiContentType): "summary" | "description" | nul
 function applySeoSync(
   type: RedaksiContentType,
   draft: RedaksiDraft,
-  related?: readonly { title: string; href: string }[]
+  related?: readonly { title: string; href: string }[],
+  usedFallback = false
 ): Extract<DraftResult, { ok: true }> {
   const tdef = getRedaksiType(type);
   if (!tdef) {
-    return { ok: true, draft, seoReport: { applied: [], remaining: [] } };
+    return { ok: true, draft, seoReport: { applied: [], remaining: [], usedFallback } };
   }
   const data = draft.data as Record<string, unknown>;
   const metaKey = metaFieldFor(type);
@@ -526,13 +572,17 @@ function applySeoSync(
   if (!reparsed.success) {
     // Perbaikan yang membuat draf tidak valid lebih berbahaya daripada draf
     // aslinya → pakai draf asli.
-    return { ok: true, draft, seoReport: { applied: [], remaining: [] } };
+    return { ok: true, draft, seoReport: { applied: [], remaining: [], usedFallback } };
   }
 
   return {
     ok: true,
     draft: { type, data: reparsed.data } as RedaksiDraft,
-    seoReport: { applied: fixed.applied, remaining: fixed.remaining } as DraftSeoReport,
+    seoReport: {
+      applied: fixed.applied,
+      remaining: fixed.remaining,
+      usedFallback,
+    } as DraftSeoReport,
   };
 }
 
