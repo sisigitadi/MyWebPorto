@@ -4,6 +4,41 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Added — Sinkronisasi bantuan AI dengan analisis SEO + GEO
+
+Tombol "Bantuan AI" dan panel "Analisis SEO" dulu berjalan dengan dua
+pengaturan yang saling bertentangan. Analyzer menghitung `](/` sebagai
+sinyal internal link, sementara prompt AI melarang model menulis link
+markdown sama sekali — sehingga draf AI **tidak mungkin** lolos analyzer
+apa pun yang ada. Selain itu semua angka ambang hanya hidup di dalam
+analyzer, jadi model tidak pernah tahu batas panjang judul, batas density,
+atau minimal jumlah kata.
+
+Kini keduanya membaca satu sumber kebenaran, `src/lib/seo-rules.ts`:
+
+- `SEO_RULES` (judul 30-65, meta 120-165, slug ≤ 6 kata, isi ≥ 600 kata,
+  H2 minimal 3, density 0,3-3 persen, kalimat ≤ 32 kata) dan `GEO_RULES`
+  (ringkasan pembuka, sub-judul pertanyaan, fakta berangka, daftar,
+  panjang paragraf). Blok prompt `seoGeoPromptBlock()` **diturunkan** dari
+  konstanta itu — mengubah angka di satu tempat otomatis mengubah prompt,
+  tidak ada lagi duplikasi yang bisa berbeda.
+- Kontradiksi internal link dihapus: link internal justru diminta, dengan
+  daftar path yang boleh dipakai (`internalLinksPromptBlock()`) sehingga
+  model tidak mengarang URL.
+- `src/lib/seo-remediate.ts` merapikan draf secara deterministik sebelum
+  dikembalikan (judul, slug, deskripsi, ringkasan pembuka GEO, internal
+  link dari halaman terbit), lalu melaporkan apa yang diperbaiki dan apa
+  yang masih perlu tulisan manusia. Prinsipnya: tidak pernah mengarang
+  fakta, angka, atau URL; hanya memotong kelebihan dan menyusun ulang isi
+  yang sudah ada.
+- GEO di analyzer: lima temuan baru (`geo-no-answer-first`,
+  `geo-no-question-heading`, `geo-no-fact`, `geo-no-list`,
+  `geo-long-paragraph`), metrik baru, serta skor 0-100 (`score` dan
+  `geoScore`) supaya dua draf bisa dibandingkan. Skor ini bukan prediksi
+  peringkat — hanya ringkasan sisa masalah teknis.
+- Panel "Analisis SEO" menampilkan skor + metrik GEO, dan composer
+  menampilkan laporan sinkronisasi draf AI.
+
 ### Fixed — Upload gambar gagal di Vercel (EROFS: read-only file system)
 
 Upload gambar artikel & avatar di produksi memunculkan

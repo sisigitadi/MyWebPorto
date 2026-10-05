@@ -61,7 +61,17 @@ export function SeoAnalyzerPanel({
     <div className="space-y-3 border-2 rounded-md p-3" style={{ borderColor: "var(--border)" }}>
       <div className="flex flex-wrap items-center gap-2">
         <TrendingUp className="h-4 w-4 text-primary" />
-        <p className="text-sm font-semibold">Analisis SEO</p>
+        <p className="text-sm font-semibold">Analisis SEO + GEO</p>
+        <Badge variant="outline" title="Sisa masalah teknis, bukan prediksi peringkat">
+          Skor {analysis.score}/100
+        </Badge>
+        <Badge
+          variant="outline"
+          title="Kesiapan untuk mesin answer (ChatGPT, Gemini, Perplexity)"
+          className={analysis.geoScore >= 80 ? "border-emerald-600 text-emerald-600" : ""}
+        >
+          GEO {analysis.geoScore}/100
+        </Badge>
         {counts.critical > 0 ? (
           <Badge variant="outline" className={SEVERITY_STYLE.critical.className}>
             {counts.critical} kritis
@@ -103,6 +113,22 @@ export function SeoAnalyzerPanel({
           <dt className="text-muted-foreground">Internal link</dt>
           <dd className="font-mono">{metrics.internalLinkCount}</dd>
         </div>
+        <div>
+          <dt className="text-muted-foreground">Kata pembuka (GEO)</dt>
+          <dd className="font-mono">{metrics.answerFirstWords}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Sub-judul tanya</dt>
+          <dd className="font-mono">{metrics.questionHeadings}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Fakta berangka</dt>
+          <dd className="font-mono">{metrics.quotableFacts}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">Item daftar</dt>
+          <dd className="font-mono">{metrics.listItems}</dd>
+        </div>
       </dl>
 
       {/* Temuan */}
@@ -128,8 +154,9 @@ export function SeoAnalyzerPanel({
         </ul>
       ) : (
         <p className="text-xs text-muted-foreground">
-          Semua pemeriksaan lolos: panjang judul/slug/deskripsi pas, ada sub-judul, dan
-          internal link tersedia.
+          Semua pemeriksaan lolos: panjang judul/slug/deskripsi pas, ada sub-judul,
+          internal link tersedia, dan struktur GEO (ringkasan pembuka, sub-judul tanya,
+          fakta berangka) terpenuhi.
         </p>
       )}
 
@@ -209,7 +236,8 @@ export function SeoAnalyzerPanel({
 
       <p className="text-[10px] text-muted-foreground">
         Skor keyword dihitung dari frekuensi frasa di dalam konten ini, bukan dari data
-        volume pencarian. Putuskan sendiri mana yang relevan sebelum menerapkan.
+        volume pencarian. Putuskan sendiri mana yang relevan sebelum menerapkan. Ambang
+        yang dipakai di sini sama persis dengan yang dikirim ke bantuan AI.
       </p>
     </div>
   );

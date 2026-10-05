@@ -13,6 +13,14 @@
  * KEAMANAN: prompt hanya berisi instruksi + ringkasan profil PUBLIK (nama,
  * headline, keahlian). Tidak pernah PII, secret, atau isi DB mentah. AI TIDAK
  * boleh menghasilkan URL gambar — field seperti itu dibuang saat parsing.
+ *
+ * SINKRONISASI DENGAN ANALYZER SEO+GEO: semua angka ambang (panjang judul,
+ * meta, minimal kata, density, minimal H2, internal link) TIDAK ditulis di
+ * sini, tapi diturunkan dari `seo-rules.ts` — modul yang sama dengan yang
+ * dipakai `analyzeSeo`. Dulu prompt ini bahkan melarang link markdown,
+ * sementara analyzer menghitung `](/` sebagai internal link wajib; sekarang
+ * link internal justru diminta, dengan daftar path yang boleh dipakai supaya
+ * model tidak mengarang URL.
  */
 import { z } from "zod";
 import { resolveCloudAIConfig } from "@/lib/cloud-ai-config";
@@ -21,8 +29,16 @@ import { submitToOpenAI } from "@/lib/ai-openai";
 import { submitToAnthropic } from "@/lib/ai-anthropic";
 import { getApiStyle } from "@/lib/ai-providers";
 import { isPlaceholderKey } from "@/lib/env";
+import {
+  INTERNAL_LINKS_MARKER,
+  internalLinksPromptBlock,
+  seoGeoPromptBlock,
+} from "@/lib/seo-rules";
 import type { RedaksiContentType } from "@/lib/redaksi-meta";
-import { isRedaksiContentType } from "@/lib/redaksi-meta";
+import { getRedaksiType, isRedaksiContentType } from "@/lib/redaksi-meta";
+import { remediateDraft, type DraftSeoReport } from "@/lib/seo-remediate";
+
+export type { DraftSeoReport };
 
 // ============================================================
 // SKEMA DRAF — lenient tapi terbatas (aman); validasi penuh saat simpan
@@ -89,8 +105,15 @@ export type RedaksiDraft =
   | { type: "profile"; data: ProfileDraft };
 
 export type DraftResult =
-  | { ok: true; draft: RedaksiDraft }
+  | { ok: true; draft: RedaksiDraft; seoReport: DraftSeoReport }
   | { ok: false; error: string };
+
+/**
+ * Laporan hasil sinkronisasi SEO+GEO yang ikut dikembalikan bersama draf, agar
+ * UI bisa menampilkan apa yang sudah diperbaiki dan apa yang masih perlu
+ * ditangani manusia. Didefinisikan di `seo-remediate.ts` (murni) supaya tipe
+ * ini bisa diimpor komponen client tanpa menarik modul server ke browser.
+ */
 
 // ============================================================
 // PROMPT
@@ -157,12 +180,17 @@ function buildPrompt(type: RedaksiContentType, brief: string, lang: "id" | "en")
     intentLine(type),
     "",
     "FORMAT ISI PANJANG: teks polos bertanda. Gunakan '## ' untuk judul bagian, '### ' untuk sub bagian, '> ' untuk kutipan, dan blok kode diapit tiga backtick (```).",
-    "DILARANG menulis tag HTML, link markdown [teks](url), atau URL gambar apa pun.",
+    "DILARANG menulis tag HTML, URL gambar, atau tautan ke luar situs (http/https).",
+    "TAUTAN internal BOLEH dipakai dan WAJIB ada minimal satu: tulis persis [teks anchor](/path) memakai path dari daftar halaman di bawah. Jangan mengarang path yang tidak ada di daftar.",
     `Bahasa jawaban: ${langLabel}.`,
     "",
     fieldList(type),
     "- slug: kebab-case, huruf kecil, tanpa spasi/tanda baca.",
     "- Output HANYA satu objek JSON yang valid. Tanpa kalimat pembuka, tanpa penjelasan, tanpa pembungkus markdown.",
+    "",
+    seoGeoPromptBlock(lang),
+    "",
+    INTERNAL_LINKS_MARKER,
     "",
     "Brief dari admin:",
     brief.trim().slice(0, 1500),
@@ -272,7 +300,8 @@ export function parseDraft(type: RedaksiContentType, raw: string): DraftResult {
       error: `Draf AI tidak memenuhi format: ${msg}. Perbaiki brief dan coba lagi.`,
     };
   }
-  return { ok: true, draft: { type, data: result.data } as RedaksiDraft };
+  const draft = { type, data: result.data } as RedaksiDraft;
+  return { ok: true, draft, seoReport: { applied: [], remaining: [] } };
 }
 
 function generateLocalFallbackDraft(type: RedaksiContentType, brief: string): RedaksiDraft {
@@ -347,15 +376,21 @@ function generateLocalFallbackDraft(type: RedaksiContentType, brief: string): Re
 // ============================================================
 
 /**
- * Buat draf konten via Cloud AI. verifyAdmin tetap tanggung jawab pemanggil
- * (server action). Fail-closed: provider off / key placeholder / provider tidak
- * terjangkau / hasil tidak valid → { ok:false, error } dalam Bahasa Indonesia.
+ * Buat draf konten via Cloud AI, lalu SINKRONKAN dengan aturan SEO+GEO yang
+ * sama dengan analyzer: draf dirapikan (judul/slug/deskripsi, ringkasan pembuka
+ * GEO, internal link dari daftar halaman terbit), lalu laporan perbaikannya
+ * dikembalikan agar admin tahu apa yang berubah.
+ *
+ * verifyAdmin tetap tanggung jawab pemanggil (server action). Fail-closed:
+ * provider off / key placeholder / provider tidak terjangkau / hasil tidak valid
+ * → { ok:false, error } dalam Bahasa Indonesia.
  */
 export async function draftContentWithAI(
   type: RedaksiContentType,
   brief: string,
   lang: "id" | "en" = "id",
-  publicCtx?: DraftPublicContext
+  publicCtx?: DraftPublicContext,
+  related?: readonly { title: string; href: string }[]
 ): Promise<DraftResult> {
   if (!isRedaksiContentType(type)) {
     return { ok: false, error: "Tipe konten tidak dikenal." };
@@ -380,7 +415,9 @@ export async function draftContentWithAI(
   }
 
   const ctx = contextLine(publicCtx);
-  const prompt = buildPrompt(type, briefTrim, lang).replace(PROFILE_CONTEXT_MARKER, ctx);
+  const prompt = buildPrompt(type, briefTrim, lang)
+    .replace(PROFILE_CONTEXT_MARKER, ctx)
+    .replace(INTERNAL_LINKS_MARKER, internalLinksPromptBlock(related || []));
   // Isi panjang (artikel/proyek/profil) butuh token jauh lebih besar daripada
   // jawaban bot; layanan/testimoni/produk tetap kecil.
   const isLong = type === "article" || type === "project" || type === "profile";
@@ -424,10 +461,79 @@ export async function draftContentWithAI(
 
   if (!text.trim()) {
     console.warn(`[Redaksi AI] Cloud provider (${cfg.provider}) gagal merespons / jaringan error. Menggunakan draf lokal pintar (smart local fallback).`);
-    return { ok: true, draft: generateLocalFallbackDraft(type, briefTrim) };
+    return applySeoSync(type, generateLocalFallbackDraft(type, briefTrim), related);
   }
 
-  return parseDraft(type, text);
+  const parsed = parseDraft(type, text);
+  if (!parsed.ok) return parsed;
+  return { ok: true, draft: parsed.draft, seoReport: parsed.seoReport };
+}
+
+/**
+ * Field mana yang berperan sebagai "meta description" per tipe konten. Editor memakai
+ * `summary` untuk artikel/proyek dan `description` untuk produk/layanan, jadi
+ * remediator harus tahu nama field-nya, bukan menebak.
+ */
+function metaFieldFor(type: RedaksiContentType): "summary" | "description" | null {
+  if (type === "article" || type === "project") return "summary";
+  if (type === "product" || type === "service") return "description";
+  return null;
+}
+
+/**
+ * Titik sinkronisasi tunggal: draf (dari model ATAU fallback lokal) dirapikan
+ * terhadap aturan yang sama dengan analyzer, lalu dianalisis ulang untuk
+ * menghitung sisa masalah. Tidak ada I/O — daftar `related` sudah diteruskan
+ * dari server action.
+ */
+function applySeoSync(
+  type: RedaksiContentType,
+  draft: RedaksiDraft,
+  related?: readonly { title: string; href: string }[]
+): Extract<DraftResult, { ok: true }> {
+  const tdef = getRedaksiType(type);
+  if (!tdef) {
+    return { ok: true, draft, seoReport: { applied: [], remaining: [] } };
+  }
+  const data = draft.data as Record<string, unknown>;
+  const metaKey = metaFieldFor(type);
+  const fixed = remediateDraft({
+    title: typeof data[tdef.titleField] === "string" ? (data[tdef.titleField] as string) : "",
+    slug: typeof data.slug === "string" ? (data.slug as string) : "",
+    meta: metaKey && typeof data[metaKey] === "string" ? (data[metaKey] as string) : "",
+    body: typeof data[tdef.bodyField] === "string" ? (data[tdef.bodyField] as string) : "",
+    bodyField: tdef.bodyField,
+    related: related ? related.map((l) => ({ title: l.title, href: l.href })) : [],
+  });
+
+  const next: Record<string, unknown> = { ...data };
+  if (fixed.title) next[tdef.titleField] = fixed.title;
+  // Hanya tipe yang punya slug di schema yang boleh diperbaiki.
+  if (fixed.slug && typeof next.slug === "string") next.slug = fixed.slug;
+  if (metaKey && fixed.meta) next[metaKey] = fixed.meta;
+  if (fixed.body) next[tdef.bodyField] = fixed.body;
+
+  // Validasi ulang: remediator tidak boleh membuat draf jadi tidak valid.
+  const schemas = {
+    article: ArticleDraftSchema,
+    project: ProjectDraftSchema,
+    service: ServiceDraftSchema,
+    product: ProductDraftSchema,
+    testimonial: TestimonialDraftSchema,
+    profile: ProfileDraftSchema,
+  } as const;
+  const reparsed = schemas[type].safeParse(next);
+  if (!reparsed.success) {
+    // Perbaikan yang membuat draf tidak valid lebih berbahaya daripada draf
+    // aslinya → pakai draf asli.
+    return { ok: true, draft, seoReport: { applied: [], remaining: [] } };
+  }
+
+  return {
+    ok: true,
+    draft: { type, data: reparsed.data } as RedaksiDraft,
+    seoReport: { applied: fixed.applied, remaining: fixed.remaining } as DraftSeoReport,
+  };
 }
 
 
