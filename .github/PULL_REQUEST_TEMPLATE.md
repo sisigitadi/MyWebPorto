@@ -11,3 +11,4 @@
 - [ ] Rute terdampak diuji: `/`, `/proyek`, `/artikel`, `/toko/[slug]`, `/admin`, `/sitemap.xml`
 - [ ] Tanpa secret/credential (cek `.env`, key, token)
 - [ ] `CHANGELOG.md` diupdate (Unreleased)
+- [ ] Bila menyentuh SEO/GEO/Redaksi: angka aturan tetap hanya di `src/lib/seo-rules.ts`, field lewat `seoFieldsFor()`, dan daftar aturan di `SEO_GEO_SYNC.md` ikut diperiksa

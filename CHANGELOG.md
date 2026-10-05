@@ -4,6 +4,31 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Added — Dokumentasi kontrak sinkronisasi bantuan AI dengan analisis SEO
+
+Perubahan hanya dokumen, tidak ada perubahan perilaku.
+
+Sinkronisasi "Bantuan AI" dan "Analisis SEO" sudah diperbaiki di PR #73, tetapi
+kontraknya hanya hidup di komentar kode dan entri CHANGELOG. Siapa pun yang
+menambah aturan baru akan mudah reintroduksi desync yang sama: menulis angka
+di luar `seo-rules.ts`, membuat penghitung sendiri di remediator, atau
+mengirim `values.title` untuk tipe yang judulnya `clientName`.
+
+- `SEO_GEO_SYNC.md` (baru): peta modul dan arah import, tiga lapis yang harus
+  tetap satu (sumber ambang, skop per tipe, pemetaan field), alur
+  `draftContentWithAI` sampai `applySeoSync`, arti setiap field `seoReport`,
+  delapan aturan yang sedang mengikat, langkah menambah tipe konten baru, dan
+  test mana yang menjaga kontrak mana.
+- `README.md`: entri Redaksi di Panel Admin (tombol Bantuan AI + Analisis SEO),
+  berkas `seo-*` dan `redaksi-*` di struktur folder, dan satu aturan di
+  "Catatan Pengembangan" bahwa angka ambang hanya boleh ditulis di
+  `src/lib/seo-rules.ts`.
+- `.github/PULL_REQUEST_TEMPLATE.md`: satu item checklist yang mengarahkan
+  setiap perubahan yang menyentuh SEO/GEO/Redaksi ke dokumen tersebut.
+
+Semua klaim pada tabel skop di dokumen ini diverifikasi terhadap kode
+(`SEO_SCOPES`) dan batas schema di `validations.ts`.
+
 ### Fixed — Bantuan AI dan Analisis SEO kini satu standar, termasuk per tipe konten
 
 Revisi lanjutan sinkronisasi yang diperbaiki di entri sebelumnya. Amendedanya
