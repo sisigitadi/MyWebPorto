@@ -4,6 +4,41 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Fixed — Tombol gambar AI hilang di artikel & draf AI diam-diam jadi templat
+
+Dua masalah yang dilaporkan dari pemakaian nyata di Redaksi.
+
+**1. "Bantuan AI" untuk membuat gambar tidak pernah muncul di artikel.**
+Tombol itu hanya dirender di dalam field yang kuncinya `imageUrl`, sementara
+`COMPOSER_FIELDS.article` tidak punya field tersebut — padahal schema artikel
+memiliki `imageUrl` (opsional, dipakai sebagai `og:image`) dan
+`generateRedaksiImageAction` secara eksplisit mengizinkan tipe `article`.
+Akibatnya artikel tidak pernah punya tombol gambar, padahal produk dan proyek
+memilikinya. Field "Cover Artikel" kini ada di composer.
+
+**2. Draf AI tidak mengikuti aturan SEO/GEO.**
+Penyebabnya bukan analyzer, melainkan diam-diamnya fallback lokal. Saat
+provider gagal merespons, `draftContentWithAI` mengembalikan kerangka lokal
+berisi ~27 kata ("## Pendahuluan / ### Pembahasan / ### Kesimpulan") dengan
+judul sama persis dengan brief, lalu hasil itu dilaporkan sebagai
+"Draf AI berhasil dimuat". Remediasi format tetap jalan (ringkasan pembuka +
+internal link), sehingga kelihatannya "cukup", padahal isinya tetap
+templat: 1 sub-judul, 0 sub-judul tanya, 0 fakta berangka, 0 daftar.
+
+- `DraftSeoReport.usedFallback` menandai kerangka lokal, dan UI menampilkan
+  peringatan eksplisit "Ini kerangka lokal, bukan hasil AI" beserta
+  alasannya. Toast tidak lagi menyebut "berhasil" saat provider gagal.
+- Kerangka artikel lokal ditulis ulang mengikuti aturan GEO yang sama dengan
+  draf AI: ringkasan pembuka sebelum sub-judul pertama, 5 sub-judul dengan
+  4 di antaranya berbentuk pertanyaan, satu daftar langkah, dan permintaan
+  fakta berangka. Angka contoh (250 ms, 40%) sengaja dibiarkan sebagai
+  placeholder untuk diisi admin — kerangka tidak boleh mengarang fakta.
+  Struktur GEO kerangka dikunci test di `tests/redaksi-draft.test.ts`.
+
+Hasil: kerangka artikel lama GEO 73 dengan 1 H2, 0 tanya, 0 fakta, 0
+daftar; kerangka baru GEO 100 pada dimensi struktural dengan 5 H2, 4 tanya,
+2 fakta, 3 item daftar.
+
 ### Added — Sinkronisasi bantuan AI dengan analisis SEO + GEO
 
 Tombol "Bantuan AI" dan panel "Analisis SEO" dulu berjalan dengan dua

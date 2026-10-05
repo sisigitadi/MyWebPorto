@@ -37,6 +37,12 @@ export interface DraftSeoReport {
   applied: string[];
   /** Sisa masalah yang butuh penulisan ulang oleh manusia. */
   remaining: string[];
+  /**
+   * True bila provider AI gagal dan yang dikembalikan adalah kerangka lokal.
+   * Penting: kerangka lokal BUKAN hasil AI. Tanpa penanda ini, UI menampilkan
+   * "Draf AI berhasil" padahal isinya templat — genau sumber kebingungan admin.
+   */
+  usedFallback: boolean;
 }
 
 export interface RemediationInput {

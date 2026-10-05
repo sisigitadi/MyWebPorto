@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   extractJsonObject,
+  generateLocalFallbackDraft,
   parseDraft,
   PROFILE_CONTEXT_MARKER,
   type DraftResult,
 } from "@/lib/redaksi-draft";
+import { analyzeSeo } from "@/lib/seo-keywords";
+import { GEO_RULES, SEO_RULES } from "@/lib/seo-rules";
 
 /**
  * Fungsi murni — tidak menyentuh settings/DB, jadi aman jalan paralel.
@@ -175,5 +178,62 @@ describe("PROFILE_CONTEXT_MARKER", () => {
   it("placeholder unik diganti pemanggil (bukan hardcoded di prompt)", () => {
     expect(typeof PROFILE_CONTEXT_MARKER).toBe("string");
     expect(PROFILE_CONTEXT_MARKER.length).toBeGreaterThan(0);
+  });
+});
+
+// Bug yang dilaporkan admin: tombol "Bantuan AI" mengembalikan draf yang
+// sama persis dengan kerangka lokal ini (judul = brief, 1 H2, tanpa fakta,
+// tanpa daftar, tanpa sub-judul tanya), lalu dilaporkan sebagai "Draf AI".
+// Tes ini mengunci dua sisi: kerangkanya patuh struktur GEO, dan penanda
+// fallback ada supaya UI tidak lagi menganggap model yang gagal sebagai sukses.
+describe("kerangka fallback lokal", () => {
+  const draft = generateLocalFallbackDraft("article", "kali linux");
+  const data = draft.data as { title: string; slug: string; summary: string; content: string };
+  const analysis = analyzeSeo({
+    title: data.title,
+    slug: data.slug,
+    meta: data.summary,
+    content: data.content,
+  });
+
+  it("memakai brief sebagai judul, bukan teks penutup model", () => {
+    expect(data.title).toBe("kali linux");
+    expect(data.slug).toBe("kali-linux");
+  });
+
+  it("sudah memenuhi aturan struktur GEO yang diminta analyzer", () => {
+    // Ringkasan pembuka sebelum sub-judul pertama.
+    expect(analysis.metrics.answerFirstWords).toBeGreaterThanOrEqual(
+      GEO_RULES.answerFirstMinWords
+    );
+    // Minimal 3 H2.
+    expect(analysis.metrics.h2Count).toBeGreaterThanOrEqual(SEO_RULES.content.h2Preferred);
+    // Sub-judul berbentuk pertanyaan.
+    expect(analysis.metrics.questionHeadings).toBeGreaterThanOrEqual(
+      GEO_RULES.questionHeadingsMin
+    );
+    // Ada daftar.
+    expect(analysis.metrics.listItems).toBeGreaterThanOrEqual(GEO_RULES.listsMin);
+  });
+
+  it("meminta fakta berangka secara eksplisit tanpa mengarang angkanya sendiri", () => {
+    // Angka contoh (250 ms / 40%) ada sebagai placeholder yang harus diganti
+    // admin, dan analyzer membacanya sebagai fakta berangka.
+    expect(analysis.metrics.quotableFacts).toBeGreaterThanOrEqual(
+      GEO_RULES.quotableFactsMin
+    );
+    expect(data.content).toMatch(/fakta berangka/i);
+  });
+
+  it("tidak memicu temuan GEO struktural apa pun", () => {
+    const geoIds = analysis.findings
+      .filter((f) => f.id.startsWith("geo-"))
+      .map((f) => f.id);
+    expect(geoIds).toEqual([]);
+  });
+
+  it("tetap dilaporkan jujur sebagai draf tipis — isi wajib ditulis manusia", () => {
+    // Kerangka bukan artikel: analyzer tetap harus menyuruh admin mengembangkan.
+    expect(analysis.findings.map((f) => f.id)).toContain("content-thin");
   });
 });

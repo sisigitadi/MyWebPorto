@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Save, Sparkles, Bot, Trash2, UploadCloud, TrendingUp } from "lucide-react";
+import { Loader2, Save, Sparkles, Bot, Trash2, UploadCloud, TrendingUp, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -107,6 +107,12 @@ const COMPOSER_FIELDS: Record<RedaksiContentType, FieldDef[]> = {
     { key: "summary", label: "Ringkasan", kind: "textarea", maxLength: 500 },
     { key: "content", label: "Isi Artikel", kind: "editor", required: true },
     { key: "tags", label: "Tag", kind: "chips", hint: "Ketik lalu Enter" },
+    // Cover artikel opsional di schema (validations.ts) tapi dipakai sebagai
+    // og:image artikel, jadi fieldnya tetap harus bisa diisi di composer.
+    // Tanpa field ini tombol "Buat gambar dengan AI" tidak pernah muncul
+    // untuk artikel, padahal generateRedaksiImageAction jelas mengizinkan
+    // tipe "article".
+    { key: "imageUrl", label: "Cover Artikel", kind: "text" },
     { key: "published", label: "Langsung tayang (published)", kind: "toggle" },
     { key: "publishAt", label: "Jadwal tayang (kosong = ikut published)", kind: "datetime" },
   ],
@@ -361,11 +367,18 @@ export function RedaksiComposer({
         return merged;
       });
       const fixes = res.seoReport.applied.length;
-      toast.success(
-        fixes > 0
-          ? `Draf AI dimuat dan ${fixes} masalah SEO/GEO diperbaiki otomatis. Tinjau sebelum menyimpan.`
-          : "Draf AI berhasil dimuat. Tinjau & lengkapi sebelum menyimpan."
-      );
+      if (res.seoReport.usedFallback) {
+        // Provider gagal — yang kembali bukan hasil AI. Jangan beri nilai "berhasil".
+        toast.error(
+          "Provider AI gagal merespons, jadi yang dimuat adalah kerangka lokal (bukan hasil AI). Isi kerangkanya, atau periksa kuota/kunci API lalu coba lagi."
+        );
+      } else if (fixes > 0) {
+        toast.success(
+          `Draf AI dimuat dan ${fixes} masalah SEO/GEO diperbaiki otomatis. Tinjau sebelum menyimpan.`
+        );
+      } else {
+        toast.success("Draf AI berhasil dimuat. Tinjau & lengkapi sebelum menyimpan.");
+      }
     });
   };
 
@@ -788,6 +801,20 @@ export function RedaksiComposer({
             className="space-y-1.5 border-2 rounded-md p-3"
             style={{ borderColor: "var(--border)" }}
           >
+            {seoReport.usedFallback ? (
+              <div className="space-y-1 rounded-md border border-amber-500 bg-amber-500/10 p-2">
+                <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  Ini kerangka lokal, bukan hasil AI
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Provider AI tidak merespons (kuota habis, kunci bermasalah, atau
+                  jaringan gagal). Yang dimuat hanyalah kerangka berisi. Struktur
+                  SEO/GEO-nya sudah disiapkan, tapi isi dan faktanya wajib kamu
+                  tulis sendiri — draf ini tidak boleh disimpan tanpa ditinjau.
+                </p>
+              </div>
+            ) : null}
             <p className="flex items-center gap-1.5 text-sm font-semibold">
               <Sparkles className="h-4 w-4 text-primary" />
               Sinkronisasi SEO + GEO draf AI
