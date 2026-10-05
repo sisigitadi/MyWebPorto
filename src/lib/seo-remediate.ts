@@ -17,7 +17,18 @@
  * - Selalu mengembalikan daftar perubahan (`applied`) supaya UI bisa
  *   menunjukkan apa yang berubah — bukan diam-diam mengubah draf.
  */
-import { GEO_RULES, SEO_RULES } from "@/lib/seo-rules";
+import {
+  FULL_SCOPE,
+  GEO_RULES,
+  SEO_RULES,
+  seoScopeFor,
+  type SeoScope,
+} from "@/lib/seo-rules";
+import {
+  analyzeSeo,
+  extractKeywordCandidates,
+  pickPrimaryKeyword,
+} from "@/lib/seo-keywords";
 
 /** Field yang menyimpan isi panjang, mengikuti redaksi-meta.ts. */
 export type BodyField = "content" | "description" | "bio";
@@ -44,6 +55,14 @@ export interface DraftSeoReport {
    */
   usedFallback: boolean;
   /**
+   * Skor analyzer (0-100) untuk draf SETELAH sinkronisasi. Nilai yang sama
+   * persis dengan yang akan muncul saat admin menekan "Analisis SEO", jadi
+   * kedua layar bisa dibandingkan tanpa pernah berbeda angka.
+   */
+  score?: number;
+  /** Skor khusus GEO (0-100) dari draf yang sama. */
+  geoScore?: number;
+  /**
    * Alasan provider gagal, dalam Bahasa Indonesia, sudah termasuk cuplikan
    * pesan asli dari provider. WAJIB ditampilkan: tanpa ini admin hanya melihat
    * "gagal" lalu menebak-nebak (ganti provider, ganti kunci) padahal penyebabnya
@@ -60,6 +79,11 @@ export interface RemediationInput {
   bodyField: BodyField;
   /** Halaman terbit yang boleh ditautkan (dari DB, bukan dari model). */
   related?: RelatedLink[];
+  /**
+   * Tipe konten. Menentukan aturan mana yang berlaku (lihat seo-rules.ts).
+   * Tanpa tipe, remediator memakai skop artikel.
+   */
+  type?: string | null;
 }
 
 export interface RemediationResult {
@@ -101,26 +125,6 @@ function wordCount(text: string): number {
 }
 
 /**
- * Density frasa dalam persen, disamakan rumus dengan analyzer: jumlah frasa
- * dikali jumlah kata per frasa, dibagi total kata. Tokenisasi di sini sengaja
- * kasar (satu kata = satu token) karena remediator hanya butuh perkiraan untuk
- * memutuskan "apakah aman menyuntik frasa lagi".
- */
-function densityOf(text: string, phrase: string): number {
-  const words = wordCount(text);
-  if (words === 0 || !phrase) return 0;
-  const needle = ` ${phrase.toLowerCase().replace(/\s+/g, " ")} `;
-  const haystack = ` ${text.toLowerCase().replace(/\s+/g, " ")} `;
-  let count = 0;
-  let index = haystack.indexOf(needle);
-  while (index !== -1) {
-    count += 1;
-    index = haystack.indexOf(needle, index + needle.length);
-  }
-  return Number(((count * phrase.split(" ").length * 100) / words).toFixed(2));
-}
-
-/**
  * Kata penutup yang sering ditambahkan model. HANYA sah dibuang setelah
  * pemisah (—, -, |, :), TIDAK di awal atau tengah kata — judul "Draft Artikel
  * Optimasi Gambar" adalah judul sah, bukan kalimat penutup, dan membersihnya
@@ -159,82 +163,64 @@ function fixSlug(raw: string, title: string): { value: string; changed: boolean 
 }
 
 /**
- * Kata yang DESKRIPTIF dan bukan label editorial. "Draft Artikel" menghasilkan
- * keyword "draft artikel" yang tidak pernah dicari siapa pun, jadi kata-kata ini
- * dibuang saat menebak keyword utama dari judul.
+ * Kata kunci utama, diambil dengan algoritma yang SAMA seperti analyzer
+ * (`pickPrimaryKeyword`). Dulu remediator menebaknya sendiri dari judul dengan
+ * daftar kata Noise sendiri; hasilnya frasa yang berbeda dari yang dihitung
+ * analyzer, jadi "saya sudah menaruh kata kuncinya" bisa tetap ditolak dengan
+ * temuan `meta-keyword`. Sekarang tidak ada lagi tebakan.
  */
-const TITLE_NOISE = new Set([
-  "draft", "artikel", "panduan", "tutorial", "belajar", "mempelajari",
-  "penjelasan", "pengertian", "lengkap", "praktis", "pemula", "dasar",
-  "muda", "baru", "terbaru", "terbaik",
-]);
-
-/**
- * Tebakan keyword utama dari judul, dipakai untuk menyuntik frasa ke deskripsi.
- * Sengaja KONSERVATIF: kalau tidak ada dua kata yang tersisa, dikembalikan null
- * — remediator lebih baik tidak menyuntik apa pun daripada menyuntik frasa yang
- * tidak ada maksudnya.
- */
-function guessKeyword(title: string, slug: string): string | null {
-  const fromSlug = (slug || "")
-    .toLowerCase()
-    .split("-")
-    .filter((w) => w.length > 3 && !TITLE_NOISE.has(w));
-  const fromTitle = (title || "")
-    .toLowerCase()
-    .split(/[^a-z0-9.]+/)
-    .filter((w) => w.length > 3 && !TITLE_NOISE.has(w));
-  const words = (fromTitle.length >= 2 ? fromTitle : fromSlug).slice(0, 2);
-  return words.length >= 2 ? words.join(" ") : null;
+function primaryKeywordFor(title: string, body: string): string | null {
+  return pickPrimaryKeyword(extractKeywordCandidates(`${title} ${title} ${body}`), title);
 }
 
-/**
- * Deskripsi: jaga panjang 120-165 karakter tanpa mengarang klaim baru. Bila
- * terlalu pendek, tambahkan kalimat umum yang menyebut kata kunci — kalimat
- * ini jujur (hanya menyatakan bahwa halaman membahas topik itu), bukan fakta
- * baru.
- */
-function fixMeta(
-  raw: string,
-  keyword: string | null,
-  canInjectKeyword: boolean
-): { value: string; changed: boolean } {
+/** Ringkas tanpa merusak isi: buang tanda kutip wrapper dan potong ke atas. */
+function fitMetaLength(raw: string): string {
   let meta = tidy(raw || "").replace(/^["'`]+|["'`]+$/g, "");
   if (meta.length > SEO_RULES.meta.max) {
     meta = truncateAtWord(meta, SEO_RULES.meta.max - 3) + "...";
   }
+  return meta;
+}
 
-  // Suntik frasa kunci hanya bila tidak akan membuat density melonjak. Pada draf
-  // sangat pendek, satu tambahan frasa saja sudah bisa menembus batas 3% dan
-  // memunculkan temuan keyword stuffing — masalah yang lebih buruk daripada
-  // deskripsi yang kurang ideal.
-  const hasKeyword = Boolean(keyword && meta.toLowerCase().includes(keyword.toLowerCase()));
-  if (keyword && canInjectKeyword && !hasKeyword) {
-    meta = `${meta.trimEnd()} Pelajari ${keyword} secara lengkap di halaman ini.`;
+/**
+ * Kalimat umum untuk menaikkan deskripsi pendek ke batas bawah SERP.
+ * Semuanya hanya menyatakan isi halaman, bukan klaim baru yang bisa salah,
+ * dan dipilih bertahap supaya tidak menempelkan kalimat yang isinya sama.
+ */
+const META_FILLERS = [
+  "Ulasan ini mencakup konteks, contoh penerapan, dan langkah yang bisa langsung diikuti.",
+  "Isinya disusun bertahap dari situasi nyata, termasuk kesalahan umum yang sering terlewat.",
+  "Semua bagian diuraikan singkat agar mudah dipindai baik oleh pembaca maupun mesin pencari.",
+];
+
+/**
+ * Deskripsi: penyuntingan panjang dipisah dari penyuntikan kata kunci.
+ *
+ * `fitMetaLength` dipanggil SEBELUM kata kunci disuntik, dan `ensureAnswerFirst`
+ * memakai meta hasil `fitMetaLength` itu. Karena analyzer menghitung density
+ * dari isi saja, menyuntik frasa kunci ke deskripsi tidak menaikkan density
+ * isi; urutan sebaliknya membuat lead GEO ikut membawa frasa itu ke draf
+ * pendek dan memicu `content-stuffing`.
+ */
+function fitMeta(base: string, keyword: string | null): { value: string; changed: boolean } {
+  let meta = base;
+  if (keyword && !meta.toLowerCase().includes(keyword.toLowerCase())) {
+    const withKeyword = `${meta.trimEnd()} Pelajari ${keyword} secara lengkap di halaman ini.`;
+    // Tidak muat = biarkan. Memotong deskripsi justru menghilangkan frasa yang
+    // baru saja disuntik, jadi injecting sia-sia dan berisiko.
+    if (withKeyword.length <= SEO_RULES.meta.max) meta = withKeyword;
   }
-
-  // Masih di bawah batas bawah SERP? Tambahkan kalimat penutup generik yang
-  // hanya menyatakan isi halaman — bukan klaim baru yang bisa salah. Kalimat
-  // memakai kata yang sudah ada di meta supaya tidak terasa hasil tempel, dan
-  // dipilih bertahap agar hasil akhirnya benar-benar melewati batas bawah.
-  const fillers = [
-    "Ulasan ini mencakup konteks, contoh penerapan, dan langkah yang bisa langsung diikuti.",
-    "Isinya disusun bertahap dari situasi nyata, termasuk kesalahan umum yang sering terlewat.",
-    "Semua bagian diuraikan singkat agar mudah dipindai baik oleh pembaca maupun mesin pencari.",
-  ];
-  for (const filler of fillers) {
+  for (const filler of META_FILLERS) {
     if (meta.length >= SEO_RULES.meta.min) break;
-    // Jangan menempelkan kalimat yang isinya sudah ada (mis. dua kali
-    // "ulasan lengkap").
     const firstWord = filler.split(" ")[0].toLowerCase();
     if (meta.toLowerCase().includes(firstWord)) continue;
     meta = `${meta.trimEnd()} ${filler}`;
   }
-
   if (meta.length > SEO_RULES.meta.max) {
     meta = `${truncateAtWord(meta, SEO_RULES.meta.max - 3)}...`;
   }
-  return { value: meta.trim(), changed: meta.trim() !== (raw || "").trim() };
+  const value = meta.trim();
+  return { value, changed: value !== (base || "") };
 }
 
 /**
@@ -318,67 +304,84 @@ function ensureAnswerFirst(
 }
 
 /**
- * Perbaiki draf agar sesuai aturan. `remaining` diisi id temuan yang hanya bisa
- * diselesaikan dengan menulis ulang isi (mis. "konten masih tipis").
+ * Perbaiki draf agar sesuai aturan, lalu DIANALISIS ULANG dengan analyzer
+ * yang sama.
+ *
+ * `remaining` bukan lagi daftar karangan: itu temuan `analyzeSeo` apa adanya,
+ * diurutkan dari kritis ke peluang. Sebelumnya modul ini punya mesin aturan
+ * kedua (penghitung kata, density, dan H2 sendiri dengan tokenizer berbeda),
+ * sehingga laporan yang tampil di composer bisa menyebut "aman" sementara panel
+ * Analisis SEO menunjukkan temuan yang tidak sama persis. Sekarang satu
+ * analisis jadi satu-satunya sumber kebenaran untuk keduanya.
+ *
+ * Urutan perbaikannya penting dan bukan arbitrer:
+ *   judul -> slug -> panjang deskripsi -> ringkasan pembuka -> internal link
+ *   -> suntik kata kunci ke deskripsi -> analisis.
+ * Kata kunci disuntik TERAKHIR supaya lead GEO yang disalin dari deskripsi
+ * tidak ikut membawa frasa itu ke isi draf yang pendek.
  */
+/** Urutan tampilan temuan: kritis dulu, baru perhatian, lalu peluang. */
+const SEVERITY_ORDER: Record<"critical" | "warning" | "opportunity", number> = {
+  critical: 0,
+  warning: 1,
+  opportunity: 2,
+};
 export function remediateDraft(input: RemediationInput): RemediationResult {
   const applied: string[] = [];
-  const remaining: string[] = [];
+  const scope: SeoScope = input.type ? seoScopeFor(input.type) : FULL_SCOPE;
+  const related = input.related || [];
 
-  const rawTitle = input.title || "";
-  const rawSlug = input.slug || "";
-  const rawMeta = input.meta || "";
-  const rawBody = input.body || "";
-
-  // Keyword utama ditebak dari judul/slug tanpa boleh memanggil analyzer
-  // (menghindari siklus import). Kalau tidak yakin, dikembalikan null dan tidak
-  // ada frasa yang disuntik — lebih baik tidak menambah daripada menambah yang
-  // salah.
-  const preTitle = fixTitle(rawTitle);
-  const preSlug = fixSlug(rawSlug || preTitle.value, preTitle.value);
-  const keyword = guessKeyword(preTitle.value, preSlug.value);
-
-  const title = preTitle;
-  if (title.changed) applied.push("Judul dibersihkan dari teks penutup model dan dipotong ke batas panjang");
-
-  const slug = preSlug;
-  if (slug.changed) applied.push("Slug dinormalkan ke kebab-case dan dipotong agar ringkas");
-
-  // Frasa kunci hanya aman disuntik bila isinya cukup panjang: butuh minimal 150
-  // kata agar satu frasa tambahan tetap di bawah batas density maksimum.
-  const meta = fixMeta(rawMeta, keyword, wordCount(rawBody) >= 150);
-  if (meta.changed) applied.push("Deskripsi disesuaikan ke panjang ideal dan dipastikan memuat kata kunci");
-
-  let body = tidy(rawBody);
-
-  const answerFirst = ensureAnswerFirst(body, meta.value, title.value);
-  if (answerFirst.changed) {
-    body = answerFirst.value;
-    if (answerFirst.note) applied.push(answerFirst.note);
+  const title = fixTitle(input.title || "");
+  if (title.changed) {
+    applied.push("Judul dibersihkan dari teks penutup model dan dipotong ke batas panjang");
   }
 
-  const link = ensureInternalLink(body, input.related || [], `${title.value} ${meta.value}`);
-  if (link.changed) {
-    body = link.value;
-    if (link.note) applied.push(link.note);
+  const slug = fixSlug(input.slug || title.value, title.value);
+  if (slug.changed) {
+    applied.push("Slug dinormalkan ke kebab-case dan dipotong agar ringkas");
   }
 
-  // Sisa masalah yang butuh penulis manusia / model, bukan perombakan format.
-  const words = wordCount(body);
-  if (words < SEO_RULES.content.minWords) {
-    remaining.push(`Isi masih ${words} kata (target ${SEO_RULES.content.minWords}) — perlu dikembangkan manual.`);
+  const metaBase = fitMetaLength(input.meta || "");
+  let body = tidy(input.body || "");
+
+  if (scope.geo !== "none") {
+    const answerFirst = ensureAnswerFirst(body, metaBase, title.value);
+    if (answerFirst.changed) {
+      body = answerFirst.value;
+      if (answerFirst.note) applied.push(answerFirst.note);
+    }
   }
-  if ((body.match(/^##\s+/gm) || []).length < SEO_RULES.content.h2Preferred) {
-    remaining.push("Sub-judul H2 masih di bawah 3 — tambahkan per bagian penting.");
+
+  if (scope.internalLinkMin > 0) {
+    const link = ensureInternalLink(body, related, `${title.value} ${metaBase}`);
+    if (link.changed) {
+      body = link.value;
+      if (link.note) applied.push(link.note);
+    }
   }
-  if (/\]\(\//.test(body) === false) {
-    remaining.push("Internal link belum ada dan tidak ada halaman terbit yang cocok untuk ditautkan.");
+
+  // Kata kunci memakai algoritma analyzer, jadi "sudah disuntik" dan "ditemukan
+  // analyzer" tidak mungkin berbeda.
+  const keyword = primaryKeywordFor(title.value, body);
+  const meta = fitMeta(metaBase, keyword);
+  if (meta.changed) {
+    applied.push("Deskripsi disesuaikan ke panjang ideal dan dipastikan memuat kata kunci");
   }
-  if (keyword && densityOf(body, keyword) > SEO_RULES.density.max) {
-    remaining.push(
-      `Density "${keyword}" ${densityOf(body, keyword)}% di atas batas ${SEO_RULES.density.max}% — turunkan pengulangan frasa ini secara manual.`
-    );
-  }
+
+  const analysis = analyzeSeo(
+    {
+      type: input.type || null,
+      title: title.value,
+      slug: slug.value,
+      meta: scope.meta ? meta.value : null,
+      content: body,
+      related,
+    },
+  );
+  const remaining = [...analysis.findings]
+    .sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity])
+    .map((f) => `${f.label}: ${f.message}`);
 
   return { title: title.value, slug: slug.value, meta: meta.value, body, applied, remaining };
 }
+

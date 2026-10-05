@@ -2568,7 +2568,12 @@ export async function analyzeContentSeoAction(input: {
   try {
     const related = await listPublishedRelatedLinks();
 
+    // `type` diteruskan ke analyzer supaya aturan yang berlaku mengikuti tipe
+    // konten. Tanpa ini, testimoni dan profil (yang memang tidak punya slug dan
+    // meta description) tetap dinilai seolah-olah field itu kosong, dan admin
+    // melihat tiga temuan kritis yang tidak bisa diperbaiki apa pun.
     const analysis = analyzeSeo({
+      type: input.type,
       title: input.title,
       slug: input.slug,
       meta: input.meta,

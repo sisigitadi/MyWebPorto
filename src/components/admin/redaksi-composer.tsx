@@ -30,6 +30,8 @@ import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import {
   REDAKSI_TYPES,
   getRedaksiType,
+  metaFieldFor,
+  seoFieldsFor,
   type RedaksiContentType,
 } from "@/lib/redaksi-meta";
 import type { StagedDraft } from "@/lib/redaksi-automation";
@@ -481,13 +483,17 @@ export function RedaksiComposer({
     setSeoBusy(true);
     void (async () => {
       try {
-        const bodyField = tdef?.bodyField || "content";
+        // Field diambil lewat seoFieldsFor, helper yang sama dengan sinkronisasi
+        // draf AI. Sebelumnya panel selalu mengirim `values.title` dan
+        // `values.slug` apa adanya, sehingga testimoni dan profil selalu
+        // dilaporkan sebagai "judul kosong", "slug kosong", dan "meta kosong".
+        const fields = seoFieldsFor(type, values);
         const res = await analyzeContentSeoAction({
           type,
-          title: String(values.title ?? ""),
-          slug: String(values.slug ?? ""),
-          meta: String(values.summary ?? values.description ?? ""),
-          content: String(values[bodyField] ?? ""),
+          title: fields.title,
+          slug: fields.slug,
+          meta: fields.meta,
+          content: fields.body,
         });
         if (!res.ok) {
           setError(res.error);
@@ -824,6 +830,22 @@ export function RedaksiComposer({
               <Sparkles className="h-4 w-4 text-primary" />
               Sinkronisasi SEO + GEO draf AI
             </p>
+            {/* Skor dihitung analyzer yang sama dengan tombol "Analisis SEO",
+                jadi kedua angka ini boleh dibandingkan langsung. */}
+            {typeof seoReport.score === "number" ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline" title="Sisa masalah teknis, bukan prediksi peringkat">
+                  Skor {seoReport.score}/100
+                </Badge>
+                <Badge
+                  variant="outline"
+                  title="Kesiapan untuk mesin answer (ChatGPT, Gemini, Perplexity)"
+                  className={seoReport.geoScore && seoReport.geoScore >= 80 ? "border-emerald-600 text-emerald-600" : ""}
+                >
+                  GEO {seoReport.geoScore}/100
+                </Badge>
+              </div>
+            ) : null}
             {seoReport.applied.length > 0 ? (
               <ul className="list-disc space-y-0.5 pl-5 text-[11px] text-emerald-700 dark:text-emerald-400">
                 {seoReport.applied.map((fix) => (
@@ -846,7 +868,8 @@ export function RedaksiComposer({
               </>
             ) : null}
             <p className="text-[10px] text-muted-foreground">
-              Jalankan “Analisis SEO” untuk melihat skor lengkap dan rincian temuan.
+              Sisa masalah di atas adalah temuan Analisis SEO untuk draf ini, jadi
+              angkanya sama dengan yang akan muncul saat kamu menekan tombol itu.
             </p>
           </div>
         ) : null}
@@ -854,9 +877,11 @@ export function RedaksiComposer({
         {seoAnalysis ? (
           <SeoAnalyzerPanel
             analysis={seoAnalysis}
-            metaField={type === "article" ? "summary" : "description"}
+            metaField={metaFieldFor(type)}
             onApplyTitle={(value) => {
-              setField("title", value);
+              // Judul untuk testimoni adalah nama klien, untuk profil adalah
+              // nama pemilik; menyalinnya ke `title` tidak mengubah apa pun.
+              setField(tdef?.titleField ?? "title", value);
               toast.success("Judul diganti dengan saran.");
             }}
             onApplySlug={(value) => {
@@ -864,7 +889,9 @@ export function RedaksiComposer({
               toast.success("Slug diganti dengan saran.");
             }}
             onApplyMeta={(value) => {
-              setField(type === "article" ? "summary" : "description", value);
+              const key = metaFieldFor(type);
+              if (!key) return;
+              setField(key, value);
               toast.success("Deskripsi diganti dengan saran.");
             }}
           />

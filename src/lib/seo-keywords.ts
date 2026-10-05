@@ -42,6 +42,8 @@ import {
   countQuestionHeadings,
   longestParagraphWords,
   scoreFromFindings,
+  seoScopeFor,
+  type SeoScope,
 } from "@/lib/seo-rules";
 
 export type SeoSeverity = "critical" | "warning" | "opportunity";
@@ -95,6 +97,8 @@ export interface RelatedContentSuggestion {
 }
 
 export interface SeoAnalysis {
+  /** Aturan yang berlaku untuk tipe konten yang dianalisis. */
+  scope: SeoScope;
   primaryKeyword: string | null;
   keywords: KeywordCandidate[];
   findings: SeoFinding[];
@@ -240,6 +244,12 @@ export function averageSentenceWords(content: string): number {
 }
 
 export interface AnalyzeInput {
+  /**
+   * Tipe konten Redaksi. Menentukan aturan mana yang berlaku: slug, meta,
+   * panjang isi, sub-judul, internal link, dan tingkat GEO. Tanpa tipe,
+   * analyzer memakai skop artikel (perilaku lama).
+   */
+  type?: string | null;
   title?: string | null;
   slug?: string | null;
   /** Meta description: `summary` (artikel) atau `description` (proyek/produk). */
@@ -316,6 +326,7 @@ export function suggestInternalLinks(
 
 /** Analisis lengkap. Murni, tidak pernah throw. */
 export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
+  const scope = seoScopeFor(input.type);
   const title = (input.title || "").trim();
   const slug = (input.slug || "").trim();
   const meta = (input.meta || "").trim();
@@ -389,78 +400,82 @@ export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
     }
   }
 
-  if (!slug) {
-    add({
-      id: "slug-empty",
-      severity: "critical",
-      field: "slug",
-      label: "Slug kosong",
-      message: "Tanpa slug, URL memakai nama acak sehingga sulit dibaca mesin maupun manusia.",
-    });
-  } else {
-    if (/\s|_|[A-Z]/.test(slug)) {
+  if (scope.slug) {
+    if (!slug) {
       add({
-        id: "slug-format",
+        id: "slug-empty",
         severity: "critical",
         field: "slug",
-        label: "Format slug tidak valid",
-        message: "Slug hanya boleh huruf kecil, angka, dan tanda hubung: tanpa spasi, underscore, atau huruf besar.",
+        label: "Slug kosong",
+        message: "Tanpa slug, URL memakai nama acak sehingga sulit dibaca mesin maupun manusia.",
       });
-    }
-    if (slugWords > SEO_RULES.slug.maxWords) {
-      add({
-        id: "slug-long",
-        severity: "warning",
-        field: "slug",
-        label: "Slug terlalu panjang",
-        message: `${slugWords} kata; ideal maksimal ${SEO_RULES.slug.maxWords} agar URL tetap ringkas.`,
-      });
-    }
-    if (primaryKeyword && !slug.toLowerCase().includes(primaryKeyword.replace(/\s+/g, "-"))) {
-      add({
-        id: "slug-keyword",
-        severity: "opportunity",
-        field: "slug",
-        label: "Slug tidak memuat kata kunci",
-        message: `Ganti dengan slug yang memuat "${primaryKeyword}" agar URL ikut membawa kata kunci itu.`,
-      });
+    } else {
+      if (/\s|_|[A-Z]/.test(slug)) {
+        add({
+          id: "slug-format",
+          severity: "critical",
+          field: "slug",
+          label: "Format slug tidak valid",
+          message: "Slug hanya boleh huruf kecil, angka, dan tanda hubung: tanpa spasi, underscore, atau huruf besar.",
+        });
+      }
+      if (slugWords > SEO_RULES.slug.maxWords) {
+        add({
+          id: "slug-long",
+          severity: "warning",
+          field: "slug",
+          label: "Slug terlalu panjang",
+          message: `${slugWords} kata; ideal maksimal ${SEO_RULES.slug.maxWords} agar URL tetap ringkas.`,
+        });
+      }
+      if (primaryKeyword && !slug.toLowerCase().includes(primaryKeyword.replace(/\s+/g, "-"))) {
+        add({
+          id: "slug-keyword",
+          severity: "opportunity",
+          field: "slug",
+          label: "Slug tidak memuat kata kunci",
+          message: `Ganti dengan slug yang memuat "${primaryKeyword}" agar URL ikut membawa kata kunci itu.`,
+        });
+      }
     }
   }
 
-  if (!meta) {
-    add({
-      id: "meta-empty",
-      severity: "critical",
-      field: "meta",
-      label: "Meta description kosong",
-      message: "Tanpa deskripsi, Google memotong kalimat acak dari body dan click-through rate turun.",
-    });
-  } else {
-    if (meta.length < SEO_RULES.meta.min) {
+  if (scope.meta) {
+    if (!meta) {
       add({
-        id: "meta-short",
-        severity: "warning",
+        id: "meta-empty",
+        severity: "critical",
         field: "meta",
-        label: "Deskripsi terlalu pendek",
-        message: `Panjang ${meta.length} karakter, ideal ${SEO_RULES.meta.min}-${SEO_RULES.meta.max} untuk mengisi slot SERP.`,
+        label: "Meta description kosong",
+        message: "Tanpa deskripsi, Google memotong kalimat acak dari body dan click-through rate turun.",
       });
-    } else if (meta.length > SEO_RULES.meta.max) {
-      add({
-        id: "meta-long",
-        severity: "warning",
-        field: "meta",
-        label: "Deskripsi terlalu panjang",
-        message: `Panjang ${meta.length} karakter; bagian setelah sekitar ${SEO_RULES.meta.max} karakter terpotong di SERP.`,
-      });
-    }
-    if (primaryKeyword && !meta.toLowerCase().includes(primaryKeyword)) {
-      add({
-        id: "meta-keyword",
-        severity: "opportunity",
-        field: "meta",
-        label: "Kata kunci utama tidak ada di deskripsi",
-        message: `Sisipkan "${primaryKeyword}"; deskripsi yang memuat frasa yang dicari cenderung diklik lebih sering.`,
-      });
+    } else {
+      if (meta.length < SEO_RULES.meta.min) {
+        add({
+          id: "meta-short",
+          severity: "warning",
+          field: "meta",
+          label: "Deskripsi terlalu pendek",
+          message: `Panjang ${meta.length} karakter, ideal ${SEO_RULES.meta.min}-${SEO_RULES.meta.max} untuk mengisi slot SERP.`,
+        });
+      } else if (meta.length > SEO_RULES.meta.max) {
+        add({
+          id: "meta-long",
+          severity: "warning",
+          field: "meta",
+          label: "Deskripsi terlalu panjang",
+          message: `Panjang ${meta.length} karakter; bagian setelah sekitar ${SEO_RULES.meta.max} karakter terpotong di SERP.`,
+        });
+      }
+      if (primaryKeyword && !meta.toLowerCase().includes(primaryKeyword)) {
+        add({
+          id: "meta-keyword",
+          severity: "opportunity",
+          field: "meta",
+          label: "Kata kunci utama tidak ada di deskripsi",
+          message: `Sisipkan "${primaryKeyword}"; deskripsi yang memuat frasa yang dicari cenderung diklik lebih sering.`,
+        });
+      }
     }
   }
 
@@ -473,33 +488,36 @@ export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
       message: "Belum ada isi artikel.",
     });
   } else {
-    if (wordCount < SEO_RULES.content.minWords) {
+    if (wordCount < scope.minWords) {
       add({
         id: "content-thin",
         severity: "warning",
         field: "content",
         label: "Konten masih tipis",
-        message: `${wordCount} kata; halaman yang bersaing di halaman satu biasanya ${SEO_RULES.content.minWords} kata atau lebih. Perluas dengan contoh, langkah praktis, dan jawaban atas pertanyaan pembaca.`,
+        message: `${wordCount} kata; untuk tipe konten ini minimal ${scope.minWords} kata. Perluas dengan contoh, langkah praktis, dan jawaban atas pertanyaan pembaca.`,
       });
     }
-    if (h2Count === 0) {
-      add({
-        id: "content-no-h2",
-        severity: "critical",
-        field: "content",
-        label: "Tidak ada sub-judul (H2)",
-        message: "Tambahkan H2 (##) agar mesin bisa memotong halaman menjadi bagian yang bisa dilompat di hasil pencarian.",
-      });
-    } else if (h2Count < SEO_RULES.content.h2Preferred) {
-      add({
-        id: "content-few-h2",
-        severity: "opportunity",
-        field: "content",
-        label: "Sub-judul masih sedikit",
-        message: `Hanya ${h2Count} sub-judul H2. Sub-judul H2/H3 memecah topik panjang dan membuka peluang featured snippet.`,
-      });
+    if (scope.h2Min > 0) {
+      if (h2Count < scope.h2Min) {
+        add({
+          id: "content-no-h2",
+          severity: "critical",
+          field: "content",
+          label: "Tidak ada sub-judul (H2)",
+          message:
+            "Tambahkan H2 (##) agar mesin bisa memotong halaman menjadi bagian yang bisa dilompat di hasil pencarian.",
+        });
+      } else if (h2Count < scope.h2Preferred) {
+        add({
+          id: "content-few-h2",
+          severity: "opportunity",
+          field: "content",
+          label: "Sub-judul masih sedikit",
+          message: `Hanya ${h2Count} sub-judul H2. Sub-judul H2/H3 memecah topik panjang dan membuka peluang featured snippet.`,
+        });
+      }
     }
-    if (internalLinkCount < SEO_RULES.content.internalLinkMin) {
+    if (internalLinkCount < scope.internalLinkMin) {
       add({
         id: "content-no-internal-link",
         severity: "warning",
@@ -508,7 +526,7 @@ export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
         message: "Tautkan artikel atau proyek terkait; ini cara tercepat memindahkan otoritas antarhalaman.",
       });
     }
-    if (keywordDensity > SEO_RULES.density.max) {
+    if (scope.density && keywordDensity > SEO_RULES.density.max) {
       add({
         id: "content-stuffing",
         severity: "warning",
@@ -516,7 +534,7 @@ export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
         label: "Kata kunci terlalu sering",
         message: `Density ${keywordDensity}% untuk "${primaryKeyword}". Di atas sekitar ${SEO_RULES.density.max}% dibaca sebagai keyword stuffing.`,
       });
-    } else if (primaryKeyword && keywordDensity === 0) {
+    } else if (scope.density && primaryKeyword && keywordDensity === 0) {
       add({
         id: "content-no-keyword",
         severity: "warning",
@@ -539,7 +557,7 @@ export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
     // ---- GEO: apa yang dibutuhkan mesin answer (ChatGPT, Gemini, Perplexity) ----
     // Aturan yang sama persis dengan yang dikirim ke model lewat seoGeoPromptBlock(),
     // jadi draf "Bantuan AI" dan draf manual dinilai dengan standar yang sama.
-    if (answerFirst < GEO_RULES.answerFirstMinWords) {
+    if (scope.geo !== "none" && answerFirst < GEO_RULES.answerFirstMinWords) {
       add({
         id: "geo-no-answer-first",
         severity: "warning",
@@ -548,7 +566,7 @@ export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
         message: `Blok pembuka hanya ${answerFirst} kata. Mesin answer mengutip bagian yang langsung menjawab; tulis ringkasan mandiri minimal ${GEO_RULES.answerFirstMinWords} kata sebelum sub-judul pertama.`,
       });
     }
-    if (questionHeadings < GEO_RULES.questionHeadingsMin) {
+    if (scope.geo === "full" && questionHeadings < GEO_RULES.questionHeadingsMin) {
       add({
         id: "geo-no-question-heading",
         severity: "opportunity",
@@ -557,7 +575,7 @@ export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
         message: `Hanya ${questionHeadings} sub-judul berbentuk pertanyaan. Ubah sebagian jadi pertanyaan sungguhan ("## Apa itu ...?") agar mudah jadi potongan jawaban.`,
       });
     }
-    if (quotableFacts < GEO_RULES.quotableFactsMin) {
+    if (scope.geo === "full" && quotableFacts < GEO_RULES.quotableFactsMin) {
       add({
         id: "geo-no-fact",
         severity: "opportunity",
@@ -566,7 +584,7 @@ export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
         message: "Sisipkan minimal satu angka dengan satuan (mis. 40%, 250 ms, 2 detik). Fakta berangka adalah yang paling sering dikutip mesin answer.",
       });
     }
-    if (listItems < GEO_RULES.listsMin) {
+    if (scope.geo === "full" && listItems < GEO_RULES.listsMin) {
       add({
         id: "geo-no-list",
         severity: "opportunity",
@@ -575,7 +593,7 @@ export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
         message: "Tambahkan minimal satu daftar bullet atau bernomor; daftar bisa disalin utuh oleh AI overview.",
       });
     }
-    if (longestParagraph > GEO_RULES.maxParagraphWords) {
+    if (scope.geo !== "none" && longestParagraph > GEO_RULES.maxParagraphWords) {
       add({
         id: "geo-long-paragraph",
         severity: "opportunity",
@@ -587,6 +605,7 @@ export function analyzeSeo(input: AnalyzeInput): SeoAnalysis {
   }
 
   return {
+    scope,
     primaryKeyword,
     keywords: candidates,
     findings,

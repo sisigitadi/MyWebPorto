@@ -31,8 +31,13 @@ const SEVERITY_ORDER: SeoSeverity[] = ["critical", "warning", "opportunity"];
 
 interface Props {
   analysis: SeoAnalysis;
-  /** Nama field meta di composer: `summary` (artikel) atau `description`. */
-  metaField: "summary" | "description";
+  /**
+   * Nama field meta di composer, atau null bila tipe konten ini memang tidak
+   * punya meta description (produk, layanan, testimoni, profil). Panel
+   * menyembunyikan bagian yang tidak berlaku supaya tidak menawarkan tombol
+   * "Terapkan" untuk field yang tidak ada.
+   */
+  metaField: "summary" | null;
   onApplyTitle: (value: string) => void;
   onApplySlug: (value: string) => void;
   onApplyMeta: (value: string) => void;
@@ -183,8 +188,10 @@ export function SeoAnalyzerPanel({
 
         <div className="flex flex-wrap items-center gap-2 text-[11px]">
           <span className="text-muted-foreground">Slug:</span>
-          <code className="font-mono">{suggestions.slug || "—"}</code>
-          {suggestions.slug ? (
+          <code className="font-mono">
+            {analysis.scope.slug ? suggestions.slug || "—" : "—"}
+          </code>
+          {analysis.scope.slug && suggestions.slug ? (
             <Button
               type="button"
               size="sm"
@@ -199,8 +206,10 @@ export function SeoAnalyzerPanel({
 
         <div className="flex flex-wrap items-start gap-2 text-[11px]">
           <span className="text-muted-foreground">Meta description:</span>
-          <p className="flex-1 min-w-48 font-mono">{suggestions.meta || "—"}</p>
-          {suggestions.meta ? (
+          <p className="flex-1 min-w-48 font-mono">
+            {metaField ? suggestions.meta || "—" : "—"}
+          </p>
+          {metaField && suggestions.meta ? (
             <Button
               type="button"
               size="sm"
@@ -237,7 +246,9 @@ export function SeoAnalyzerPanel({
       <p className="text-[10px] text-muted-foreground">
         Skor keyword dihitung dari frekuensi frasa di dalam konten ini, bukan dari data
         volume pencarian. Putuskan sendiri mana yang relevan sebelum menerapkan. Ambang
-        yang dipakai di sini sama persis dengan yang dikirim ke bantuan AI.
+        yang dipakai di sini sama persis dengan yang dikirim ke bantuan AI, dan sudah
+        disesuaikan dengan tipe konten: panjang isi, sub-judul, internal link, dan GEO
+        hanya dinilai bila memang relevan untuk tipe ini.
       </p>
     </div>
   );

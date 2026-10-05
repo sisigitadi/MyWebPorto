@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  applySeoSync,
+  buildPrompt,
   extractJsonObject,
   generateLocalFallbackDraft,
   parseDraft,
@@ -7,7 +9,12 @@ import {
   type DraftResult,
 } from "@/lib/redaksi-draft";
 import { analyzeSeo } from "@/lib/seo-keywords";
-import { GEO_RULES, SEO_RULES } from "@/lib/seo-rules";
+import {
+  GEO_RULES,
+  INTERNAL_LINKS_MARKER,
+  SEO_RULES,
+  seoScopeFor,
+} from "@/lib/seo-rules";
 import { sanitizeProviderError } from "@/lib/ai-provider";
 import { describeProviderFailure } from "@/lib/redaksi-draft";
 
@@ -297,5 +304,120 @@ describe("kerangka fallback lokal", () => {
   it("tetap dilaporkan jujur sebagai draf tipis — isi wajib ditulis manusia", () => {
     // Kerangka bukan artikel: analyzer tetap harus menyuruh admin mengembangkan.
     expect(analysis.findings.map((f) => f.id)).toContain("content-thin");
+  });
+});
+
+describe("applySeoSync — draf hasil AI benar-benar melewati sinkronisasi", () => {
+  const related = [{ title: "Optimasi Gambar di Next.js", href: "/artikel/optimasi-gambar" }];
+
+  it("artikel: judul, slug, dan deskripsi dirapikan sebelum dikembalikan", () => {
+    const result = applySeoSync(
+      "article",
+      {
+        type: "article",
+        data: {
+          title:
+            "Draft Artikel Optimasi Gambar Next.js Dengan Cache Immutable dan Lazy Loading Untuk Semua Pemula",
+          slug: "Optimasi Gambar Next.js 16 dengan Cache Immutable",
+          summary: "Pendek.",
+          content: "## Bagian satu\n\nParagraf pembuka yang cukup panjang untuk diuji.\n\n## Bagian dua\n\nParagraf kedua.",
+          tags: ["nextjs"],
+        },
+      },
+      related
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const data = result.draft.data as Record<string, string>;
+    expect(data.title.length).toBeLessThanOrEqual(SEO_RULES.title.max);
+    expect(data.slug).toMatch(/^[a-z0-9.-]+$/);
+    expect(data.summary.length).toBeGreaterThanOrEqual(SEO_RULES.meta.min);
+    expect(result.seoReport.usedFallback).toBe(false);
+    expect(result.seoReport.applied.length).toBeGreaterThan(0);
+  });
+
+  it("skor pada laporan sama persis dengan analisis atas draf yang dikembalikan", () => {
+    const result = applySeoSync(
+      "article",
+      {
+        type: "article",
+        data: {
+          title: "Optimasi Gambar Next.js Dengan Cache Immutable",
+          slug: "Optimasi Gambar Next.js",
+          summary: "Pendek.",
+          content: "## Bagian satu\n\nParagraf pembuka yang cukup panjang untuk diuji.\n\n## Bagian dua\n\nParagraf kedua.",
+          tags: [],
+        },
+      },
+      related
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const data = result.draft.data as Record<string, string>;
+    const manual = analyzeSeo({
+      type: "article",
+      title: data.title,
+      slug: data.slug,
+      meta: data.summary,
+      content: data.content,
+    });
+    expect(result.seoReport.score).toBe(manual.score);
+    expect(result.seoReport.geoScore).toBe(manual.geoScore);
+  });
+
+  it("produk: description tidak dipotong jadi meta description", () => {
+    const long = "Dashboard admin dengan 40 komponen siap pakai. ".repeat(10);
+    const result = applySeoSync(
+      "product",
+      { type: "product", data: { title: "Dashboard Admin Next.js", description: long } },
+      related
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const data = result.draft.data as Record<string, string>;
+    expect(data.description.length).toBeGreaterThan(SEO_RULES.meta.max);
+    expect(data.description).toContain("Dashboard admin dengan 40 komponen");
+  });
+
+  it("testimoni: isi dibiarkan apa adanya dan tidak dilaporkan gagal karena field yang tidak ada", () => {
+    const content = "Tim kami selesai dalam 3 minggu dan hasilnya cepat dipakai tim kami.";
+    const result = applySeoSync(
+      "testimonial",
+      { type: "testimonial", data: { clientName: "Rina Kusuma", content } },
+      related
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const data = result.draft.data as Record<string, string>;
+    expect(data.content).toBe(content);
+    expect(data.slug).toBeUndefined();
+    const manual = analyzeSeo({ type: "testimonial", title: data.clientName, content: data.content });
+    expect(result.seoReport.score).toBe(manual.score);
+    expect(result.seoReport.remaining.join(" | ")).not.toMatch(/slug|meta description/i);
+  });
+});
+
+describe("buildPrompt — prompt mengikuti aturan yang berlaku untuk tipenya", () => {
+  it("artikel: meminta seluruh aturan lengkap", () => {
+    const prompt = buildPrompt("article", "Optimasi gambar di Next.js", "id");
+    expect(prompt).toContain(`${SEO_RULES.content.minWords} kata`);
+    expect(prompt).toContain("Internal link");
+    expect(prompt).toContain(INTERNAL_LINKS_MARKER);
+    expect(prompt).toContain("- slug:");
+  });
+
+  it("testimoni: tidak meminta internal link, slug, atau 600 kata", () => {
+    const prompt = buildPrompt("testimonial", "Ulasan klien tentang proyek", "id");
+    expect(prompt).not.toContain(INTERNAL_LINKS_MARKER);
+    expect(prompt).not.toContain("TAUTAN internal");
+    expect(prompt).not.toContain("- slug:");
+    expect(prompt).not.toContain(`${SEO_RULES.content.minWords} kata`);
+    expect(prompt).toContain(`${seoScopeFor("testimonial").minWords} kata`);
+  });
+
+  it("brief dan penanda konteks tetap ikut tersusun", () => {
+    const prompt = buildPrompt("article", "Topik yang sangat spesifik", "id");
+    expect(prompt).toContain("Topik yang sangat spesifik");
+    expect(prompt).toContain(PROFILE_CONTEXT_MARKER);
   });
 });
