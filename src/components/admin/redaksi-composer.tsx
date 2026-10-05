@@ -370,7 +370,7 @@ export function RedaksiComposer({
       if (res.seoReport.usedFallback) {
         // Provider gagal — yang kembali bukan hasil AI. Jangan beri nilai "berhasil".
         toast.error(
-          "Provider AI gagal merespons, jadi yang dimuat adalah kerangka lokal (bukan hasil AI). Isi kerangkanya, atau periksa kuota/kunci API lalu coba lagi."
+          `Provider AI gagal: ${res.seoReport.providerError ?? "tidak merespons"}. Yang dimuat adalah kerangka lokal, bukan hasil AI.`
         );
       } else if (fixes > 0) {
         toast.success(
@@ -808,11 +808,16 @@ export function RedaksiComposer({
                   Ini kerangka lokal, bukan hasil AI
                 </p>
                 <p className="text-[11px] text-muted-foreground">
-                  Provider AI tidak merespons (kuota habis, kunci bermasalah, atau
-                  jaringan gagal). Yang dimuat hanyalah kerangka berisi. Struktur
-                  SEO/GEO-nya sudah disiapkan, tapi isi dan faktanya wajib kamu
-                  tulis sendiri — draf ini tidak boleh disimpan tanpa ditinjau.
+                  Provider AI tidak merespons, jadi yang dimuat hanyalah kerangka
+                  berisi — bukan tulisan AI. Struktur SEO/GEO-nya sudah disiapkan,
+                  tapi isi dan faktanya wajib kamu tulis sendiri.
                 </p>
+                {seoReport.providerError ? (
+                  <p className="rounded border border-destructive/40 bg-destructive/5 p-2 font-mono text-[11px] break-words">
+                    <span className="font-sans font-semibold">Alasan:</span>{" "}
+                    {seoReport.providerError}
+                  </p>
+                ) : null}
               </div>
             ) : null}
             <p className="flex items-center gap-1.5 text-sm font-semibold">

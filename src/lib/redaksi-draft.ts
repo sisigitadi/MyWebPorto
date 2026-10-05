@@ -24,7 +24,7 @@
  */
 import { z } from "zod";
 import { resolveCloudAIConfig } from "@/lib/cloud-ai-config";
-import { submitToGemini } from "@/lib/ai-provider";
+import { submitToGemini, sanitizeProviderError, type CloudAIResult } from "@/lib/ai-provider";
 import { submitToOpenAI } from "@/lib/ai-openai";
 import { submitToAnthropic } from "@/lib/ai-anthropic";
 import { getApiStyle } from "@/lib/ai-providers";
@@ -172,6 +172,52 @@ function contextLine(ctx?: DraftPublicContext): string {
 }
 
 export const PROFILE_CONTEXT_MARKER = "PROFILE_CONTEXT_MARKER";
+
+/**
+ * Terjemahkan kegagalan provider menjadi kalimat yang bisa ditindaklanjuti.
+ *
+ * Setiap kode dipetakan ke tindakan yang SPESIFIK, karena pesan generik
+ * ("provider gagal") membuat admin mengganti provider dan kunci berulang
+ * padahal masalahnya bisa di luar sana — mis. langganan relay yang belum
+ * aktif (HTTP 403), yang sama sekali tidak selesai dengan ganti kunci.
+ *
+ * `detail` (cuplikan pesan asli provider) disertakan karena sering jadi satu-
+ *-satunya petunjuk spesifik, mis. "insufficient_user_quota".
+ */
+export function describeProviderFailure(
+  provider: string,
+  reason?: string,
+  detail?: string
+): string {
+  const suffix = detail ? ` — provider menjawab: ${detail}` : "";
+  switch (reason) {
+    case "unconfigured":
+      return "Provider atau API key belum dikonfigurasi. Isi di God Mode → Pengaturan Cloud AI.";
+    case "status_400":
+      return `Permintaan ditolak (HTTP 400). Biasanya nama model tidak dikenali oleh provider — periksa kembali field Model di Pengaturan Cloud AI.${suffix}`;
+    case "status_401":
+      return `API key ditolak (HTTP 401). Kunci salah, kedaluwarsa, atau tidak punya akses ke model tersebut.${suffix}`;
+    case "status_402":
+      return `Pembayaran diperlukan (HTTP 402). Saldo atau kredit provider habis.${suffix}`;
+    case "status_403":
+      return `Akses ditolak (HTTP 403). Tiga kemungkinan penyebab: langganan/quota akun provider belum aktif, kunci tidak punya izin model ini, atau IP diblokir.${suffix}`;
+    case "status_404":
+      return `Model atau endpoint tidak ditemukan (HTTP 404). Nama model tidak tersedia di provider ini — cek daftar model provider.${suffix}`;
+    case "status_429":
+      return `Kuota habis atau permintaan dibatasi (HTTP 429). Tunggu, atau ganti provider.${suffix}`;
+    case "status_500":
+    case "status_502":
+    case "status_503":
+    case "status_504":
+      return `Layanan provider sedang bermasalah (HTTP ${reason.replace("status_", "")}). Coba lagi beberapa saat lagi.${suffix}`;
+    case "empty_cloud":
+      return "Provider membalas 200 tetapi isi jawabannya kosong. Coba lagi atau ganti model.";
+    case "network":
+      return "Tidak ada respons dari provider (timeout atau jaringan). Periksa koneksi, lalu coba lagi.";
+    default:
+      return `Provider (${provider}) gagal merespons${reason ? ` (${reason})` : ""}.${suffix}`;
+  }
+}
 
 function buildPrompt(type: RedaksiContentType, brief: string, lang: "id" | "en"): string {
   const langLabel = lang === "en" ? "Inggris" : "Bahasa Indonesia";
@@ -480,33 +526,43 @@ export async function draftContentWithAI(
   ];
 
   let text = "";
+  let providerError: string | undefined;
   try {
     const style = getApiStyle(cfg.provider);
-    if (style === "anthropic") {
-      const res = await submitToAnthropic(redaksiMessages, {
-        config: cfg,
-        maxTokens: maxOutputTokens,
-        maxChars,
-      });
-      text = res.success ? res.text : "";
-    } else if (style === "openai-chat") {
-      const res = await submitToOpenAI(redaksiMessages, {
-        config: cfg,
-        maxTokens: maxOutputTokens,
-        maxChars,
-      });
-      text = res.success ? res.text : "";
-    } else {
-      const res = await submitToGemini(prompt, { config: cfg, maxOutputTokens, maxChars });
-      text = res.success ? res.text : "";
-    }
-  } catch {
+    const run = async (): Promise<CloudAIResult> => {
+      if (style === "anthropic") {
+        return submitToAnthropic(redaksiMessages, {
+          config: cfg,
+          maxTokens: maxOutputTokens,
+          maxChars,
+        });
+      }
+      if (style === "openai-chat") {
+        return submitToOpenAI(redaksiMessages, {
+          config: cfg,
+          maxTokens: maxOutputTokens,
+          maxChars,
+        });
+      }
+      return submitToGemini(prompt, { config: cfg, maxOutputTokens, maxChars });
+    };
+    const res = await run();
+    text = res.success ? res.text : "";
+    if (!res.success) providerError = describeProviderFailure(cfg.provider, res.reason, res.detail);
+  } catch (err) {
+    // Throwable tak terduga (mis. fetch gagal sebelum sempat mengembalikan
+    // result) tetap harus dijelaskan, bukan hilang jadi teks kosong.
+    providerError = `Panggilan provider melempar error: ${sanitizeProviderError(
+      err instanceof Error ? err.message : String(err),
+      cfg.apiKey
+    )}`;
     text = "";
   }
 
   if (!text.trim()) {
     console.warn(`[Redaksi AI] Cloud provider (${cfg.provider}) gagal merespons / jaringan error. Menggunakan draf lokal pintar (smart local fallback).`);
-    return applySeoSync(type, generateLocalFallbackDraft(type, briefTrim), related, true);
+    const synced = applySeoSync(type, generateLocalFallbackDraft(type, briefTrim), related, true);
+    return { ...synced, seoReport: { ...synced.seoReport, providerError } };
   }
 
   const parsed = parseDraft(type, text);

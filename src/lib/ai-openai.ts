@@ -14,6 +14,7 @@
  */
 
 import { isPlaceholderKey } from "@/lib/env";
+import { sanitizeProviderError } from "@/lib/ai-provider";
 import type { ResolvedCloudAIConfig } from "@/lib/cloud-ai-config";
 
 export interface ChatMessage {
@@ -28,6 +29,10 @@ export interface OpenAIStreamOptions {
 export interface OpenAIResult {
   success: boolean;
   text: string;
+  /** Alasan gagal generik: "status_403", "empty_cloud", "network". */
+  reason?: string;
+  /** Cuplikan pesan error provider, sudah diredaksi & dipangkas. */
+  detail?: string;
 }
 
 /** Base URL endpoint (tanpa trailing slash). */
@@ -164,17 +169,27 @@ export async function submitToOpenAI(
       signal: AbortSignal.timeout(30_000),
     });
 
-    if (!response.ok) return { success: false, text: "" };
+    if (!response.ok) {
+      // Status + pesan provider WAJIB diteruskan. Tanpa ini, HTTP 403
+      // (tagihan belum aktif) tidak dapat dibedakan dari HTTP 401
+      // (kunci salah) oleh admin: keduanya hanya terlihat sebagai
+      // "gagal", sehingga berganti kunci tidak pernah menolong ketika
+      // masalahnya sebenarnya ada di sisi tagihan akun.
+      const detail = sanitizeProviderError(await response.text().catch(() => ""), apiKey);
+      return { success: false, text: "", reason: `status_${response.status}`, detail };
+    }
 
     // Beberapa gateway/relay OpenAI-compatible mengabaikan `stream:false` dan
     // SELALU membalas SSE (`data: {...}` per baris). extractChatContent menang
     // ani kedua bentuk (JSON utuh maupun SSE) agar jalur non-streaming
     // (terminal/Redaksi) tidak keliru menganggap cloud gagal.
     const text = extractChatContent(await response.text());
-    if (!text.trim()) return { success: false, text: "" };
+    if (!text.trim()) {
+      return { success: false, text: "", reason: "empty_cloud" };
+    }
     return { success: true, text: text.trim().slice(0, maxChars) };
   } catch {
-    return { success: false, text: "" };
+    return { success: false, text: "", reason: "network" };
   }
 }
 
