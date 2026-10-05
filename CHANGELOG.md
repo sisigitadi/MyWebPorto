@@ -38,6 +38,43 @@ Vercel. `.env.local` hanya untuk dev lokal dan tidak dibaca Vercel.
 > external store + custom change event, dan pindahkan fetch list admin ke
 > Server Component (plan doc §5).
 
+### Added — `npm run check:prod`: smoke test URL produksi + workflow terjadwal
+
+Gate yang ada (`check:media`) memeriksa **data di database**. Yang baru ini
+memeriksa **URL nyatanya di server produksi**. Keduanya bisa hijau bersamaan
+ketika route-nya belum ter-deploy — persis yang terjadi pada 2026-10-05
+saat `profiles.avatar_url` sudah menunjuk baris `media` tapi route
+`GET /api/media/[id]` belum ikut naik, sehingga avatar dan dua cover artikel
+membalas 404 selama berjam-jam sementara `tsc`, `eslint`, `vitest`, dan
+`next build` tetap hijau penuh.
+
+- `scripts/prod-health.mjs` (15 pemeriksaan): endpoint inti beserta
+  `content-type`, setiap referensi `/api/media/<id>` di HTML homepage harus
+  membalas `200 image/*`, nihil referensi `/uploads/`, slug tak dikenal
+  harus 404, `og:image` artikel harus absolut dan bisa diambil, dan host
+  alias harus 308 ke apex. Host bisa dioverride lewat
+  `PROD_HEALTH_BASE_URL`.
+- `.github/workflows/prod-health.yml` menjalankannya tiap 6 jam (dan manual
+  dari tab Actions). SHA action dipin sama seperti `ci.yml`. Bila gagal,
+  workflow membuka issue berisi log.
+- Dibuktikan bisa gagal: dijalankan melawan server yang meniru produksi
+  rusak (HTML merujuk `/api/media/<id>` tapi route-nya 404) — keluar
+  non-nol dan menunjuk `/api/media/… → 404` secara spesifik.
+
+### Fixed — Dua cover artikel mati (ID foto Unsplash dihapus di sisi Unsplash)
+
+`studi-kasus-sistem-kasir-umkm-offline-first` dan
+`windows-security-hardening-untuk-workstation-dan-server` menunjuk foto
+Unsplash yang sekarang membalas **404 dari Unsplash sendiri** — 9 URL Unsplash
+lainnya masih sehat. Diganti dengan foto bertema dan sudah diverifikasi
+200 (tablet POS + kasir; desktop Windows dengan panel Security terbuka).
+Halaman `/artikel` memakai ISR `revalidate = 60`, jadi perubahan tampil tanpa
+deploy; kedua URL juga dikirim ke IndexNow (Bing) dan terverifikasi merender
+dengan 0 gambar rusak.
+
+> Catatan: `npm run test:e2e` lokal tidak dijalankan di sini karena Next 16
+> menolak dua dev server di satu direktori; CI menjalankannya seperti biasa.
+
 ### Security — `next` 16.3.5 → 16.3.8 (RCE di `next/og`, GHSA-vcvr-r3jv-pc5j)
 
 `npm audit --audit-level=high` (checklist pra-deploy) gagal dengan satu temuan

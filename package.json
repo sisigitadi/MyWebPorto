@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "check:media": "vitest run tests/media-url-audit.test.ts",
+    "check:prod": "node scripts/prod-health.mjs",
     "test:e2e": "playwright test",
     "test:e2e:prod": "node scripts/prod-e2e.mjs",
     "db:generate": "drizzle-kit generate",
