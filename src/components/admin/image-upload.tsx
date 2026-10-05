@@ -13,7 +13,7 @@ interface ImageUploadProps {
   className?: string;
 }
 
-export function ImageUpload({ value, onChange, label = "Unggah Gambar (Lokal)", className = "" }: ImageUploadProps) {
+export function ImageUpload({ value, onChange, label = "Unggah Gambar", className = "" }: ImageUploadProps) {
   const [isUploading, startTransition] = useTransition();
   const [uploadError, setUploadError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -65,7 +65,7 @@ export function ImageUpload({ value, onChange, label = "Unggah Gambar (Lokal)", 
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif,image/avif,image/bmp"
+          accept="image/png,image/jpeg,image/webp,image/gif,image/avif,image/bmp"
           onChange={handleFileChange}
           className="hidden"
           id={`local-upload-${label.replace(/\s+/g, "-").toLowerCase()}`}

@@ -20,6 +20,18 @@ test("katalog proyek dan artikel dapat dibuka", async ({ page }) => {
   }
 });
 
+test("slug tak dikenal benar-benar 404, bukan soft-404 berstatus 200", async ({ request }) => {
+  // Regresi: `loading.tsx` pernah ada di akar route group `(public)`, jadi
+  // Suspense boundary membungkus halaman detail. Shell skeleton ter-flush
+  // dengan status 200 SEBELUM `notFound()` sempat dilempar → `/toko/<slug>`
+  // tak dikenal membalas 200 + body not-found. Skeleton kini hanya di segment
+  // `(home)`; test ini mengunci status 404 yang sebenarnya.
+  for (const path of ["/toko/slug-tidak-ada", "/artikel/slug-tidak-ada", "/proyek/slug-tidak-ada"]) {
+    const res = await request.get(path);
+    expect(res.status(), path).toBe(404);
+  }
+});
+
 test("sitemap dan robots tersedia", async ({ request }) => {
   const sitemap = await request.get("/sitemap.xml");
   expect(sitemap.status()).toBe(200);

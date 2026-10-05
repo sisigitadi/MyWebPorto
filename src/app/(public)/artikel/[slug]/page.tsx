@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getArticles, getProfile } from "@/lib/actions";
 import { resolveFeatures } from "@/lib/features-config";
 import { safeJsonLd } from "@/lib/json-ld";
-import { localeAlternates } from "@/lib/seo";
+import { absoluteImageUrl, localeAlternates } from "@/lib/seo";
 import { ArticleDetailContent } from "@/components/public/article-detail-content";
 
 interface ArticleDetailPageProps {
@@ -40,6 +40,10 @@ export async function generateMetadata({ params }: ArticleDetailPageProps) {
   const title = `${article.title} - Artikel & Wawasan Teknologi`;
   const description = article.summary || article.content.slice(0, 160);
   const url = `${baseUrl}/artikel/${slug}`;
+  // Gambar share: cover artikel; bila kosong → kartu /opengraph-image (avatar).
+  // WAJIB diisi — objek openGraph di sini meng-*replace* seluruh openGraph
+  // layout, jadi tanpa `images` halaman ini kehilangan og:image total.
+  const image = absoluteImageUrl(article.imageUrl, baseUrl);
   return {
     title,
     description,
@@ -49,6 +53,7 @@ export async function generateMetadata({ params }: ArticleDetailPageProps) {
       description,
       url,
       type: "article",
+      images: [{ url: image, alt: article.title }],
       publishedTime: new Date(article.createdAt).toISOString(),
       modifiedTime: new Date(article.updatedAt || article.createdAt).toISOString(),
       authors: ["Sigit Adi Irianto"],
@@ -58,6 +63,7 @@ export async function generateMetadata({ params }: ArticleDetailPageProps) {
       card: "summary_large_image",
       title,
       description,
+      images: [image],
     },
   };
 }

@@ -1,5 +1,6 @@
 import {
   boolean,
+  customType,
   index,
   integer,
   jsonb,
@@ -7,6 +8,17 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
+
+/**
+ * Tipe bytea untuk Drizzle — drizzle-orm 0.45 tidak menyediakannya
+ * bawaan, jadi didefinisikan via customType. Driver neon HTTP mengirim
+ * biner terenkode base64 di wire dan mengembalikan Buffer saat dibaca.
+ */
+const bytea = customType<{ data: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+});
 
 /** Profil tunggal pemilik website */
 export const profiles = pgTable(
@@ -294,6 +306,41 @@ export const settingsHistory = pgTable(
 export type SettingsHistory = typeof settingsHistory.$inferSelect;
 export type NewSettingsHistory = typeof settingsHistory.$inferInsert;
 
+
+/**
+ * Media library — gambar upload admin disimpan LANGSUNG sebagai bytea di
+ * Postgres. Satu-satunya penyimpanan: tidak ada CDN/S3 terpisah, tidak ada
+ * public/uploads di serverless (read-only). Dilayani via GET /api/media/[id].
+ *
+ * Mengapa bytea dan bukan base64 di jsonb: jsonb meng-encode biner sebagai
+ * base64 (+33% ukuran) dan tidak bisa di-decode native di wire protocol.
+ * bytea utuh sampai 2MB terbukti roundtrip mulus lewat neon HTTP driver
+ * (probe 2026-10-05).
+ */
+export const media = pgTable(
+  "media",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    // Nama asli untuk display di media library (basename saja, anti traversal).
+    name: text("name").notNull(),
+    // MIME hasil validasi magic bytes — dipakai sebagai Content-Type saat disajikan.
+    mime: text("mime").notNull(),
+    // Ukuran dalam byte untuk display dan penegakan MAX_IMAGE_SIZE.
+    size: integer("size").notNull(),
+    // Isi gambar. Baris besar sengaja dipisah ke kolom terpisah agar SELECT
+    // metadata (list) tidak ikut memuat biner.
+    data: bytea("data").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("media_created_at_idx").on(table.createdAt)]
+);
+
+export type Media = typeof media.$inferSelect;
+export type NewMedia = typeof media.$inferInsert;
 
 export type Setting = typeof settings.$inferSelect;
 export type NewSetting = typeof settings.$inferInsert;

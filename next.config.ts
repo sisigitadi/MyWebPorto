@@ -173,6 +173,20 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // Pengecualian: GET /api/media/:id adalah aset statis (bytea immutable —
+      // id baru untuk setiap upload, jadi konten id tertentu tidak pernah
+      // berubah). Wajib di-cache, jika tidak setiap render gambar memukul
+      // Postgres dan mentransfer bytea penuh. Aturan ini diletakkan SETELAH
+      // rule /api/:path* di atas agar menimpanya untuk path media saja.
+      {
+        source: "/api/media/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
     ];
   },
 };

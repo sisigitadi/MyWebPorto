@@ -50,6 +50,14 @@ export default defineConfig({
           name: "default",
           include: ["tests/**/*.test.ts"],
           exclude: SHARED_FS_TESTS,
+          // Default vitest 5000ms terlalu rapat untuk file yang mengimpor
+          // modul halaman penuh (mis. tests/og-detail-metadata.test.ts yang
+          // memuat page.tsx artikel + proyek + produk beserta subtree-nya).
+          // Satu kali jalan ~1,5s saat sendirian tapi naik ke ~5,5s ketika semua
+          // worker berbagi CPU, sehingga sesekali gagal karena timeout,
+          // bukan karena assertion. Naikkan batas; isi assertion tidak
+          // dilonggarkan sama sekali.
+          testTimeout: 20_000,
         },
       },
     ],

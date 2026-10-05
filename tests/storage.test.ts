@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildStorageKey, matchesImageSignature } from "@/lib/storage";
+import { matchesImageSignature, sanitizeMediaName } from "@/lib/storage";
 
 const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
 const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00]);
@@ -15,22 +15,22 @@ describe("matchesImageSignature", () => {
   });
 });
 
-describe("buildStorageKey", () => {
-  it("membuat key unik ber-prefix dengan ekstensi benar", () => {
-    const a = buildStorageKey("Foto Profil Saya.PNG", "png");
-    const b = buildStorageKey("Foto Profil Saya.PNG", "png");
-    expect(a.startsWith("mywebporto/")).toBe(true);
-    expect(a.endsWith(".png")).toBe(true);
-    expect(a).not.toBe(b);
-    expect(a).not.toContain(" ");
+describe("sanitizeMediaName", () => {
+  it("mengambil basename saja — menetralkan traversal path", () => {
+    expect(sanitizeMediaName("Foto Profil Saya.PNG")).toBe("Foto Profil Saya.PNG");
+    expect(sanitizeMediaName("../../etc/passwd")).toBe("passwd");
+    expect(sanitizeMediaName("C:\\Users\\admin\\foto.png")).toBe("foto.png");
+    expect(sanitizeMediaName("/var/www/uploads/x.webp")).toBe("x.webp");
   });
 
-  it("menetralkan traversal path", () => {
-    const key = buildStorageKey("../../etc/passwd", "png");
-    const filename = key.replace(/^mywebporto\//, "");
-    expect(key.startsWith("mywebporto/")).toBe(true);
-    expect(filename).not.toContain("..");
-    expect(filename).not.toContain("/");
-    expect(filename).not.toContain("\\");
+  it("memotong nama yang ekstrem panjang", () => {
+    const long = `${"a".repeat(500)}.png`;
+    expect(sanitizeMediaName(long).length).toBe(180);
+  });
+
+  it("fallback ke nama generik bila input kosong/aneh", () => {
+    expect(sanitizeMediaName("")).toBe("image");
+    expect(sanitizeMediaName("///")).toBe("image");
+    expect(sanitizeMediaName("\\\\")).toBe("image");
   });
 });

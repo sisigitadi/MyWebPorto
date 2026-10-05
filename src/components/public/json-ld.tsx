@@ -1,11 +1,21 @@
 import { ProfileData } from "@/lib/dummy-data";
 import { safeJsonLd } from "@/lib/json-ld";
+import { SITE_BRAND } from "@/lib/seo-config";
 
 export function JsonLdSchema({ profile }: { profile: ProfileData }) {
   const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
 
   const personId = `${baseUrl}/#sigitadi`;
   const websiteId = `${baseUrl}/#website`;
+
+  // Schema.org image harus URL absolut agar validator Google & crawler sosial
+  // bisa mengambilnya. avatarUrl bisa berupa path relatif (/api/media/<id>
+  // atau legacy /uploads/...) — lengkapi dengan baseUrl, kecuali sudah http(s).
+  const avatarAbsolute = profile.avatarUrl
+    ? /^https?:\/\//i.test(profile.avatarUrl)
+      ? profile.avatarUrl
+      : `${baseUrl}${profile.avatarUrl.startsWith("/") ? "" : "/"}${profile.avatarUrl}`
+    : `${baseUrl}/opengraph-image`;
 
   // 1. Person Schema (E-E-A-T Authority Entity)
   const personSchema = {
@@ -15,7 +25,7 @@ export function JsonLdSchema({ profile }: { profile: ProfileData }) {
     name: profile.name,
     jobTitle: profile.headline || "Senior Web Developer & Full Stack Engineer",
     description: profile.bio,
-    image: profile.avatarUrl || `${baseUrl}/opengraph-image`,
+    image: avatarAbsolute,
     url: baseUrl,
     email: profile.email ? `mailto:${profile.email}` : undefined,
     telephone: profile.phone ? `tel:${profile.phone}` : undefined,
@@ -68,7 +78,7 @@ export function JsonLdSchema({ profile }: { profile: ProfileData }) {
     isPartOf: {
       "@type": "WebSite",
       "@id": websiteId,
-      name: "Sigit Web Porto",
+      name: SITE_BRAND,
       url: baseUrl,
     },
     mainEntity: {
@@ -86,7 +96,7 @@ export function JsonLdSchema({ profile }: { profile: ProfileData }) {
     "@type": "WebSite",
     "@id": websiteId,
     url: baseUrl,
-    name: "Sigit Web Porto",
+    name: SITE_BRAND,
     description: "Portofolio interaktif SigitOS dengan sistem modern, karya aplikasi web unggulan, dan integrasi kecerdasan buatan.",
     publisher: {
       "@id": personId,

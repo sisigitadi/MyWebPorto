@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Save, Sparkles, Bot, Trash2, UploadCloud } from "lucide-react";
+import { Loader2, Save, Sparkles, Bot, Trash2, UploadCloud, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,9 +11,13 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ContentEditor } from "@/components/admin/content-editor";
+import { SeoAnalyzerPanel } from "@/components/admin/seo-analyzer-panel";
+import type { SeoAnalysis } from "@/lib/seo-keywords";
 import {
+  analyzeContentSeoAction,
   draftContentWithAIAction,
   deleteStagedDraftAction,
+  generateRedaksiImageAction,
   saveProject,
   saveService,
   saveProduct,
@@ -290,6 +294,15 @@ export function RedaksiComposer({
   );
   const [error, setError] = useState("");
   const [stagedList, setStagedList] = useState<StagedDraft[]>(staged);
+  // Status generate gambar AI: URL hasil terakhir (untuk pratinjau) + status
+  // sibuk. URL disimpan terpisah karena field imageUrl bisa dioleh admin
+  // sendiri (mis. ganti ke gambar lain) tanpagusul "Buat ulang".
+  const [aiImageUrl, setAiImageUrl] = useState("");
+  const [aiImageBusy, setAiImageBusy] = useState(false);
+  // Analisis SEO: null = belum dijalankan. Sengaja TIDAK auto-refresh tiap
+  // ketikan — hasil analisis harus merujuk pada draf yang benar-benar dianalisis.
+  const [seoAnalysis, setSeoAnalysis] = useState<SeoAnalysis | null>(null);
+  const [seoBusy, setSeoBusy] = useState(false);
 
   const tdef = getRedaksiType(type);
   const fields = COMPOSER_FIELDS[type];
@@ -404,6 +417,64 @@ export function RedaksiComposer({
     });
   };
 
+  /**
+   * Buat (atau buat ulang) cover lewat AI. Server action mengembalikan URL
+   * `/api/media/<id>`; di sini langsung mengisi field gambar + pratinjau.
+   * Prompt disusun server dari judul/deskripsi/isi, jadi admin tidak perlu
+   * menulis brief terpisah.
+   */
+  const handleGenerateImage = (): void => {
+    setError("");
+    setAiImageBusy(true);
+    void (async () => {
+      try {
+        const bodyField = tdef?.bodyField || "content";
+        const res = await generateRedaksiImageAction({
+          type,
+          title: String(values.title ?? ""),
+          description: String(values.summary ?? values.description ?? ""),
+          body: String(values[bodyField] ?? ""),
+        });
+        if (!res.ok) {
+          setError(res.error);
+          toast.error(res.error);
+          return;
+        }
+        setAiImageUrl(res.url);
+        setField("imageUrl", res.url);
+        toast.success("Gambar dibuat dan disimpan ke media library.");
+      } finally {
+        setAiImageBusy(false);
+      }
+    })();
+  };
+
+  /** Jalankan analyzer SEO deterministik (tanpa LLM, tanpa kuota API). */
+  const handleAnalyzeSeo = (): void => {
+    setError("");
+    setSeoBusy(true);
+    void (async () => {
+      try {
+        const bodyField = tdef?.bodyField || "content";
+        const res = await analyzeContentSeoAction({
+          type,
+          title: String(values.title ?? ""),
+          slug: String(values.slug ?? ""),
+          meta: String(values.summary ?? values.description ?? ""),
+          content: String(values[bodyField] ?? ""),
+        });
+        if (!res.ok) {
+          setError(res.error);
+          toast.error(res.error);
+          return;
+        }
+        setSeoAnalysis(res.analysis);
+      } finally {
+        setSeoBusy(false);
+      }
+    })();
+  };
+
   /** Render satu field sesuai kind-nya. */
   const renderField = (f: FieldDef): React.ReactNode => {
     const val = values[f.key];
@@ -425,6 +496,42 @@ export function RedaksiComposer({
               disabled={pending}
               maxLength={f.maxLength}
             />
+            {f.key === "imageUrl" ? (
+              <div className="space-y-2 pt-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleGenerateImage}
+                    disabled={aiImageBusy || pending}
+                  >
+                    {aiImageBusy ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5" />
+                    )}
+                    {aiImageUrl ? "Buat ulang gambar" : "Buat gambar dengan AI"}
+                  </Button>
+                  <span className="text-[11px] text-muted-foreground">
+                    Cover 16:9 tanpa teks, disimpan ke media library (ikut ter-deploy).
+                  </span>
+                </div>
+                {aiImageUrl ? (
+                  <div className="flex items-start gap-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={aiImageUrl}
+                      alt="Pratinjau gambar cover hasil AI"
+                      className="h-24 w-42 border border-[var(--vt-edge-lo-2)] object-cover"
+                    />
+                    <p className="max-w-64 text-[11px] text-muted-foreground break-all">
+                      {aiImageUrl}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         );
       case "textarea":
@@ -642,10 +749,45 @@ export function RedaksiComposer({
                 ? "Cloud AI OFF — aktifkan di God Mode → Pengaturan Cloud AI."
                 : `Provider: ${cloudProvider} · model: ${cloudModel}`}
             </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAnalyzeSeo}
+              disabled={seoBusy || pending}
+              className="h-8 gap-1.5"
+              title="Analisis SEO + saran keyword. Tidak memakai AI, jadi tetap jalan meski Cloud AI mati."
+            >
+              {seoBusy ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <TrendingUp className="h-3.5 w-3.5" />
+              )}
+              Analisis SEO
+            </Button>
           </div>
         </div>
 
         {fields.map(renderField)}
+
+        {seoAnalysis ? (
+          <SeoAnalyzerPanel
+            analysis={seoAnalysis}
+            metaField={type === "article" ? "summary" : "description"}
+            onApplyTitle={(value) => {
+              setField("title", value);
+              toast.success("Judul diganti dengan saran.");
+            }}
+            onApplySlug={(value) => {
+              setField("slug", value);
+              toast.success("Slug diganti dengan saran.");
+            }}
+            onApplyMeta={(value) => {
+              setField(type === "article" ? "summary" : "description", value);
+              toast.success("Deskripsi diganti dengan saran.");
+            }}
+          />
+        ) : null}
 
         {error && <p className="text-xs text-destructive font-medium">{error}</p>}
 

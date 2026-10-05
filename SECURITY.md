@@ -26,11 +26,11 @@ Dokumen ini menjelaskan **postur keamanan**, langkah hardening yang diterapkan, 
 | `POST /api/indexnow` | Abuse / SSRF / DoS | Admin-only + rate-limit 5/60s/IP + host allowlist + max 100 URLs + payload 10KB |
 | `POST /api/retrobot` | Abuse / prompt injection / egress data | Publik + rate-limit 20/5mnt/IP + input 500 char + history 4 turn + prompt hanya katalog publik |
 | Tabel `settings` (key `cloud_ai`) | Kebocoran API key cloud | Penulisan admin-only via `verifyAdmin()` + masking di `settings.ts` + tidak dikirim ke klien |
-| Upload `public/uploads` | Stored XSS / RCE | SVG blacklist, ekstensi dari MIME, timestamp+random filename |
+| Upload gambar (tabel `media`, bytea Postgres) | Stored XSS / RCE | SVG blacklist, ekstensi dari MIME, validasi magic bytes terpusat di `storage.ts` |
 | Translate (Google/MyMemory) | Privacy egress | Opt-in per field, `ENABLE_EXTERNAL_TRANSLATE=false` mematikan total |
 | Session / CSRF | Session hijack | Clerk httpOnly session, `bodySizeLimit 25MB`, CSRF via same-origin |
 
-Out of scope: infra pihak ketiga (Clerk, Vercel, Neon, Bunny, Formspree), social engineering.
+Out of scope: infra pihak ketiga (Clerk, Vercel, Neon, Formspree), social engineering.
 
 ---
 
@@ -127,7 +127,7 @@ Header lengkap di `next.config.ts` (`headers()`, baris 38):
 - [ ] `DATABASE_URL` prod (Neon `sslmode=require`), sudah `npm run db:push`.
 - [ ] `NEXT_PUBLIC_APP_URL` = domain prod (tanpa trailing slash).
 - [ ] `INDEXNOW_KEY` ganti dari default `e5b871c...` (di `.env`, jangan commit).
-- [ ] Storage gambar: **jangan** andalkan `public/uploads` di Vercel — pakai Bunny/R2/S3 (lihat README & `DEPLOYMENT.md`).
+- [ ] Storage gambar: tabel `media` (bytea Postgres) siap via migrasi `drizzle/0010` — tidak ada dependency object storage lagi.
 - [ ] `ENABLE_EXTERNAL_TRANSLATE` sesuai kebijakan privasi (set `false` jika egress dilarang).
 - [ ] `npm run lint && npm run build` pass (0 error, 0 warning); `npx tsc --noEmit` 0 error; `npm run test` hijau.
 - [ ] `npm audit --audit-level=high` cek; `postcss`/`esbuild` vuln saat ini dari `next@15` — tunggu upstream fix, jangan `npm audit fix --force` ke `next@16` tanpa uji.
@@ -175,5 +175,5 @@ node scripts/check-clerk-login.mjs
 ## 8. Catatan Pengembangan
 
 - **Dev mode:** jika Clerk key placeholder, middleware & `verifyAdmin()` sengaja bypass agar dev jalan — **kecuali di produksi** (`VERCEL_ENV/NODE_ENV=production`): admin 404 dan mutasi ditolak (fail-closed, lihat `src/lib/env.ts`). **Pastikan key prod sebelum deploy.**
-- **Upload:** di Vercel, `public/uploads` read-only & ephemeral — file hilang saat redeploy.
+- **Upload:** gambar disimpan di tabel `media` (bytea Postgres) — persisten di serverless; `public/uploads` hanya untuk aset statis git-tracked, bukan upload runtime.
 - **Kontak:** Formspree langsung ke endpoint eksternal; validasi client + Formspree spam filter.

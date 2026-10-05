@@ -30,7 +30,7 @@ Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager int
 - Dashboard ringkasan konten + tombol Visitor Analytics.
 - CRUD profil, proyek, layanan, produk, testimoni, dan artikel.
 - **Sistem & Logs** di `/admin/system`: kelayakan deploy (validasi env terpusat), tracing `x-request-id`, dan audit log mutasi.
-- **Media Library** di `/admin/media`: daftar gambar di Bunny Storage (bila terkonfigurasi) dengan hapus.
+- **Media Library** di `/admin/media`: daftar gambar di database (tabel `media`, bytea Postgres) dengan hapus.
 - **SEO & SEM** di `/admin/seo`: token verifikasi **Google Search Console** & **Bing Webmaster**, key **IndexNow** + ping manual semua URL, dan override **Open Graph** (judul/deskripsi/gambar) dengan pratinjau kartu sosial. Disimpan di tabel `settings` (key `"seo"`) — ganti token/key/OG tanpa redeploy.
 - **Konfigurasi Cloud AI** di `/admin/system`: pilih 1 dari 10 provider (OFF 100% lokal TF-IDF, Gemini, OpenAI-compatible custom, Anthropic Claude, DeepSeek, Groq, OpenRouter, Together, Mistral, xAI Grok), isi API key (+ base URL untuk gaya OpenAI-compatible/Anthropic), **ambil daftar model otomatis & realtime** dari endpoint provider, serta atur **prompt & cara menjawab** (concise / detailed / friendly). Disimpan di tabel `settings` (key `cloud_ai`), menimpa env per-field — ganti provider/model tanpa redeploy.
 - **God Mode — Tampilan & App OS** di `/admin/appearance`: atur aplikasi SigitOS yang ditampilkan ke pengunjung (centang aktif) dan urutannya (tombol panah), tanpa kode/redeploy. Mengendalikan taskbar, sidebar ikon desktop, Start Menu, command palette, jalan pintas angka, dan urutan section mobile. Disimpan di tabel `settings` (key `os_apps`); minimal satu app harus aktif, config rusak kembali ke default. Fase pertama dari roadmap God Mode; editor teks UI menyusul.
@@ -41,7 +41,7 @@ Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager int
 - **Terminal AI** dengan perintah: `help`, `whoami`, `skills`, `projects`, `services`, `articles`, `contact`, `open <app>`, `theme`, `lang`, `neofetch`, `history`, `clear`, `reboot`, `cv`, `github`, `email` + navigasi riwayat panah atas/bawah, natural-language chat ke Sigit_Bot, input suara + TTS.
 - Input konten Indonesia dan Inggris untuk beberapa field.
 - Terjemahan ID → EN **opt-in per field** lewat tombol Terjemahkan di form admin (tidak ada terjemahan otomatis saat menyimpan); kolom English yang dikosongkan memakai teks Indonesia sebagai fallback di mode EN.
-- Upload gambar lokal ke `public/uploads`, atau **Bunny Storage otomatis bila `BUNNY_STORAGE_*` terkonfigurasi** (wajib di Vercel/serverless).
+- Upload gambar disimpan **langsung di Postgres** (tabel `media`, kolom `data` bytea) — persisten di semua environment termasuk serverless, tanpa CDN/object storage eksternal. Disajikan via `GET /api/media/<id>` dengan cache immutable.
 - Slug produk dapat dikelola dari admin dan masuk ke sitemap.
 - Artikel studi kasus project dan topical authority AI, cybersecurity, Linux, Windows, dan macOS.
 
@@ -94,7 +94,7 @@ src/
 |   |   |-- appearance/    # God Mode: app SigitOS aktif + urutan (settings.os_apps)
 |   |   |-- seo/           # SEO & SEM: GSC/Bing verification, IndexNow, Open Graph
 |   |   |-- system/        # Kelayakan deploy + audit logs + Cloud AI config
-|   |   `-- media/         # Media Library (Bunny Storage)
+|    |   `-- media/         # Media Library (tabel media, bytea Postgres)
 |   |-- sign-in/           # Login Clerk
 |   |-- sign-up/           # Sign up Clerk
 |   |-- [indexnowKey]/     # File verifikasi IndexNow /{key}.txt (dinamis)
@@ -151,8 +151,8 @@ src/
     |-- system-status.ts   # Kelayakan deploy untuk /admin/system
     |-- error-utils.ts     # sanitizeError() (allowlist + masking)
     |-- validations.ts     # Skema validasi Zod (max-length, slug regex, URL)
-    |-- storage.ts         # Validasi gambar (magic bytes) + Bunny Storage
-    |-- local-upload.ts    # Upload gambar (Bunny bila ada, jika tidak lokal)
+    |-- storage.ts         # Validasi gambar (magic bytes) + storage bytea Postgres
+    |-- local-upload.ts    # Server actions upload/list/delete media
     |-- cart-context.tsx   # Keranjang belanja (localStorage)
     |-- cart-stock.ts      # Logika stok & batas qty
     |-- whatsapp-order.ts  # Builder pesan WhatsApp order
@@ -231,10 +231,6 @@ NEXT_PUBLIC_ADMIN_CLERK_ID=user_xxxxxxxxxxxxxxxxx
 # Neon PostgreSQL
 DATABASE_URL=postgresql://user:password@host/neondb?sslmode=require
 
-# Bunny CDN (opsional — upload masih lokal jika kosong)
-BUNNY_STORAGE_ZONE_NAME=nama-storage-zone
-BUNNY_STORAGE_API_KEY=xxxx-xxxx-xxxx
-BUNNY_CDN_HOSTNAME=namazone.b-cdn.net
 
 # IndexNow (jangan commit key asli)
 INDEXNOW_KEY=e5b871c984924b179571fcfdca565780
@@ -268,10 +264,9 @@ Catatan:
 - Jika Clerk key belum diset atau masih placeholder, middleware mengizinkan navigasi admin untuk kebutuhan development.
 - Jika `DATABASE_URL` kosong, aplikasi tetap berjalan memakai data lokal/fallback.
 - Jika `NEXT_PUBLIC_APP_URL` kosong, fallback canonical URL memakai `https://sigitadi.id`.
-- Upload gambar disimpan ke **Bunny Storage bila `BUNNY_STORAGE_*` terkonfigurasi** (persisten — wajib di Vercel/serverless), jika tidak ke `public/uploads` (lokal, ephemeral di serverless).
+- Upload gambar disimpan langsung ke **tabel `media` (bytea Postgres)** via `putMedia()` — satu-satunya penyimpanan, tanpa filesystem/CDN eksternal (lihat `src/lib/storage.ts`). Persisten di semua environment, termasuk Vercel/serverless.
 - **SVG tidak diizinkan diunggah** (risiko XSS via inline script); hanya JPEG, PNG, WEBP, GIF, AVIF, BMP.
 - Isi gambar diverifikasi lewat magic bytes dan ekstensi diturunkan dari MIME tervalidasi, bukan dari nama file kiriman klien.
-- Variabel `BUNNY_STORAGE_*` terhubung ke kode: bila zone + API key terisi, upload otomatis masuk ke Bunny Storage (lihat `src/lib/storage.ts` dan `isBunnyConfigured()`); jika tidak, upload jatuh ke `public/uploads`.
 - Pastikan form Formspree pada dashboard/workflow diarahkan ke `x@sigitadi.id`.
 
 ## Keamanan (Hardening v2 — 2026-09-12)
@@ -421,7 +416,7 @@ Project siap dideploy ke platform Next.js seperti Vercel. Push ke branch `main` 
 - `NEXT_PUBLIC_GOOGLE_VERIFICATION` (opsional — atau isi dari `/admin/seo`)
 - `NEXT_PUBLIC_BING_VERIFICATION` (opsional — atau isi dari `/admin/seo`)
 
-Karena upload saat ini memakai `public/uploads`, penyimpanan gambar tidak persisten di lingkungan serverless. Untuk produksi jangka panjang, gunakan object storage atau CDN storage seperti Bunny, S3, R2, atau layanan sejenis.
+Upload gambar disimpan di Postgres (tabel `media`, bytea) — tidak ada langkah storage terpisah; migrasi `drizzle/0010` membuat tabelnya secara otomatis.
 
 ## Catatan Pengembangan
 

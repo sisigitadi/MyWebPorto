@@ -1,17 +1,33 @@
 /**
- * Loading state route group (public).
+ * Loading state untuk HOMEPAGE — sengaja di-scope ke route group `(home)`,
+ * bukan di akar `(public)/`.
  *
- * Sebelumnya route group ini TIDAK punya loading.tsx: saat navigasi ke
- * halaman yang datanya belum siap (ISR revalidate / dynamic), area konten
- * kosong total lalu konten muncul mendadak — itulah yang membuat
- * perpindahan terasa "patah", tidak seperti single page app.
+ * Kenapa harus begitu: `loading.tsx` membuat Suspense boundary di segment itu
+ * **dan seluruh keturunannya**. Dulu file ini berada di `src/app/(public)/`,
+ * sehingga setiap `/artikel/<slug>`, `/proyek/<slug>`, dan `/toko/<slug>`
+ * ikut ter-stream: shell skeleton ter-flush dengan status **200** sebelum
+ * `notFound()` sempat melempar 404 — hasilnya slug tak dikenal balas
+ * 200 + body not-found (soft-404), yang membingungkan crawler, monitoring, dan
+ * cache. Karena `notFound()` baru dievaluasi setelah shell terkirim, Suspense
+ * boundary di atas halaman detail tidak bisa dihindari dari dalam halamannya.
  *
- * Dengan file ini Next.js menampilkan skeleton retro SigitOS seketika saat
- * navigasi dimulai (instant loading state), lalu konten asli menggantikannya
- * dengan transisi vt-page-in dari template.tsx. Jendela OS + menubar +
- * taskbar tetap terlihat (layout tidak ikut me-remount).
+ * Solusinya: skeleton hanya untuk beranda (segment yang memang paling sering
+ * suspending karena `draftMode()` + beberapa query DB), sementara halaman
+ * detail konten tidak punya boundary sehingga `notFound()` benar-benar
+ * menghasilkan HTTP 404.
+ *
+ * Konsekuensi yang disadari: katalog `/artikel` dan `/proyek` ikut kehilangan
+ * instant skeleton (keduanya berada di bawah segment yang sama dengan detail
+ * halamannya). Animasi boot OS + `template.tsx` tetap menutupi transisinya.
+ *
+ * Sejarahnya: route group `(public)` awalnya TIDAK punya loading.tsx sama sekali
+ * — area konten kosong lalu konten muncul mendadak, dan itu yang membuat
+ * perpindahan terasa "patah". Skeleton retro SigitOS di bawah dikirimkan untuk
+ * beranda; konten asli menggantikannya dengan transisi `vt-page-in` dari
+ * `template.tsx`, sementara jendela OS + menubar + taskbar tetap terlihat
+ * (layout tidak ikut re-mount).
  */
-export default function PublicLoading() {
+export default function HomeLoading() {
   return (
     <div
       className="flex-1 min-h-0 w-full flex items-center justify-center p-6 vt-crt-panel"

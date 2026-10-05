@@ -26,6 +26,13 @@
 import type { Metadata } from "next";
 import { getSetting, setSetting } from "@/lib/settings";
 
+/**
+ * Nama brand situs (entitas yang dikenal mesin pencari) — satu sumber
+ * kebenaran untuk schema WebSite/ProfilePage dan kartu produk. BUKAN
+ * `STORE_NAME` ("Toko"), yang hanya label UI yang dilokalkan.
+ */
+export const SITE_BRAND = "Sigit Web Porto";
+
 export interface StoredSeoConfig {
   googleVerification?: string;
   bingVerification?: string;
@@ -58,7 +65,7 @@ const PUBLIC_DEFAULT_BING_VERIFICATION = "e5b871c984924b179571fcfdca565780";
 
 /** Token verifikasi Google/Bing & key IndexNow: [A-Za-z0-9_-] 8–128 karakter. */
 const TOKEN_RE = /^[A-Za-z0-9_-]{8,128}$/;
-/** URL gambar: absolut http(s) atau path relatif (mis. /uploads/og.png). */
+/** URL gambar: absolut http(s) atau path relatif (mis. /api/media/<uuid>). */
 const SAFE_IMAGE_URL_RE = /^(https?:\/\/|\/)/i;
 
 function envGoogle(): string {
