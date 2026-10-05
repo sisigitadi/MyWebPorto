@@ -1,12 +1,39 @@
 /**
  * Storage adapter gambar — server-only, jangan import dari client.
  *
- * Bunny Storage bila terkonfigurasi (BUNNY_STORAGE_ZONE_NAME + BUNNY_STORAGE_API_KEY),
- * fallback ke lokal `public/uploads` bila tidak. Validasi keamanan (whitelist MIME,
- * magic bytes, ekstensi dari MIME) TERPUSAT di sini agar konsisten di semua jalur.
+ * Gambar disimpan LANGSUNG di Postgres: tabel `media`, kolom `data` bytea.
+ * Satu-satunya penyimpanan — tidak ada CDN/S3 terpisah, tidak ada tulis ke
+ * filesystem (serverless read-only). Disajikan via GET /api/media/[id].
+ *
+ * Validasi keamanan (whitelist MIME, magic bytes, ekstensi dari MIME)
+ * TERPUSAT di sini agar konsisten di semua jalur.
  */
 
+import { randomUUID } from "crypto";
+import { desc, eq } from "drizzle-orm";
+import { db } from "@/db";
+import { media } from "@/db/schema";
+
 export const MAX_IMAGE_SIZE = 20 * 1024 * 1024;
+
+/**
+ * Id media selalu UUID v4 (dibuat `randomUUID()`). Satu-satunya definisi
+ * aturan ini dipakai tiga tempat: route `GET /api/media/[id]` (validasi sebelum
+ * query), resolver Open Graph, dan audit URL gambar tersimpan — supaya format
+ * yang dianggap valid tidak pernah berbeda antar jalur.
+ */
+export const MEDIA_ID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Pemakai aturan di atas lewat FUNGSI, bukan regex yang diimpor langsung:
+ * `vi.mock("@/lib/storage")` di test mengisi ekspor modul setelah modul lain
+ * selesai dievaluasi, sehingga `new RegExp(MEDIA_ID_RE.source)` di level modul
+ * bisa tertangkap `undefined`. Memanggil saat runtime selalu aman.
+ */
+export function isMediaId(value: string): boolean {
+  return MEDIA_ID_RE.test(value);
+}
 
 export const EXTENSION_BY_MIME: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -18,8 +45,6 @@ export const EXTENSION_BY_MIME: Record<string, string> = {
 };
 
 export const ALLOWED_IMAGE_MIMES = Object.keys(EXTENSION_BY_MIME);
-
-const STORAGE_PREFIX = "mywebporto/";
 
 /** MIME dari klien mudah dipalsukan — verifikasi isi via magic bytes. */
 export function matchesImageSignature(buffer: Buffer, mime: string): boolean {
@@ -80,129 +105,103 @@ export function validateImageFile(file: {
   })();
 }
 
-// ---------- Bunny Storage ----------
-
-export interface BunnyConfig {
-  zoneName: string;
-  apiKey: string;
-  storageHost: string;
-  publicBaseUrl: string;
-}
-
-/** null bila Bunny belum dikonfigurasi → pemanggil wajib fallback lokal. */
-export function getBunnyConfig(): BunnyConfig | null {
-  const zoneName = (process.env.BUNNY_STORAGE_ZONE_NAME || "").trim();
-  const apiKey = (process.env.BUNNY_STORAGE_API_KEY || "").trim();
-  if (!zoneName || apiKey.length < 8) return null;
-
-  const region = (process.env.BUNNY_STORAGE_REGION || "").trim().toLowerCase();
-  const storageHost = region ? `${region}.storage.bunnycdn.com` : "storage.bunnycdn.com";
-
-  const pullZone = (process.env.NEXT_PUBLIC_BUNNY_PULL_ZONE_URL || "").trim().replace(/\/$/, "");
-  const cdnHost = (process.env.BUNNY_CDN_HOSTNAME || "").trim().replace(/\/$/, "");
-  const publicBaseUrl = pullZone || (cdnHost ? `https://${cdnHost}` : `https://${zoneName}.b-cdn.net`);
-
-  return { zoneName, apiKey, storageHost, publicBaseUrl };
-}
-
-export function isBunnyConfigured(): boolean {
-  return getBunnyConfig() !== null;
-}
-
-/** Key aman:basename saja (cegah traversal), prefix folder, nama unik. */
-export function buildStorageKey(originalName: string, extension: string): string {
-  const base = (originalName.split("/").pop() || "image").split("\\").pop() || "image";
-  const slug = base
-    .normalize("NFKD")
-    .toLowerCase()
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
-  const rand = Math.random().toString(36).slice(2, 8);
-  return `${STORAGE_PREFIX}${Date.now()}-${slug || "img"}-${rand}.${extension}`;
-}
+// ---------- Database (Postgres bytea) ----------
 
 export interface MediaItem {
-  key: string;
+  id: string;
   name: string;
   url: string;
-  size: number | null;
-  lastChanged: string | null;
-  remote: boolean;
+  mime: string;
+  size: number;
+  createdAt: string;
 }
 
-export async function putBunny(
-  key: string,
+/** Basename saja (anti traversal) + potong nama ekstrem untuk display. */
+export function sanitizeMediaName(originalName: string): string {
+  const base = (originalName.split("/").pop() || "image").split("\\").pop() || "image";
+  return base.slice(0, 180);
+}
+
+/**
+ * Simpan gambar ke tabel media. URL publiknya bersifat lokasi-independen
+ * (path relatif /api/media/<id>) sehingga tetap valid pindah host/CDN.
+ */
+export async function putMedia(
+  name: string,
   buffer: Buffer,
   mime: string
-): Promise<{ ok: boolean; url?: string; error?: string }> {
-  const cfg = getBunnyConfig();
-  if (!cfg) return { ok: false, error: "Bunny Storage belum dikonfigurasi." };
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   try {
-    const res = await fetch(
-      `https://${cfg.storageHost}/${cfg.zoneName}/${key}`,
-      {
-        method: "PUT",
-        headers: { AccessKey: cfg.apiKey, "Content-Type": mime },
-        body: new Uint8Array(buffer),
-        signal: AbortSignal.timeout(30_000),
-      }
-    );
-    if (!res.ok) return { ok: false, error: `Bunny menolak upload (status ${res.status}).` };
-    return { ok: true, url: `${cfg.publicBaseUrl}/${key}` };
-  } catch {
-    return { ok: false, error: "Tidak dapat terhubung ke Bunny Storage." };
+    const id = randomUUID();
+    await db.insert(media).values({
+      id,
+      name: sanitizeMediaName(name),
+      mime,
+      size: buffer.length,
+      data: buffer,
+    });
+    return { ok: true, id };
+  } catch (err) {
+    console.error("putMedia: insert gagal:", err);
+    return { ok: false, error: "Gagal menyimpan gambar ke database. Coba lagi." };
   }
 }
 
-export async function listBunny(): Promise<MediaItem[]> {
-  const cfg = getBunnyConfig();
-  if (!cfg) return [];
+/** Daftar metadata media (tanpa memuat bytea) — terbaru pertama. */
+export async function listMediaItems(): Promise<MediaItem[]> {
   try {
-    const res = await fetch(
-      `https://${cfg.storageHost}/${cfg.zoneName}/${STORAGE_PREFIX}?limit=100`,
-      { headers: { AccessKey: cfg.apiKey }, signal: AbortSignal.timeout(15_000) }
-    );
-    if (!res.ok) return [];
-    const arr = (await res.json()) as {
-      ObjectName?: string;
-      Length?: number;
-      LastChanged?: string;
-      IsDirectory?: boolean;
-    }[];
-    if (!Array.isArray(arr)) return [];
-    return arr
-      .filter((o) => o && !o.IsDirectory && o.ObjectName)
-      .map((o) => {
-        const key = `${STORAGE_PREFIX}${o.ObjectName as string}`;
-        return {
-          key,
-          name: o.ObjectName as string,
-          url: `${cfg.publicBaseUrl}/${key}`,
-          size: typeof o.Length === "number" ? o.Length : null,
-          lastChanged: o.LastChanged || null,
-          remote: true,
-        };
-      });
-  } catch {
+    const rows = await db
+      .select({
+        id: media.id,
+        name: media.name,
+        mime: media.mime,
+        size: media.size,
+        createdAt: media.createdAt,
+      })
+      .from(media)
+      .orderBy(desc(media.createdAt))
+      .limit(100);
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      url: `/api/media/${r.id}`,
+      mime: r.mime,
+      size: r.size,
+      createdAt: r.createdAt.toISOString(),
+    }));
+  } catch (err) {
+    console.error("listMediaItems: select gagal:", err);
     return [];
   }
 }
 
-export async function deleteBunny(key: string): Promise<boolean> {
-  const cfg = getBunnyConfig();
-  if (!cfg) return false;
-  const safe = key.split("/").pop() || "";
-  if (!safe || safe.includes("..")) return false;
+/** Ambil biner + MIME untuk disajikan di GET /api/media/[id]. */
+export async function getMedia(
+  id: string
+): Promise<{ buffer: Buffer; mime: string } | null> {
   try {
-    const res = await fetch(`https://${cfg.storageHost}/${cfg.zoneName}/${STORAGE_PREFIX}${safe}`, {
-      method: "DELETE",
-      headers: { AccessKey: cfg.apiKey },
-      signal: AbortSignal.timeout(15_000),
-    });
-    return res.ok;
-  } catch {
+    const rows = await db
+      .select({ data: media.data, mime: media.mime })
+      .from(media)
+      .where(eq(media.id, id))
+      .limit(1);
+    const row = rows[0];
+    if (!row) return null;
+    const buffer = Buffer.isBuffer(row.data) ? row.data : Buffer.from(row.data as Uint8Array);
+    return { buffer, mime: row.mime };
+  } catch (err) {
+    console.error("getMedia: select gagal:", err);
+    return null;
+  }
+}
+
+/** Hapus 1 media berdasarkan id (parameterized — aman dari injection). */
+export async function deleteMediaRow(id: string): Promise<boolean> {
+  try {
+    await db.delete(media).where(eq(media.id, id));
+    return true;
+  } catch (err) {
+    console.error("deleteMediaRow: delete gagal:", err);
     return false;
   }
 }

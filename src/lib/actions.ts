@@ -87,6 +87,14 @@ import {
 } from "@/lib/redaksi-automation";
 import { AUTOMATION_SECTIONS } from "@/lib/redaksi-automation-meta";
 import { isRedaksiContentType, type RedaksiContentType } from "@/lib/redaksi-meta";
+import { buildCoverImagePrompt, generateCoverImage } from "@/lib/ai-image";
+import { analyzeSeo, type SeoAnalysis } from "@/lib/seo-keywords";
+import {
+  ALLOWED_IMAGE_MIMES,
+  MAX_IMAGE_SIZE,
+  matchesImageSignature,
+  putMedia,
+} from "@/lib/storage";
 
 // ==========================================
 // PERSISTENT LOCAL FILE STORE (OFFLINE & BACKUP)
@@ -2381,6 +2389,177 @@ export async function draftContentWithAIAction(
       detail: `brief=${brief.trim().slice(0, 80)}`,
     });
     return { ok: true, draft: result.draft.data };
+  } catch (err) {
+    return { ok: false, error: sanitizeError(err) };
+  }
+}
+
+/**
+ * Buat gambar cover via AI lalu simpan ke tabel `media`.
+ *
+ * Alur: prompt disusun dari isi konten yang sedang ditulis → Gemini image
+ * model (fallback berurutan, lihat src/lib/ai-image.ts) → MIME diverifikasi
+ * ulang lewat magic bytes → `putMedia()` → balik URL `/api/media/<id>`.
+ * Gambar langsung disimpan ke DB, bukan file sementara, supaya tetap valid
+ * setelah pindah host dan tidak ikut hilang seperti upload lokal dulu.
+ *
+ * Rate limit terpisah dari draf teks: satu klik = satu panggilan berbayar,
+ * jadi batasnya lebih ketat per jendela.
+ */
+const REDAKSI_IMAGE_LIMIT = 10;
+const REDAKSI_IMAGE_WINDOW_MS = 5 * 60_000;
+
+export async function generateRedaksiImageAction(input: {
+  type: string;
+  title?: string | null;
+  description?: string | null;
+  body?: string | null;
+}): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  await verifyAdmin();
+  if (!isRedaksiContentType(input.type)) {
+    return { ok: false, error: "Tipe konten tidak dikenal." };
+  }
+  // Hanya tipe yang punya field imageUrl di composer.
+  if (input.type !== "article" && input.type !== "project" && input.type !== "product") {
+    return { ok: false, error: "Fitur gambar hanya untuk artikel, proyek, dan produk." };
+  }
+
+  const ip = await aibotIp();
+  const rl = rateLimit(`redaksi-img:${ip}`, REDAKSI_IMAGE_LIMIT, REDAKSI_IMAGE_WINDOW_MS);
+  cleanupRateLimits();
+  if (!rl.allowed) {
+    return {
+      ok: false,
+      error: `Batas pembuatan gambar tercapai (${REDAKSI_IMAGE_LIMIT}/5 menit). Tunggu sebentar lalu coba lagi.`,
+    };
+  }
+
+  // Kunci Gemini: pakai key admin bila provider aktif Gemini, kalau tidak
+  // jatuh ke env. Model gambar hanya ada di Gemini, jadi provider lain
+  // (mis. relay OpenAI-compatible) tidak bisa melayani fitur ini.
+  const cfg = await resolveCloudAIConfig();
+  const apiKey =
+    cfg.provider === "gemini" ? cfg.apiKey : (process.env.GEMINI_API_KEY || "").trim();
+  if (!apiKey) {
+    return {
+      ok: false,
+      error:
+        "Belum ada Gemini API key. Set provider Gemini di /admin/cloud-ai, atau isi env GEMINI_API_KEY.",
+    };
+  }
+
+  const prompt = buildCoverImagePrompt({
+    title: (input.title || "").slice(0, 200),
+    description: (input.description || "").slice(0, 400),
+    // Potong lebih ketat dari prompt builder: cuplikan 4 KB sudah lebih dari
+    // cukup menentukan visual, dan pengiriman prompt pendek = biaya kecil.
+    body: (input.body || "").slice(0, 4000),
+    contentType: input.type,
+  });
+
+  const result = await generateCoverImage({
+    apiKey,
+    model: process.env.GEMINI_IMAGE_MODEL,
+    prompt,
+  });
+  if (!result.ok) return { ok: false, error: result.error };
+
+  const buffer = result.image.buffer;
+  // MIME dari provider TIDAK dipercaya: cek ulang magic bytes (whitelist yang
+  // sama dengan jalur upload manual) supaya tidak ada binary asing masuk DB.
+  const verifiedMime = ALLOWED_IMAGE_MIMES.find((mime) => matchesImageSignature(buffer, mime));
+  if (!verifiedMime) {
+    return { ok: false, error: "Gambar hasil AI tidak dikenali sebagai format gambar yang didukung." };
+  }
+  if (buffer.length > MAX_IMAGE_SIZE) {
+    return { ok: false, error: "Gambar hasil AI melebihi batas ukuran 20 MB." };
+  }
+
+  const extension = verifiedMime.split("/")[1] || "png";
+  const slugish = (input.title || input.type)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+  const stored = await putMedia(`${slugish || "cover"}-ai.${extension}`, buffer, verifiedMime);
+  if (!stored.ok) return { ok: false, error: stored.error };
+
+  await logAudit({
+    action: "create",
+    entity: "redaksi_image",
+    entityId: input.type,
+    detail: `model=${result.image.model} bytes=${buffer.length} title=${(input.title || "").slice(0, 60)}`,
+  });
+
+  return { ok: true, url: `/api/media/${stored.id}` };
+}
+
+/**
+ * Analisis SEO + saran keyword untuk konten yang sedang ditulis.
+ *
+ * Sengaja TIDAK memanggil LLM: analyzer-nya deterministik (lihat
+ * seo-keywords.ts) sehingga tetap jalan meski kuota Cloud AI habis, dan
+ * hasilnya bisa diuji unit. Action ini hanya menambah konteks situs —
+ * daftar artikel/proyek/produk terbit — untuk saran internal link, lalu
+ * mengembalikan seluruh temuan + saran siap pakai.
+ *
+ * Tidak ada data volume pencarian di sini; skor keyword hanya frekuensi
+ * frasa di dalam konten itu sendiri.
+ */
+const REDAKSI_SEO_LIMIT = 30;
+const REDAKSI_SEO_WINDOW_MS = 5 * 60_000;
+
+export async function analyzeContentSeoAction(input: {
+  type: string;
+  title?: string | null;
+  slug?: string | null;
+  meta?: string | null;
+  content?: string | null;
+}): Promise<{ ok: true; analysis: SeoAnalysis } | { ok: false; error: string }> {
+  await verifyAdmin();
+  if (!isRedaksiContentType(input.type)) {
+    return { ok: false, error: "Tipe konten tidak dikenal." };
+  }
+
+  const ip = await aibotIp();
+  const rl = rateLimit(`redaksi-seo:${ip}`, REDAKSI_SEO_LIMIT, REDAKSI_SEO_WINDOW_MS);
+  cleanupRateLimits();
+  if (!rl.allowed) {
+    return {
+      ok: false,
+      error: `Batas analisis SEO tercapai (${REDAKSI_SEO_LIMIT}/5 menit). Tunggu sebentar lalu coba lagi.`,
+    };
+  }
+
+  try {
+    const [articles, projects, products] = await Promise.all([
+      getArticles(),
+      getProjects(),
+      getProducts(),
+    ]);
+
+    const related = [
+      ...articles.filter((a) => a.published).map((a) => ({ title: a.title, href: `/artikel/${a.slug}` })),
+      ...projects.filter((p) => p.published).map((p) => ({ title: p.title, href: `/proyek/${p.slug}` })),
+      ...products.filter((p) => p.published).map((p) => ({ title: p.title, href: `/toko/${getProductSlug(p)}` })),
+    ];
+
+    const analysis = analyzeSeo({
+      title: input.title,
+      slug: input.slug,
+      meta: input.meta,
+      content: input.content,
+      related,
+    });
+
+    await logAudit({
+      action: "analyze",
+      entity: "redaksi_seo",
+      entityId: input.type,
+      detail: `findings=${analysis.findings.length} keyword=${analysis.primaryKeyword ?? "-"}`,
+    });
+
+    return { ok: true, analysis };
   } catch (err) {
     return { ok: false, error: sanitizeError(err) };
   }

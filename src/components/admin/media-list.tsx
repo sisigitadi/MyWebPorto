@@ -14,17 +14,17 @@ function formatBytes(size: number | null): string {
   return `${(size / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function MediaList({ items, remote }: { items: MediaItem[]; remote: boolean }) {
+export function MediaList({ items }: { items: MediaItem[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   const handleCopy = async (item: MediaItem) => {
     try {
       await navigator.clipboard.writeText(item.url);
-      setCopiedKey(item.key);
-      setTimeout(() => setCopiedKey((k) => (k === item.key ? null : k)), 1500);
+      setCopiedId(item.id);
+      setTimeout(() => setCopiedId((k) => (k === item.id ? null : k)), 1500);
     } catch {
       setError("Gagal menyalin URL.");
     }
@@ -34,7 +34,7 @@ export function MediaList({ items, remote }: { items: MediaItem[]; remote: boole
     if (!window.confirm(`Hapus ${item.name}? Tindakan ini tidak bisa dibatalkan.`)) return;
     setError("");
     startTransition(async () => {
-      const res = await deleteMedia(item.key);
+      const res = await deleteMedia(item.id);
       if (!res.success) {
         setError(res.error || "Gagal menghapus.");
       }
@@ -45,9 +45,7 @@ export function MediaList({ items, remote }: { items: MediaItem[]; remote: boole
   if (items.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        {remote
-          ? "Belum ada berkas di Bunny Storage."
-          : "Belum ada gambar lokal. Unggah lewat form profil/proyek/artikel."}
+        Belum ada gambar. Unggah lewat form profil/proyek/artikel.
       </p>
     );
   }
@@ -57,7 +55,7 @@ export function MediaList({ items, remote }: { items: MediaItem[]; remote: boole
       {error && <p className="text-xs text-destructive font-medium">{error}</p>}
       {items.map((item) => (
         <div
-          key={item.key}
+          key={item.id}
           className="flex items-center gap-3 border border-border rounded-lg p-2.5 bg-card"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -72,14 +70,14 @@ export function MediaList({ items, remote }: { items: MediaItem[]; remote: boole
             <p className="text-[11px] text-muted-foreground truncate font-mono">{item.url}</p>
             <p className="text-[11px] text-muted-foreground">
               {formatBytes(item.size)}
-              {item.lastChanged
-                ? ` · ${new Date(item.lastChanged).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}`
+              {item.createdAt
+                ? ` · ${new Date(item.createdAt).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}`
                 : ""}
             </p>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleCopy(item)} title="Salin URL">
-              {copiedKey === item.key ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+              {copiedId === item.id ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
             </Button>
             <Button variant="outline" size="icon" className="h-8 w-8" asChild title="Buka">
               <a href={item.url} target="_blank" rel="noopener noreferrer">

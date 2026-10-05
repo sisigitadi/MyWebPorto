@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminMediaPage() {
-  const { items, remote, error } = await listMedia();
+  const { items, error } = await listMedia();
 
   return (
     <div className="space-y-6">
@@ -25,21 +25,17 @@ export default async function AdminMediaPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             Penyimpanan aktif{" "}
-            <Badge variant={remote ? "default" : "secondary"}>
-              {remote ? "Bunny Storage" : "Lokal public/uploads"}
-            </Badge>
+            <Badge variant="default">Database (Neon Postgres)</Badge>
           </CardTitle>
           <CardDescription>
-            {remote
-              ? "Upload baru tersimpan persisten di Bunny CDN."
-              : "Bunny belum dikonfigurasi — upload tersimpan lokal (hilang saat redeploy serverless). Isi BUNNY_STORAGE_* untuk produksi."}
+            Gambar disimpan langsung di Postgres (bytea) dan dilayani via /api/media/&lt;id&gt;. Persisten di semua environment, tanpa CDN eksternal.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {error ? (
             <p className="text-sm text-destructive">{error}</p>
           ) : (
-            <MediaList items={items} remote={remote} />
+            <MediaList items={items} />
           )}
         </CardContent>
       </Card>

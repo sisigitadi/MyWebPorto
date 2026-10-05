@@ -33,9 +33,6 @@ Perintah ini akan secara otomatis:
    DATABASE_URL=postgresql://user:password@host/neondb?sslmode=require
    NEXT_PUBLIC_FORMSPREE_ENDPOINT=https://formspree.io/f/your-form-id
    NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL=x@sigitadi.id
-   BUNNY_STORAGE_ZONE_NAME=nama-storage-zone
-   BUNNY_STORAGE_API_KEY=xxxx
-   BUNNY_CDN_HOSTNAME=namazone.b-cdn.net
    # SEO / SEM (opsional — token verifikasi BUKAN rahasia, sengaja dipublikasikan
    # di <meta> + file statis; key IndexNow wajib bisa diambil crawler)
    INDEXNOW_KEY=ganti-key-indexnow-anda
@@ -51,13 +48,13 @@ Perintah ini akan secara otomatis:
    PORT=3000
    ```
 
-Catatan: variabel `BUNNY_STORAGE_*` opsional — bila zone + API key terisi, upload gambar otomatis masuk ke Bunny Storage (persisten, wajib di Vercel/serverless); jika kosong, upload jatuh ke `public/uploads`. Variabel Cloud AI juga dapat diisi lewat form **Cloud AI** di `/admin/system` (disimpan di tabel `settings`) tanpa redeploy. Jika `NEXT_PUBLIC_APP_URL` kosong, canonical URL fallback ke `https://sigitadi.id`.
+Catatan: upload gambar disimpan langsung ke Postgres (tabel `media`, bytea) via migrasi `drizzle/0010` — tidak perlu object storage/CDN terpisah, dan variabel `BUNNY_STORAGE_*` lama sudah tidak dipakai (aman dihapus dari Vercel). Variabel Cloud AI juga dapat diisi lewat form **Cloud AI** di `/admin/system` (disimpan di tabel `settings`) tanpa redeploy. Jika `NEXT_PUBLIC_APP_URL` kosong, canonical URL fallback ke `https://sigitadi.id`.
 
 > **WAJIB di produksi: Clerk key live, bukan `pk_test_`.** PUBLISHABLE_KEY harus `pk_live_...` (bukan `pk_test_...`) dan SECRET_KEY `sk_live_...`. Lihat "Pemecahan Masalah Google Search Console" di README — `pk_test_` memakai domain `*.clerk.accounts.dev` yang me-redirect Googlebot ke handshake Clerk di **semua** rute (termasuk `/robots.txt`), terbaca sebagai "Redirect error" di GSC dan halaman tidak terindeks. Peringatan Vercel "Remove the public framework prefix" aman diabaikan untuk `pk_` (publishable by design); `sk_` wajib tetap server-only.
 
 ### Langkah 3: Konfigurasi Environment dan Database
 
-Edit `deploy_package/.env` dengan `NEXT_PUBLIC_APP_URL`, Clerk production keys, `ADMIN_CLERK_ID`, `DATABASE_URL`, Formspree endpoint, dan `NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL=x@sigitadi.id`. Terapkan schema/migration database sebelum menjalankan aplikasi: seluruh migrasi `drizzle/0000`–`0009` (termasuk `0003_product_slugs`, `0004_audit_logs`, `0005_publish_at`, `0006_shop`, `0007_purchase_fields`, `0008_settings`, `0009_narrow_magneto` untuk `availability_badge`).
+Edit `deploy_package/.env` dengan `NEXT_PUBLIC_APP_URL`, Clerk production keys, `ADMIN_CLERK_ID`, `DATABASE_URL`, Formspree endpoint, dan `NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL=x@sigitadi.id`. Terapkan schema database sebelum menjalankan aplikasi memakai `npm run db:push`. **Jangan** memakai `npm run db:migrate` di produksi: database produksi tidak punya tabel `__drizzle_migrations`, jadi `migrate` akan mencoba menjalankan `drizzle/0000`–`0010` dari awal dan gagal dengan `relation already exists`. `db:push` membandingkan `src/db/schema.ts` dengan kondisi database lalu hanya menerapkan selisihnya, jadi aman dijalankan berulang kali. Yang perlu dipastikan sudah ter-apply: tabel `media` untuk gambar (bytea, `drizzle/0010`), `settings_history`, `availability_badge` (`drizzle/0009`), tabel `products` beserta kolom slug (`drizzle/0006`, `0003`), `publish_at` (`0005`), `audit_logs` (`0004`), dan `settings` (`0008`).
 
 ### Langkah 4: Jalankan Aplikasi di Server
 
@@ -114,6 +111,35 @@ Uji browser untuk login admin, CRUD setiap section, upload gambar, form kontak, 
 
 Setelah deploy, konfigurasi SEO dari **`/admin/seo`** (tanpa redeploy): tempel token verifikasi Google Search Console & Bing Webmaster, rotasi key IndexNow, dan override Open Graph. Verifikasi kepemilikan domain di GSC/Bing bisa memakai metode tag `<meta>` (sudah otomatis terpasang) atau file `https://domainanda.com/{key}.txt` yang dilayani dinamis.
 
+## Gate URL Gambar (Pra-Deploy)
+
+Gambar kini disimpan di Postgres (`media.data`), bukan di `public/`. Karena
+`public/uploads/` masuk `.gitignore`, referensi lama `/uploads/...` **hanya
+resolve di mesin lokal** — di produksi semuanya 404 (avatar, cover artikel,
+`og:image`). Di lokal semuanya selalu hijau, jadi jalankan gate ini sebelum
+deploy:
+
+```bash
+npm run check:media
+```
+
+Exit code non-nol bila ada referensi gambar tersimpan yang tidak akan ada di
+produksi:
+
+- `/uploads/<file>` — file .gitignore, tidak ikut ter-deploy.
+- `/api/media/<id>` dengan id yang tidak ada di tabel `media`.
+- `/api/media/<bukan-uuid>` — route `GET /api/media/[id]` akan 404.
+- URL `localhost`/IP privat, atau `http://` (harus `https://`).
+- Path relatif lain yang tidak dilayani Next.js.
+
+Cara memperbaiki: unggah ulang gambarnya lewat `/admin/media` (menyimpan ke
+tabel `media`), lalu salin path `/api/media/<id>` ke kolom yang salah.
+Panel **`/admin/system`** menampilkan hasil audit yang sama secara live.
+
+Catatan: butuh `DATABASE_URL`. Tanpa itu blok live di-skip (CI memang
+berjalan tanpa DB) — pastikan env prod sudah terisi sebelum menjalankan gate.
+
+---
 ## Keamanan Pra-Deploy (Hardening v2)
 
 Pastikan sudah memenuhi checklist berikut sebelum produksi (lihat `SECURITY.md` §4):
@@ -127,7 +153,8 @@ Pastikan sudah memenuhi checklist berikut sebelum produksi (lihat `SECURITY.md` 
 - [ ] `npm run lint && npm run build` pass (0 error) + `npm audit --audit-level=high` cek.
 - [ ] Header CSP tidak blokir UI: buka DevTools → Console, pastikan tidak ada CSP violations.
 - [ ] Uji `GET /api/indexnow` → 405; `POST /api/indexnow` tanpa login → 401; non-admin → 403/404.
-- [ ] Storage gambar persisten (Bunny/R2/S3) jika deploy ke Vercel/serverless — `public/uploads` lokal **ephemeral** & hilang saat redeploy.
+- [ ] Storage gambar: tabel `media` (bytea Postgres) sudah dibuat migrasi `drizzle/0010` — persisten di serverless, tidak perlu CDN terpisah.
+- [ ] `npm run check:media` pass — audit URL gambar tersimpan (lihat "Gate URL Gambar" di atas). Menangkap referensi `/uploads/...` yang hanya ada di mesin lokal dan akan 404 di produksi.
 
 Lihat detail lengkap di [SECURITY.md](./SECURITY.md).
 

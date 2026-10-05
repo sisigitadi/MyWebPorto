@@ -87,6 +87,36 @@ export function localeAlternates(canonicalUrl: string): { canonical: string } {
   };
 }
 
+/**
+ * Resolusi URL gambar share (og:image / twitter:image) ke bentuk absolut
+ * dengan fallback ke kartu dinamis `/opengraph-image` (berisi avatar profil).
+ *
+ * Sumber gambar konten bisa berupa URL absolut (CDN eksternal), path relatif
+ * (`/api/media/<uuid>` hasil upload DB, atau legacy `/uploads/...`), atau
+ * kosong/null. Metadata Next memang meresolvi path relatif terhadap
+ * `metadataBase`, tetapi URL absolut di sini disengaja agar:
+ * 1. sama persis dengan JSON-LD (lihat JsonLdSchema), sehingga crawler yang
+ *    membaca meta tag dan yang membaca JSON-LD tidak melihat URL berbeda;
+ * 2. mutlak tidak bergantung pada `metadataBase` yang hanya di-set layout.
+ *
+ * Dipakai oleh halaman detail artikel & proyek — keduanya sebelumnya tidak
+ * mengembalikan `openGraph.images` sama sekali, sehingga seluruh objek
+ * openGraph milik layout ter-replace dan preview share ke WhatsApp/Telegram
+ * kehilangan gambar.
+ */
+export function absoluteImageUrl(
+  src: string | null | undefined,
+  baseUrl: string
+): string {
+  const url = (src || "").trim();
+  if (!url) return `${baseUrl.replace(/\/+$/, "")}/opengraph-image`;
+  if (/^https?:\/\//i.test(url)) return url;
+  // Potong slash akhir baseUrl dulu — caller memang sudah melakukannya, tetapi
+  // mengandalkan caller membuat helper rapuh (menghasilkan "//" ganda).
+  const base = baseUrl.replace(/\/+$/, "");
+  return `${base}${url.startsWith("/") ? "" : "/"}${url}`;
+}
+
 export async function generateDynamicMetadata(): Promise<Metadata> {
   const profile = await getProfile();
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");

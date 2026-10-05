@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Helper validator for URL or local relative paths (e.g., /uploads/...)
+// Helper validator for URL or local relative paths (e.g., /api/media/<id>)
 const imageOrUrlSchema = z
   .string()
   .refine(
@@ -10,7 +10,7 @@ const imageOrUrlSchema = z
       val.startsWith("http://") ||
       val.startsWith("https://"),
     {
-      message: "URL Gambar/Avatar tidak valid (harus URL valid atau path /uploads/...)",
+      message: "URL Gambar/Avatar tidak valid (harus URL valid atau path /api/media/...)",
     }
   );
 

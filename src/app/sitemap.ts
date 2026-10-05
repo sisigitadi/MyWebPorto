@@ -5,7 +5,7 @@ import { getProductSlug } from "@/lib/product-link";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // PENTING: harus sama dengan domain di Vercel env & GSC property (tanpa trailing slash)
   const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
-  // image:loc wajib URL absolut (skema + host) — kolom DB kadang menyimpan path relatif /uploads/...
+  // image:loc wajib URL absolut (skema + host) — kolom DB menyimpan path relatif /api/media/<id>
   // Catatan XML: '&' query-string (mis. ?q=80&w=800) wajib di-escape jadi '&amp;'
   // karena serializer sitemap Next.js tidak meng-escape otomatis.
   const toAbsoluteImageUrl = (url: string): string => {
@@ -20,24 +20,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // tag" (duplikat yang boros crawl budget). "?lang=" tetap berfungsi sebagai
   // deep-link/toggle.
 
+  // lastModified SENGAJA dihilangkan untuk route statis. Sebelumnya semua
+  // route memakai `new Date()`, sehingga setiap sitemap yang di-fetch menandai
+  // SELURUH URL sebagai baru diubah — Google menganggap semua halaman berubah
+  // tiap hari dan boros crawl budget untuk membongkar perubahan
+  // yang tidak ada. Route statis juga tidak punya `changeFrequency` harian
+  // yang jujur: `/artikel` berubah saat ada artikel baru, bukan tiap hari.
   const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: `${baseUrl}/`,
-      lastModified: new Date(),
       changeFrequency: "daily" as const,
       priority: 1.0,
       images: [`${baseUrl}/opengraph-image`],
     },
     {
       url: `${baseUrl}/proyek`,
-      lastModified: new Date(),
       changeFrequency: "weekly" as const,
       priority: 0.9,
     },
     {
       url: `${baseUrl}/artikel`,
-      lastModified: new Date(),
-      changeFrequency: "daily" as const,
+      changeFrequency: "weekly" as const,
       priority: 0.9,
     },
   ];
@@ -62,11 +65,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       images: a.imageUrl ? [toAbsoluteImageUrl(a.imageUrl)] : undefined,
     }));
 
+  // Produk juga tanpa lastModified — `ProductData` tidak membawa tanggal
+  // perubahan, jadi mengarang `new Date()` hanya menghasilkan sinyal palsu.
   const productRoutes: MetadataRoute.Sitemap = products
     .filter((p) => p.published)
     .map((p) => ({
       url: `${baseUrl}/toko/${getProductSlug(p)}`,
-      lastModified: new Date(),
       changeFrequency: "monthly" as const,
       priority: 0.7,
       images: p.thumbnailUrl ? [toAbsoluteImageUrl(p.thumbnailUrl)] : undefined,

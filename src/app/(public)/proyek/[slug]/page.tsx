@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getProjects, getProfile } from "@/lib/actions";
 import { safeJsonLd } from "@/lib/json-ld";
-import { localeAlternates } from "@/lib/seo";
+import { absoluteImageUrl, localeAlternates } from "@/lib/seo";
 import { ProjectDetailContent } from "@/components/public/project-detail-content";
 
 interface ProjectDetailPageProps {
@@ -32,6 +32,10 @@ export async function generateMetadata({ params }: ProjectDetailPageProps) {
   const title = `${project.title} - Portofolio & Studi Kasus`;
   const description = project.summary;
   const url = `${baseUrl}/proyek/${slug}`;
+  // Gambar share: thumbnail proyek; bila kosong → kartu /opengraph-image (avatar).
+  // WAJIB diisi — objek openGraph di sini meng-*replace* seluruh openGraph
+  // layout, jadi tanpa `images` halaman ini kehilangan og:image total.
+  const image = absoluteImageUrl(project.thumbnailUrl, baseUrl);
   return {
     title,
     description,
@@ -41,11 +45,13 @@ export async function generateMetadata({ params }: ProjectDetailPageProps) {
       description,
       url,
       type: "website",
+      images: [{ url: image, alt: project.title }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
+      images: [image],
     },
   };
 }

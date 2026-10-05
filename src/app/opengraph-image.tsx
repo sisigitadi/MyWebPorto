@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { getProfile } from "@/lib/actions";
 import { resolveOgMeta } from "@/lib/seo-config";
+import { resolveOgImageSrc } from "@/lib/og-image";
 
 export const runtime = "nodejs";
 export const alt = "Sigit Adi Irianto — Portofolio & Workstation";
@@ -19,12 +20,15 @@ export default async function Image() {
   const title = og.title;
   const subtitle = og.description;
   const initial = (profile.name.charAt(0) || "S").toUpperCase();
-  // Bila admin menetapkan gambar OG sendiri (URL absolut), pakai gambar itu;
-  // jika tidak, gambar dinamis memakai avatar profil (fallback: monogram inisial).
-  const overrideImage =
-    og.imageUrl !== "/opengraph-image" && /^https?:\/\//.test(og.imageUrl) ? og.imageUrl : undefined;
-  const avatar = overrideImage || profile.avatarUrl;
-  const imageUrl = avatar && /^https?:\/\//.test(avatar) ? avatar : undefined;
+  // Bila admin menetapkan gambar OG sendiri, pakai itu; jika tidak, gambar
+  // dinamis memakai avatar profil (fallback: monogram inisial).
+  // Nilai "/opengraph-image" berarti tidak ada override (bukan URL literal).
+  // Bentuk lain bisa absolut (https://…) maupun relatif (/api/media/<id> atau
+  // legacy /uploads/…) — keduanya di-resolve ke data URL oleh resolveOgImageSrc
+  // (Buffer mentah ditolak satori untuk PNG; lihat catatan di lib/og-image).
+  const overrideImage = og.imageUrl !== "/opengraph-image" ? og.imageUrl : undefined;
+  const resolved = await resolveOgImageSrc(overrideImage || profile.avatarUrl);
+  const imageSrc = resolved?.src;
 
   return new ImageResponse(
     (
@@ -53,9 +57,9 @@ export default async function Image() {
             <h1 style={{ fontSize: "52px", fontWeight: 800, margin: 0, lineHeight: 1.15, color: "#f1f5f9" }}>{title.length > 70 ? title.slice(0, 67) + "..." : title}</h1>
             <p style={{ fontSize: "26px", fontWeight: 400, color: "#94a3b8", margin: 0, lineHeight: 1.4 }}>{subtitle.length > 90 ? subtitle.slice(0, 87) + "..." : subtitle}</p>
           </div>
-          {imageUrl ? (
+          {imageSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={imageUrl} alt="" width={320} height={320} style={{ borderRadius: "24px", border: "4px solid rgba(255,255,255,0.15)", objectFit: "cover", flexShrink: 0, boxShadow: "0 12px 40px rgba(0,0,0,0.5)" }} />
+            <img src={imageSrc} alt="" width={320} height={320} style={{ borderRadius: "24px", border: "4px solid rgba(255,255,255,0.15)", objectFit: "cover", flexShrink: 0, boxShadow: "0 12px 40px rgba(0,0,0,0.5)" }} />
           ) : (
             <div style={{ width: 320, height: 320, borderRadius: "24px", background: "linear-gradient(135deg, #3b82f6, #8b5cf6)", border: "4px solid rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "140px", fontWeight: 800, color: "#fff", flexShrink: 0, boxShadow: "0 12px 40px rgba(59,130,246,0.4)" }}>{initial}</div>
           )}

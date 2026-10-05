@@ -4,9 +4,10 @@ import fs from "fs";
 import path from "path";
 import { db, isDbConnected } from "@/db";
 import { getEnvIssues, isDeployReady, type EnvIssue } from "@/lib/env";
-import { getBunnyConfig, isBunnyConfigured } from "@/lib/storage";
+
 import { resolveCloudAIConfig } from "@/lib/cloud-ai-config";
 import { getProviderMeta } from "@/lib/ai-providers";
+import { auditStoredImageUrls } from "@/lib/media-url-audit";
 import { verifyAdmin } from "./admin-auth";
 
 async function cloudAIDetail(): Promise<string> {
@@ -25,11 +26,10 @@ async function cloudAIDetail(): Promise<string> {
 }
 
 function storageDetail(): string {
-  if (!isBunnyConfigured()) {
-    return "Lokal (public/uploads) — tidak persisten di serverless. Isi BUNNY_STORAGE_ZONE_NAME + BUNNY_STORAGE_API_KEY untuk produksi.";
+  if (!isDbConnected) {
+    return "Database belum dikonfigurasi — upload gambar tidak akan tersimpan. Isi DATABASE_URL (Neon Postgres).";
   }
-  const cfg = getBunnyConfig();
-  return `Bunny Storage aktif — upload persisten via ${cfg?.publicBaseUrl}. Lokal dipakai hanya bila Bunny belum dikonfigurasi; kegagalan Bunny dilaporkan eksplisit (tidak fallback diam-diam).`;
+  return "Postgres bytea (tabel media) — gambar disimpan langsung di database, dilayani via GET /api/media/<id> dengan cache immutable. Persisten di semua environment, tanpa CDN eksternal.";
 }
 
 /**
@@ -77,6 +77,18 @@ export interface SystemStatus {
     formspree: string;
     storage: string;
     cloudAI: string;
+  };
+  /**
+   * Audit URL gambar tersimpan — apakah ada referensi yang tidak akan ada di
+   * produksi (path `/uploads/` yang .gitignore, id media hilang, URL lokal).
+   * Sumber kebenaran yang sama dengan `npm run check:media`.
+   */
+  mediaAudit: {
+    checked: boolean;
+    scannedColumns: number;
+    scannedValues: number;
+    error?: string;
+    findings: { location: string; url: string; detail: string }[];
   };
   observability: {
     tracing: {
@@ -176,7 +188,7 @@ export async function getSystemStatus(): Promise<SystemStatus> {
       ]);
       latencyMs = Date.now() - start;
       reachable = true;
-      dbDetail = `Terhubung (${latencyMs} ms). Migrasi: drizzle/0000–0008 (termasuk 0003_product_slugs, 0004_audit_logs, 0005_publish_at, 0006_shop, 0007_purchase_fields, 0008_settings).`;
+      dbDetail = `Terhubung (${latencyMs} ms). Migrasi: drizzle/0000–0010 (termasuk 0003_product_slugs, 0004_audit_logs, 0005_publish_at, 0006_shop, 0007_purchase_fields, 0008_settings, 0009_availability_badge, 0010_media_library).`;
     } catch (err) {
       latencyMs = Date.now() - start;
       dbDetail = `Gagal dijangkau: ${err instanceof Error ? err.message.slice(0, 160) : "unknown"}. Cek sslmode=require + npm run db:push.`;
@@ -188,9 +200,6 @@ export async function getSystemStatus(): Promise<SystemStatus> {
   const dataDir = isVercel
     ? path.join("/tmp", "my-web-porto-data")
     : path.join(process.cwd(), "data");
-  const uploadsDir = isVercel
-    ? path.join("/tmp", "my-web-porto-data", "uploads")
-    : path.join(process.cwd(), "public", "uploads");
 
   const checkWritable = (dirPath: string): boolean => {
     try {
@@ -220,16 +229,45 @@ export async function getSystemStatus(): Promise<SystemStatus> {
     {
       key: "uploads",
       label: "Upload gambar",
-      path: uploadsDir,
-      writable: checkWritable(uploadsDir),
-      detail: isVercel
-        ? "WARNING: public/uploads tidak persisten di serverless — migrasi ke Bunny/R2/S3."
-        : "public/uploads: SVG diblok, magic-bytes, max 20MB.",
+      path: "postgres://…/media.data (bytea)",
+      writable: isDbConnected,
+      detail: isDbConnected
+        ? "Tersimpan di tabel media (bytea Postgres), dilayani via /api/media/<id>. Tidak menulis ke filesystem sama sekali — aman di serverless."
+        : "WARNING: DATABASE_URL belum diset — upload gambar tidak akan tersimpan.",
     },
   ];
 
   const clerkConfigured = clerkKey && !isPlaceholder(clerkKey);
   const translateEnabled = (process.env.ENABLE_EXTERNAL_TRANSLATE ?? "true") !== "false";
+
+  // Audit URL gambar — read-only, jadi aman dipanggil tiap buka panel. Error
+  // query tidak boleh menjatuhkan seluruh panel: tampilkan sebagai catatan.
+  let mediaAudit: SystemStatus["mediaAudit"] = {
+    checked: false,
+    scannedColumns: 0,
+    scannedValues: 0,
+    error: isDbConnected ? "Audit gagal dijalankan." : "Database belum dikonfigurasi — audit dilewati.",
+    findings: [],
+  };
+  try {
+    const audit = await auditStoredImageUrls();
+    mediaAudit = {
+      checked: audit.checked,
+      scannedColumns: audit.scannedColumns,
+      scannedValues: audit.scannedValues,
+      ...(audit.truncatedColumns.length
+        ? { error: `Sample kolom melimpah: ${audit.truncatedColumns.join(", ")}` }
+        : {}),
+      // Panel cukup untuk 20 temuan teratas; gate penuh ada di npm run check:media.
+      findings: audit.findings.slice(0, 20).map((f) => ({
+        location: `${f.field} [${f.row}]`,
+        url: f.url,
+        detail: f.detail,
+      })),
+    };
+  } catch (err) {
+    console.error("auditStoredImageUrls gagal:", err);
+  }
 
   return {
     generatedAt: new Date().toISOString(),
@@ -263,6 +301,7 @@ export async function getSystemStatus(): Promise<SystemStatus> {
       storage: storageDetail(),
       cloudAI: await cloudAIDetail(),
     },
+    mediaAudit,
     observability: {
       tracing: {
         header: "x-request-id (UUID per request, diset di src/middleware.ts:31).",
@@ -274,7 +313,7 @@ export async function getSystemStatus(): Promise<SystemStatus> {
         sources: [
           "src/lib/actions.ts — DB fallback, auto-seed dilewati, sinkron gagal",
           "src/lib/error-utils.ts — sanitizeError() mask + slice(0,500)",
-          "src/lib/local-upload.ts:115 — Vercel FS ephemeral warning",
+          "src/lib/storage.ts — putMedia/listMediaItems/getMedia gagal query media table",
           "src/lib/translate.ts — Google/MyMemory fallback gagal",
           "src/middleware.ts:24 — non-admin access denied",
         ],

@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { hasClerkPublishableKey, isProduction } from "@/lib/env";
 import { isAdminOwnerConfigured } from "@/lib/admin-auth";
 import { resolveSectionRedirect } from "@/lib/section-redirects";
+import { resolveHostRedirectUrl } from "@/lib/canonical-host";
 
 // Next.js 16: middleware.ts di-rename menjadi proxy.ts (logika gate identik,
 // hanya nama file yang berubah — lihat docs Next 16 + clerkMiddleware Clerk).
@@ -77,8 +78,27 @@ function consolidateSectionPaths(req: NextRequest): NextResponse | null {
  * kredensial dan CI E2E (lihat SECURITY.md); di produksi tanpa key valid,
  * /admin tetap fail-closed 404 di bawah.
  */
+/**
+ * Redirect 308 ke host kanonik bila request masuk lewat subdomain alias
+ * (`porto.`, `www.`, dan sejenisnya). Tanpa ini dua subdomain menyajikan
+ * salinan utuh yang sama dengan canonical masing-masing — otoritas terbelah
+ * dua dan crawler unsure URL mana yang benar-benar yang harus diindeks.
+ * Hanya subdomain dari domain kanonik yang kena; preview Vercel
+ * (`*.vercel.app`) dan localhost dibiarkan utuh.
+ */
+export function consolidateHostAlias(req: NextRequest): NextResponse | null {
+  const target = resolveHostRedirectUrl({
+    hostname: req.nextUrl.hostname,
+    pathname: req.nextUrl.pathname,
+    search: req.nextUrl.search,
+  });
+  if (!target) return null;
+  return NextResponse.redirect(target, 308);
+}
+
 function proxyWithoutClerk(req: NextRequest): NextResponse {
-  const seoRedirect = consolidateSectionPaths(req) ?? consolidateContactPrefill(req);
+  const seoRedirect =
+    consolidateHostAlias(req) ?? consolidateSectionPaths(req) ?? consolidateContactPrefill(req);
   if (seoRedirect) return seoRedirect;
 
   if (isAdminRoute(req) && isProduction()) {
@@ -91,7 +111,8 @@ function proxyWithoutClerk(req: NextRequest): NextResponse {
 }
 
 const clerkProxy = clerkMiddleware(async (auth, req) => {
-  const seoRedirect = consolidateSectionPaths(req) ?? consolidateContactPrefill(req);
+  const seoRedirect =
+    consolidateHostAlias(req) ?? consolidateSectionPaths(req) ?? consolidateContactPrefill(req);
   if (seoRedirect) return seoRedirect;
 
   if (isAdminRoute(req)) {

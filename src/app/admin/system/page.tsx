@@ -152,6 +152,37 @@ export default async function AdminSystemPage() {
           <p><span className="font-semibold">Formspree:</span> {status.integrations.formspree}</p>
           <p className="md:col-span-2"><span className="font-semibold">Storage:</span> {status.integrations.storage}</p>
           <p className="md:col-span-2"><span className="font-semibold">Cloud AI:</span> {status.integrations.cloudAI}</p>
+          <div className="md:col-span-2">
+            <p>
+              <span className="font-semibold">Audit URL gambar:</span>{" "}
+              {status.mediaAudit.findings.length > 0 ? (
+                <span className="text-destructive">
+                  {status.mediaAudit.findings.length} referensi tidak akan tersedia di produksi.
+                </span>
+              ) : status.mediaAudit.checked ? (
+                <>
+                  OK — {status.mediaAudit.scannedColumns} kolom gambar diperiksa (
+                  {status.mediaAudit.scannedValues} nilai), semua referensinya resolve di produksi.
+                </>
+              ) : (
+                <span className="text-muted-foreground">
+                  tidak dijalankan ({status.mediaAudit.error ?? "alasan tidak diketahui"})
+                </span>
+              )}
+              {status.mediaAudit.error && status.mediaAudit.findings.length > 0 ? (
+                <span className="text-muted-foreground"> — {status.mediaAudit.error}</span>
+              ) : null}
+            </p>
+            {status.mediaAudit.findings.length > 0 ? (
+              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-xs text-destructive">
+                {status.mediaAudit.findings.map((f) => (
+                  <li key={`${f.location}-${f.url}`}>
+                    <span className="font-mono">{f.location}</span> — <span className="font-mono">{f.url}</span>: {f.detail}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
         </CardContent>
       </Card>
 

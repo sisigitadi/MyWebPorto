@@ -9,6 +9,461 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 > external store + custom change event, dan pindahkan fetch list admin ke
 > Server Component (plan doc §5).
 
+### Security — `next` 16.3.5 → 16.3.8 (RCE di `next/og`, GHSA-vcvr-r3jv-pc5j)
+
+`npm audit --audit-level=high` (checklist pra-deploy) gagal dengan satu temuan
+**critical**: `next@16.3.5` berada di rentan `>=16.2.0 <16.3.6` — *Remote Code
+Execution in `next/og` ImageResponse*. Bukan temuan teoritis di sini: OG image
+situs ini dirender lewat `next/og` (`src/app/opengraph-image.tsx` +
+`src/lib/og-image.ts`) dari input yang bisa dipengaruhi konten, jadi permukaan
+serangnya nyata.
+
+- Dipatch ke `^16.3.8` (versi patch, sebaris minor). Verifikasi ulang pada
+  artefak `next start`: `/opengraph-image` 200 `image/png` (387 KB),
+  `/api/media/<id>` 200 `image/png`, `robots.txt`/`sitemap.xml` 200, dan
+  slug tak dikenal di `/toko`, `/artikel`, `/proyek` tetap 404. `tsc`,
+  `eslint --max-warnings=0`, `vitest` 436/436, `check:media`, dan
+  `next build` semuanya hijau.
+- Enam temuan `high` sisanya hanya rantai lint-time
+  (`eslint-config-next` → `fast-glob`/`micromatch`/`brace-expansion`) dan
+  perbaikannya memaksa turun ke `eslint-config-next@14`, ditunda terpisah.
+
+### Added — Storage gambar pindah ke database (Postgres bytea)
+
+Upload gambar admin kini disimpan **langsung di Postgres** (tabel `media`,
+kolom `data` bertipe `bytea`) dan dilayani via `GET /api/media/<id>`.
+Tujuannya: satu penyimpanan saja — backend + database yang sudah ada — tanpa
+CDN/S3 eksternal dan tanpa menulis ke filesystem (yang read-only di
+serverless Vercel).
+
+- **Skema**: tabel baru `media` (id uuid, name, mime, size, data bytea,
+  created_at + index) di `src/db/schema.ts`; drizzle-orm 0.45 tidak
+  menyediakan tipe `bytea` bawaan, jadi didefinisikan via `customType`.
+  Migration: `drizzle/0010_tidy_texas_twister.sql` (sekalian menambal
+  `settings_history` yang drift — tabel sudah dipakai kode tapi belum pernah
+  di-generate migration-nya).
+- **Penyimpanan** (`src/lib/storage.ts`): seluruh jalur Bunny Storage
+  (getBunnyConfig/putBunny/listBunny/deleteBunny) dihapus, diganti
+  `putMedia`/`listMediaItems`/`getMedia`/`deleteMediaRow`. Validasi keamanan
+  (whitelist MIME, magic bytes, max 20MB) tetap utuh dan terpusat.
+- **Penyajian**: route `src/app/api/media/[id]/route.ts` — Content-Type dari
+  MIME hasil validasi + `Cache-Control: immutable` (id UUID tidak pernah
+  berubah isinya). Id divalidasi format UUID sebelum query.
+- **Server actions** (`src/lib/local-upload.ts`): upload/list/delete memakai
+  DB; URL yang dikembalikan berbentuk path relatif `/api/media/<id>` agar
+  tetap valid pindah host. Guard EROFS dan path filesystem dihapus — tidak
+  ada lagi tulis ke disk.
+- **UI**: Media Library menampilkan badge "Database (Neon Postgres)";
+  panel `/admin/system` melaporkan storage via DB, bukan Bunny/upload lokal.
+- **ENV tidak lagi dipakai**: `BUNNY_STORAGE_ZONE_NAME`,
+  `BUNNY_STORAGE_API_KEY`, `BUNNY_STORAGE_REGION`, `BUNNY_CDN_HOSTNAME`,
+  `NEXT_PUBLIC_BUNNY_PULL_ZONE_URL` aman dihapus dari Vercel.
+- **Gambar lama di `public/uploads`** (local-only, sudah di-gitignore) tidak
+  dimigrasi otomatis; referensi lama yang masih path `/uploads/...` tetap
+  dilayani sebagai file statis biasa di lokal.
+
+### Fixed — Audit 2026-10-05: header `Cache-Control: immutable` media tertimpa `no-store`
+
+`next.config.ts` punya rule blanket `source: "/api/:path*"` →
+`Cache-Control: no-store, max-age=0` (untuk cegah cache endpoint sensitif).
+Rule itu **menimpa** header immutable yang di-set route media, sehingga setiap
+  render gambar memukul Postgres + transfer bytea penuh tanpa pernah di-cache.
+
+- **Fix**: rule baru `source: "/api/media/:path*"` →
+  `public, max-age=31536000, immutable` diletakkan **setelah** rule `/api/*`
+  di atas, sehingga hanya path media yang di-cache; endpoint API lain tetap
+  `no-store` (diverifikasi: `/api/indexnow` masih 405 + no-store).
+- **Verifikasi live**: probe HTTP ke dev server — sebelum fix header terbaca
+  `no-store, max-age=0`; setelah fix `public, max-age=31536000, immutable`,
+  body PNG 4096 byte utuh, magic bytes benar.
+- **Dokumentasi diperbarui**: README, DEPLOYMENT.md, SECURITY.md, .env.example
+  masih mendeskripsikan Bunny Storage/`public/uploads` (sudah tidak ada
+  kodenya) — ditarik ke deskripsi storage DB (bytea Postgres).
+
+### Fixed — Halaman detail produk: `og:image` dan `twitter:image` beda gambar
+
+Saat `/toko/<slug>` dishare, Open Graph menampilkan foto produk tetapi Twitter
+menampilkan kartu `/opengraph-image` (avatar) — dua platform memperlihatkan
+gambar berbeda dari link yang sama. Diverifikasi dari HTML live sebelum fix:
+
+- `og:image` → `https://images.unsplash.com/photo-1517842645767-…`
+- `twitter:image` → `http://localhost:3000/opengraph-image`
+- `twitter:title` → juga ikut salah: menampilkan judul profil
+  ("Sigit Adi Irianto — …") alih-alih judul produk.
+
+- **Akar masalah**: halaman hanya mengembalikan `openGraph`, tidak `twitter`.
+  Karena objek metadata child meng-*replace* objek sejenis di layout, field
+  `twitter` diwarisi utuh dari `generateDynamicMetadata` — termasuk gambar dan
+  judulnya yang memang ditujukan untuk halaman root.
+- **Fix** (`src/app/(public)/toko/[slug]/page.tsx`): blok `twitter` kini
+  didefinisikan berdampingan dengan `openGraph`, memakai `absoluteImageUrl()`
+  yang sama untuk kedua platform — sehingga `og:image` dan `twitter:image`
+  dijamin menunjuk URL identik. `twitter:title`/`twitter:description` juga
+  disamakan dengan `og:*`. Ditambah `og:image:alt` dari nama produk.
+- **Test**: 4 test baru di `tests/og-detail-metadata.test.ts` memanggil
+  `generateMetadata` produk langsung — kecocokan URL og↔twitter, judul produk
+  (bukan judul profil), path relatif di-absolut-kan, dan fallback kartu avatar.
+  Total suite 364/364 hijau.
+- **Verifikasi live**: 7 halaman dicek berpasangan — `/`, `/artikel`,
+  `/artikel/<slug>`, `/proyek`, `/proyek/<slug>`, dua `/toko/<slug>` —
+  semuanya `og:image` == `twitter:image`. `tsc` dan `eslint` bersih.
+- **Catatan tipe**: `Twitter` di Next adalah union yang termasuk
+  `TwitterMetadata` (tanpa `card`), jadi `md.twitter.card` tidak sah secara
+  tipe; test membaca `card` lewat narrowing `in`, bukan `any`/suppress.
+
+### Fixed — Halaman detail artikel & proyek tidak punya `og:image` saat dishare
+
+Share link `/artikel/<slug>` dan `/proyek/<slug>` ke WhatsApp/Telegram/X tidak
+menampilkan gambar sama sekali. Diverifikasi dari HTML live: kedua halaman
+mempunyai `og:title`, `og:url`, dan `twitter:card summary_large_image`, tetapi
+**nol `og:image` dan nol `twitter:image`** — crawler justru mendapat kartu
+kosong karena `summary_large_image` dinyatakan tanpa gambar.
+
+- **Akar masalah**: `generateMetadata` di kedua halaman mengembalikan objek
+  `openGraph` sendiri **tanpa field `images`**. Next.js meng-*replace* seluruh
+  objek `openGraph` milik layout (bukan merge per-field), sehingga `images`
+  turunan dari `generateDynamicMetadata` ikut terbuang. Halaman daftar
+  `/artikel` & `/proyek` tidak terdampak karena memang mengisi `images`.
+- **Fix**: helper baru `absoluteImageUrl()` di `src/lib/seo.ts` meresolvi
+  cover konten ke URL absolut — dengan fallback ke `/opengraph-image` (kartu
+  berisi avatar profil) bila cover kosong. Dipakai oleh kedua halaman untuk
+  `openGraph.images` **dan** `twitter.images`, sehingga OG dan Twitter selalu
+  menampilkan gambar yang sama.
+- **Bentuk sumber didukung**: URL absolut CDN, path relatif hasil upload DB
+  (`/api/media/<uuid>`), maupun legacy (`/uploads/...`) — konsisten dengan
+  JSON-LD `BlogPosting.image` / `SoftwareApplication.image` sehingga crawler
+  yang membaca meta tag dan yang membaca JSON-LD tidak melihat URL berbeda.
+  `baseUrl` dinormalkan agar tidak menghasilkan `//` ganda.
+- **Test**: `tests/og-detail-metadata.test.ts` (7 test integrasi memanggil
+  `generateMetadata` langsung dengan data di-mock — cover ada, cover kosong,
+  path relatif, slug tidak ada) + 5 test `absoluteImageUrl` di
+  `tests/seo.test.ts`. Total suite 360/360 hijau; `tsc` dan `eslint` bersih.
+- **Verifikasi live**: `/artikel/arsitektur-retro-os-nextjs-15` kini memancarkan
+  `og:image` + `og:image:alt` + `twitter:image` menunjuk cover Unsplash;
+  `/proyek/sentinel-soc` menunjuk thumbnail Imgix. Regresi dicek: `/`,
+  `/artikel`, `/proyek`, dan `/toko/<slug>` tetap seperti sebelumnya.
+
+### Fixed — Sisa cover artikel masih menunjuk `/uploads/` yang di-gitignore
+
+Setelah `avatar_url` dimigrasi (entri di bawah), audit menyisir **seluruh**
+kolom teks/JSON di seluruh tabel (`information_schema` → query `like '%uploads/%'`)
+untuk menemukan referensi path upload lama lain. Hasilnya persis dua baris,
+keduanya `articles.image_url`:
+
+- `membangun-dashboard-halaqah-…-taklim` → `/uploads/1789177425748-93e9001a.png`
+- `membuat-video-di-chatgpt` → `/uploads/1791150657181-86612d05.png`
+
+Keduanya memakai file di `public/uploads/` yang di-gitignore → cover ini 404 di
+produksi (hero artikel, listing `/artikel`, `og:image`, JSON-LD).
+
+- **Fix (data, dua langkah per artikel)**: file dimasukkan ke tabel `media`
+  (bytea, MIME `image/png` hasil cek magic bytes) — id baru
+  `3f069a13-121d-485a-9daa-7596533d5412` (2.520.991 byte) dan
+  `0b15a13f-7953-49ec-b55e-9c95bf9d6767` (2.284.037 byte) — lalu `image_url`
+  di-point ke `/api/media/<id>`. Sebelum insert, isi `media` dicek dulu untuk
+  memakai baris identik bila sudah ada (tidak ada; avatar sudah tercatat).
+- **Byte identik**: sha256 respons route media == file lokal (`e93c1c08bbaf…`
+  dan `e9728d6c689f…`) — cover yang sama, bukan penggantian gambar.
+- **Verifikasi live**: rescan seluruh tabel → **0** referensi tersisa;
+  `GET /api/media/<id>` keduanya 200 `image/png` + `immutable`; halaman detail
+  kedua artikel memancarkan `og:image` == `twitter:image` ke `/api/media/…`
+  dan **0** kemunculan `/uploads/`; listing `/artikel` menampilkan kedua cover
+  (img `naturalWidth` 1536, bukan gambar rusak).
+- **Rollback** (file lokal masih ada):
+  `update articles set image_url='/uploads/1789177425748-93e9001a.png' where slug='membangun-dashboard-halaqah-digitalisasi-presensi-santri-dan-evaluasi-kurikulum-taklim';` dan
+  `update articles set image_url='/uploads/1791150657181-86612d05.png' where slug='membuat-video-di-chatgpt';`
+  (dua baris `media` yang ditambahkan ikut bisa dihapus).
+- **Referensi hardcoded di source**: tidak ada — yang tersisa hanya komentar
+  dokumentasi dan test jalur legacy (`tests/og-image.test.ts`,
+  `tests/seo.test.ts`) yang memang menguji dukungan path `/uploads/`.
+### Added — Analisis SEO + saran keyword di Redaksi (deterministik, tanpa AI)
+
+Bagian 1 dari rencana SEO: sebelum admin menulis panjang, admin
+butuh pemeriksaan cepat apakah judul, slug, meta description, struktur heading,
+dan internal link-nya sudah benar. Sekarang satu klik memunculkan temuannya
+beserta saran siap pakai.
+
+- **Analyzer murni (`src/lib/seo-keywords.ts`)**: **sengaja tidak memanggil
+  LLM**. Analisisnya deterministik, jadi (1) tetap jalan meski kuota Cloud AI
+  habis, (2) hasilnya bisa diuji unit, dan (3) murah serta cepat.
+- **Batas yang ditulis jujur di UI**: skor keyword dihitung dari frekuensi
+  frasa DI DALAM konten itu sendiri, **bukan data volume pencarian** (tidak ada
+  akses Keyword Planner/Ahrefs/Semrush). Panel menampilkan catatan ini supaya
+  angkanya tidak disalahartikan sebagai data pasar.
+- **Kandidat keyword**: unigram + bigram + trigram, dibobot frekuensi; panjang
+  frasa **dibatasi maksimal 2 kata** karena trigram terlalu spesifik dan jarang
+  jadi intent pencarian. Frasa berpotongan (mis. `keyword nextjs diulang`) tidak
+  boleh mengalahkan bigram bermakna.
+- **Keyword utama**: diutamakan frasa yang juga muncul di judul, maksimal dua
+  kata, dengan tie-break ke frasa lebih spesifik.
+- **Pemeriksaan**: panjang judul (30-65), slug (format + maksimal 6 kata +
+  memuat keyword), meta description (120-165), ketebalan isi (minimal 600 kata),
+  keberadaan H2, jumlah internal link, **density** kata kunci (0-3%), dan
+  rata-rata panjang kalimat sebagai proxy keterbacaan. Temuan dikelompokkan
+  `critical` / `warning` / `opportunity` sesuai dampaknya.
+- **Saran siap pakai**: alternatif judul, slug dari kata kunci, meta description
+  dari dua kalimat pertama, dan **internal link ke 3 halaman** yang paling
+  berbagi frasa dengan konten ini. Semua lewat tombol **Terapkan** per field —
+  panel tidak pernah menulis ulang konten diam-diam.
+- **Server action `analyzeContentSeoAction`**: `verifyAdmin()` + rate limit
+  (30/5 menit, tidak memakai kuota API), supplying konteks situs dari artikel,
+  proyek, dan produk terbit untuk saran internal link.
+- **Temuan dari data produksi** (smoke test ke artikel sungguhan, bukan
+  fixture): 4 dari 5 artikel/sample **tidak punya H2 dan tidak punya internal
+  link sama sekali**, dan beberapa artikel hanya ~750 karakter (10 baris) —
+  jauh di bawah ambang isi minimum. Satu artikel kena density 4,49%. Jadi
+  temuan analyzer bukan sekadar formalitas; ada pekerjaan isi nyata menunggu.
+- **Test**: `tests/seo-keywords.test.ts` — 22 test (tokenisasi, kandidat,
+  keyword utama, slug, density, tiap aturan finding, saran internal link).
+  Dua bug nyata ketangkap oleh test: `countPhrase` gagal menghitung frasa di
+  awal baris baru (haystack berisi newline), dan trigram menyalip bigram —
+  keduanya diperbaiki di implementasi, bukan dikurangi expektasi test.
+### Added — Bikin gambar cover dengan AI di Redaksi (artikel, proyek, produk)
+
+Field **"URL Gambar (wajib)"** di composer Redaksi adalah satu-satunya field
+wajib yang tidak bisa diisi dari draf AI — draf sendiri bahkan menghapus
+`imageUrl` (lihat redaksi-draft.ts). Akibatnya tiap artikel baru harus mencari
+gambar manual sebelum bisa disimpan. Sekarang satu klik menghasilkannya.
+
+- **Layer AI (`src/lib/ai-image.ts`)**: `generateCoverImage()` memanggil
+  Gemini image model dengan **rantai fallback** `gemini-3.1-flash-lite-image`
+  → `gemini-3.1-flash-image` → `gemini-3-pro-image` (murah/cepat dulu). Daftar ini
+  bukan tebakan: hasil **probe ListModels** langsung dengan key aktif
+  (2026-10-05) menunjukkan 6 model berkemampuan gambar tersedia. Bisa
+  ditimpa lewat env `GEMINI_IMAGE_MODEL`.
+- **Prompt disusun dari isi konten** (`buildCoverImagePrompt`): judul +
+  deskripsi + cuplikan badan (tag HTML dibuang), rasio 16:9 karena cover dipakai
+  untuk og:image (1200x630) sekaligus thumbnail katalog, plus larangan eksplisit
+  **teks/logo/watermark** — penyebab paling sering cover hasil AI terlihat rusak
+  (huruf pseudografis). Gaya visual menyesuaikan tipe konten.
+- **Server action `generateRedaksiImageAction`**: `verifyAdmin()` + rate limit
+  terpisah dari draf teks (10/5 menit, satu klik = satu panggilan berbayar),
+  MIME dari provider **tidak dipercaya** — diverifikasi ulang lewat magic bytes
+  (`matchesImageSignature`, whitelist yang sama dengan upload manual) sebelum
+  disimpan lewat `putMedia()`. Hasil balik ke composer adalah URL
+  `/api/media/<id>` — gambar ikut ter-deploy bersama DB, bukan file lokal yang
+  bisa hilang seperti dulu.
+- **UI (`redaksi-composer.tsx`)**: tombol **"Buat gambar dengan AI"** di bawah
+  field gambar, lengkap dengan status sibuk, pratinjau thumbnail, dan tombol
+  berubah jadi **"Buat ulang gambar"** untuk percobaan berikutnya. Field
+  `imageUrl` langsung terisi tapi tetap bisa diganti manual admin.
+- **Hanya untuk tipe yang punya field gambar**: artikel, proyek, produk.
+  Service/testimonial/profile ditolak dengan pesan jelas.
+- **Kontrak never-throw**: kegagalan dikembalikan sebagai
+  `{ ok: false, error }` dengan pesan yang bisa ditindaklanjuti. 429 di ketiga
+  model dikenali sebagai **kuota akun habis** dan diberi petunjuk (tunggu reset
+  atau ganti key di /admin/cloud-ai), bukan error teknis mentah.
+- **Verifikasi live**: probe nyata ke API mengembalikan **HTTP 429
+  "quota exceeded"** pada ketiga model — artinya endpoint, key, nama model,
+  dan payload sudah benar (429 Struktural dari Google, bukan 400), tetapi
+  kuota akun sedang habis sehingga byte gambar belum bisa dibuktikan keluar.
+  Semua unit test memakai fetch di-mock.
+- **Test**: `tests/ai-image.test.ts` — 17 test (prompt per tipe, larangan teks,
+  ekstraksi inlineData, rantai model, fallback saat 429, pesan kuota, tidak
+  pernah melempar saat jaringan gagal).
+### Fixed — Audit SEO/GSC 2026-10-05: host duplikat, kartu produk, h1 beranda, sitemap
+
+Masukan: GSC melaporkan 17 URL **"Alternate page with proper canonical tag"**
+dan 14 URL **"Crawled - currently not indexed"** (semua varian `?contactSubject=`,
+`?lang=`, dan satu `http://porto.sigitadi.id/`). Audit dilakukan dengan probe
+HTTP read-only ke produksi, lalu kode diperbaiki seperlunya.
+
+**Hasil audit — apa yang sebenarnya sudah benar** (terverifikasi di produksi,
+jadi tidak perlu disentuh lagi):
+
+- `/?contactSubject=…&contactBody=…` → **308** ke `/#kontak` (fix konsolidasi
+  URL lama sudah live; itu penyebab utama 14 URL "tidak terindeks" itu).
+- `/?lang=id|en` → 200 dengan `<link rel="canonical">` ke URL bersih ✓.
+- `www.sigitadi.id` dan `http://` → redirect ke apex `https://sigitadi.id` ✓.
+- Trailing slash (`/proyek/`) → redirect ke `/proyek`; path huruf besar
+  (`/PROYEK`) → 404 ✓.
+
+**Yang diperbaiki di kode:**
+
+- **Host duplikat `porto.sigitadi.id`** (MASIH 200 + canonical ke dirinya
+  sendiri, menyajikan situs lama statis `ai-engineer.html` /
+  `secops-engineer.html`). Dua salinan utuh dengan canonical masing-masing
+  memecah otoritas backlink dan membuat Bing/Google tidak tahu URL mana yang
+  benar-benar diindeks. Helper baru `src/lib/canonical-host.ts`
+  (`isAliasHostname`/`resolveHostRedirectUrl`, murni) menyalakan **308 ke apex
+  untuk setiap subdomain alias**, disambungkan di `src/proxy.ts` (kedua
+  cabang: dengan dan tanpa Clerk). Aturannya sengaja sempit — hanya subdomain
+  dari domain kanonik; preview deployment Vercel (`*.vercel.app`) dan localhost
+  tidak disentuh agar share tautan preview tidak rusak.
+  **TINDAKAN INFRA (tidak bisa dari kode):** `porto.sigitadi.id` masih
+  menyajikan deployment lama, jadi hapus alias domain / record DNS-nya — atau
+  arahkan ke deployment ini agar redirect di atas langsung berlaku. Meskipun
+  tidak disentuh, `robots.txt` produksi tetap perlu decode ulang setelah
+  subdomain hilang agar GSC cepat melepaskannya.
+- **Kartu produk di hasil pencarian**: `/toko/<slug>` tidak pernah memancarkan
+  JSON-LD apa pun (nol `application/ld+json` di HTML produksi) — artikel dan
+  proyek sudah punya BlogPosting/BreadcrumbList, produk tidak. Builder murni
+  baru `src/lib/product-schema.ts` kini memancarkan **Product** (nama,
+  deskripsi, gambar absolut, sku, kategori) + **Offer** (harga IDR dari
+  `priceAmount`, ketersediaan dari `stock`, penjual). Dua hal SENGAJA tidak
+  dikarang: **aggregateRating/review** (data produk tidak punya rating; memalsukan
+  structured data review melanggar pedoman Google) dan **BreadcrumbList**
+  (section Toko tidak punya halaman katalog — `/toko` me-redirect ke anchor,
+  sehingga URL breadcrumb di tengah tidak bisa di-crawl). Brand memakai konstanta
+  `SITE_BRAND` (nama yang sama dengan schema WebSite) — BUKAN `STORE_NAME`
+  ("Toko"), yang hanya label UI dilokalkan dan akan dibaca Google sebagai brand
+  generik yang bertabrakan dengan entitas situs.
+- **Beranda tanpa `<h1>`**: hero visual hanya muncul setelah boot client-side,
+  sehingga HTML yang dilihat crawler tidak punya heading utama sama sekali
+  (terverifikasi: 0 tag `h1` di HTML produksi beranda). Heading nama + headline di blok `sr-only` sekarang dipromosikan jadi `<h1>`.
+- **Sitemap**: route statis dan produk memakai `lastModified: new Date()`,
+  sehingga SETIAP fetch sitemap menandai seluruh URL sebagai baru diubah —
+  Google menganggap semua halaman berubah tiap hari dan boros crawl budget
+  untuk perubahan yang tidak ada. `lastModified` dihapus untuk route tanpa
+  tanggal nyata (statis & produk); artikel/proyek tetap memakai
+  `updatedAt`/`createdAt` yang sebenarnya. `/artikel` juga turun dari `daily`
+  ke `weekly` (katalog berubah saat ada artikel baru, bukan tiap hari).
+
+**Catatan untuk `?lang=id|en`** (kelompok URL terbesar di laporan GSC):
+canonical-nya sudah benar, dan tidak ada satu pun link internal yang membuat
+URL itu — duplikatnya berasal dari share/backlink lama. Status "Alternate page
+with proper canonical tag" memang label Google untuk URL canonicalized yang
+sengaja tidak diindeks. Menhapusnya berarti mematikan fitur deep-link bahasa
+(link `?lang=en` yang dibagikan orang akan mendarat di versi Indonesia),
+jadi **tidak** diubah di sini karena itu keputusan produk, bukan bug.
+
+**Test**: `tests/seo-host-product.test.ts` — 14 test (normalisasi harga,
+Product/Offer lengkap, gallery path relatif, tanpa offers saat harga kosong,
+OutOfStock, tanpa rating dikarang, brand, alias-host + query preservation, dan
+wiring proxy beneran mengembalikan 308).
+### Fixed — Slug produk/konten tak dikenal membalas 200, bukan 404
+
+`/toko/<slug>`, `/artikel/<slug>`, dan `/proyek/<slug>` untuk slug yang tidak
+ada di database **sudah** memanggil `notFound()` sejak lama, tapi responsnya
+tetap **HTTP 200** dengan body halaman not-found (soft-404). Pengunjung yang
+menyalin URL salah tidak diberi tanda, dan crawler, monitoring, serta cache
+semuanya melihat “halaman sukses”.
+
+- **Akar masalah**: `loading.tsx` berada di `src/app/(public)/`, yaitu akar
+  route group — jadi Suspense boundary-nya membungkus **seluruh** anak, bukan
+  cuma beranda. Shell skeleton ter-flush dengan status 200 lebih dulu,
+  sedangkan `notFound()` baru dievaluasi setelahnya; status yang sudah
+  terkirim tidak bisa diubah. Terverifikasi empiris: dengan `loading.tsx`
+  sementara dihapus, ketiga rute langsung membalas 404 tanpa sentuhan kode
+  lain — jadi penyebabnya pasti, bukan tebakan.
+- **Fix (blast radius terkecil)**: `page.tsx` beranda + `loading.tsx` dipindah
+  ke route group baru `src/app/(public)/(home)/`, sehingga skeleton hanya
+  menutupi beranda. Halaman detail konten tidak lagi punya boundary di
+  atasnya → `notFound()` menghasilkan HTTP 404 sungguhan. Layout,
+  `template.tsx`, dan URL beranda (`/`) tidak berubah sama sekali.
+- **Verifikasi live**: `/toko/tidak-ada`, `/artikel/tidak-ada`,
+  `/proyek/tidak-ada` → **404** (body not-found kustom tetap ter-render);
+  `/toko/template-portfolio-notion`, `/`, `/artikel`, `/proyek` → 200;
+  `/toko` tetap 308 ke `/#produk`; path asing tetap 404.
+- **Test**: `e2e/public.spec.ts` — spec baru **“slug tak dikenal benar-benar
+  404, bukan soft-404 berstatus 200”** meng-request ketiga path dan
+  mengunci status 404. Suite publik lokal hijau 6/6.
+- **Konsekuensi yang disadari**: katalog `/artikel` dan `/proyek` ikut
+  kehilangan instant skeleton (segment yang sama dengan halaman detailnya —
+  `loading.tsx` berlaku untuk anak juga). Animasi boot OS + `template.tsx`
+  tetap menutupi perpindahan.
+- **Catatan operasional**: setelah pemindahan file rute,
+  `.next/types/validator.ts` masih menunjuk path lama sampai `npx next
+  typegen` dijalankan — tanpa itu `tsc --noEmit` gagal dengan TS2307.
+### Added — Gate `npm run check:media`: URL gambar tak tersedia di produksi = build gagal
+
+Dua entri di atas perlu diperbaiki manual karena bug-nya senyap: `avatar_url`
+dan dua `articles.image_url` menunjuk `/uploads/...` yang file-nya di-
+`.gitignore`, sehingga **lokal selalu hijau** dan baru 404 setelah deploy di
+Vercel. Audit lama baru bisa menemukan ini setelah rusak. Sekarang ia jadi gate.
+
+- **Audit baru (`src/lib/media-url-audit.ts`)**: `auditStoredImageUrls()`
+  menyisir kolom bergambar di seluruh tabel dan menandai 7 jenis masalah —
+  `/uploads/<file>` (file .gitignore), `/api/media/<id>` yang id-nya tidak ada
+  di tabel `media`, id bukan UUID (route 404), URL `localhost`/IP privat,
+  `http://` (harus https), path relatif yang tidak dilayani Next.js, dan nilai
+  kosong. `data:image/...` dan `https://` host luar dianggap aman. Read-only.
+- **Dua lapis filter agar nol false positive**: kolom skalar hanya diperiksa
+  bila NAMANYA bergambar (`isImageFieldName`); kolom JSON hanya diambil bila
+  key-nya (atau nama kolom, mis. array `gallery`) bergambar — string biasa
+  yang kebetulan memuat `/uploads/x.png` di dalam deskripsi bukan field gambar.
+  Tabel historis (`settings_history`, `audit_logs`) dikecualikan: isinya
+  catatan masa lalu, bukan konfigurasi yang disajikan.
+- **Gate**: `npm run check:media` → `tests/media-url-audit.test.ts`. Blok live
+  (butuh `DATABASE_URL`) memanggil audit sungguhan dan **gagal** bila ada
+  temuan. Tanpa `DATABASE_URL` blok di-skip — CI memang sengaja berjalan
+  tanpa DB (lihat `.github/workflows/ci.yml`), jadi gate tidak memutus build
+  yang memang tidak bisa menyentuh database.
+- **Gate dibuktikan benar-benar gagal**: `articles.image_url` sementara diisi
+  `/uploads/tmp-gate-check.png` → `check:media` exit 1 dengan pesan
+  `legacy-uploads-path` + kolom & baris yang salah; setelah itu nilai
+  dikembalikan dan read-back identik dengan nilai awal.
+- **Terlihat di admin**: `/admin/system` → Integrasi → **"Audit URL gambar"**
+  menampilkan jumlah kolom/nilai yang diperiksa, jumlah temuan (20 pertama),
+  dan alasannya. Query dibungkus try/catch agar kegagalan audit tidak
+  menjatuhkan seluruh panel status.
+- **Satu sumber kebenaran untuk format id**: `MEDIA_ID_RE` + `isMediaId()` di
+  `src/lib/storage.ts` dipakai route `GET /api/media/[id]`, resolver Open Graph,
+  dan audit — ketiga regex UUID tidak lagi bisa berbeda antar jalur.
+  Sengaja memakai **fungsi**, bukan regex yang diimpor lalu dirakit jadi RegExp
+  baru: `vi.mock("@/lib/storage")` mengisi ekspor modul SETELAH modul lain
+  dievaluasi, sehingga `new RegExp(MEDIA_ID_RE.source)` di level modul tertangkap
+  `undefined` — regresi nyata yang ketahuan saat 1 test OG gagal (lalu hijau lagi).
+- **Test**: `tests/media-url-audit.test.ts` — 19 test (18 unit untuk klasifikasi
+  tiap jenis masalah + ekstraksi dari JSON bersarang, 1 live-DB gate).
+- **Dokumentasi**: `DEPLOYMENT.md` → bagian baru **"Gate URL Gambar
+  (Pra-Deploy)"** + checklist hardening.
+### Fixed — `profiles.avatar_url` menunjuk baris media DB (avatar hilang di produksi)
+
+`avatar_url` pemilik masih menunjuk `/uploads/1791098437470-5b89105b.png`, padahal
+`public/uploads/` masuk `.gitignore` (lihat entri Storage di atas) — file itu hanya
+ada di mesin lokal, sehingga di Vercel hero, JSON-LD `Person.image`, dan kartu OG
+kebagian gambar yang tidak pernah ikut ter-deploy.
+
+- **Perbaikan data (bukan kode)**: baris `profiles` di-point ke media DB yang sudah
+  ada: `/api/media/97d87474-b119-4f87-b2fe-ccbeaa2b5a35` — bytea Postgres, jadi
+  ikut ter-deploy tanpa file di repo.
+- **Bukan ganti gambar**: byte identik dengan file lama (sha256 `2ffee54d…43eda`,
+  2.532.211 byte, PNG 1254×1254) — dibuktikan `sha256sum` file lokal vs isi respons
+  `GET /api/media/<id>` yang sama persis.
+- **Verifikasi live** (dev :51371): `GET /api/media/97d87474-…` → 200
+  `image/png` 2.532.211 byte + `Cache-Control: public, max-age=31536000, immutable`;
+  HTML homepage memuat path itu 7× (JSON-LD ×2 + payload RSC) dan **nol** referensi
+  `/uploads/1791098437470…`; `<img>` hero di browser punya `naturalWidth` 1254
+  (bukan 0/broken); `GET /opengraph-image` → 200 PNG 1200×630 388KB berisi foto
+  avatar.
+- **Rollback** (bila file lama ikut dideploy):
+  `update profiles set avatar_url='/uploads/1791098437470-5b89105b.png' where id='owner';`
+### Fixed — Avatar profil tidak muncul di pratinjau share (WhatsApp/Telegram/sosial)
+
+`/opengraph-image` merender **monogram inisial**, bukan foto avatar, ketika
+link dibagikan ke WhatsApp/Telegram/dll. Penyebabnya: tes lama
+`/^https?:\/\//` menolak `avatar_url` berupa path relatif
+(`/uploads/…`, dan kini `/api/media/<id>`), sehingga gambar dianggap tidak ada.
+
+- **Resolver baru (`src/lib/og-image.ts`)**: `resolveOgImageSrc()` menerima
+  tiga bentuk referensi — `/api/media/<uuid>` (bytea dari DB), `/uploads/…`
+  (legacy, dibaca dari `public/`), dan `http(s)://…` (fetch) — lalu
+  mengembalikan **data URL**. Hasil berupa data URL bukan Buffer karena
+  diuji langsung ke next/og yang dibundel: Buffer/Uint8Array mentah untuk
+  PNG/JPEG melempar `First argument to DataView constructor must be an
+  ArrayBuffer` (parser dimensi `Js`/`Ps` memanggil `new DataView(A)`),
+  sementara jalur data URL aman untuk PNG, JPEG, dan GIF.
+- **Whitelist format satori**: hanya `image/png`, `image/jpeg`, `image/gif`
+  yang diterima (set `qI` di next/og). WEBP/AVIF/BMP lolos whitelist upload
+  tapi **melempar** di satori — kalau diteruskan route OG akan 500; kini jatuh
+  ke monogram dengan warning. Magic bytes dicek ulang via
+  `matchesImageSignature`, bukan percaya ekstensi/header.
+- **Keamanan**: path traversal legacy (`/uploads/../../package.json`) diblokir
+  sebelum `readFile`; referensi tak dikenal (`javascript:`, `data:`) ditolak;
+  resolver tidak pernah throw — gagal = monogram, bukan 500.
+- **Override admin ikut diperbaiki** (`opengraph-image.tsx`): gambar OG kustom
+  dari `/admin/seo` kini boleh path relatif (`/api/media/<id>`) maupun absolut
+  — sebelumnya hanya absolut yang dipakai.
+- **JSON-LD (`json-ld.tsx`)**: `image` pada schema Person kini selalu absolut
+  (`baseUrl` + path relatif), bukan path mentah yang tidak bisa di-crawl
+  validator Google.
+- **Verifikasi live**: GET `/opengraph-image` di dev server → 200, PNG 1200×630
+  388KB, dan screenshot memperlihatkan foto avatar (bukan monogram);
+  `og:image`/`twitter:image` menunjuk `/opengraph-image` dengan URL absolut.
+- **Test**: `tests/og-image.test.ts` — 14 test (3 jalur referensi + keamanan),
+  total suite 348/348 hijau; `tsc` dan `eslint` bersih.
+
 ### Fixed — Audit 2026-10-05: model Gemini default & cadangan menyasar model pensiun (404)
 
 Probe langsung ke API Gemini (ListModels + `generateContent` per kandidat,

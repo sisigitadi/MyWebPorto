@@ -53,7 +53,11 @@ export default async function HomePage() {
       */}
       <div className="sr-only" aria-label="Sitemap Konten & Ringkasan Portofolio">
         <header>
-          <h2>{profile.name} — {profile.headline}</h2>
+          {/* h1 = heading utama dokumen ini. Hero visual (jendela OS) hanya
+              dirender setelah boot client-side sehingga TIDAK ada di HTML yang
+              dilihat crawler — tanpa h1 di sini, beranda tidak punya heading
+              utama sama sekali (terverifikasi: 0 tag h1 di HTML produksi). */}
+          <h1>{profile.name} — {profile.headline}</h1>
           <p>{profile.bio}</p>
           <address>
             <p>Lokasi: {profile.location}</p>
