@@ -117,6 +117,50 @@ export function absoluteImageUrl(
   return `${base}${url.startsWith("/") ? "" : "/"}${url}`;
 }
 
+/** Ukuran kartu OG dinamis di src/app/opengraph-image.tsx (satori, 1200x630). */
+export const OG_CARD_WIDTH = 1200;
+export const OG_CARD_HEIGHT = 630;
+
+export interface ShareImage {
+  url: string;
+  alt: string;
+  width?: number;
+  height?: number;
+  type?: string;
+}
+
+/**
+ * Objek `openGraph.images` untuk halaman detail.
+ *
+ * Kenapa helper: WhatsApp dan Facebook menyusun preview dari og:image
+ * beserta dimensi dan tipenya. Tanpa `og:image:width/height/type` keduanya
+ * cenderung gagal merender thumbnail (Telegram lebih toleran, sehingga
+ * gejalanya "hanya Telegram yang jalan").
+ *
+ * Dimensi HANYA diisi untuk kartu `/opengraph-image` yang ukurannya kita
+ * kendalikan. Cover artikel, thumbnail proyek, dan foto produk bisa berasal
+ * dari DB media, Bunny, atau Unsplash dengan rasio apa saja — menebak
+ * dimensi yang salah membuat layout platform justru lebih buruk daripada
+ * tidak menyebutkannya sama sekali.
+ */
+export function shareImage(
+  src: string | null | undefined,
+  baseUrl: string,
+  alt: string
+): ShareImage {
+  const url = absoluteImageUrl(src, baseUrl);
+  const isGeneratedCard = url.endsWith("/opengraph-image");
+  return isGeneratedCard
+    ? {
+        url,
+        alt,
+        width: OG_CARD_WIDTH,
+        height: OG_CARD_HEIGHT,
+        type: "image/png",
+      }
+    : { url, alt };
+}
+
 export async function generateDynamicMetadata(): Promise<Metadata> {
   const profile = await getProfile();
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");

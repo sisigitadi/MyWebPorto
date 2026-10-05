@@ -178,12 +178,25 @@ const nextConfig: NextConfig = {
       // berubah). Wajib di-cache, jika tidak setiap render gambar memukul
       // Postgres dan mentransfer bytea penuh. Aturan ini diletakkan SETELAH
       // rule /api/:path* di atas agar menimpanya untuk path media saja.
+      // Cross-Origin-Resource-Policy HARUS di-longgarkan di sini. Gambar
+      // media kini dilayani dari origin sendiri dan dipakai sebagai
+      // og:image. Scraper WhatsApp dan Facebook mengambil og:image dari
+      // server mereka sendiri (permintaan cross-origin), sehingga CORP
+      // same-origin dari rule /(.*) di atas memblokirnya: preview gambar
+      // muncul di Telegram (fetcher-nya mengabaikan CORP) tetapi hilang
+      // di WhatsApp dan platform lain. Nilai cross-origin aman di sini
+      // karena berkasnya sudah publik lewat og:image dan immutable, jadi
+      // tidak ada data sensitif yang bisa bocor.
       {
         source: "/api/media/:path*",
         headers: [
           {
             key: "Cache-Control",
             value: "public, max-age=31536000, immutable",
+          },
+          {
+            key: "Cross-Origin-Resource-Policy",
+            value: "cross-origin",
           },
         ],
       },
