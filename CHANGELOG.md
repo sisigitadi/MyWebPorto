@@ -4,6 +4,15 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Security & Changed — Full Audit, Upgrade Next.js 16.4 & Penambalan CVE
+
+Pembaruan menyeluruh dependensi dan pengamanan rantai pasok (supply chain):
+- **Framework & Core**: Next.js 16.3.8 → 16.4.0 (Turbopack), Clerk 7.9.1 → 7.9.14 (`@clerk/ui` 1.40.0), Drizzle ORM 0.45.2 → 0.45.4 (`drizzle-kit` 0.31.11), Neon Serverless 1.1.0 → 1.2.0, Zod 4.6.5 → 4.6.6, Lucide React 1.44.0 → 1.55.0, Tailwind Merge 3.6.0 → 3.7.0, Radix UI primitives.
+- **Testing & Tools**: Vitest 5.0.2 → 5.0.4, Vite 8.3.0 → 8.3.4, Playwright 1.63.0 → 1.64.0, `@types/node` diperbarui ke Node 22 LTS (`^22`).
+- **Keamanan (npm overrides)**: Penambalan kerentanan keamanan transitif `sharp` (CVE-2026-96889), `source-map-js`, dan `brace-expansion` melalui npm overrides.
+- **Node 24 Deprecation Fixed**: Peringatan `[DEP0005] DeprecationWarning: Buffer()` pada proses build berhasil dieliminasi.
+- **Verifikasi**: Seluruh 516 unit test Vitest, pemeriksaan tipe TypeScript, ESLint, verifikasi docs-drift, kompilasi Next.js 16.4, dan 10 test Playwright E2E publik lulus 100%.
+
 ### Added — Angka README diisi dari kode + guard daftar env var
 
 Menjaga angka tetap sinkron itu melelahkan, dan kelelahan itu membuktikan diri:

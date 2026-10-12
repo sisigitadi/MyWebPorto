@@ -130,7 +130,7 @@ Header lengkap di `next.config.ts` (`headers()`):
 - [ ] Storage gambar: tabel `media` (bytea Postgres) siap via migrasi `drizzle/0010` — tidak ada dependency object storage lagi.
 - [ ] `ENABLE_EXTERNAL_TRANSLATE` sesuai kebijakan privasi (set `false` jika egress dilarang).
 - [ ] `npm run lint && npm run build` pass (0 error, 0 warning); `npx tsc --noEmit` 0 error; `npm run test` hijau.
-- [ ] `npm audit --audit-level=high` cek. Per 2026-10-11 laporan berisi **12 vuln (4 moderate, 8 high)**, semuanya transitif/dev: `brace-expansion`/`braces` via `eslint-config-next`, `drizzle-kit` → `@esbuild-kit` → `esbuild`, `sharp`, dan `source-map-js`. Jalankan `npm audit fix` (tanpa `--force`) untuk yang aman; tahan `--force` yang menurunkan/menaikkan versi breaking tanpa uji.
+- [ ] `npm audit --audit-level=high` cek. Per 2026-10-12 laporan berisi **9 vuln transitif dev-only** (4 moderate, 5 high) pada `eslint-config-next` dan `drizzle-kit` (@esbuild-kit). Kerentanan `sharp` (CVE-2026-96889), `source-map-js`, dan `brace-expansion` telah ditambal via npm overrides. Tahan `--force` agar tidak merusak ekosistem Next.js 16.
 - [ ] Bila Cloud AI diaktifkan: `AI_PROVIDER` + key di env server **atau** di form `/admin/cloud-ai` (tabel `settings`); pastikan UI admin menampilkan key sebagai masked, dan `AI_PROVIDER=off` bila tidak dipakai.
 - [ ] Header CSP tidak blokir UI (cek DevTools → Console → CSP violations).
 - [ ] Uji `/admin` dengan akun non-owner → harus 404; `POST /api/indexnow` tanpa login → 401; `POST /api/retrobot` melebihi 20×/5 mnt → 429.
@@ -166,6 +166,7 @@ node scripts/check-clerk-login.mjs
 
 | Tanggal | Perubahan |
 |---------|-----------|
+| 2026-10-12 | **Pembaruan dependensi & mitigasi CVE transitif**: Upgrade Next.js 16.4.0, Clerk 7.9.14, Radix UI, Drizzle, Node 22 LTS types. Penambalan kerentanan `sharp` (CVE-2026-96889), `source-map-js`, dan `brace-expansion` melalui npm overrides. Eliminasi `DeprecationWarning: Buffer()` pada proses build Node 24. |
 | 2026-10-11 | **Sinkronisasi dokumentasi** (bukan perubahan kode): §3.2 upload merujuk validasi terpusat `storage.ts` (whitelist MIME tanpa SVG, magic-bytes per MIME, ekstensi dari MIME tervalidasi, id UUID) alih-alih `local-upload.ts` + nama `Date.now()-randomHex`; §3.3 `images.remotePatterns` = allowlist host (bukan wildcard `**`) + pengecualian CORP `cross-origin` untuk `GET /api/media/:id`; §3.5 `middleware.ts:27` → `src/proxy.ts`; §3.7 & §4 form Cloud AI `/admin/system` → `/admin/cloud-ai`; §3.1/§3.4 referensi baris `indexnow/route.ts` dihapus; §4 catatan `npm audit` disegarkan (12 vuln: 4 moderate, 8 high). |
 | 2026-09-18 | **Koreksi dokumentasi** (bukan perubahan kode): §3.2 CSP `script-src` diperbaiki — domain Clerk diturunkan dari publishable key saat build (bukan hardcode `*.clerk.accounts.dev`); §4 tambah checklist `NEXT_PUBLIC_CLERK_SIGN_IN_URL` ≠ `/admin` (redirect loop) + catatan curl menyesatkan; §5 tambah `scripts/check-clerk-login.mjs` |
 | 2026-09-12 v2 | CSP hapus `unsafe-eval`, tambah COOP/CORP, Cache-Control admin/api, validation max-length+slug regex, IndexNow admin-only (5/60s) + max 100 URLs, error sanitasi allowlist diperluas, middleware `x-request-id` |
