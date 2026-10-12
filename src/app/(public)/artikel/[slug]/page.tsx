@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getArticles, getProfile } from "@/lib/actions";
 import { resolveFeatures } from "@/lib/features-config";
 import { safeJsonLd } from "@/lib/json-ld";
-import { localeAlternates, shareImage } from "@/lib/seo";
+import { localeAlternates, shareImage, extractFaqFromContent, buildFaqPageSchema } from "@/lib/seo";
 import { ArticleDetailContent } from "@/components/public/article-detail-content";
 
 interface ArticleDetailPageProps {
@@ -128,11 +128,15 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
     ],
   };
 
+  const faqItems = extractFaqFromContent(article.content);
+  const faqSchema = buildFaqPageSchema(faqItems);
+
   const blogPostingSchema = {
     "@context": "https://schema.org",
-    "@type": "BlogPosting",
+    "@type": "TechArticle",
     headline: article.title,
     description: article.summary,
+    articleBody: article.content,
     image: article.imageUrl || `${baseUrl}/opengraph-image`,
     url: pageUrl,
     datePublished: new Date(article.createdAt).toISOString(),
@@ -142,6 +146,7 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
       "@type": "Person",
       name: profile.name || "Sigit Adi Irianto",
       url: baseUrl,
+      jobTitle: profile.headline || "Full Stack & Cybersecurity Engineer",
     },
     publisher: {
       "@type": "Person",
@@ -165,6 +170,12 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd(blogPostingSchema) }}
       />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(faqSchema) }}
+        />
+      )}
       <div className="h-full w-full overflow-y-auto vt-scrollbar">
         <ArticleDetailContent
           article={article}

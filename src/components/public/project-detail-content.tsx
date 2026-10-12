@@ -9,6 +9,7 @@ import { useTranslation } from "@/lib/i18n";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { OSWindow } from "@/components/public/os/os-window";
+import { FormattedText } from "@/components/public/formatted-text";
 import { prefillContact, CONTACT_SECTION_HREF } from "@/lib/contact-link";
 
 function GithubIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -225,9 +226,11 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
               <h2 className="text-lg sm:text-xl font-bold font-mono tracking-tight text-foreground border-b border-border/60 pb-2">
                 &gt; {t.detail_overview_title}
               </h2>
-              <div className="text-muted-foreground font-mono leading-relaxed text-xs sm:text-sm space-y-3">
-                <p>{description}</p>
-                <p>{t.detail_overview_desc}</p>
+              <div className="space-y-4 font-mono leading-relaxed text-xs sm:text-sm">
+                <FormattedText text={description} />
+                <p className="mt-4 pt-4 border-t border-border/50 text-[11px] text-muted-foreground font-mono">
+                  {t.detail_overview_desc}
+                </p>
               </div>
             </div>
 
