@@ -198,7 +198,7 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
                     size="sm"
                     className="vt-btn-pink h-9 px-4 text-xs font-mono font-bold uppercase gap-1.5"
                   >
-                    <a href={project.demoUrl} target="_blank" rel="noreferrer">
+                    <a href={project.demoUrl} target="_blank" rel="nofollow noopener noreferrer">
                       <span>{t.detail_cta_demo}</span>
                       <ExternalLink className="h-3.5 w-3.5" />
                     </a>
@@ -211,7 +211,7 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
                     size="sm"
                     className="vt-btn h-9 px-4 text-xs font-mono font-bold uppercase gap-1.5"
                   >
-                    <a href={project.repoUrl} target="_blank" rel="noreferrer">
+                    <a href={project.repoUrl} target="_blank" rel="nofollow noopener noreferrer">
                       <GithubIcon className="h-3.5 w-3.5" />
                       <span>{t.detail_cta_repo}</span>
                     </a>

@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useRef } from "react";
-import { ExternalLink, MapPin, User, Mail } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, MapPin, User, Mail } from "lucide-react";
 import { ProfileData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
 import { OSWindow } from "@/components/public/os/os-window";
@@ -113,15 +114,17 @@ export function HeroSection({ profile, onOpenContact }: HeroSectionProps) {
 
             {/* CTA & Location Footer */}
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-2">
-              <a
-                href="https://porto.sigitadi.id/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="vt-btn vt-btn-pink vt-btn-sweep px-4 sm:px-6 py-2 sm:py-2.5 text-xs font-bold uppercase tracking-wider font-mono text-center flex-1 sm:flex-initial"
+              <Link
+                href="/proyek"
+                onClick={() => {
+                  const event = new CustomEvent("switch-os-app", { detail: "proyek" });
+                  window.dispatchEvent(event);
+                }}
+                className="vt-btn vt-btn-pink vt-btn-sweep px-4 sm:px-6 py-2 sm:py-2.5 text-xs font-bold uppercase tracking-wider font-mono text-center flex-1 sm:flex-initial inline-flex items-center justify-center gap-1"
               >
                 <span>{t.hero_cta_portfolio}</span>
-                <ExternalLink className="h-3.5 w-3.5 ml-1 inline" />
-              </a>
+                <ArrowRight className="h-3.5 w-3.5 ml-1 inline" />
+              </Link>
 
               <button
                 type="button"

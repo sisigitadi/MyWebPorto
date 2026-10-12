@@ -12,7 +12,15 @@ export default function robots(): MetadataRoute.Robots {
         // khusus di bawah memang tidak memblokirnya; konsistenkan di sini.
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin/", "/sign-in/", "/sign-up/", "/api/"],
+        disallow: [
+          "/admin/",
+          "/sign-in/",
+          "/sign-up/",
+          "/api/",
+          "/*?lang=*",
+          "/*?contact*",
+          "/*?*=",
+        ],
       },
       {
         userAgent: [
@@ -32,6 +40,9 @@ export default function robots(): MetadataRoute.Robots {
           "/sign-in/",
           "/sign-up/",
           "/api/",
+          "/*?lang=*",
+          "/*?contact*",
+          "/*?*=",
         ],
       },
       // Search-oriented Generative AI Bots & Copilot
