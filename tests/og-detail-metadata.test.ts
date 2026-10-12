@@ -31,6 +31,24 @@ vi.mock("@/lib/features-config", () => ({
   })),
 }));
 
+/**
+ * Metadata detail hanya memakai `shareImage`/`localeAlternates` dari
+ * `@/lib/seo` (murni) — dan `SITE_BRAND` di page produk untuk JSON-LD.
+ * Tetapi `@/lib/seo-config` menarik `settings` + driver Neon; mengimpornya
+ * membuat import page.tsx lambat dan menyentuh DB. Di-mock agar test hermetik
+ * (tanpa DB/jaringan) dan tidak lagi mendekati timeout saat CPU rebutan.
+ */
+vi.mock("@/lib/seo-config", () => ({
+  SITE_BRAND: "Sigit Adi Irianto",
+  resolveOgMeta: vi.fn(),
+  resolveVerification: vi.fn(),
+}));
+
+// Hermetik: setiap panggilan jaringan di jalur metadata menggagalkan test.
+const fetchMock = vi.fn(() => {
+  throw new Error("Metadata detail harus hermetik: tidak boleh menyentuh jaringan.");
+});
+
 const getArticlesMock = vi.fn();
 const getProjectsMock = vi.fn();
 const getProductsMock = vi.fn();
@@ -112,10 +130,13 @@ beforeEach(() => {
   getArticlesMock.mockReset();
   getProjectsMock.mockReset();
   getProfileMock.mockReset();
+  fetchMock.mockClear();
+  vi.stubGlobal("fetch", fetchMock);
   process.env.NEXT_PUBLIC_APP_URL = BASE;
 });
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   delete process.env.NEXT_PUBLIC_APP_URL;
 });
 
@@ -166,6 +187,23 @@ describe("generateMetadata — halaman detail artikel", () => {
       url: `${BASE}/api/media/97d87474-b119-4f87-b2fe-ccbeaa2b5a35`,
       alt: "Judul Artikel",
     });
+  });
+
+  it("hermetik — cover remote tidak memicu jaringan untuk menebak dimensi", async () => {
+    getArticlesMock.mockResolvedValue([
+      articleFixture("https://images.unsplash.com/photo-1550751827?w=800"),
+    ]);
+
+    const { generateMetadata } = await import("@/app/(public)/artikel/[slug]/page");
+    const md = await generateMetadata({ params: params("judul-artikel") });
+
+    // Cover apa pun hanya dioper sebagai URL; tidak boleh diambil untuk
+    // menghitung dimensi — shareImage memang tidak mengarang ukuran.
+    expect(md.openGraph?.images?.[0]).toEqual({
+      url: "https://images.unsplash.com/photo-1550751827?w=800",
+      alt: "Judul Artikel",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("artikel tidak ada → hanya judul, tanpa og:image palsu", async () => {

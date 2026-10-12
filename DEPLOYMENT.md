@@ -26,6 +26,10 @@ Perintah ini akan secara otomatis:
    NEXT_PUBLIC_APP_URL=https://domainanda.com
    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_xxxx
    CLERK_SECRET_KEY=sk_live_xxxx
+   # HALAMAN login (SEBELUM otentikasi) — WAJIB /sign-in & /sign-up, jangan /admin
+   NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+   NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+   # Tujuan SETELAH login berhasil
    CLERK_SIGN_IN_FORCE_REDIRECT_URL=/admin
    CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/admin
    ADMIN_CLERK_ID=user_xxxx
@@ -33,6 +37,8 @@ Perintah ini akan secara otomatis:
    DATABASE_URL=postgresql://user:password@host/neondb?sslmode=require
    NEXT_PUBLIC_FORMSPREE_ENDPOINT=https://formspree.io/f/your-form-id
    NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL=x@sigitadi.id
+   # Terjemahan ID -> EN (opt-in per field; set false bila egress data dilarang)
+   ENABLE_EXTERNAL_TRANSLATE=true
    # SEO / SEM (opsional — token verifikasi BUKAN rahasia, sengaja dipublikasikan
    # di <meta> + file statis; key IndexNow wajib bisa diambil crawler)
    INDEXNOW_KEY=ganti-key-indexnow-anda
@@ -48,7 +54,7 @@ Perintah ini akan secara otomatis:
    PORT=3000
    ```
 
-Catatan: upload gambar disimpan langsung ke Postgres (tabel `media`, bytea) via migrasi `drizzle/0010` — tidak perlu object storage/CDN terpisah, dan variabel `BUNNY_STORAGE_*` lama sudah tidak dipakai (aman dihapus dari Vercel). Variabel Cloud AI juga dapat diisi lewat form **Cloud AI** di `/admin/system` (disimpan di tabel `settings`) tanpa redeploy. Jika `NEXT_PUBLIC_APP_URL` kosong, canonical URL fallback ke `https://sigitadi.id`.
+Catatan: upload gambar disimpan langsung ke Postgres (tabel `media`, bytea) via migrasi `drizzle/0010` — tidak perlu object storage/CDN terpisah, dan variabel `BUNNY_STORAGE_*` lama sudah tidak dipakai (aman dihapus dari Vercel). Variabel Cloud AI juga dapat diisi lewat form **Cloud AI** di `/admin/cloud-ai` (disimpan di tabel `settings`) tanpa redeploy. Jika `NEXT_PUBLIC_APP_URL` kosong, canonical URL fallback ke `https://sigitadi.id`.
 
 > **WAJIB di produksi: Clerk key live, bukan `pk_test_`.** PUBLISHABLE_KEY harus `pk_live_...` (bukan `pk_test_...`) dan SECRET_KEY `sk_live_...`. Lihat "Pemecahan Masalah Google Search Console" di README — `pk_test_` memakai domain `*.clerk.accounts.dev` yang me-redirect Googlebot ke handshake Clerk di **semua** rute (termasuk `/robots.txt`), terbaca sebagai "Redirect error" di GSC dan halaman tidak terindeks. Peringatan Vercel "Remove the public framework prefix" aman diabaikan untuk `pk_` (publishable by design); `sk_` wajib tetap server-only.
 

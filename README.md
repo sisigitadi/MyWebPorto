@@ -1,6 +1,6 @@
 # MyWebPorto
 
-MyWebPorto adalah website portofolio pribadi berbasis Next.js 15 untuk personal branding, katalog proyek, layanan profesional, produk, testimoni, dan artikel teknis. Project ini juga menyediakan panel admin sederhana agar pemilik dapat mengelola konten tanpa mengubah kode langsung.
+MyWebPorto adalah website portofolio pribadi berbasis Next.js 16 untuk personal branding, katalog proyek, layanan profesional, produk, testimoni, dan artikel teknis. Project ini juga menyediakan panel admin sederhana agar pemilik dapat mengelola konten tanpa mengubah kode langsung.
 
 Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager interaktif, namun tetap menyimpan konten server-rendered untuk SEO dan aksesibilitas.
 
@@ -33,8 +33,11 @@ Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager int
 - **Redaksi** di `/admin/redaksi`: composer draf untuk 6 tipe konten (artikel, proyek, layanan, produk, testimoni, profil) dengan tombol **"Bantuan AI"** (Cloud AI) dan **"Analisis SEO"**. Draf AI selalu melewati sinkronisasi otomatis terhadap aturan yang sama persis dengan analyzer — judul/slug/deskripsi dirapikan, lead GEO dan internal link disisipkan dari halaman terbit — lalu laporan menampilkan skor, apa yang diperbaiki, dan sisa masalah yang hanya bisa ditulis manusia. Kelengkapan kontrak ini (satu sumber ambang, skop per tipe, satu pemetaan field) dijelaskan di **`SEO_GEO_SYNC.md`**.
 - **Media Library** di `/admin/media`: daftar gambar di database (tabel `media`, bytea Postgres) dengan hapus.
 - **SEO & SEM** di `/admin/seo`: token verifikasi **Google Search Console** & **Bing Webmaster**, key **IndexNow** + ping manual semua URL, dan override **Open Graph** (judul/deskripsi/gambar) dengan pratinjau kartu sosial. Disimpan di tabel `settings` (key `"seo"`) — ganti token/key/OG tanpa redeploy.
-- **Konfigurasi Cloud AI** di `/admin/system`: pilih 1 dari 10 provider (OFF 100% lokal TF-IDF, Gemini, OpenAI-compatible custom, Anthropic Claude, DeepSeek, Groq, OpenRouter, Together, Mistral, xAI Grok), isi API key (+ base URL untuk gaya OpenAI-compatible/Anthropic), **ambil daftar model otomatis & realtime** dari endpoint provider, serta atur **prompt & cara menjawab** (concise / detailed / friendly). Disimpan di tabel `settings` (key `cloud_ai`), menimpa env per-field — ganti provider/model tanpa redeploy.
-- **God Mode — Tampilan & App OS** di `/admin/appearance`: atur aplikasi SigitOS yang ditampilkan ke pengunjung (centang aktif) dan urutannya (tombol panah), tanpa kode/redeploy. Mengendalikan taskbar, sidebar ikon desktop, Start Menu, command palette, jalan pintas angka, dan urutan section mobile. Disimpan di tabel `settings` (key `os_apps`); minimal satu app harus aktif, config rusak kembali ke default. Fase pertama dari roadmap God Mode; editor teks UI menyusul.
+- **Konfigurasi Cloud AI** di `/admin/cloud-ai`: pilih 1 dari 10 provider (OFF 100% lokal TF-IDF, Gemini, OpenAI-compatible custom, Anthropic Claude, DeepSeek, Groq, OpenRouter, Together, Mistral, xAI Grok), isi API key (+ base URL untuk gaya OpenAI-compatible/Anthropic), **ambil daftar model otomatis & realtime** dari endpoint provider, serta atur **prompt & cara menjawab** (concise / detailed / friendly). Disimpan di tabel `settings` (key `cloud_ai`), menimpa env per-field — ganti provider/model tanpa redeploy.
+- **God Mode — Tampilan & App OS** di `/admin/appearance`: atur aplikasi SigitOS yang ditampilkan ke pengunjung (centang aktif) dan urutannya (tombol panah), tanpa kode/redeploy. Mengendalikan taskbar, sidebar ikon desktop, Start Menu, command palette, jalan pintas angka, dan urutan section mobile. Disimpan di tabel `settings` (key `os_apps`); minimal satu app harus aktif, config rusak kembali ke default. Fase 1 roadmap God Mode.
+- **God Mode — Teks UI** di `/admin/strings`: ubah 22 teks marketing (badge, judul, subjudul, dan tombol CTA per section) tanpa kode/redeploy. Disimpan sebagai overlay di tabel `settings` (key `ui_strings`) di atas default i18n — DB kosong/korup tetap jatuh ke default kode. Fase 2.
+- **God Mode — Feature Flags** di `/admin/features`: nyalakan/matikan empat fitur besar (`enable_terminal`, `enable_store_cart`, `enable_articles`, `maintenance_mode`) tanpa kode/redeploy (key `features`). Fase 3.
+- **God Mode — Draft, Pratinjau & Riwayat** (Fase 4): bar versi di tiga halaman God Mode menyediakan Simpan Draf, Pratinjau Live (`/?preview=1`), Publikasikan Live, dan Riwayat & Rollback 1-klik (tabel `settings_history`).
 - **Manajemen tautan sosial**: isi Telegram, Instagram, TikTok, YouTube, Facebook, Discord, Slack, Reddit, Medium, GitHub, LinkedIn, X, Portofolio — tampil otomatis di Kontak.exe, footer & menubar hanya jika terisi.
 - **Editor chip** untuk tag artikel & tech stack proyek (tambah/hapus per item, bukan hardcode).
 - **Content editor** dengan toolbar sintaks (H2/H3/quote/kode) + pratinjau WYSIWYG via renderer publik bersama.
@@ -49,7 +52,7 @@ Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager int
 ### Autentikasi (Clerk + Google OAuth)
 
 - Login admin melalui Clerk di `/sign-in` (Google OAuth dan/atau email + password). Rute `/admin/*` dilindungi middleware; hanya user yang cocok `ADMIN_CLERK_ID` (single-owner) yang masuk — non-admin mendapat **404**.
-- Guard bersifat **fail-closed**: key Clerk placeholder di **luar produksi** masih mengizinkan admin untuk development, tapi di **produksi tanpa kredensial asli → admin 404** (lihat `src/middleware.ts`). Server actions `"use server"` tetap memanggil `verifyAdmin()` meskipun read-only, karena bisa dipanggil sebagai RPC publik.
+- Guard bersifat **fail-closed**: key Clerk placeholder di **luar produksi** masih mengizinkan admin untuk development, tapi di **produksi tanpa kredensial asli → admin 404** (lihat `src/proxy.ts`). Server actions `"use server"` tetap memanggil `verifyAdmin()` meskipun read-only, karena bisa dipanggil sebagai RPC publik.
 - **Penyebab umum "tiba-tiba tidak bisa login Google"**: (1) `oauth_google` aktif di instance Clerk DEV tapi belum di instance PRODUKSI (dashboard Clerk `pk_live` → User & Authentication → Social connections); (2) header CSP belum mengizinkan domain Clerk dari publishable key — akun custom domain **bukan** `*.clerk.accounts.dev` (lihat catatan di `next.config.ts` & `SECURITY.md`).
 - Verifikasi dengan browser asli (cek faktor OAuth, Account Portal, dan request Clerk yang tidak diblokir CSP):
   ```bash
@@ -66,7 +69,7 @@ Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager int
 
 ## Tech Stack
 
-- Next.js 15 App Router
+- Next.js 16 App Router
 - React 19
 - TypeScript
 - Tailwind CSS v4
@@ -92,10 +95,15 @@ src/
 |   |   |-- artikel/       # Katalog + detail artikel
 |   |   `-- toko/[slug]/    # Detail produk shareable
 |   |-- admin/             # Panel admin terproteksi (single-owner)
-|   |   |-- appearance/    # God Mode: app SigitOS aktif + urutan (settings.os_apps)
+|   |   |-- appearance/    # God Mode Fase 1: app SigitOS aktif + urutan (settings.os_apps)
+|   |   |-- strings/       # God Mode Fase 2: editor teks UI (settings.ui_strings)
+|   |   |-- features/      # God Mode Fase 3: feature flag global (settings.features)
+|   |   |-- cloud-ai/      # Pengaturan provider Cloud AI (settings.cloud_ai)
 |   |   |-- seo/           # SEO & SEM: GSC/Bing verification, IndexNow, Open Graph
-|   |   |-- system/        # Kelayakan deploy + audit logs + Cloud AI config
-|    |   `-- media/         # Media Library (tabel media, bytea Postgres)
+|   |   |-- redaksi/       # Composer draf AI + Bantuan AI + Analisis SEO
+|   |   |-- system/        # Kelayakan deploy + audit logs + tracing x-request-id
+|   |   |-- media/         # Media Library (tabel media, bytea Postgres)
+|   |   `-- ...            # CRUD: profile, projects, services, products, testimonials, articles
 |   |-- sign-in/           # Login Clerk
 |   |-- sign-up/           # Sign up Clerk
 |   |-- [indexnowKey]/     # File verifikasi IndexNow /{key}.txt (dinamis)
@@ -134,7 +142,7 @@ src/
 |   `-- ui/                # Komponen UI berbasis shadcn
 |-- db/
 |   |-- index.ts           # Koneksi Drizzle ke Neon
-|   `-- schema.ts          # Skema 8 tabel (lihat "Model Data")
+|   `-- schema.ts          # Skema 10 tabel (lihat "Model Data")
 `-- lib/
     |-- actions.ts         # Server Actions CRUD, query, askSigitBot, listCloudModels
     |-- ai-engine.ts       # Mesin NLP/ML lokal (TF-IDF) untuk terminal & bot
@@ -179,8 +187,8 @@ src/
     `-- utils.ts           # Utility umum
 
 # Di luar src/:
-drizzle/                   # Migrasi SQL 0000–0009 + meta snapshot
-tests/                     # Unit test Vitest (21 file, 226 test)
+drizzle/                   # Migrasi SQL 0000–0010 + meta snapshot
+tests/                     # Unit test Vitest (38 file, 516 test)
 e2e/                       # E2E Playwright area publik
 scripts/                   # seed.mjs, package-deploy.mjs, dll
 data/                      # Local store: local-store.json, local-settings.json
@@ -189,7 +197,7 @@ deploy_package/            # Hasil `npm run package` (standalone + PM2)
 
 ## Model Data
 
-Skema database utama berada di `src/db/schema.ts` (8 tabel). Migrasi: `drizzle/0000`–`0009`.
+Skema database utama berada di `src/db/schema.ts` (10 tabel). Migrasi: `drizzle/0000`–`0010`.
 
 - `profiles`: data pemilik website, kontak, avatar, skill, statistik, sosial media (GitHub, LinkedIn, Instagram, X, Medium, YouTube, TikTok, Telegram, Facebook, Discord, Slack, Reddit, Portofolio), serta status available for hire. Sosial media tampil hanya jika URL terisi.
 - `projects`: portofolio proyek, slug, summary, deskripsi, gambar, demo, repo, tech stack (array, dikelola via editor chip), featured, published, `publishAt` (jadwal tayang), dan urutan.
@@ -199,6 +207,8 @@ Skema database utama berada di `src/db/schema.ts` (8 tabel). Migrasi: `drizzle/0
 - `articles`: artikel teknis dengan slug, summary, konten, gambar, tag (array, dikelola via editor chip), featured, published, `publishAt` (jadwal tayang), dan urutan.
 - `audit_logs`: siapa mengubah apa dan kapan (best-effort, retensi 500 baris terbaru).
 - `settings`: key/value JSON untuk konfigurasi tanpa redeploy — saat ini menampung konfigurasi Cloud AI di key `cloud_ai`. **Value boleh berisi rahasia** (API key); module pengakses wajib mem-mask saat mengembalikan ke client.
+- `settings_history`: snapshot konfigurasi God Mode (`features`, `ui_strings`, `os_apps`) yang dicatat setiap kali dipublikasikan — dasar fitur Riwayat & Rollback 1-klik (God Mode Fase 4).
+- `media`: gambar upload admin disimpan sebagai biner di Postgres (id UUID, MIME dan ukuran hasil validasi magic bytes), disajikan via `GET /api/media/[id]` dengan cache immutable.
 
 Sebagian tabel mendukung field bilingual seperti `titleEn`, `descriptionEn`, `contentEn`, `summaryEn`, dan sejenisnya.
 
@@ -227,6 +237,10 @@ NEXT_PUBLIC_FORMSPREE_ENDPOINT=https://formspree.io/f/your-form-id
 # Clerk Authentication
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxxx
 CLERK_SECRET_KEY=sk_test_xxxx
+# HALAMAN login (SEBELUM otentikasi) — WAJIB /sign-in & /sign-up, jangan /admin
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+# Tujuan SETELAH login berhasil
 CLERK_SIGN_IN_FORCE_REDIRECT_URL=/admin
 CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/admin
 
@@ -257,7 +271,7 @@ NEXT_PUBLIC_GOOGLE_VERIFICATION=nO80...
 NEXT_PUBLIC_BING_VERIFICATION=e5b87...
 ```
 
-> Catatan: konfigurasi Cloud AI juga dapat diisi dari form **Cloud AI** di `/admin/system` (disimpan di tabel `settings`, key `cloud_ai`). Pengaturan admin menimpa env per-field. Jangan masukkan key produksi ke repo — isi lewat form admin atau env server saja.
+> Catatan: konfigurasi Cloud AI juga dapat diisi dari form **Cloud AI** di `/admin/cloud-ai` (disimpan di tabel `settings`, key `cloud_ai`). Pengaturan admin menimpa env per-field. Jangan masukkan key produksi ke repo — isi lewat form admin atau env server saja.
 
 ### Terjemahan dan Privasi
 
@@ -312,9 +326,23 @@ npm run test:e2e        # E2E Playwright area publik
 npm run test:e2e:godmode # E2E God Mode (dev server tanpa DATABASE_URL → fallback file lokal)
 npx tsc --noEmit        # typecheck
 npm run lint            # ESLint (flat config)
+npm run docs:check      # cek dokumentasi vs kode (angka README & daftar env var)
 ```
 
-Unit test Vitest mencakup 14 file / 113 test: AI engine (TF-IDF), provider & config Cloud AI, daftar model, validasi env, IndexNow, helper slug produk, logika publish/schedule, validasi storage (magic bytes), stok keranjang, builder pesan WhatsApp, unsaved-changes guard, dan config app SigitOS (`settings.os_apps`). E2E `test:e2e:godmode` memverifikasi utas penuh config → props → DOM. CI (`.github/workflows/ci.yml`) menjalankan **lint + typecheck + unit test + build** otomatis di setiap PR ke `main` — jadikan *required status check* sebelum merge.
+Unit test Vitest mencakup **38 file / 516 test** (`npx vitest run`): AI engine (TF-IDF), provider & config Cloud AI, daftar model & quota Gemini, validasi env, IndexNow, helper slug & host produk, logika publish/schedule, validasi storage & audit URL media, stok keranjang, builder pesan WhatsApp, unsaved-changes guard, analyzer & remediator SEO/GEO, redaksi-draft & otomasi Redaksi, serta config God Mode (`settings.os_apps`, `ui_strings`, `features`, `settings_history`). Test yang butuh `DATABASE_URL` (audit URL media) otomatis di-skip tanpa DB, jadi CI tanpa DB tetap hijau; test metadata OG sengaja hermetik (fetch di-stub) sehingga tidak menyentuh jaringan. E2E `test:e2e:godmode` memverifikasi utas penuh config → props → DOM. CI (`.github/workflows/ci.yml`) menjalankan **lint + typecheck + unit test + build** otomatis di setiap PR ke `main` — jadikan *required status check* sebelum merge.
+
+### Penjaga drift dokumentasi
+
+Angka tabel, berkas, tes, dan rentang migrasi di README ini diisi dari kode — bukan diingat-ingat orang. `tests/docs-drift.test.ts` memastikan semuanya masih cocok, dan `scripts/docs-stats.mjs` adalah satu-satunya tempat perhitungannya tinggal (dipakai bersama oleh guard dan CLI).
+
+```bash
+npm run docs:sync       # tulis ulang angka tabel/berkas/tes/migrasi di README
+npm run docs:check      # tanpa menulis; keluar 1 bila ada yang drift
+```
+
+Yang ikut dijaga: jumlah tabel (`pgTable()` di schema) dan setiap tabel punya baris di "Model Data"; jumlah berkas `tests/*.test.ts` dan jumlah tes; rentang migrasi di `drizzle/`; serta daftar env var README & DEPLOYMENT selaras **dua arah** dengan `.env.example` (tidak ada var hantu, tidak ada var terlupakan), dan SECURITY.md hanya menyebut env yang nyata sambil tetap membahas daftar env kritis produksi.
+
+Bila menambah test atau tabel, jalankan `npm run docs:sync` — menaikkan `testTimeout` atau menulis angka sendiri di README bukan solusi. Hitungan tes memakai deklarasi `it(`/`test(` per baris; karena itu `it.each`/`it.for` sengaja digagalkan guard (lihat `scripts/docs-stats.mjs`).
 
 ## Database
 
@@ -379,13 +407,14 @@ pm2 save
 npm run lint
 npm run build
 npm run package
+npm run docs:sync       # angka tabel/berkas/tes/migrasi di README ikut diperbarui
 ```
 
-Pastikan `DATABASE_URL`, `NEXT_PUBLIC_APP_URL`, Clerk production keys, `ADMIN_CLERK_ID`, dan Formspree sudah benar. Terapkan seluruh migration database (`drizzle/0000`–`0009`, termasuk `0003_product_slugs`, `0004_audit_logs`, `0005_publish_at`, `0006_shop`, `0007_purchase_fields`, `0008_settings`, dan `0009_narrow_magneto` yang menambah `availability_badge` + `availability_badge_en` ke `profiles`). Jangan commit `.env`, credential, atau token.
+Pastikan `DATABASE_URL`, `NEXT_PUBLIC_APP_URL`, Clerk production keys, `ADMIN_CLERK_ID`, dan Formspree sudah benar. Terapkan seluruh migration database (`drizzle/0000`–`0010`, termasuk `0003_product_slugs`, `0004_audit_logs`, `0005_publish_at`, `0006_shop`, `0007_purchase_fields`, `0008_settings`, `0009_narrow_magneto` yang menambah `availability_badge` + `availability_badge_en` ke `profiles`, dan `0010_tidy_texas_twister` yang membuat tabel `media` (gambar bytea) + `settings_history`). Jangan commit `.env`, credential, atau token.
 
 ## Verifikasi Setelah Deploy
 
-Uji `/`, `/proyek`, `/proyek/[slug]`, `/artikel`, `/artikel/[slug]`, `/toko/[slug]`, `/feed.xml`, `/llms.txt`, `/sitemap.xml`, `/robots.txt`, dan `/admin`. Lanjutkan dengan uji login admin, CRUD setiap section, upload gambar, form kontak, pembaruan slug produk, keranjang + checkout WhatsApp, dan konfigurasi Cloud AI di `/admin/system`.
+Uji `/`, `/proyek`, `/proyek/[slug]`, `/artikel`, `/artikel/[slug]`, `/toko/[slug]`, `/feed.xml`, `/llms.txt`, `/sitemap.xml`, `/robots.txt`, dan `/admin`. Lanjutkan dengan uji login admin, CRUD setiap section, upload gambar, form kontak, pembaruan slug produk, keranjang + checkout WhatsApp, dan konfigurasi Cloud AI di `/admin/cloud-ai`.
 
 ## Pemecahan Masalah Google Search Console
 
@@ -432,4 +461,4 @@ Upload gambar disimpan di Postgres (tabel `media`, bytea) — tidak ada langkah 
 - Produk adalah katalog + **checkout WhatsApp** (keranjang ringan di `localStorage`, pesan dirakit oleh `src/lib/whatsapp-order.ts`). Tidak ada payment gateway — pembayaran tetap manual di luar aplikasi.
 - Admin adalah single-owner CMS, bukan sistem multi-user publik.
 - **Angka aturan SEO/GEO hanya boleh ditulis di `src/lib/seo-rules.ts`.** Prompt "Bantuan AI", analyzer, dan remediator membacanya dari sana; tidak boleh ada salinan angka atau mesin aturan kedua (mis. penghitung kata sendiri di remediator). Kalau aturan baru ditambahkan, tambahkan di situ lalu ikuti daftarnya di `SEO_GEO_SYNC.md` — tanpa itu tombol "Bantuan AI" dan "Analisis SEO" akan kembali tidak sinkron.
-- **God Mode** adalah upaya bertahap memindahkan konfigurasi hardcode ke tabel `settings` agar bisa diatur dari admin tanpa redeploy. Fase 1 (app SigitOS: aktif + urutan, `/admin/appearance`) sudah jalan. Fase 2 (editor teks UI, overlay di atas default i18n), Fase 3 (feature flag global), dan Fase 4 (draft/preview + undo) menyusul — tiap fase satu PR terpisah. Prinsip: lapisan DB adalah *overlay*, bukan pengganti — DB kosong/korup harus tetap jatuh ke default di kode.
+- **God Mode** adalah upaya bertahap memindahkan konfigurasi hardcode ke tabel `settings` agar bisa diatur dari admin tanpa redeploy. Fase 1 (app SigitOS: aktif + urutan, `/admin/appearance`), Fase 2 (editor teks UI, `/admin/strings`), Fase 3 (feature flag global, `/admin/features`), dan Fase 4 (draft + pratinjau live + riwayat/rollback 1-klik, tabel `settings_history`) sudah jalan. Fase lanjutan (batch berikutnya teks UI) menyusul — tiap fase satu PR terpisah. Prinsip: lapisan DB adalah *overlay*, bukan pengganti — DB kosong/korup harus tetap jatuh ke default di kode.
