@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { CodeBox } from "@/components/public/code-box";
 
 function renderInline(str: string): React.ReactNode {
   const tokenRegex = /(\[([^\]]+)\]\(([^)]+)\)|\*\*([^*]+)\*\*)/g;
@@ -57,110 +58,130 @@ function renderInline(str: string): React.ReactNode {
 
 /**
  * Renderer teks konvensi MyWebPorto (sama persis dengan tampilan publik):
- * - `## ` → H2, `### ` → H3, `> ` → quote, ``` → blok kode terminal,
+ * - `## ` → H2, `### ` → H3, `> ` → quote, ``` → blok kode terminal dengan header khusus & tombol copy,
  * - bullet `- ` / `1. ` → list semantik, `[teks](/path)` → Link internal, sisanya paragraf.
  * Dipakai artikel publik DAN preview editor admin agar WYSIWYG benar-benar sama.
  */
 export function FormattedText({ text }: { text: string }) {
   if (!text) return null;
-  const blocks = text.split(/\n\n+/);
 
-  return (
-    <>
-      {blocks.map((block, idx) => {
-        const trimmed = block.trim();
-        if (!trimmed) return null;
+  // Pisahkan blok kode ``` lebih dulu agar tidak terpotong oleh pemisahan paragraf biasa
+  const rawParts = text.split(/(```[a-zA-Z0-9_-]*[\s\S]*?```)/g);
+  const elements: React.ReactNode[] = [];
 
-        // H2 Heading
-        if (trimmed.startsWith("## ")) {
-          return (
-            <h2
-              key={idx}
-              className="text-xl sm:text-2xl font-pixel font-bold text-foreground mt-8 mb-4 tracking-tight border-b border-border/60 pb-2"
-            >
-              {renderInline(trimmed.replace(/^##\s+/, ""))}
-            </h2>
-          );
-        }
+  rawParts.forEach((part, partIdx) => {
+    const trimmed = part.trim();
+    if (!trimmed) return;
 
-        // H3 Heading
-        if (trimmed.startsWith("### ")) {
-          return (
-            <h3
-              key={idx}
-              className="text-base sm:text-lg font-mono font-bold text-foreground mt-6 mb-3 tracking-tight"
-            >
-              {"> "}
-              {renderInline(trimmed.replace(/^###\s+/, ""))}
-            </h3>
-          );
-        }
+    // Kotak khusus blok kode (bash, json, html, js, ts, sql, dsb)
+    if (trimmed.startsWith("```") && trimmed.endsWith("```")) {
+      const matchLang = trimmed.match(/^```([a-zA-Z0-9_-]+)/);
+      const lang = matchLang ? matchLang[1] : "terminal";
+      const cleanCode = trimmed
+        .replace(/^```[a-zA-Z0-9_-]*\r?\n?/, "")
+        .replace(/```$/, "")
+        .trim();
+      elements.push(<CodeBox key={`code-${partIdx}`} code={cleanCode} language={lang} />);
+      return;
+    }
 
-        // Blockquote
-        if (trimmed.startsWith("> ")) {
-          return (
-            <blockquote
-              key={idx}
-              className="border-l-4 border-primary bg-muted/40 p-4 rounded-r font-mono text-xs sm:text-sm text-[var(--vt-ink)] italic my-4"
-            >
-              {renderInline(trimmed.replace(/^>\s+/, ""))}
-            </blockquote>
-          );
-        }
+    // Blok teks biasa dipisah berdasarkan newline ganda
+    const blocks = part.split(/\n\n+/);
+    blocks.forEach((block, bIdx) => {
+      const bTrimmed = block.trim();
+      if (!bTrimmed) return;
+      const key = `${partIdx}-${bIdx}`;
 
-        // Code Block / Terminal snippet
-        if (trimmed.startsWith("```") && trimmed.endsWith("```")) {
-          const cleanCode = trimmed.replace(/^```[a-z]*\n?/, "").replace(/```$/, "");
-          return (
-            <pre
-              key={idx}
-              className="p-4 rounded bg-black/90 text-emerald-400 font-mono text-xs overflow-x-auto border border-border/80 shadow-inner my-4"
-            >
-              <code>{cleanCode}</code>
-            </pre>
-          );
-        }
-
-        // Bullet or Numbered List
-        const lines = trimmed.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-        const isBulletList = lines.length > 0 && lines.every((l) => /^[-*+]\s+/.test(l));
-        const isNumberedList = lines.length > 0 && lines.every((l) => /^\d+\.\s+/.test(l));
-
-        if (isBulletList) {
-          return (
-            <ul key={idx} className="list-disc list-inside space-y-1.5 my-3 text-xs sm:text-sm font-mono text-[var(--vt-ink)]">
-              {lines.map((line, lIdx) => (
-                <li key={lIdx} className="leading-relaxed">
-                  {renderInline(line.replace(/^[-*+]\s+/, ""))}
-                </li>
-              ))}
-            </ul>
-          );
-        }
-
-        if (isNumberedList) {
-          return (
-            <ol key={idx} className="list-decimal list-inside space-y-1.5 my-3 text-xs sm:text-sm font-mono text-[var(--vt-ink)]">
-              {lines.map((line, lIdx) => (
-                <li key={lIdx} className="leading-relaxed">
-                  {renderInline(line.replace(/^\d+\.\s+/, ""))}
-                </li>
-              ))}
-            </ol>
-          );
-        }
-
-        // Regular Paragraph
-        return (
-          <p
-            key={idx}
-            className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] leading-relaxed sm:leading-loose my-3 mobile-safe-text whitespace-pre-line"
+      // H2 Heading
+      if (bTrimmed.startsWith("## ")) {
+        elements.push(
+          <h2
+            key={key}
+            className="text-xl sm:text-2xl font-pixel font-bold text-foreground mt-8 mb-4 tracking-tight border-b border-border/60 pb-2"
           >
-            {renderInline(trimmed)}
-          </p>
+            {renderInline(bTrimmed.replace(/^##\s+/, ""))}
+          </h2>
         );
-      })}
-    </>
-  );
+        return;
+      }
+
+      // H3 Heading
+      if (bTrimmed.startsWith("### ")) {
+        elements.push(
+          <h3
+            key={key}
+            className="text-base sm:text-lg font-mono font-bold text-foreground mt-6 mb-3 tracking-tight"
+          >
+            {"> "}
+            {renderInline(bTrimmed.replace(/^###\s+/, ""))}
+          </h3>
+        );
+        return;
+      }
+
+      // Blockquote
+      if (bTrimmed.startsWith("> ")) {
+        elements.push(
+          <blockquote
+            key={key}
+            className="border-l-4 border-primary bg-muted/40 p-4 rounded-r font-mono text-xs sm:text-sm text-[var(--vt-ink)] italic my-4"
+          >
+            {renderInline(bTrimmed.replace(/^>\s+/, ""))}
+          </blockquote>
+        );
+        return;
+      }
+
+      // Bullet or Numbered List
+      const lines = bTrimmed.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      const isBulletList = lines.length > 0 && lines.every((l) => /^[-*+]\s+/.test(l));
+      const isNumberedList = lines.length > 0 && lines.every((l) => /^\d+\.\s+/.test(l));
+
+      if (isBulletList) {
+        elements.push(
+          <ul
+            key={key}
+            className="list-disc list-inside space-y-1.5 my-3 text-xs sm:text-sm font-mono text-[var(--vt-ink)]"
+          >
+            {lines.map((line, lIdx) => (
+              <li key={lIdx} className="leading-relaxed">
+                {renderInline(line.replace(/^[-*+]\s+/, ""))}
+              </li>
+            ))}
+          </ul>
+        );
+        return;
+      }
+
+      if (isNumberedList) {
+        elements.push(
+          <ol
+            key={key}
+            className="list-decimal list-inside space-y-1.5 my-3 text-xs sm:text-sm font-mono text-[var(--vt-ink)]"
+          >
+            {lines.map((line, lIdx) => (
+              <li key={lIdx} className="leading-relaxed">
+                {renderInline(line.replace(/^\d+\.\s+/, ""))}
+              </li>
+            ))}
+          </ol>
+        );
+        return;
+      }
+
+      // Regular Paragraph
+      elements.push(
+        <p
+          key={key}
+          className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] leading-relaxed sm:leading-loose my-3 mobile-safe-text whitespace-pre-line"
+        >
+          {renderInline(bTrimmed)}
+        </p>
+      );
+    });
+  });
+
+  return <>{elements}</>;
 }
+
 
