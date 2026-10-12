@@ -370,7 +370,10 @@ export function seoGeoPromptBlock(
     );
   }
   lines.push(
-    line(`- Isi: minimal ${scope.minWords} kata.`, `- body: at least ${scope.minWords} words.`)
+    line(
+      `- Isi: minimal ${scope.minWords} kata lengkap. Tulis pembahasan mendalam dengan sub-bagian terperinci, contoh langkah teknis, dan seksi tanya-jawab (FAQ) agar tidak diringkas di bawah batas kata.`,
+      `- body: at least ${scope.minWords} words in full. Write in-depth sections with technical steps and FAQ so it is never summarized below the required length.`
+    )
   );
   if (scope.h2Min > 0) {
     lines.push(
@@ -391,8 +394,8 @@ export function seoGeoPromptBlock(
   if (scope.density) {
     lines.push(
       line(
-        `- Density kata kunci utama ${SEO_RULES.density.min}-${SEO_RULES.density.max} persen: frasa itu wajib muncul di judul dan minimal satu sub-judul. Jangan pernah di atas ${SEO_RULES.density.max} persen (keyword stuffing).`,
-        `- keep the main keyword at ${SEO_RULES.density.min}-${SEO_RULES.density.max}% density: it must appear in the title and at least one sub-heading. Never above ${SEO_RULES.density.max}% (keyword stuffing).`
+        `- Density kata kunci utama ${SEO_RULES.density.min}-${SEO_RULES.density.max} persen: frasa itu wajib muncul di judul dan 1-2 sub-judul saja. Gunakan kata ganti atau sinonim di sub-judul lain agar tidak melebihi ${SEO_RULES.density.max} persen (keyword stuffing).`,
+        `- keep the main keyword at ${SEO_RULES.density.min}-${SEO_RULES.density.max}% density: it must appear in the title and only 1-2 sub-headings. Use pronouns or synonyms in other headings to never exceed ${SEO_RULES.density.max}% (keyword stuffing).`
       )
     );
   }
