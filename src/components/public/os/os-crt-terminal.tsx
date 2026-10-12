@@ -14,7 +14,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
-import { queryAIEngine, type EngineContext } from "@/lib/ai-engine";
+import { queryAIEngine, detectLanguage, type EngineContext } from "@/lib/ai-engine";
 import { askSigitBot, getCloudAIStatus } from "@/lib/actions";
 import { getProviderShortLabel } from "@/lib/ai-providers";
 import { useOSTheme, OSTheme } from "./theme-context";
@@ -222,17 +222,30 @@ export function OSCrtTerminal({
       availableForHire: profile.availableForHire,
       skills: profile.skills || [],
       socialLinks: profile.socialLinks,
-      services: services.filter((s) => s.published !== false).map((s) => s.title),
+      services: services
+        .filter((s) => s.published !== false)
+        .map((s) => (language === "en" ? s.titleEn || s.title : s.title)),
+      servicesEn: services
+        .filter((s) => s.published !== false)
+        .map((s) => s.titleEn || s.title),
       projects: projects
         .filter((p) => p.published)
         .slice(0, 8)
-        .map((p) => ({ title: p.title, slug: p.slug })),
+        .map((p) => ({
+          title: language === "en" ? p.titleEn || p.title : p.title,
+          titleEn: p.titleEn,
+          slug: p.slug,
+        })),
       articles: articles
         .filter((a) => a.published)
         .slice(0, 8)
-        .map((a) => ({ title: a.title, slug: a.slug })),
+        .map((a) => ({
+          title: language === "en" ? a.titleEn || a.title : a.title,
+          titleEn: a.titleEn,
+          slug: a.slug,
+        })),
     }),
-    [profile, services, projects, articles],
+    [profile, services, projects, articles, language],
   );
 
   // Anti race condition untuk inferensi AI. Setiap query ambil nomor urut;
@@ -286,9 +299,10 @@ export function OSCrtTerminal({
       const synth = window.speechSynthesis;
       synth.cancel();
 
-      // Ikuti bahasa UI: pilih voice yang benar-benar mendukung id-ID/en-US.
-      // Memakai ref agar bahasa selalu yang terbaru (lihat catatan deklarasi).
-      const targetLang = languageRef.current === "en" ? "en-US" : "id-ID";
+      // Selaraskan voice dengan bahasa teks yang dibaca (input EN dibalas EN -> baca en-US,
+      // input ID dibalas ID -> baca id-ID), dengan fallback ke bahasa UI aktif.
+      const detected = detectLanguage(text, languageRef.current);
+      const targetLang = detected === "en" ? "en-US" : "id-ID";
       const langPrefix = targetLang.slice(0, 2).toLowerCase();
       const pickVoice = (): SpeechSynthesisVoice | null => {
         const voices = voicesRef.current.length ? voicesRef.current : synth.getVoices();
@@ -412,11 +426,13 @@ export function OSCrtTerminal({
 
   const listContact = () => {
     const socials = buildSocialLinks(profile);
+    const phoneLabel = language === "en" ? "Phone/WhatsApp" : "Telepon/WhatsApp";
+    const locLabel = language === "en" ? "Location" : "Lokasi";
     return [
       t.terminal_contact_header,
       `  Email: ${profile.email || "-"}`,
-      `  Phone/WhatsApp: ${profile.phone || "-"}`,
-      `  Location: ${profile.location || "-"}`,
+      `  ${phoneLabel}: ${profile.phone || "-"}`,
+      `  ${locLabel}: ${profile.location || "-"}`,
       ...(socials.length
         ? socials.map((s) => `  ${s.label}: ${s.href}`)
         : [t.terminal_contact_none]),
@@ -427,7 +443,12 @@ export function OSCrtTerminal({
     const published = projects.filter((p) => p.published);
     return [
       t.terminal_projects_header,
-      ...published.slice(0, 6).map((p, i) => `  [${i + 1}] ${p.title} -> /proyek/${p.slug}`),
+      ...published
+        .slice(0, 6)
+        .map(
+          (p, i) =>
+            `  [${i + 1}] ${language === "en" ? p.titleEn || p.title : p.title} -> /proyek/${p.slug}`
+        ),
       t.terminal_projects_opening,
     ];
   };
@@ -436,7 +457,10 @@ export function OSCrtTerminal({
     const published = services.filter((s) => s.published !== false);
     return [
       t.terminal_services_header,
-      ...published.map((s, i) => `  [${i + 1}] ${s.title}`),
+      ...published.map(
+        (s, i) =>
+          `  [${i + 1}] ${language === "en" ? s.titleEn || s.title : s.title}`
+      ),
       t.terminal_services_opening,
     ];
   };
@@ -535,7 +559,9 @@ export function OSCrtTerminal({
     }
 
     if (command === "whoami") {
-      appendLogs([...newLogs, `${profile.name} - ${profile.headline}`]);
+      const activeHeadline =
+        language === "en" ? profile.headlineEn || profile.headline : profile.headline;
+      appendLogs([...newLogs, `${profile.name} - ${activeHeadline}`]);
       setCommandInput("");
       return;
     }
@@ -722,11 +748,12 @@ export function OSCrtTerminal({
     appendLogs([...newLogs, markPlaceholder(t.terminal_log_inferencing)]);
 
     inferTimeoutRef.current = setTimeout(async () => {
-      const result = queryAIEngine(raw, aiContext, language);
+      const currentLang = languageRef.current;
+      const result = queryAIEngine(raw, aiContext, currentLang);
       if (result.confidence < 0.55 && cloudOn) {
         if (isCurrent()) appendLogs([markPlaceholder(t.terminal_log_cloud)]);
         try {
-          const cloud = await askSigitBot(raw, language);
+          const cloud = await askSigitBot(raw, currentLang);
           if (!isCurrent()) return done(); // query baru sudah mengambil alih
           if (cloud.source === "cloud") {
             const outputLines = cloud.text.split("\n");

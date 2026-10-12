@@ -113,4 +113,72 @@ describe("queryAIEngine", () => {
     expect(res.intent).toBe("services_hire");
     expect(res.text.toLowerCase()).not.toContain("available for freelance and contract engagements!");
   });
+
+  it("menjamin respon EN untuk mywebporto_concept 100% berbahasa Inggris", () => {
+    for (let i = 0; i < 5; i++) {
+      const res = queryAIEngine("what is the concept of mywebporto?", CTX, "en");
+      expect(res.intent).toBe("mywebporto_concept");
+      expect(res.text).toContain("MyWebPorto Concept");
+      expect(res.text).not.toContain("Konsep MyWebPorto");
+    }
+  });
+
+  it("menjamin respon EN untuk ml_ai_features 100% berbahasa Inggris", () => {
+    for (let i = 0; i < 5; i++) {
+      const res = queryAIEngine("tell me about the ai model and neural engine", CTX, "en");
+      expect(res.intent).toBe("ml_ai_features");
+      expect(res.text).toContain("Machine Learning Engine");
+      expect(res.text).not.toContain("Engine Machine Learning");
+    }
+  });
+
+  it("memakai judul layanan EN (servicesEn) bila bahasa adalah en", () => {
+    const ctxWithEn: EngineContext = {
+      ...CTX,
+      services: ["Pembuatan Web App Kustom"],
+      servicesEn: ["Custom Web App Development"],
+    };
+    const res = queryAIEngine("what services do you offer?", ctxWithEn, "en");
+    expect(res.intent).toBe("services_hire");
+    expect(res.text).toContain("Custom Web App Development");
+    expect(res.text).not.toContain("Pembuatan Web App Kustom");
+  });
+
+  it("memakai judul proyek EN (titleEn) bila bahasa adalah en", () => {
+    const ctxWithEn: EngineContext = {
+      ...CTX,
+      projects: [{ title: "Dasbor SOC", titleEn: "SOC Dashboard", slug: "soc" }],
+    };
+    const res = queryAIEngine("what projects have you built?", ctxWithEn, "en");
+    expect(res.intent).toBe("projects");
+    expect(res.text).toContain("SOC Dashboard");
+    expect(res.text).not.toContain("Dasbor SOC");
+  });
+
+  it("mengenali sapaan dan profil dalam bahasa Inggris dengan intent yang tepat", () => {
+    const greet = queryAIEngine("hello, good morning", CTX, "en");
+    expect(greet.intent).toBe("greeting");
+    expect(greet.text).toMatch(/Greetings|Hello|System online/);
+
+    const who = queryAIEngine("who are you?", CTX, "en");
+    expect(who.intent).toBe("profile_bio");
+    expect(who.text).toContain("Sigit Adi");
+  });
+
+  it("menjawab dalam bahasa Inggris saat input EN meskipun pilihan bahasa UI adalah id", () => {
+    const res = queryAIEngine("who is sigit adi?", CTX, "id");
+    expect(res.intent).toBe("profile_bio");
+    // Karena input EN, teks jawaban harus dalam English meskipun preferredLang = 'id'
+    expect(detectLanguage(res.text)).toBe("en");
+    expect(res.text).toContain("Sigit Adi");
+  });
+
+  it("menjawab dalam bahasa Indonesia saat input ID meskipun pilihan bahasa UI adalah en", () => {
+    const res = queryAIEngine("siapa itu sigit adi?", CTX, "en");
+    expect(res.intent).toBe("profile_bio");
+    // Karena input ID, teks jawaban harus dalam Bahasa Indonesia meskipun preferredLang = 'en'
+    expect(detectLanguage(res.text)).toBe("id");
+    expect(res.text).toContain("Sigit Adi");
+  });
 });
+

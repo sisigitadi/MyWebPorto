@@ -29,12 +29,15 @@ import {
   Trash2,
   Sparkles,
   MapPin,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { useFeature } from "@/lib/features-context";
 import { playOS } from "@/lib/os-sound";
 import { RetroBotAvatar, type RetroBotMood } from "./retro-bot-avatar";
 import { MiniMarkdown } from "./mini-markdown";
+import { detectLanguage } from "@/lib/ai-engine";
 
 type Source = "local" | "cloud" | null;
 
@@ -217,6 +220,95 @@ export function RetroBot() {
 
   const isEn = language === "en";
 
+  // TTS Voice Output
+  const [ttsOn, setTtsOn] = useState(true);
+  const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const synth = window.speechSynthesis;
+    const loadVoices = () => {
+      try {
+        const list = synth.getVoices();
+        if (list.length) voicesRef.current = list;
+      } catch {
+        /* noop */
+      }
+    };
+    loadVoices();
+    synth.addEventListener?.("voiceschanged", loadVoices);
+    return () => {
+      synth.removeEventListener?.("voiceschanged", loadVoices);
+    };
+  }, []);
+
+  const stopSpeaking = useCallback(() => {
+    try {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    } catch {
+      /* abaikan */
+    }
+  }, []);
+
+  const speakBot = useCallback(
+    (text: string) => {
+      if (!ttsOn) return;
+      try {
+        if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+        const synth = window.speechSynthesis;
+        synth.cancel();
+
+        // Selaraskan voice dengan bahasa teks yang dibaca (input EN dibalas EN -> baca en-US,
+        // input ID dibalas ID -> baca id-ID), dengan fallback ke bahasa UI aktif.
+        const detected = detectLanguage(text, isEn ? "en" : "id");
+        const targetLang = detected === "en" ? "en-US" : "id-ID";
+        const langPrefix = targetLang.slice(0, 2).toLowerCase();
+
+        const pickVoice = (): SpeechSynthesisVoice | null => {
+          const voices = voicesRef.current.length ? voicesRef.current : synth.getVoices();
+          if (!voices.length) return null;
+          const exact = voices.find(
+            (v) => v.lang.replace("_", "-").toLowerCase() === targetLang.toLowerCase()
+          );
+          if (exact) return exact;
+          const prefix = voices.find((v) => v.lang.toLowerCase().startsWith(langPrefix));
+          if (prefix) return prefix;
+          return null;
+        };
+
+        const clean = text
+          .replace(/```[\s\S]*?```/g, " ")
+          .replace(/[*_`#>|]/g, " ")
+          .replace(/\bhttps?:\/\/\S+/g, " ")
+          .replace(/\s*->\s*/g, ", ")
+          .replace(/\s+/g, " ")
+          .trim();
+        if (!clean) return;
+
+        const chunks = (clean.match(/[^.!?]+[.!?]?/g) ?? [clean])
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .slice(0, 24);
+
+        const voice = pickVoice();
+        for (const chunk of chunks) {
+          const utter = new SpeechSynthesisUtterance(chunk);
+          utter.lang = targetLang;
+          if (voice) utter.voice = voice;
+          utter.rate = 1;
+          utter.pitch = 0.95;
+          utter.volume = 1;
+          synth.speak(utter);
+        }
+      } catch {
+        /* TTS opsional */
+      }
+    },
+    [ttsOn, isEn]
+  );
+
   // Greeting hanya muncul setelah mount (SSR tidak punya sessionStorage).
   // External store (useSyncExternalStore) tidak bisa: dismissGreeting() menulis
   // sessionStorage di tab yang sama tanpa memicu 'storage' event — butuh custom
@@ -238,10 +330,13 @@ export function RetroBot() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, isStreaming]);
 
-  // Hentikan stream saat unmount / komponen ditutup.
+  // Hentikan stream dan suara saat unmount / komponen ditutup.
   useEffect(() => {
-    return () => abortRef.current?.abort();
-  }, []);
+    return () => {
+      abortRef.current?.abort();
+      stopSpeaking();
+    };
+  }, [stopSpeaking]);
 
   // Sadari aplikasi SigitOS mana yang sedang dibuka pengunjung. Sumber:
   //  - event "switch-os-app" yang dipancarkan os-desktop-manager/terminal/hero,
@@ -302,14 +397,16 @@ export function RetroBot() {
   const closePanel = useCallback(() => {
     setIsOpen(false);
     abortRef.current?.abort();
+    stopSpeaking();
     playOS("windowClose");
-  }, []);
+  }, [stopSpeaking]);
 
   const clearChat = useCallback(() => {
     setMessages([]);
     setSource(null);
+    stopSpeaking();
     playOS("click");
-  }, []);
+  }, [stopSpeaking]);
 
   /**
    * Deteksi niat navigasi dari teks pengguna (untuk nav chip di percakapan).
@@ -348,6 +445,9 @@ export function RetroBot() {
       const text = raw.trim().slice(0, 500);
       if (!text || isStreaming) return;
 
+      const inputLang = detectLanguage(text, isEn ? "en" : "id");
+      const isInputEn = inputLang === "en";
+
       setInput("");
       playOS("click");
       setMood("thinking");
@@ -363,17 +463,17 @@ export function RetroBot() {
       const userMsg: Message = { id: uid(), role: "user", text };
       const botId = uid();
       // Niat navigasi: tawarkan jalan pintas ke jendela yang relevan sebagai
-      // pesan pertama (sebelum jawaban AI mengalir).
+      // pesan pertama (sebelum jawaban AI mengalir). Bahasa mengikuti input.
       const navApp = detectNavIntent(text);
       const navMsg: Message | null = navApp
         ? {
             id: uid(),
             role: "assistant",
-            text: isEn
+            text: isInputEn
               ? `I can open that page for you:`
               : `Saya bisa bukakan halaman itu untuk Anda:`,
             navTo: navApp,
-            navLabel: isEn
+            navLabel: isInputEn
               ? NAV_LABELS_EN[navApp]
               : NAV_LABELS_ID[navApp],
           }
@@ -397,7 +497,7 @@ export function RetroBot() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             text,
-            lang: isEn ? "en" : "id",
+            lang: inputLang,
             history,
             app: currentApp,
           }),
@@ -410,7 +510,14 @@ export function RetroBot() {
           setMessages((prev) =>
             prev.map((m) =>
               m.id === botId
-                ? { ...m, text: t.retrobot_rate_limited, streaming: false, source: "local" }
+                ? {
+                    ...m,
+                    text: isInputEn
+                      ? "Rate limit reached. Please wait a moment before asking again."
+                      : t.retrobot_rate_limited,
+                    streaming: false,
+                    source: "local",
+                  }
                 : m
             )
           );
@@ -425,14 +532,14 @@ export function RetroBot() {
         let buffer = "";
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
-        let raw = "";
+        let rawStream = "";
 
         for (;;) {
           const { done, value } = await reader.read();
           if (done) break;
-          raw += decoder.decode(value, { stream: true });
-          const events = raw.split("\n\n");
-          raw = events.pop() || "";
+          rawStream += decoder.decode(value, { stream: true });
+          const events = rawStream.split("\n\n");
+          rawStream = events.pop() || "";
           for (const evt of events) {
             const lines = evt.split("\n");
             let eventName = "message";
@@ -459,10 +566,6 @@ export function RetroBot() {
                 setFallbackNote(payload.fallbackReason);
               }
             } else if (eventName === "delta") {
-              // Delta langsung di-append ke teks pesan. Kecepatan kedatangan
-              // chunk dari route sudah memberi efek ketik (token-by-token
-              // untuk cloud, word-chunk untuk lokal); cursor blok berkedip
-              // selama streaming: true.
               const chunk = typeof payload.t === "string" ? payload.t : "";
               if (!chunk) continue;
               buffer += chunk;
@@ -483,6 +586,7 @@ export function RetroBot() {
               // Ledakan partikel: rayakan jawaban yang tiba (sekali per jawaban).
               setBurstId((n) => n + 1);
               window.setTimeout(() => setBurstId(0), 800);
+              speakBot(buffer);
             }
           }
         }
@@ -496,13 +600,20 @@ export function RetroBot() {
           setMessages((prev) =>
             prev.map((m) =>
               m.id === botId
-                ? { ...m, text: t.retrobot_offline, source: "local" }
+                ? {
+                    ...m,
+                    text: isInputEn
+                      ? "I couldn't reach the AI assistant right now. Try asking about skills, projects, services, or contact."
+                      : t.retrobot_offline,
+                    source: "local",
+                  }
                 : m
             )
           );
           playOS("error");
         } else {
           playOS("bot");
+          speakBot(buffer);
         }
       } catch {
         setMessages((prev) =>
@@ -510,7 +621,9 @@ export function RetroBot() {
             m.id === botId
               ? {
                   ...m,
-                  text: t.retrobot_offline,
+                  text: isInputEn
+                    ? "I couldn't reach the AI assistant right now. Try asking about skills, projects, services, or contact."
+                    : t.retrobot_offline,
                   streaming: false,
                   source: "local",
                 }
@@ -524,7 +637,7 @@ export function RetroBot() {
         abortRef.current = null;
       }
     },
-    [isStreaming, messages, isEn, t, currentApp, detectNavIntent]
+    [isStreaming, messages, isEn, t, currentApp, detectNavIntent, speakBot]
   );
 
   const handleQuickPrompt = useCallback(
@@ -757,6 +870,23 @@ export function RetroBot() {
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !ttsOn;
+                    setTtsOn(next);
+                    if (!next) stopSpeaking();
+                    playOS("click");
+                  }}
+                  title={ttsOn ? (isEn ? "Mute Voice" : "Matikan Suara") : (isEn ? "Enable Voice" : "Aktifkan Suara")}
+                  aria-label={ttsOn ? (isEn ? "Mute Voice" : "Matikan Suara") : (isEn ? "Enable Voice" : "Aktifkan Suara")}
+                  aria-pressed={ttsOn}
+                  className={`vt-btn vt-btn-chrome h-6 w-6 p-0 flex items-center justify-center cursor-pointer ${
+                    ttsOn ? "text-emerald-400" : "text-white/60"
+                  }`}
+                >
+                  {ttsOn ? <Volume2 className="h-3 w-3" /> : <VolumeX className="h-3 w-3" />}
+                </button>
                 <button
                   type="button"
                   onClick={clearChat}
