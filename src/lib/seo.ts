@@ -257,3 +257,61 @@ export async function generateDynamicMetadata(): Promise<Metadata> {
     },
   };
 }
+
+export interface FaqItem {
+  question: string;
+  answer: string;
+}
+
+/**
+ * Ekstraksi pertanyaan dan jawaban FAQ dari teks markdown.
+ * Mencari bagian `## Pertanyaan Umum...` atau `## Frequently Asked Questions...`
+ * dan mengambil setiap sub-judul `### ` beserta paragraf jawabannya.
+ */
+export function extractFaqFromContent(text?: string | null): FaqItem[] {
+  if (!text) return [];
+  const faqSectionMatch = text.split(/^##\s+(?:Pertanyaan Umum|Frequently Asked Questions)[^\n]*/m);
+  if (faqSectionMatch.length < 2) return [];
+
+  const faqBody = faqSectionMatch[1];
+  const qBlocks = faqBody.split(/^###\s+/m).filter(Boolean);
+  const results: FaqItem[] = [];
+
+  for (const block of qBlocks) {
+    const lines = block.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    if (lines.length >= 2) {
+      const question = lines[0].replace(/^>\s+/, "").trim();
+      const answer = lines
+        .slice(1)
+        .join(" ")
+        .replace(/```[\s\S]*?```/g, "")
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+        .trim();
+      if (question && answer) {
+        results.push({ question, answer });
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Bangun Schema.org FAQPage dari daftar FAQ items.
+ */
+export function buildFaqPageSchema(faqItems: FaqItem[]) {
+  if (!faqItems || faqItems.length === 0) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqItems.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.answer,
+      },
+    })),
+  };
+}
+

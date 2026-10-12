@@ -51,12 +51,15 @@ export default defineConfig({
           include: ["tests/**/*.test.ts"],
           exclude: SHARED_FS_TESTS,
           // Default vitest 5000ms terlalu rapat untuk file yang mengimpor
-          // modul halaman penuh (mis. tests/og-detail-metadata.test.ts yang
-          // memuat page.tsx artikel + proyek + produk beserta subtree-nya).
-          // Satu kali jalan ~1,5s saat sendirian tapi naik ke ~5,5s ketika semua
-          // worker berbagi CPU, sehingga sesekali gagal karena timeout,
-          // bukan karena assertion. Naikkan batas; isi assertion tidak
-          // dilonggarkan sama sekali.
+          // modul halaman penuh: `@/lib/actions` sendirian butuh ~6,6s saat
+          // dingin (drizzle + seluruh provider AI), dan subtree page bisa
+          // lebih lama lagi ketika semua worker berebut CPU. Batas ini
+          // dipertahankan sebagai jaring pengaman — BUKAN obat.
+          //
+          // Penyebab lambatnya adalah biaya IMPORT, bukan I/O jaringan. Test
+          // yang hanya butuh helper murni sebaiknya meng-mock modul server
+          // berat (`@/lib/actions`, `@/lib/seo-config`, dst.); jangan
+          // menaikkan timeout untuk menutupi import yang lambat.
           testTimeout: 20_000,
         },
       },

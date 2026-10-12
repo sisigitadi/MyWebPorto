@@ -3,7 +3,7 @@
 Dokumen ini menjelaskan **postur keamanan**, langkah hardening yang diterapkan, threat model, dan cara melaporkan kerentanan pada **MyWebPorto**.
 
 > **Versi hardening:** 2026-09-12 (v2) — mencakup CSP v2, validasi max-length, rate-limit admin-only IndexNow, header COOP/CORP, dan sanitasi error v2.
-> **Dokumen terakhir diperbarui:** 2026-09-18 — koreksi §3.2 CSP (domain Clerk dari publishable key), checklist §4 redirect-loop `SIGN_IN_URL`, audit §5 via `scripts/check-clerk-login.mjs`. Lihat §7.
+> **Dokumen terakhir diperbarui:** 2026-10-11 — sinkronisasi dengan kode: §3.2 upload kini merujuk validasi terpusat `storage.ts` (whitelist MIME tanpa SVG, magic-bytes, id UUID), §3.3 `images.remotePatterns` = allowlist host + pengecualian CORP `cross-origin` untuk `/api/media/*`, §3.5 `middleware.ts` → `src/proxy.ts`, §3.7/§4 form Cloud AI pindah ke `/admin/cloud-ai`, §4 catatan `npm audit` disegarkan. Lihat §7.
 
 ---
 
@@ -20,7 +20,7 @@ Dokumen ini menjelaskan **postur keamanan**, langkah hardening yang diterapkan, 
 
 | Aset | Ancaman Utama | Kontrol |
 |------|---------------|---------|
-| `/admin/*`, Server Actions CRUD | Broken Access Control (A01) | Clerk + `ADMIN_CLERK_ID` single-owner + `verifyAdmin()` di **semua** mutasi; non-admin 404; `SIGN_IN_URL` wajib `/sign-in` (lihat §4) |
+| `/admin/*`, Server Actions CRUD | Broken Access Control (A01) | Clerk + `ADMIN_CLERK_ID` single-owner + `verifyAdmin()` di **semua** mutasi; non-admin 404; `NEXT_PUBLIC_CLERK_SIGN_IN_URL` wajib `/sign-in` (lihat §4) |
 | `socialLinks`, URL, slug, upload | Injection / XSS (A03) | Zod `safeUrlSchema` + max-length + slug regex + magic-bytes + `safeJsonLd` |
 | Header / CSP / HSTS | Misconfiguration (A05) | Header ketat di `next.config.ts` (HSTS 2 tahun, CSP, COOP/CORP, Permissions-Policy) |
 | `POST /api/indexnow` | Abuse / SSRF / DoS | Admin-only + rate-limit 5/60s/IP + host allowlist + max 100 URLs + payload 10KB |
@@ -41,7 +41,7 @@ Out of scope: infra pihak ketiga (Clerk, Vercel, Neon, Formspree), social engine
 - `ADMIN_CLERK_ID` = satu-satunya akun yang boleh ubah konten. Di `proxy.ts` (middleware Next 16) dan `lib/actions.ts`, placeholder `user_xxxxxxxxxxxxxxxxx` sengaja diabaikan agar dev tetap jalan.
 - **Mode tanpa Clerk** (publishable key kosong / placeholder `xxxx`): SDK Clerk v7 menolak key format-invalid saat inisialisasi — `clerkMiddleware` melempar "Publishable key not valid" di **setiap** request (HTTP 500) dan `ClerkProvider` crash di client, sehingga deteksi di dalam handler tidak pernah tercapai. Karena itu `proxy.ts` dan `layout.tsx` memilih gate/provider tanpa Clerk **di level export**: situs publik tetap render (dev lokal tanpa kredensial + CI E2E), `/admin` **fail-closed 404** di produksi, dan komponen butuh-konteks Clerk (`os-menubar` `useUser`/`UserButton`, `<SignIn/>`, `<SignUp/>`) disembunyikan atau diganti fallback. Produksi (key valid) tidak terdampak: `clerkMiddleware → auth.protect()` + gate `ADMIN_CLERK_ID` aktif penuh.
 - Rute `/admin/*` dilindungi `clerkMiddleware → auth.protect()`; non-admin dapat **404** (bukan 403) agar tidak leak keberadaan halaman.
-- `GET /api/indexnow` dinonaktifkan (405); `POST` kini **admin-only** (`src/app/api/indexnow/route.ts:24`).
+- `GET /api/indexnow` dinonaktifkan (405); `POST` kini **admin-only** (`src/app/api/indexnow/route.ts`).
 - Error disamaratakan via `sanitizeError()` —Stack trace / env tidak pernah ke klien.
 
 ### 3.2 OWASP A03 — Injection & XSS
@@ -61,18 +61,17 @@ Out of scope: infra pihak ketiga (Clerk, Vercel, Neon, Formspree), social engine
   - `frame-src 'self' <domain Clerk> https://challenges.cloudflare.com` — Clerk butuh iframe handshake OAuth.
   - `object-src 'none'`, `base-uri 'self'`, `form-action 'self' https://formspree.io`, `frame-ancestors 'self'`, `report-uri` → visitor-tracker (`/csp-report`), `upgrade-insecure-requests`.
   - **Catatan domain Clerk (pernah menyebabkan bug):** publishable key berformat `pk_<live|test>_<base64 domain Frontend API>`. Pada akun dengan **custom domain**, domainnya BUKAN `*.clerk.accounts.dev` (mis. `clerk.sigitadi.id`). Hardcode hanya wildcard itu membuat `clerk.browser.js` diblokir CSP → komponen `<SignIn />` tidak pernah render ("tidak ada pilihan login"). Bug ini **tidak terlihat di dev** karena key dev memang cocok wildcard. Bagian base64 juga sering membawa sufiks non-host (mis. `$`) yang membuat source CSP tidak valid → browser mengabaikannya → script tetap diblokir; karena itu hanya karakter host yang valid yang diambil. Verifikasi dengan browser asli, bukan cek string (lihat `scripts/check-clerk-login.mjs`).
-- **Upload** (`src/lib/local-upload.ts`):
-  - SVG **blacklist** (inline `<script>`).
-  - **Magic-bytes** diverifikasi (JPEG/PNG/WEBP/GIF/AVIF/BMP).
-  - **Ekstensi dari MIME tervalidasi**, bukan `file.name` → cegah `evil.html` tersimpan sebagai HTML.
-  - Nama file `Date.now()-randomHex.ext`.
-  - **Vercel warning** (`local-upload.ts:114`): log jika `process.env.VERCEL` (FS ephemeral).
-  - `bodySizeLimit 25MB` (serverActions) & `MAX_SIZE 20MB` per file.
+- **Upload** (validasi terpusat di `src/lib/storage.ts`, dipakai `local-upload.ts` & `actions.ts`):
+  - **Whitelist MIME** (JPEG/PNG/WEBP/GIF/AVIF/BMP) — **SVG tidak ada di daftar** sehingga ditolak (cegah XSS via inline `<script>`).
+  - **Magic-bytes** diverifikasi per MIME (`matchesImageSignature`); MIME dari klien tidak dipercaya.
+  - **Ekstensi diturunkan dari MIME tervalidasi** (`EXTENSION_BY_MIME`), bukan dari `file.name` — nama asli hanya jadi label display yang dibersihkan ke basename.
+  - Gambar disimpan ke tabel `media` dengan **id UUID (`randomUUID()`)** dan disajikan via `GET /api/media/<uuid>`; `Content-Type` diambil dari MIME hasil validasi.
+  - `bodySizeLimit 25MB` (serverActions) & `MAX_IMAGE_SIZE 20MB` per file.
 - **JSON-LD** (`src/lib/json-ld.ts`): `safeJsonLd()` ganti `<` → `\u003c` untuk cegah `</script>` breakout (stored XSS).
-- **Error sanitasi** (`src/lib/error-utils.ts:6`): allowlist pesan aman + `slice(0,500)` + `console.error` mask internal.
+- **Error sanitasi** (`src/lib/error-utils.ts`): allowlist pesan aman + `slice(0,500)` + `console.error` mask internal.
 
 ### 3.3 OWASP A05 — Security Misconfiguration
-Header lengkap di `next.config.ts` (`headers()`, baris 38):
+Header lengkap di `next.config.ts` (`headers()`):
 - `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload` (2 tahun)
 - `X-Content-Type-Options: nosniff`
 - `X-Frame-Options: SAMEORIGIN`
@@ -81,13 +80,14 @@ Header lengkap di `next.config.ts` (`headers()`, baris 38):
 - `Permissions-Policy: camera=(), microphone=(), geolocation=(), browsing-topics=(), payment=(), usb=()`
 - `X-Permitted-Cross-Domain-Policies: none`
 - **Baru:** `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: same-origin`
+- **Pengecualian sadar:** `GET /api/media/:id` di-set `Cross-Origin-Resource-Policy: cross-origin` + `Cache-Control: public, max-age=31536000, immutable` agar `og:image` bisa diambil scraper WhatsApp/Facebook (permintaan cross-origin). Aman karena berkasnya memang publik dan immutable.
 - **Baru:** `Cache-Control: no-store` untuk `/admin/*` dan `/api/*` (cegah cache sensitif di CDN)
 - `poweredByHeader: false`, `compress: true`
-- `images.remotePatterns` — wildcard `**` masih aktif untuk kemudahan; **rekomendasi hardening:** batasi ke host tepercaya (`images.unsplash.com`, `cdn.sigitadi.id`) saat prod stabil.
+- `images.remotePatterns` — **allowlist host, bukan wildcard**: `images.unsplash.com`, `*.b-cdn.net`, `sigitadi.id`, `*.sigitadi.id`. Saat ini `images.unoptimized: true` (ramah VPS tanpa sharp) sehingga pola ini belum dienforce runtime; begitu dioptimalkan (`unoptimized: false`), allowlist langsung berlaku sebagai defense in depth.
 - Secret tidak di-commit (`.env.example`).
 
 ### 3.4 OWASP A04 — Insecure Design (Rate Limiting)
-- `POST /api/indexnow` (`src/lib/rate-limit.ts` + `src/app/api/indexnow/route.ts:12`):
+- `POST /api/indexnow` (`src/lib/rate-limit.ts` + `src/app/api/indexnow/route.ts`):
   - **5 req / 60s / IP** (diperketat dari 10) + `Retry-After`.
   - **Admin-only** (401/403 jika bukan owner).
   - **Max 100 URLs** + **payload 10KB** (413 jika lebih).
@@ -97,7 +97,7 @@ Header lengkap di `next.config.ts` (`headers()`, baris 38):
 
 ### 3.5 OWASP A07 — CSRF / Session
 - Clerk httpOnly session, middleware di semua rute kecuali aset statis.
-- `x-request-id` (`middleware.ts:27`) untuk korelasi log tanpa leak PII.
+- `x-request-id` (`src/proxy.ts`) untuk korelasi log tanpa leak PII.
 
 ### 3.6 Privasi — Egress Data
 - **Tidak ada auto-translate saat save.** Tombol `Terjemahkan (ID→EN)` opt-in per field → `translateFieldAction` + `verifyAdmin()`.
@@ -111,7 +111,7 @@ Header lengkap di `next.config.ts` (`headers()`, baris 38):
 - **API key tidak pernah dikirim ke klien.** `maskKey()` hanya menampilkan `••••••••` + 4 karakter terakhir (placeholder ditandai jelas); `AdminCloudAIView` hanya berisi status masked. Penulisan hanya lewat server action `saveCloudAIConfigAction` yang memanggil `verifyAdmin()`; apiKey kosong di form = "pertahankan key yang ada". Isolasi per-provider: key hanya dibaca lewat `meta.envKey` registry — mengganti provider tidak membocorkan key provider lain.
 - Pengambilan daftar model (`listCloudModelsAction`) adalah server action admin-only. Header otentikasi per gaya API: `Authorization: Bearer` untuk `openai-chat`, `x-api-key` + `anthropic-version: 2023-06-01` untuk `anthropic`, `?key=` untuk `gemini`. Key yang dikirim ke provider tidak pernah di-log ke klien; key kosong di form = pakai key yang sudah tersimpan.
 - `AI_PROVIDER` default `off` — tanpa key valid (kosong/placeholder dianggap tidak valid), semua pertanyaan dilayani mesin lokal (`ai-engine.ts`) tanpa egress apa pun. Gate yang sama berlaku di route `/api/retrobot` lewat `isCloudAIConfigEnabled()`; provider `off` atau key placeholder → `submitTo*` mengembalikan `{success:false}` tanpa memanggil jaringan.
-- **Otentikasi provider = API key saja.** Seluruh 9 provider dalam registry memakai API key (per gaya API: `Authorization: Bearer` / `x-api-key` + `anthropic-version` / `?key=`) — **tidak ada alur login atau OAuth per akun**. Form Cloud AI di `/admin/system` hanya menyediakan input API key; nilai yang disimpan tidak pernah dibaca kembali dalam bentuk mentah (lihat `maskKey()` di atas). Login akun provider (mis. "Sign in with…" ke dashboard AI) tidak didukung dan tidak direncanakan: API key adalah standar otentikasi untuk semua provider terdaftar, sekaligus menghindari penyimpanan token OAuth jangka panjang di tabel `settings`.
+- **Otentikasi provider = API key saja.** Seluruh 9 provider dalam registry memakai API key (per gaya API: `Authorization: Bearer` / `x-api-key` + `anthropic-version` / `?key=`) — **tidak ada alur login atau OAuth per akun**. Form Cloud AI di `/admin/cloud-ai` hanya menyediakan input API key; nilai yang disimpan tidak pernah dibaca kembali dalam bentuk mentah (lihat `maskKey()` di atas). Login akun provider (mis. "Sign in with…" ke dashboard AI) tidak didukung dan tidak direncanakan: API key adalah standar otentikasi untuk semua provider terdaftar, sekaligus menghindari penyimpanan token OAuth jangka panjang di tabel `settings`.
 
 ---
 
@@ -120,9 +120,9 @@ Header lengkap di `next.config.ts` (`headers()`, baris 38):
 - [ ] `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` & `CLERK_SECRET_KEY` = **live** (bukan `pk_test_xxxx`), `ADMIN_CLERK_ID` terisi valid.
   - **Wajib `pk_live_`** — `pk_test_` memakai domain `*.clerk.accounts.dev` yang me-redirect **Googlebot ke handshake Clerk di setiap rute** (termasuk `/robots.txt` & `/sitemap.xml`). Google melaporkannya sebagai **"Redirect error"** dan halaman tidak terindeks. Jika GSC melaporkan redirect error, ini penyebab pertama yang harus diperiksa.
   - **Domain CSP diturunkan dari key ini** — key live dengan custom domain (mis. `clerk.sigitadi.id`) menghasilkan source CSP yang berbeda dari key dev. Lihat §3.2 catatan domain Clerk.
-- [ ] **`NEXT_PUBLIC_CLERK_SIGN_IN_URL` / `SIGN_UP_URL` = `/sign-in` / `/sign-up`** — BUKAN `/admin`.
+- [ ] **`NEXT_PUBLIC_CLERK_SIGN_IN_URL` / `NEXT_PUBLIC_CLERK_SIGN_UP_URL` = `/sign-in` / `/sign-up`** — BUKAN `/admin`.
   - Variabel ini adalah **halaman login** (tujuan *sebelum* otentikasi). Jika diisi `/admin`, `auth.protect()` mengalihkan user belum-login ke `/admin`, yang balik memicu proteksi → **redirect loop tak terbatas** (`ERR_TOO_MANY_REDIRECTS`) di `/admin/*`.
-  - Tujuan *setelah* login adalah variabel terpisah: `CLERK_SIGN_IN_FORCE_REDIRECT_URL` / `FALLBACK_REDIRECT_URL` = `/admin` (memang benar `/admin` di sini).
+  - Tujuan *setelah* login adalah variabel terpisah: `CLERK_SIGN_IN_FORCE_REDIRECT_URL` / `CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` = `/admin` (memang benar `/admin` di sini).
   - **Jebakan diagnostik:** curl ke `/admin` mengembalikan **404** (bukan redirect) karena `auth.protect()` memperlakukan client non-browser berbeda. Gejala aslinya hanya terlihat di **browser asli** — tes dengan header `Sec-Fetch-Mode: navigate` + `Sec-Fetch-Dest: document`, atau langsung pakai Playwright. Jangan diagnosa redirect loop ini dengan curl polos.
 - [ ] `DATABASE_URL` prod (Neon `sslmode=require`), sudah `npm run db:push`.
 - [ ] `NEXT_PUBLIC_APP_URL` = domain prod (tanpa trailing slash).
@@ -130,8 +130,8 @@ Header lengkap di `next.config.ts` (`headers()`, baris 38):
 - [ ] Storage gambar: tabel `media` (bytea Postgres) siap via migrasi `drizzle/0010` — tidak ada dependency object storage lagi.
 - [ ] `ENABLE_EXTERNAL_TRANSLATE` sesuai kebijakan privasi (set `false` jika egress dilarang).
 - [ ] `npm run lint && npm run build` pass (0 error, 0 warning); `npx tsc --noEmit` 0 error; `npm run test` hijau.
-- [ ] `npm audit --audit-level=high` cek; `postcss`/`esbuild` vuln saat ini dari `next@15` — tunggu upstream fix, jangan `npm audit fix --force` ke `next@16` tanpa uji.
-- [ ] Bila Cloud AI diaktifkan: `AI_PROVIDER` + key di env server **atau** di form `/admin/system` (tabel `settings`); pastikan UI admin menampilkan key sebagai masked, dan `AI_PROVIDER=off` bila tidak dipakai.
+- [ ] `npm audit --audit-level=high` cek. Per 2026-10-12 laporan berisi **9 vuln transitif dev-only** (4 moderate, 5 high) pada `eslint-config-next` dan `drizzle-kit` (@esbuild-kit). Kerentanan `sharp` (CVE-2026-96889), `source-map-js`, dan `brace-expansion` telah ditambal via npm overrides. Tahan `--force` agar tidak merusak ekosistem Next.js 16.
+- [ ] Bila Cloud AI diaktifkan: `AI_PROVIDER` + key di env server **atau** di form `/admin/cloud-ai` (tabel `settings`); pastikan UI admin menampilkan key sebagai masked, dan `AI_PROVIDER=off` bila tidak dipakai.
 - [ ] Header CSP tidak blokir UI (cek DevTools → Console → CSP violations).
 - [ ] Uji `/admin` dengan akun non-owner → harus 404; `POST /api/indexnow` tanpa login → 401; `POST /api/retrobot` melebihi 20×/5 mnt → 429.
 - [ ] **Kesehatan SEO (Google Search Console)**: `/robots.txt`, `/sitemap.xml`, `/feed.xml`, `/llms.txt` harus `200` (bukan `3xx`). Redirect di rute ini = penyebab "Redirect error" di GSC. Verifikasi: `curl -sI -o /dev/null -w "%{http_code}\n" https://sigitadi.id/robots.txt`.
@@ -166,6 +166,8 @@ node scripts/check-clerk-login.mjs
 
 | Tanggal | Perubahan |
 |---------|-----------|
+| 2026-10-12 | **Pembaruan dependensi & mitigasi CVE transitif**: Upgrade Next.js 16.4.0, Clerk 7.9.14, Radix UI, Drizzle, Node 22 LTS types. Penambalan kerentanan `sharp` (CVE-2026-96889), `source-map-js`, dan `brace-expansion` melalui npm overrides. Eliminasi `DeprecationWarning: Buffer()` pada proses build Node 24. |
+| 2026-10-11 | **Sinkronisasi dokumentasi** (bukan perubahan kode): §3.2 upload merujuk validasi terpusat `storage.ts` (whitelist MIME tanpa SVG, magic-bytes per MIME, ekstensi dari MIME tervalidasi, id UUID) alih-alih `local-upload.ts` + nama `Date.now()-randomHex`; §3.3 `images.remotePatterns` = allowlist host (bukan wildcard `**`) + pengecualian CORP `cross-origin` untuk `GET /api/media/:id`; §3.5 `middleware.ts:27` → `src/proxy.ts`; §3.7 & §4 form Cloud AI `/admin/system` → `/admin/cloud-ai`; §3.1/§3.4 referensi baris `indexnow/route.ts` dihapus; §4 catatan `npm audit` disegarkan (12 vuln: 4 moderate, 8 high). |
 | 2026-09-18 | **Koreksi dokumentasi** (bukan perubahan kode): §3.2 CSP `script-src` diperbaiki — domain Clerk diturunkan dari publishable key saat build (bukan hardcode `*.clerk.accounts.dev`); §4 tambah checklist `NEXT_PUBLIC_CLERK_SIGN_IN_URL` ≠ `/admin` (redirect loop) + catatan curl menyesatkan; §5 tambah `scripts/check-clerk-login.mjs` |
 | 2026-09-12 v2 | CSP hapus `unsafe-eval`, tambah COOP/CORP, Cache-Control admin/api, validation max-length+slug regex, IndexNow admin-only (5/60s) + max 100 URLs, error sanitasi allowlist diperluas, middleware `x-request-id` |
 | 2026-09-11 v1 | CSP awal, magic-bytes upload, safeJsonLd, rate-limit 10/60s, verifyAdmin, sanitizeError |

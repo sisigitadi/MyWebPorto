@@ -1,6 +1,38 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 // Alias "@" menunjuk ke src/, sedangkan next.config.ts berada di root proyek.
 import nextConfig from "../next.config";
+
+/**
+ * Jalur metadata OG di sini murni (tanpa I/O), jadi graf server besar tidak
+ * perlu dimuat:
+ * - `@/lib/actions` — `@/lib/seo` mengimpornya statis untuk `getProfile`
+ *   (dipakai hanya oleh `generateDynamicMetadata`). Mengimpornya menarik
+ *   drizzle + seluruh provider AI (~6,6s saat dingin).
+ * - `@/lib/seo-config` — menarik `settings` + driver Neon.
+ *
+ * Karena `@/lib/seo` mengimpor keduanya di level modul, test ini meng-mock-nya
+ * agar import `@/lib/seo` murah dan deterministik; jalan lambat itu dulu
+ * membuat test ini melewati timeout 20s saat semua worker berebut CPU.
+ */
+vi.mock("@/lib/actions", () => ({ getProfile: vi.fn() }));
+vi.mock("@/lib/seo-config", () => ({
+  resolveOgMeta: vi.fn(),
+  resolveVerification: vi.fn(),
+}));
+
+// Hermetik: gagalkan test bila ada jalur metadata yang mencoba jaringan.
+const fetchMock = vi.fn(() => {
+  throw new Error("Test OG harus hermetik: metadata tidak boleh menyentuh jaringan.");
+});
+
+beforeEach(() => {
+  fetchMock.mockClear();
+  vi.stubGlobal("fetch", fetchMock);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 /**
  * Header yang dikirim ke scraper WhatsApp/Facebook untuk gambar share.
@@ -95,5 +127,14 @@ describe("shareImage — kelengkapan metadata untuk scraper sosial", () => {
     expect(shareImage("/api/media/x", "https://sigitadi.id/", "a").url).toBe(
       "https://sigitadi.id/api/media/x",
     );
+  });
+
+  it("tidak menyentuh jaringan sama sekali — termasuk untuk cover remote", async () => {
+    const { shareImage } = await import("@/lib/seo");
+    // Cover eksternal hanya dioper sebagai URL; tidak boleh di-fetch untuk
+    // menebak dimensi (dimensi memang sengaja tidak diisi, lihat shareImage).
+    shareImage("https://images.unsplash.com/photo-1550751827?w=800", "https://sigitadi.id", "Alt");
+    shareImage(null, "https://sigitadi.id", "Alt");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

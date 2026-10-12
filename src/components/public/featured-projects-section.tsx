@@ -155,7 +155,7 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
                       <a
                         href={project.demoUrl}
                         target="_blank"
-                        rel="noopener noreferrer"
+                        rel="nofollow noopener noreferrer"
                         className="vt-btn vt-btn-pink py-1.5 px-3 text-xs font-bold font-mono justify-center"
                         title={language === "en" ? "Run Live Demo" : "Jalankan Demo Langsung"}
                       >

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getProjects, getProfile } from "@/lib/actions";
 import { safeJsonLd } from "@/lib/json-ld";
-import { localeAlternates, shareImage } from "@/lib/seo";
+import { localeAlternates, shareImage, extractFaqFromContent, buildFaqPageSchema } from "@/lib/seo";
 import { ProjectDetailContent } from "@/components/public/project-detail-content";
 
 interface ProjectDetailPageProps {
@@ -93,6 +93,9 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
     ],
   };
 
+  const faqItems = extractFaqFromContent(project.description);
+  const faqSchema = buildFaqPageSchema(faqItems);
+
   const softwareAppSchema = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -101,8 +104,8 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
     description: project.summary,
     image: project.thumbnailUrl,
     url: pageUrl,
-    applicationCategory: "WebApplication",
-    operatingSystem: "Web Browser, Cross-Platform",
+    applicationCategory: "DeveloperApplication, WebApplication",
+    operatingSystem: "Web Browser, Cross-Platform (Windows, macOS, Linux, Android, iOS)",
     author: {
       "@type": "Person",
       name: profile.name,
@@ -113,7 +116,34 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
       price: "0",
       priceCurrency: "USD",
     },
+    featureList: project.techStack?.join(", "),
     softwareRequirements: project.techStack?.join(", "),
+  };
+
+  const caseStudyArticleSchema = {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    headline: `${project.title} - Studi Kasus & Arsitektur Sistem`,
+    description: project.summary,
+    articleBody: project.description,
+    image: project.thumbnailUrl,
+    url: pageUrl,
+    datePublished: new Date(project.createdAt).toISOString(),
+    inLanguage: "id-ID",
+    author: {
+      "@type": "Person",
+      name: profile.name,
+      url: baseUrl,
+    },
+    publisher: {
+      "@type": "Person",
+      name: profile.name,
+      url: baseUrl,
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": pageUrl,
+    },
   };
 
   return (
@@ -126,6 +156,16 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd(softwareAppSchema) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(caseStudyArticleSchema) }}
+      />
+      {faqSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(faqSchema) }}
+        />
+      )}
       <div className="flex-1 min-h-0 w-full overflow-y-auto vt-scrollbar">
         <ProjectDetailContent project={project} profile={profile} />
       </div>

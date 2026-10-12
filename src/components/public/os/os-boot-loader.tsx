@@ -1,19 +1,16 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
 import { playOS } from "@/lib/os-sound";
 
 export function OSBootLoader() {
+  const pathname = usePathname();
   const { language } = useTranslation();
-  // Boot hanya muncul saat pengguna membuka aplikasi pertama kali atau
-  // membuka link dari tab baru — BUKAN setiap kali halaman direfresh.
-  //
-  // mounted: overlay hanya dirender SETELAH hydrasi di klien. Sebelumnya
-  // server merender markup overlay penuh (sessionStorage tidak ada di server
-  // → bootVisible true) → pengguna melihat flash hitam ~400ms di SETIAP refresh
-  // meskipun flag sudah ada. Dengan gate ini, SSR tidak pernah memancarkan
-  // overlay; klien menampilkan animasi hanya bila benar-benar boot pertama.
+  // Boot hanya muncul di beranda root ("/") saat pengguna manusia membuka aplikasi
+  // pertama kali di tab baru — BUKAN setiap kali refresh, dan TIDAK PERNAH di sub-halaman
+  // (/artikel/*, /proyek/*, /toko/*) atau untuk search engine bot/crawler (Googlebot dsb).
   const [mounted, setMounted] = useState(false);
   const [bootVisible, setBootVisible] = useState(true);
   const [isFading, setIsFading] = useState(false);
@@ -52,15 +49,9 @@ export function OSBootLoader() {
     }
   };
 
-  // Dideklarasikan & distabilkan sebelum useEffect: rule react-hooks v7
-  // melarang akses sebelum deklarasi (TDZ) — sebelumnya handleComplete dipanggil
-  // di dalam effect padahal dideklarasikan setelahnya (hanya jalan berkat
-  // setTimeout 5 detik; rapuh saat refactor). useCallback([]) stabil → deps
-  // [handleComplete] tetap menjaga effect run-once di mount.
   const handleComplete = useCallback(() => {
     setIsFading(true);
     sessionStorage.setItem("sigitos_booted_session", "true");
-    // Chime "masuk desktop" ala startup jadul — sopan dan singkat
     playOS("boot");
     setTimeout(() => {
       setBootVisible(false);
@@ -68,20 +59,16 @@ export function OSBootLoader() {
   }, []);
 
   useEffect(() => {
-    // Boot hanya muncul saat pengguna membuka aplikasi pertama kali atau
-    // membuka link dari tab baru — BUKAN setiap kali halaman direfresh.
-    //
-    // Strategi: sessionStorage di-clear saat tab ditutup, sehingga:
-    //  - Tab baru / link dari luar → flag belum ada → animasi BIOS jalan.
-    //  - Refresh di tab yang sama → flag masih ada → boot dilewati instan.
-    //  - Navigasi internal antar halaman publik → flag ada → tetap dilewati.
-    // Boot adalah state machine pasca-mount: baca sessionStorage (SSR tidak
-    // punya sessionStorage → initializer menyebabkan hydration mismatch), lalu
-    // jalankan animasi via timer. setState sinkron di body effect ini memang
-    // ditegur rule; migrasi flag "sudah boot" ke external store — utang terpisah.
-    const hasBooted = sessionStorage.getItem("sigitos_booted_session");
+    // 1. Lewati langsung jika diakses search engine crawler atau otomasi browser (SEO protection)
+    const isBot =
+      typeof navigator !== "undefined" &&
+      (Boolean(navigator.webdriver) ||
+        /bot|crawler|spider|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandexbot|facebookexternalhit|whatsapp|twitterbot|linkedinbot|perplexitybot|gptbot|claudebot|applebot/i.test(
+          navigator.userAgent || ""
+        ));
+
+    const hasBooted = isBot || Boolean(sessionStorage.getItem("sigitos_booted_session"));
     if (hasBooted) {
-      // Sudah boot di sesi tab ini → tidak ada animasi, tidak ada beep.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setBootVisible(false);
       setMounted(true);
@@ -150,8 +137,8 @@ export function OSBootLoader() {
   }, [handleComplete]);
 
   // Jangan render apapun di server (mencegah flash hitam SSR saat refresh) dan
-  // jangan render di klien bila sudah boot di sesi tab ini.
-  if (!mounted || !bootVisible) return null;
+  // jangan render di klien bila sudah boot di sesi tab ini, atau jika bukan di root "/".
+  if (pathname !== "/" || !mounted || !bootVisible) return null;
 
   return (
     <div

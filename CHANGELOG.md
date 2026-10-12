@@ -4,6 +4,136 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Security & Changed — Full Audit, Upgrade Next.js 16.4 & Penambalan CVE
+
+Pembaruan menyeluruh dependensi dan pengamanan rantai pasok (supply chain):
+- **Framework & Core**: Next.js 16.3.8 → 16.4.0 (Turbopack), Clerk 7.9.1 → 7.9.14 (`@clerk/ui` 1.40.0), Drizzle ORM 0.45.2 → 0.45.4 (`drizzle-kit` 0.31.11), Neon Serverless 1.1.0 → 1.2.0, Zod 4.6.5 → 4.6.6, Lucide React 1.44.0 → 1.55.0, Tailwind Merge 3.6.0 → 3.7.0, Radix UI primitives.
+- **Testing & Tools**: Vitest 5.0.2 → 5.0.4, Vite 8.3.0 → 8.3.4, Playwright 1.63.0 → 1.64.0, `@types/node` diperbarui ke Node 22 LTS (`^22`).
+- **Keamanan (npm overrides)**: Penambalan kerentanan keamanan transitif `sharp` (CVE-2026-96889), `source-map-js`, dan `brace-expansion` melalui npm overrides.
+- **Node 24 Deprecation Fixed**: Peringatan `[DEP0005] DeprecationWarning: Buffer()` pada proses build berhasil dieliminasi.
+- **Verifikasi**: Seluruh 516 unit test Vitest, pemeriksaan tipe TypeScript, ESLint, verifikasi docs-drift, kompilasi Next.js 16.4, dan 10 test Playwright E2E publik lulus 100%.
+
+### Added — Angka README diisi dari kode + guard daftar env var
+
+Menjaga angka tetap sinkron itu melelahkan, dan kelelahan itu membuktikan diri:
+setelah penjaga dibuat, README masih membawa `±507 test` yang tertinggal di
+satu tempat. Maka angkanya berhenti ditulis tangan — dan lingkar pemeriksaan
+env var ditutup.
+
+- `scripts/docs-stats.mjs` (baru): sumber kebenaran tunggal untuk menghitung
+  jumlah tabel (`pgTable()` di schema), berkas & tes di `tests/`, dan rentang
+  migrasi `drizzle/`, plus parser `.env.example` dan pemindai nama env di
+  markdown. Dipakai **bersama** oleh guard dan CLI, supaya keduanya tidak bisa
+  berbeda pendapat.
+- `scripts/sync-readme-stats.mjs` (baru) — `npm run docs:sync` menulis ulang lima
+  situs angka di README; `npm run docs:check` (`--check`) keluar 1 tanpa menulis.
+  Mode sync memeriksa **setelah** menulis, jadi hasilnya selalu konvergen.
+- `tests/docs-drift.test.ts` ditulis ulang di atas modul itu dan kini 7 test:
+  klaim angka generik (menangkap klaim barupun di mana pun), seluruh situs
+  sinkronisasi masih terbaca (fixer yang polanya putus tidak akan pernah
+  menggigit), README sebagai titik tetap `docs:sync`, butir "Model Data" per
+  tabel, **dua arah** untuk blok env README & DEPLOYMENT vs `.env.example`
+  (var hantu + var terlupakan), SECURITY.md bebas var hantu dan tetap membahas
+  daftar env kritis, serta larangan `it.each`/`it.for`.
+- `package.json`: tambah script `docs:sync` & `docs:check`.
+
+Tiga temuan nyata diperbaiki karena guard tidak bisa lolos sebelum itu:
+`PORT` disebut di `DEPLOYMENT.md` tapi absen dari `.env.example` (kini tercatat
+sebagai opsional — memang dipakai PM2/Docker); `ENABLE_EXTERNAL_TRANSLATE`
+terlewat dari blok env `DEPLOYMENT.md`; dan `SECURITY.md` menulis `SIGN_UP_URL`
+padahal var sesungguhnya `NEXT_PUBLIC_CLERK_SIGN_UP_URL`.
+
+Batasan yang disadari: hitungan tes statis tidak bisa mengikuti
+`it.each`/`it.for`, jadi keduanya digagalkan guard dengan pesan penggantinya.
+
+### Added — Penjaga drift dokumentasi (`tests/docs-drift.test.ts`)
+
+Angka di README terus basi tanpa ada satu pun check yang menangkapnya: skema
+tertulis "8 tabel" padahal 10, unit test "113/226 test" padahal ratusan,
+dan migrasi "0000–0009" padahal sudah sampai 0010. Semua itu baru ketahuan
+saat audit manual.
+
+Test baru ini membaca README dan membandingkan setiap angka yang diklaim
+dengan kenyataan kode — bukan hanya kemunculan pertama, jadi angka usang di
+mana pun akan gagal, lengkap dengan nomor baris README-nya:
+
+- Jumlah tabel = jumlah `pgTable()` di `src/db/schema.ts`.
+- Setiap tabel di schema wajib punya barisnya di bagian "Model Data".
+- Jumlah berkas dan jumlah tes = isi `tests/*.test.ts`.
+- Rentang migrasi = nama berkas di `drizzle/`.
+
+Jumlah tes dihitung **statis** dari deklarasi `it(`/`test(` per baris (bukan
+dengan menjalankan vitest dari dalam vitest — itu rekursif). Karena hitungan
+statis tidak bisa mengikuti `it.each`/`it.for` yang mekar jadi banyak tes,
+pemakaiannya dideteksi dan digagalkan dengan pesan yang menjelaskan gantinya.
+
+README diselaraskan ke keadaan baru (38 berkas / 513 tes; dua angka di
+baris 191 sempat tertinggal "±507 test").
+
+### Changed — Test metadata OG jadi hermetik (tanpa jaringan, tahan lambat import)
+
+`tests/og-scrape-headers.test.ts` dan `tests/og-detail-metadata.test.ts`
+sesekali gagal di CI dengan `Test timed out in 20000ms` — bukan karena
+assertion, dan bukan karena jaringan. Akar masalahnya biaya **import**:
+`@/lib/seo` mengimpor `@/lib/actions` (drizzle + seluruh provider AI, ~6,6s
+saat dingin) dan `@/lib/seo-config` (settings + driver Neon), sedangkan page
+detail menarik subtree yang lebih besar lagi. Ketika semua worker berebut CPU,
+satu file melewati batas 20s.
+
+- Kedua file kini meng-mock modul server berat yang tidak dipakai jalur
+  metadata (`@/lib/actions`, `@/lib/seo-config`). Hasilnya:
+  `og-scrape-headers` 20,6s → **0,1s**; `og-detail-metadata` 9,3s → **0,8s**;
+  durasi suite penuh ~75s → **~20s**.
+- **Hermetik**: `fetch` di-stub global di kedua file dan setiap panggilan
+  jaringan langsung menggagalkan test. Ditambah assertion eksplisit bahwa
+  metadata detail dengan cover remote tidak memanggil `fetch` — mengunci
+  sifat murni `shareImage` (tidak menebak dimensi dengan mengunduh gambar).
+- Test baru: satu di tiap file (total 507 → **509 test**), sehingga
+  `og-scrape-headers` 8 test dan `og-detail-metadata` 12 test.
+- `vitest.config.mts`: komentar `testTimeout` diperbarui — 20s dipertahankan
+  sebagai jaring pengaman, tetapi penyebab aslinya adalah biaya import,
+  jadi solusinya meng-mock modul berat, bukan menaikkan timeout.
+- `README.md`: jumlah unit test 507 → **509**, plus catatan bahwa test
+  ber-`DATABASE_URL` otomatis di-skip tanpa DB dan test OG hermetik.
+
+### Changed — Sinkronisasi dokumentasi dengan kode (framework, test, tabel, rute admin)
+
+Audit dokumentasi menemukan sejumlah klaim yang tidak lagi cocok dengan kode;
+hanya dokumen yang diselaraskan, tidak ada perubahan perilaku.
+
+- `README.md`: **Next.js 15 → 16** (framework memang sudah 16.3.8 di
+  `package.json`); `src/middleware.ts` → `src/proxy.ts` (konvensi Next 16 yang
+  sudah dipakai sejak upgrade); skema **8 → 10 tabel** dan migrasi
+  **`0000`–`0010`** (sebelumnya `0000`–`0009`) plus baris `settings_history` &
+  `media` yang terlewat di bagian "Model Data"; jumlah unit test **14 file/113
+  test** dan **21 file/226 test** → **37 file/509 test** (angka nyata dari
+  `npx vitest run`; test ber-`DATABASE_URL` di-skip otomatis tanpa DB); jalur form Cloud AI
+  `/admin/system` → `/admin/cloud-ai` (dipindah di PR #48); pohon folder admin
+  dilengkapi `strings/`, `features/`, `cloud-ai/`, `redaksi/`, dan `media/`.
+- `README.md` — God Mode: Fase 2 (teks UI, `/admin/strings`), Fase 3 (feature
+  flag, `/admin/features`), dan Fase 4 (draft + pratinjau live + riwayat &
+  rollback 1-klik, tabel `settings_history`) sudah **selesai**, bukan
+  "menyusul" seperti klaim lama. Bagian Catatan Pengembangan dan daftar fitur
+  panel admin kini menyebut ketiganya.
+- `SECURITY.md` §3.2: blok upload masih menyebut `local-upload.ts`, nama berkas
+  `Date.now()-randomHex.ext`, dan "SVG blacklist" — padahal validasi terpusat di
+  `src/lib/storage.ts` sejak media pindah ke Postgres (whitelist MIME — SVG
+  ditolak karena tidak ada di daftar, magic-bytes per MIME, ekstensi dari MIME
+  tervalidasi, id UUID). §3.3 `images.remotePatterns` bukan lagi wildcard `**`
+  melainkan allowlist host, ditambah pengecualian CORP `cross-origin` untuk
+  `GET /api/media/:id` yang sengaja dilonggarkan agar `og:image` terbaca
+  scraper WhatsApp/Facebook. §3.5 `middleware.ts` → `src/proxy.ts`. §3.7 & §4
+  form Cloud AI `/admin/system` → `/admin/cloud-ai`. §4 catatan `npm audit`
+  disegarkan (12 vuln: 4 moderate, 8 high).
+- `DEPLOYMENT.md`: tambah `NEXT_PUBLIC_CLERK_SIGN_IN_URL` / `SIGN_UP_URL` ke
+  template `.env` (checklist §4 `SECURITY.md` menandainya wajib — mengisinya
+  `/admin` menyebabkan redirect loop); form Cloud AI `/admin/system` →
+  `/admin/cloud-ai`.
+
+Rujukan nomor baris (`middleware.ts:27`, `error-utils.ts:6`,
+`indexnow/route.ts:12`, `route.ts:24`, `next.config.ts` "baris 38") dihapus dari
+`SECURITY.md` karena terus drift; rujukan kini berbasis berkas, bukan baris.
+
 ### Added — Dokumentasi kontrak sinkronisasi bantuan AI dengan analisis SEO
 
 Perubahan hanya dokumen, tidak ada perubahan perilaku.
