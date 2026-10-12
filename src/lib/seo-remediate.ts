@@ -296,11 +296,73 @@ function ensureAnswerFirst(
   const summarySource = meta.trim();
   if (summarySource.length < 40) return { value: body, changed: false };
   const lead = `${title ? `${title} adalah` : "Halaman ini"} topik yang dibahas lengkap di bawah, termasuk langkah praktis, contoh penerapan, dan hal-hal yang sering terlewat. ${summarySource}`;
+  // Bila beforeHeading sudah ada tapi terlalu pendek, ganti bagian beforeHeading tersebut
+  // dengan lead tunggal agar tidak terjadi penumpukan kata kunci dan lead tidak membludak.
+  const restOfBody = body.slice(beforeHeading.length).trimStart();
+  const value = tidy(restOfBody ? `${lead}\n\n${restOfBody}` : `${lead}\n\n${body}`);
   return {
-    value: tidy(`${lead}\n\n${body}`),
+    value,
     changed: true,
     note: "Ringkasan pembuka (GEO answer-first) ditambahkan sebelum sub-judul pertama",
   };
+}
+
+/**
+ * Redam keyword stuffing bila density > SEO_RULES.density.max (3.0%).
+ * Bila model mengulang kata kunci di banyak sub-judul H2/H3,
+ * ganti kemunculan pada sub-judul ke-2 dan seterusnya dengan variasi alami.
+ */
+function mitigateKeywordDensity(
+  body: string,
+  keyword: string | null
+): { value: string; changed: boolean } {
+  if (!keyword) return { value: body, changed: false };
+  const totalWords = wordCount(body);
+  if (totalWords === 0) return { value: body, changed: false };
+
+  const countPhraseInText = (text: string, phrase: string): number => {
+    const haystack = ` ${text.toLowerCase().replace(/\s+/g, " ")} `;
+    const needle = ` ${phrase.toLowerCase()} `;
+    let count = 0;
+    let idx = haystack.indexOf(needle);
+    while (idx !== -1) {
+      count++;
+      idx = haystack.indexOf(needle, idx + needle.length);
+    }
+    return count;
+  };
+
+  const phraseCount = countPhraseInText(body, keyword);
+  const kwWords = keyword.split(/\s+/).length;
+  const currentDensity = (phraseCount * kwWords * 100) / totalWords;
+  if (currentDensity <= SEO_RULES.density.max) {
+    return { value: body, changed: false };
+  }
+
+  // Cari baris heading H2 dan H3 yang memuat keyword
+  const lines = body.split("\n");
+  let headingKwCount = 0;
+  let changed = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^#{2,3}\s+/.test(line)) {
+      const lower = line.toLowerCase();
+      if (lower.includes(keyword.toLowerCase())) {
+        headingKwCount++;
+        // Biarkan kemunculan pertama pada heading (agar keyword tetap ada di H2).
+        // Pada heading ke-2 dan seterusnya, ganti dengan padanan alami.
+        if (headingKwCount >= 2) {
+          const kwRegex = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+          lines[i] = line.replace(kwRegex, "teknologi ini");
+          changed = true;
+        }
+      }
+    }
+  }
+
+  if (!changed) return { value: body, changed: false };
+  return { value: tidy(lines.join("\n")), changed: true };
 }
 
 /**
@@ -316,7 +378,7 @@ function ensureAnswerFirst(
  *
  * Urutan perbaikannya penting dan bukan arbitrer:
  *   judul -> slug -> panjang deskripsi -> ringkasan pembuka -> internal link
- *   -> suntik kata kunci ke deskripsi -> analisis.
+ *   -> mitigasi density heading -> suntik kata kunci ke deskripsi -> analisis.
  * Kata kunci disuntik TERAKHIR supaya lead GEO yang disalin dari deskripsi
  * tidak ikut membawa frasa itu ke isi draf yang pendek.
  */
@@ -363,10 +425,19 @@ export function remediateDraft(input: RemediationInput): RemediationResult {
   // Kata kunci memakai algoritma analyzer, jadi "sudah disuntik" dan "ditemukan
   // analyzer" tidak mungkin berbeda.
   const keyword = primaryKeywordFor(title.value, body);
+
+  // Redam keyword stuffing jika model mengulang kata kunci di terlalu banyak sub-judul
+  const densityMitigated = mitigateKeywordDensity(body, keyword);
+  if (densityMitigated.changed) {
+    body = densityMitigated.value;
+    applied.push("Kepadatan kata kunci pada sub-judul dirapikan agar terhindar dari keyword stuffing");
+  }
+
   const meta = fitMeta(metaBase, keyword);
   if (meta.changed) {
     applied.push("Deskripsi disesuaikan ke panjang ideal dan dipastikan memuat kata kunci");
   }
+
 
   const analysis = analyzeSeo(
     {
