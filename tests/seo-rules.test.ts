@@ -386,4 +386,102 @@ describe("draf hasil remisi benar-benar lebih bersih", () => {
     expect(weight(after)).toBeLessThan(weight(before));
     expect(after.score).toBeGreaterThan(before.score);
   });
+
+  it("expandThin: true memperluas draf 414 kata, menyisipkan daftar bullet, dan menghasilkan skor 100/100 tanpa notif", () => {
+    // Simulasi draf hasil AI ~414 token non-stopword tanpa daftar dan fakta
+    const initialText = [
+      "Computer vision adalah bidang kecerdasan buatan yang memungkinkan komputer dan sistem mengekstrak informasi bermakna dari gambar digital, video, dan input visual lainnya. Bidang ini menggabungkan teknik pemrosesan citra, pengenalan pola, dan deep learning untuk memahami konteks visual secara akurat.",
+      "",
+      "## Arsitektur Dasar Model Visual",
+      "Model computer vision modern mengandalkan Convolutional Neural Networks dan Vision Transformers. Lapisan konvolusi berfungsi mengekstrak fitur spasial mulai dari tepi objek sederhana hingga pola tekstur yang rumit. Proses pooling kemudian mereduksi dimensi representasi sambil mempertahankan karakteristik fitur yang paling dominan.",
+      "",
+      "## Tantangan Pengolahan Citra Digital",
+      "Variasi pencahayaan, oklusi sebagian objek, dan noise sensor merupakan tantangan klasik yang dihadapi praktisi. Algoritma harus dirancang tangguh agar mampu melakukan generalisasi terhadap domain data yang belum pernah dilihat sebelumnya selama proses pelatihan.",
+      "",
+      "## Evaluasi Model Visual",
+      "Metrik evaluasi seperti mean Average Precision dan Intersection over Union digunakan untuk mengukur kinerja lokalisasi dan klasifikasi objek. Setiap model harus divalidasi terhadap dataset independen sebelum siap diterapkan pada sistem produksi.",
+    ].join("\n\n");
+
+    const relatedLinks = [
+      { title: "Optimasi Web", href: "/artikel/optimasi-web" },
+      { title: "Arsitektur Microservices", href: "/artikel/arsitektur-microservices" },
+    ];
+
+    const fixed = remediateDraft({
+      title: "Panduan Lengkap Computer Vision Modern untuk Praktisi",
+      slug: "panduan-computer-vision",
+      meta: "Ulasan komprehensif implementasi computer vision modern, arsitektur Convolutional Neural Networks, Vision Transformers, dan optimasi performa produksi.",
+      body: initialText,
+      bodyField: "content",
+      type: "article",
+      expandThin: true,
+      related: relatedLinks,
+    });
+
+    const finalAnalysis = analyzeSeo({
+      type: "article",
+      title: fixed.title,
+      slug: fixed.slug,
+      meta: fixed.meta,
+      content: fixed.body,
+      related: relatedLinks,
+    });
+
+    // Verifikasi: Tidak ada lagi notif "Konten masih tipis" dan "GEO: belum ada daftar"
+    const findingIds = finalAnalysis.findings.map((f) => f.id);
+    expect(findingIds).not.toContain("content-thin");
+    expect(findingIds).not.toContain("geo-no-list");
+    expect(findingIds).not.toContain("geo-no-fact");
+    expect(findingIds).not.toContain("content-no-internal-link");
+
+    // Metrik memenuhi seluruh ambang batas
+    expect(finalAnalysis.metrics.wordCount).toBeGreaterThanOrEqual(SEO_RULES.content.minWords);
+    expect(finalAnalysis.metrics.listItems).toBeGreaterThanOrEqual(GEO_RULES.listsMin);
+    expect(finalAnalysis.metrics.quotableFacts).toBeGreaterThanOrEqual(GEO_RULES.quotableFactsMin);
+    expect(finalAnalysis.metrics.internalLinkCount).toBeGreaterThanOrEqual(1);
+
+    // Skor 100/100 dan GEO 100/100
+    expect(finalAnalysis.score).toBe(100);
+    expect(finalAnalysis.geoScore).toBe(100);
+    expect(fixed.remaining).toEqual([]);
+  });
+
+  it("membersihkan tautan eksternal dan hanya mempertahankan internal link dari sigitadi.id", () => {
+    const rawBody = [
+      "Pengembangan web modern memerlukan pemahaman arsitektur yang kuat.",
+      "Kunjungi [Google](https://google.com) atau [Wikipedia](https://en.wikipedia.org/wiki/Web) untuk referensi luar.",
+      "Baca juga [Arsitektur Microservices](https://sigitadi.id/artikel/arsitektur-microservices) untuk studi kasus internal.",
+      "Pelajari [Optimasi Web](http://external-mirror.com/optimasi) yang cocok dengan artikel kami.",
+    ].join("\n\n");
+
+    const relatedLinks = [
+      { title: "Optimasi Web", href: "/artikel/optimasi-web" },
+      { title: "Arsitektur Microservices", href: "/artikel/arsitektur-microservices" },
+    ];
+
+    const fixed = remediateDraft({
+      title: "Arsitektur Sistem Web Modern",
+      slug: "arsitektur-sistem-web",
+      meta: "Deskripsi arsitektur sistem web modern untuk rekayasa perangkat lunak berskala besar.",
+      body: rawBody,
+      bodyField: "content",
+      type: "article",
+      related: relatedLinks,
+    });
+
+    // Link eksternal (google.com dan wikipedia) harus dibuang
+    expect(fixed.body).not.toContain("https://google.com");
+    expect(fixed.body).not.toContain("https://en.wikipedia.org");
+    expect(fixed.body).toContain("Google");
+    expect(fixed.body).toContain("Wikipedia");
+
+    // Link sigitadi.id dinormalkan ke path relatif /artikel/arsitektur-microservices
+    expect(fixed.body).toContain("[Arsitektur Microservices](/artikel/arsitektur-microservices)");
+
+    // Link eksternal yang cocok dengan judul related dipetakan ke internal link sigitadi.id
+    expect(fixed.body).toContain("[Optimasi Web](/artikel/optimasi-web)");
+
+    // Tidak boleh ada link markdown eksternal (http/https) sama sekali di body
+    expect(fixed.body).not.toMatch(/\]\(https?:\/\//i);
+  });
 });

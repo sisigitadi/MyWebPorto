@@ -371,8 +371,8 @@ export function seoGeoPromptBlock(
   }
   lines.push(
     line(
-      `- Isi: minimal ${scope.minWords} kata lengkap. Tulis pembahasan mendalam dengan sub-bagian terperinci, contoh langkah teknis, dan seksi tanya-jawab (FAQ) agar tidak diringkas di bawah batas kata.`,
-      `- body: at least ${scope.minWords} words in full. Write in-depth sections with technical steps and FAQ so it is never summarized below the required length.`
+      `- Isi: minimal ${scope.minWords} kata konten mendalam (target 800-1000 kata total teks agar tidak terhitung tipis saat dianalisis). Tulis ulasan yang komprehensif, mencakup latar belakang, penjelasan teknis, langkah praktis, blok kode terminal/bahasa bila relevan (\`\`\`bahasa ... \`\`\`), poin terstruktur, dan seksi Tanya-Jawab (FAQ) dengan minimal 2 sub-judul pertanyaan. JANGAN meringkas atau memotong penjelasan di bawah ${scope.minWords} kata.`,
+      `- body: at least ${scope.minWords} words in full (target 800-1000 total words so it is not analyzed as thin content). Write an in-depth review covering background, technical analysis, practical steps, code blocks where relevant, and an FAQ section with at least 2 question headings. NEVER summarize below ${scope.minWords} words.`
     )
   );
   if (scope.h2Min > 0) {
@@ -386,8 +386,8 @@ export function seoGeoPromptBlock(
   if (scope.internalLinkMin > 0) {
     lines.push(
       line(
-        `- Internal link: minimal ${scope.internalLinkMin} tautan markdown ke halaman lain di situs ini, ditulis [teks](/path).`,
-        `- internal links: at least ${scope.internalLinkMin} markdown link to another page of this site, written as [anchor](/path).`
+        `- Internal link: minimal ${scope.internalLinkMin} tautan markdown ke halaman lain di situs ini, ditulis [teks anchor](/path). HANYA gunakan link dari daftar situs sigitadi.id di bawah. DILARANG KERAS menyertakan tautan eksternal (http/https).`,
+        `- internal links: at least ${scope.internalLinkMin} markdown link to another page of this site, written as [anchor](/path). ONLY use links from the provided sigitadi.id list below. NEVER include external links (http/https).`
       )
     );
   }
@@ -423,8 +423,8 @@ export function seoGeoPromptBlock(
     if (scope.geo === "full") {
       lines.push(
         line(
-          `- Tulis minimal ${GEO_RULES.questionHeadingsMin} sub-judul sebagai pertanyaan sungguhan ("## Apa itu ...?").`,
-          `- Write at least ${GEO_RULES.questionHeadingsMin} sub-headings as real questions ("## Apa itu ...?").`
+          `- Tulis minimal ${GEO_RULES.questionHeadingsMin} sub-judul sebagai pertanyaan sungguhan ("## Apa itu ...?", "## Bagaimana cara ...?").`,
+          `- Write at least ${GEO_RULES.questionHeadingsMin} sub-headings as real questions ("## Apa itu ...?", "## Bagaimana cara ...?").`
         )
       );
       lines.push(
@@ -435,8 +435,8 @@ export function seoGeoPromptBlock(
       );
       lines.push(
         line(
-          `- Sertakan minimal ${GEO_RULES.listsMin} daftar bullet atau bernomor.`,
-          `- Include at least ${GEO_RULES.listsMin} bullet or numbered list.`
+          `- Sertakan minimal ${GEO_RULES.listsMin} daftar bullet ('- ') atau bernomor yang merinci langkah konkret.`,
+          `- Include at least ${GEO_RULES.listsMin} bullet ('- ') or numbered list detailing concrete steps.`
         )
       );
     }
@@ -465,7 +465,7 @@ export const INTERNAL_LINKS_MARKER = "INTERNAL_LINKS_MARKER";
 
 /**
  * Daftar tautan internal yang boleh dipakai model. Sengaja diberi paginasi
- * ketat (maks 12) supaya prompt tetap murah; model tetap boleh memakai paling
+ * ketat (maks 15) supaya prompt tetap murah; model tetap boleh memakai paling
  * banyak 3.
  */
 export function internalLinksPromptBlock(
@@ -473,13 +473,13 @@ export function internalLinksPromptBlock(
 ): string {
   const items = links
     .filter((l) => l.href && l.href.startsWith("/") && !l.href.startsWith("//"))
-    .slice(0, 12)
+    .slice(0, 15)
     .map((l) => `- ${l.title} → ${l.href}`);
   if (items.length === 0) {
-    return "Halaman lain di situs ini: (belum ada). JANGAN mengarang tautan internal.";
+    return "Halaman lain di situs sigitadi.id: (belum ada). JANGAN mengarang tautan internal.";
   }
   return [
-    "Halaman lain di situs ini yang boleh kamu tautkan (pakai persis path ini, maksimal 3 buah):",
+    "Halaman lain di situs sigitadi.id yang boleh kamu tautkan (HANYA pakai persis path ini, minimal 1 dan maksimal 3 buah, DILARANG link eksternal):",
     ...items,
   ].join("\n");
 }
