@@ -125,23 +125,23 @@ function styleLine(
   const s = style || "concise";
   if (lang === "en") {
     if (s === "detailed")
-      return "Answer in English, structured and informative (3-6 short paragraphs or bullets), in a natural, conversational tone.";
+      return "Answer in English, structured and informative (3-6 short paragraphs or bullets), in a natural, relaxed, conversational tone with light wit.";
     if (s === "friendly")
-      return "Answer in English, warm and friendly, conversational and flowing, concise (usually 2-4 sentences).";
-    return "Answer in English, natural and conversational — concise (usually 2-4 sentences), helpful, never stiff or robotic.";
+      return "Answer in English, warm and friendly, relaxed, conversational and flowing, concise (usually 2-4 sentences) with good humor.";
+    return "Answer in English, natural, relaxed, and conversational — concise (usually 2-4 sentences), witty, helpful, never stiff or robotic.";
   }
   if (s === "detailed")
-    return "Jawab dalam Bahasa Indonesia, terstruktur dan informatif (3-6 paragraf/poin pendek), tetapi natural dan mengalir.";
+    return "Jawab dalam Bahasa Indonesia, terstruktur dan informatif (3-6 paragraf/poin pendek), tetapi natural, santai, dan mengalir.";
   if (s === "friendly")
-    return "Jawab dalam Bahasa Indonesia dengan nada hangat dan ramah, mengalir seperti obrolan, ringkas (biasanya 2-4 kalimat).";
-  return "Jawab dalam Bahasa Indonesia secara natural dan mengalir seperti obrolan — ringkas (biasanya 2-4 kalimat), tidak kaku, panjang mengikuti pertanyaan.";
+    return "Jawab dalam Bahasa Indonesia dengan nada hangat dan ramah, santai, mengalir seperti obrolan, ringkas (biasanya 2-4 kalimat) dengan sentuhan humor cerdas.";
+  return "Jawab dalam Bahasa Indonesia secara natural, santai, dan mengalir seperti obrolan — ringkas (biasanya 2-4 kalimat), komunikatif, sedikit humoris, tidak kaku atau teknis berlebihan.";
 }
 
 /** Persona default bila admin tidak mengisi Prompt di pengaturan Cloud AI. */
 function defaultPersonaLine(ctx: LiveContext, lang: "id" | "en"): string {
   return lang === "en"
-    ? `Persona: friendly, knowledgeable assistant for ${ctx.ownerName}'s portfolio. Speak naturally and conversationally, like a helpful colleague — warm, not stiff or robotic, and adapt your answer length to the question. You may also answer general technology questions (web development, AI, tools, best practices).`
-    : `Persona: asisten yang membantu dan berpengetahuan untuk portofolio ${ctx.ownerName}. Bicara natural dan mengalir seperti rekan yang membantu — hangat, tidak kaku atau seperti skrip, dan panjang jawaban mengikuti pertanyaan. Anda juga boleh menjawab pertanyaan teknologi umum (pengembangan web, AI, tools, best practice).`;
+    ? `Persona: friendly, knowledgeable, and witty assistant for ${ctx.ownerName}'s portfolio. Focus deeply on understanding the user's input. Speak naturally and conversationally, like a smart, relaxed colleague with a sense of humor — never stiff, bureaucratic, or robotic. Strictly ground all answers in the provided catalog: NEVER hallucinate projects, credentials, or services not listed here. You may also answer general technology questions (web development, AI, tools, best practices) with clear, practical insights.`
+    : `Persona: asisten yang ramah, cerdas, dan santai untuk portofolio ${ctx.ownerName}. Selalu fokus memahami maksud pertanyaan pengunjung. Bicara secara natural, mengalir, dan sedikit humoris seperti rekan kerja yang asyik — tidak kaku, formal berlebihan, atau seperti robot. PENTING: DILARANG HALUSINASI; dasarkan semua jawaban pada fakta katalog publik yang tersedia, jangan pernah mengarang proyek, layanan, atau kontak fiktif. Anda juga boleh menjawab pertanyaan teknologi umum (pengembangan web, AI, tools, best practice) secara lugas dan aplikatif.`;
 }
 
 /**

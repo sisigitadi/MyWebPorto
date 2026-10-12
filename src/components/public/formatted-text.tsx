@@ -97,7 +97,7 @@ export function FormattedText({ text }: { text: string }) {
         elements.push(
           <h2
             key={key}
-            className="text-xl sm:text-2xl font-pixel font-bold text-foreground mt-8 mb-4 tracking-tight border-b border-border/60 pb-2"
+            className="text-base sm:text-lg font-pixel font-bold text-foreground mt-7 mb-3 tracking-wide border-b border-border/60 pb-2"
           >
             {renderInline(bTrimmed.replace(/^##\s+/, ""))}
           </h2>
@@ -110,7 +110,7 @@ export function FormattedText({ text }: { text: string }) {
         elements.push(
           <h3
             key={key}
-            className="text-base sm:text-lg font-mono font-bold text-foreground mt-6 mb-3 tracking-tight"
+            className="text-xs sm:text-sm font-mono font-bold text-foreground mt-4 mb-2 tracking-tight"
           >
             {"> "}
             {renderInline(bTrimmed.replace(/^###\s+/, ""))}

@@ -37,8 +37,9 @@ export interface EngineContext {
   availableForHire?: boolean;
   skills: string[];
   services: string[];
-  projects: { title: string; slug?: string | null }[];
-  articles: { title: string; slug?: string | null }[];
+  servicesEn?: string[];
+  projects: { title: string; titleEn?: string | null; slug?: string | null }[];
+  articles: { title: string; titleEn?: string | null; slug?: string | null }[];
   socialLinks?: {
     github?: string | null;
     linkedin?: string | null;
@@ -58,13 +59,29 @@ function clampText(text: string, max: number): string {
   return `${(space > 40 ? cut.slice(0, space) : cut).trim()}…`;
 }
 
-/** Judul terjemahan bila admin mengisi varian EN, jika tidak pakai default. */
+/** Judul terjemahan bila admin mengisi varian EN, jika tidak pakai fallback bersih (bukan teks ID mentah). */
 function localized(ctx: EngineContext, lang: "id" | "en"): { name: string; headline: string; bio: string } {
+  const defaultBioEn =
+    "Building high-performance web applications, secure digital systems, and modern AI-driven solutions.";
   return {
     name: ctx.ownerName,
-    headline: lang === "en" ? ctx.headlineEn || ctx.headline : ctx.headline,
-    bio: lang === "en" ? ctx.bioEn || ctx.bio : ctx.bio,
+    headline: lang === "en" ? ctx.headlineEn?.trim() || ctx.headline : ctx.headline,
+    bio: lang === "en" ? ctx.bioEn?.trim() || defaultBioEn : ctx.bio,
   };
+}
+
+function getServicesList(ctx: EngineContext, lang: "id" | "en"): string[] {
+  if (lang === "en" && ctx.servicesEn && ctx.servicesEn.length > 0) {
+    return ctx.servicesEn;
+  }
+  return ctx.services;
+}
+
+function getProjectsList(ctx: EngineContext, lang: "id" | "en"): { title: string; slug?: string | null }[] {
+  return ctx.projects.map((p) => ({
+    title: lang === "en" ? p.titleEn?.trim() || p.title : p.title,
+    slug: p.slug,
+  }));
 }
 
 /** Rangkai daftar kontak hanya dari field yang benar-benar terisi. */
@@ -109,30 +126,42 @@ interface IntentDef {
 const INTENTS: IntentDef[] = [
   {
     intent: "greeting",
-    keywords: ["halo", "hai", "hello", "hi", "hey", "pagi", "siang", "sore", "malam", "assalamualaikum", "ping"],
+    keywords: ["halo", "hai", "hello", "hi", "hey", "pagi", "siang", "sore", "malam", "assalamualaikum", "ping", "greetings"],
     // \b wajib: tanpa itu alternatif "p" cocok dengan SEMUA input yang dimulai
     // huruf p ("proyek", "python", "postgres", "php" ...) dan dikenali sebagai
     // sapaan. Sebelumnya "proyek apa saja..." → intent greeting.
-    patterns: [/^(halo|hai|hi|hey|hello|p|ping)\b/i, /selamat (pagi|siang|sore|malam)/i],
+    patterns: [
+      /^(halo|hai|hi|hey|hello|p|ping|greetings)\b/i,
+      /selamat (pagi|siang|sore|malam)/i,
+      /good (morning|afternoon|evening|day)/i,
+      /hey there/i,
+    ],
     build: (ctx, lang) => {
       const { name, headline } = localized(ctx, lang);
       return lang === "en"
         ? [
-            `Greetings! I am the SigitOS Neural Engine v2.6. How can I assist you regarding ${name}'s profile, tech stack, projects, or hire inquiries?`,
-            `Hello! My machine learning model is ready to answer anything about this portfolio (${headline}), engineering capabilities, or project collaborations.`,
-            `System online! I am the MyWebPorto AI assistant. Feel free to ask anything regarding ${name}'s technical expertise, services, or projects.`,
+            `Greetings! I'm SigitOS Neural Engine v2.6. Curious about ${name}'s tech stack, featured projects, or looking to collaborate? Fire away, no hallucinations here!`,
+            `Hello there! My machine learning model is ready to answer anything about this portfolio (${headline}), engineering capabilities, or project collaborations. Feel free to ask!`,
+            `System online! I am the MyWebPorto AI assistant. Ask me anything about ${name}'s technical expertise, projects, or services—relaxed vibes, zero ghost bugs.`,
           ]
         : [
-            `Halo! Saya SigitOS Neural Engine v2.6. Ada yang bisa saya bantu terkait profil, keahlian, proyek, atau kolaborasi dengan ${name}?`,
-            `Salam kenal! Model machine learning saya siap menjawab pertanyaan Anda mengenai portfolio (${headline}), teknologi yang digunakan, atau penawaran kerja sama.`,
-            `Sistem online! Saya asisten pintar MyWebPorto. Silakan tanyakan apa saja seputar pengalaman teknis, layanan, atau portofolio ${name}.`,
+            `Halo! Saya SigitOS Neural Engine v2.6. Penasaran seputar profil, keahlian, proyek, atau mau kerja sama dengan ${name}? Santai saja, tanyakan apa pun!`,
+            `Salam kenal! Model machine learning saya siap menjawab apa saja mengenai portofolio (${headline}), teknologi yang dipakai, atau kolaborasi proyek. Anti-halu dan selalu fokus ke fakta!`,
+            `Sistem online! Saya asisten pintar MyWebPorto. Mau bedah pengalaman teknis, intip proyek keren, atau tanya layanan ${name}? Siap bantu kapan saja!`,
           ];
     },
   },
   {
     intent: "profile_bio",
-    keywords: ["siapa", "profil", "tentang", "sigit", "adi", "bio", "latar", "belakang", "who", "about", "author", "creator"],
-    patterns: [/siapa (itu )?sigit/i, /tentang sigit/i, /who is (sigit|the author|the developer)/i, /about (the )?developer/i],
+    keywords: ["siapa", "profil", "tentang", "sigit", "adi", "bio", "latar", "belakang", "who", "about", "author", "creator", "developer", "yourself", "profile"],
+    patterns: [
+      /siapa (itu )?sigit/i,
+      /tentang sigit/i,
+      /who is (sigit|the author|the developer)/i,
+      /about (the )?(developer|author|yourself)/i,
+      /who are you/i,
+      /tell me about (yourself|sigit)/i,
+    ],
     build: (ctx, lang) => {
       const { name, headline, bio } = localized(ctx, lang);
       const skillsHint = ctx.skills.slice(0, 4).join(", ");
@@ -146,15 +175,15 @@ const INTENTS: IntentDef[] = [
             : "Terbuka untuk kerja sama freelance maupun full-time.";
       if (lang === "en") {
         return [
-          `${name} — ${headline}. ${clampText(bio, 220)}${skillsHint ? ` Core stack: ${skillsHint}.` : ""}`,
-          `${name} is a software engineer behind this portfolio, combining retro operating-system aesthetics with modern web standards. ${availability}${
+          `${name} — ${headline}. ${clampText(bio, 220)}${skillsHint ? ` Core stack: ${skillsHint}.` : ""} Passionate about crafting resilient systems with zero fluff.`,
+          `${name} is the software engineer behind this portfolio, blending nostalgic 90s OS charm with modern high-performance web engineering. ${availability}${
             ctx.location ? ` Based in ${ctx.location}.` : ""
           }`,
         ];
       }
       return [
-        `${name} — ${headline}. ${clampText(bio, 220)}${skillsHint ? ` Stack inti: ${skillsHint}.` : ""}`,
-        `${name} adalah software engineer di balik portfolio ini, menggabungkan estetika sistem operasi retro dengan standar web modern. ${availability}${
+        `${name} — ${headline}. ${clampText(bio, 220)}${skillsHint ? ` Stack inti: ${skillsHint}.` : ""} Selalu fokus merakit sistem yang tangguh dan minim drama.`,
+        `${name} adalah software engineer di balik portfolio ini, menggabungkan estetika sistem operasi retro dengan standar web modern yang ngebut. ${availability}${
           ctx.location ? ` Berdomisili di ${ctx.location}.` : ""
         }`,
       ];
@@ -162,8 +191,12 @@ const INTENTS: IntentDef[] = [
   },
   {
     intent: "skills_stack",
-    keywords: ["skill", "skills", "keahlian", "teknologi", "stack", "tech", "bahasa", "framework", "nextjs", "react", "typescript", "python", "postgres", "database"],
-    patterns: [/(keahlian|skill|tech stack|teknologi|bahasa pemrograman)/i, /what (technologies|tech|stack|skills)/i],
+    keywords: ["skill", "skills", "keahlian", "teknologi", "stack", "tech", "bahasa", "framework", "nextjs", "react", "typescript", "python", "postgres", "database", "capabilities", "tools"],
+    patterns: [
+      /(keahlian|skill|tech stack|teknologi|bahasa pemrograman)/i,
+      /what (technologies|tech|stack|skills|tools)/i,
+      /what are your (skills|capabilities)/i,
+    ],
     build: (ctx, lang) => {
       const { name } = localized(ctx, lang);
       const skills = ctx.skills.slice(0, 10);
@@ -175,22 +208,28 @@ const INTENTS: IntentDef[] = [
       const bullets = skills.map((s) => `• ${s}`).join("\n");
       return lang === "en"
         ? [
-            `Core technical stack of ${name}:\n${bullets}\nType 'skills' again or open Profil.exe for the full list.`,
-            `Featured stack: ${skills.slice(0, 6).join(", ")}. ${name} also ships reactive UI with zero layout shifts and solid backend logic.`,
+            `Core technical stack of ${name}:\n${bullets}\n\nType 'skills' again or open Profile.exe for the full toolkit. Built for speed and solid backend logic!`,
+            `Featured stack: ${skills.slice(0, 6).join(", ")}. ${name} also ships reactive UI with zero layout shifts and rock-solid backend logic.`,
           ]
         : [
-            `Teknologi inti ${name}:\n${bullets}\nKetik 'keahlian' lagi atau buka Profil.exe untuk daftar lengkap.`,
+            `Teknologi inti andalan ${name}:\n${bullets}\n\nKetik 'keahlian' lagi atau buka Profil.exe untuk daftar lengkap. Dibangun untuk performa kencang tanpa lag!`,
             `Stack unggulan: ${skills.slice(0, 6).join(", ")}. ${name} juga mahir membangun UI reaktif tanpa layout shift dan logika backend yang kokoh.`,
           ];
     },
   },
   {
     intent: "projects",
-    keywords: ["proyek", "project", "projects", "portofolio", "portfolio", "karya", "aplikasi", "showcase", "built", "work"],
-    patterns: [/(daftar|lihat|rekomendasi)? proyek/i, /what projects/i, /show me projects/i],
+    keywords: ["proyek", "project", "projects", "portofolio", "portfolio", "karya", "aplikasi", "showcase", "built", "work", "works"],
+    patterns: [
+      /(daftar|lihat|rekomendasi)? proyek/i,
+      /what projects/i,
+      /show me (your )?projects/i,
+      /what have you built/i,
+      /show portfolio/i,
+    ],
     build: (ctx, lang) => {
       const { name } = localized(ctx, lang);
-      const list = ctx.projects.slice(0, 5);
+      const list = getProjectsList(ctx, lang).slice(0, 5);
       if (list.length === 0) {
         return lang === "en"
           ? [`No projects are published yet — the catalog is being curated. Ask me about "skills" or "services" instead!`]
@@ -199,20 +238,23 @@ const INTENTS: IntentDef[] = [
       const numbered = list.map((p, i) => `${i + 1}. ${p.title}`).join("\n");
       return lang === "en"
         ? [
-            `Selected works by ${name}:\n${numbered}\nType 'projects' or click Projects.exe on the taskbar to inspect the full catalog!`,
+            `Selected works by ${name}:\n${numbered}\n\nType 'projects' or click Projects.exe on the taskbar to inspect the full catalog! No ghost bugs included.`,
           ]
         : [
-            `Beberapa karya pilihan ${name}:\n${numbered}\nKetik 'proyek' di terminal atau klik Proyek.exe di taskbar untuk melihat katalog lengkap!`,
+            `Beberapa karya pilihan ${name}:\n${numbered}\n\nKetik 'proyek' di terminal atau klik Proyek.exe di taskbar untuk melihat katalog lengkap! Dirancang rapi dan bebas bug gentayangan.`,
           ];
     },
   },
   {
     intent: "services_hire",
-    keywords: ["layanan", "jasa", "service", "services", "hire", "freelance", "kontrak", "harga", "biaya", "cost", "pricing", "bikin web", "buat web"],
-    patterns: [/(layanan|jasa|sewa|hire|buat web|bikin website|pricing|biaya)/i, /(services|hire you|pricing|can you build)/i],
+    keywords: ["layanan", "jasa", "service", "services", "hire", "freelance", "kontrak", "harga", "biaya", "cost", "pricing", "bikin web", "buat web", "offer", "rates"],
+    patterns: [
+      /(layanan|jasa|sewa|hire|buat web|bikin website|pricing|biaya)/i,
+      /(services|hire you|pricing|can you build|what do you offer|what services)/i,
+    ],
     build: (ctx, lang) => {
       const { name } = localized(ctx, lang);
-      const list = ctx.services.slice(0, 6);
+      const list = getServicesList(ctx, lang).slice(0, 6);
       const status = ctx.availableForHire
         ? lang === "en"
           ? "Current status: Available for freelance and contract engagements!"
@@ -227,14 +269,17 @@ const INTENTS: IntentDef[] = [
             ? "The service catalog is being updated."
             : "Daftar layanan sedang diperbarui.";
       return lang === "en"
-        ? [`${name} offers professional engineering services:\n${body}\n${status}`]
-        : [`${name} menyediakan layanan rekayasa perangkat lunak profesional:\n${body}\n${status}`];
+        ? [`${name} offers professional engineering services:\n${body}\n\n${status}\nGot an exciting idea or need an extra pair of senior hands? Let's talk!`]
+        : [`${name} menyediakan layanan rekayasa perangkat lunak profesional:\n${body}\n\n${status}\nPunya ide menarik atau butuh bantuan teknis? Yuk diskusikan lewat menu Kontak!`];
     },
   },
   {
     intent: "contact_social",
-    keywords: ["kontak", "contact", "email", "hubungi", "pesan", "message", "linkedin", "github", "wa", "whatsapp", "telepon"],
-    patterns: [/(cara kontak|hubungi|alamat email|kirim pesan)/i, /(how to contact|email address|reach out)/i],
+    keywords: ["kontak", "contact", "email", "hubungi", "pesan", "message", "linkedin", "github", "wa", "whatsapp", "telepon", "reach", "touch"],
+    patterns: [
+      /(cara kontak|hubungi|alamat email|kirim pesan)/i,
+      /(how to contact|email address|reach out|get in touch)/i,
+    ],
     build: (ctx, lang) => {
       const { name } = localized(ctx, lang);
       const lines = contactBullets(ctx, lang);
@@ -245,21 +290,35 @@ const INTENTS: IntentDef[] = [
   },
   {
     intent: "mywebporto_concept",
-    keywords: ["mywebporto", "konsep", "os", "retro", "98", "windows", "tema", "desktop", "sound", "suara", "kenapa"],
-    patterns: [/(konsep|kenapa retro|mywebporto|desktop os)/i, /(what is mywebporto|why retro)/i],
-    build: () => [
-      `Konsep MyWebPorto: Mengawinkan nostalgia sistem operasi desktop klasik era 90-an (beveled borders, tactile buttons, sound effects, BIOS boot sequence) dengan standar web modern 2026 yang super cepat, zero layout shift, serverless database, dan arsitektur Next.js 15.`,
-      `MyWebPorto Concept: Marrying the golden nostalgic aesthetic of 90s desktop operating systems (tactile bevels, CRT monitors, BIOS boot loaders) with cutting-edge 2026 web performance (Next.js 15, GSAP physics, serverless PostgreSQL).`,
+    keywords: ["mywebporto", "konsep", "os", "retro", "98", "windows", "tema", "desktop", "sound", "suara", "kenapa", "concept", "theme", "design"],
+    patterns: [
+      /(konsep|kenapa retro|mywebporto|desktop os)/i,
+      /(what is mywebporto|why retro|why the retro|concept)/i,
     ],
+    build: (_ctx, lang) =>
+      lang === "en"
+        ? [
+            `MyWebPorto Concept: Marrying the golden nostalgic aesthetic of 90s desktop operating systems (tactile bevels, CRT monitors, BIOS boot loaders) with cutting-edge 2026 web performance (Next.js 15, GSAP physics, serverless PostgreSQL).`,
+          ]
+        : [
+            `Konsep MyWebPorto: Mengawinkan nostalgia sistem operasi desktop klasik era 90-an (beveled borders, tactile buttons, sound effects, BIOS boot sequence) dengan standar web modern 2026 yang super cepat, zero layout shift, serverless database, dan arsitektur Next.js 15.`,
+          ],
   },
   {
     intent: "ml_ai_features",
-    keywords: ["ai", "machine learning", "ml", "bot", "model", "nlp", "llm", "otomasi", "automation", "intelligence"],
-    patterns: [/(machine learning|ai engine|fitur ai|apakah kamu ai)/i, /(are you ai|what model)/i],
-    build: () => [
-      `Engine Machine Learning MyWebPorto ini berjalan langsung pada browser (client-side NLP inferencing). Mampu melakukan tokenisasi, pembobotan vektor semantik TF-IDF, serta klasifikasi intent secara real-time tanpa latensi jaringan!`,
-      `The MyWebPorto Machine Learning Engine runs directly in-browser using client-side NLP inferencing. It performs real-time tokenization, TF-IDF semantic vector scoring, and intent classification with zero network latency!`,
+    keywords: ["ai", "machine learning", "ml", "bot", "model", "nlp", "llm", "otomasi", "automation", "intelligence", "neural", "assistant"],
+    patterns: [
+      /(machine learning|ai engine|fitur ai|apakah kamu ai)/i,
+      /(are you ai|what model|neural engine|ai model)/i,
     ],
+    build: (_ctx, lang) =>
+      lang === "en"
+        ? [
+            `The MyWebPorto Machine Learning Engine runs directly in-browser using client-side NLP inferencing. It performs real-time tokenization, TF-IDF semantic vector scoring, and intent classification with zero network latency!`,
+          ]
+        : [
+            `Engine Machine Learning MyWebPorto ini berjalan langsung pada browser (client-side NLP inferencing). Mampu melakukan tokenisasi, pembobotan vektor semantik TF-IDF, serta klasifikasi intent secara real-time tanpa latensi jaringan!`,
+          ],
   },
 ];
 
@@ -301,24 +360,58 @@ function scoreIntent(tokens: string[], rawInput: string, def: IntentDef): number
   return score;
 }
 
-// Detect language of the query
+// Detect language of the query based on lexical tokens and characteristic patterns
 export function detectLanguage(text: string, defaultLang: "id" | "en" = "id"): "id" | "en" {
-  const lower = text.toLowerCase();
-  const idMarkers = ["saya", "kamu", "bisa", "apa", "siapa", "bagaimana", "proyek", "keahlian", "layanan", "terima", "kasih", "tolong", "halo", "selamat"];
-  const enMarkers = ["what", "who", "how", "can", "you", "tell", "show", "skills", "projects", "services", "thanks", "hello", "please"];
+  const lower = text.toLowerCase().trim();
+  if (!lower) return defaultLang;
 
-  let idCount = 0;
-  let enCount = 0;
+  // Pola awalan / frase khas
+  const enPhrases = [
+    /\b(who is|what is|what are|how to|how do|can you|tell me|show me|list of|good morning|good afternoon|good evening|thank you|thanks a lot)\b/,
+    /\b(built|framework|capabilities|yourself|stack|projects|skills|services)\b/,
+  ];
+  const idPhrases = [
+    /\b(siapa|siapakah|apa saja|apakah|bagaimana|gimana|kenapa|mengapa|bisa kah|tolong|selamat pagi|selamat siang|selamat sore|selamat malam|terima kasih|makasih banyak)\b/,
+    /\b(keahlian|layanan|proyek|karya|hubungi|kontak|tentang)\b/,
+  ];
 
-  for (const m of idMarkers) {
-    if (lower.includes(m)) idCount++;
+  let enScore = 0;
+  let idScore = 0;
+
+  for (const pat of enPhrases) {
+    if (pat.test(lower)) enScore += 2;
   }
-  for (const m of enMarkers) {
-    if (lower.includes(m)) enCount++;
+  for (const pat of idPhrases) {
+    if (pat.test(lower)) idScore += 2;
   }
 
-  if (enCount > idCount) return "en";
-  if (idCount > enCount) return "id";
+  // Token level matching
+  const tokens = lower.replace(/[^\w\s]/g, " ").split(/\s+/).filter((w) => w.length > 0);
+  const idWordSet = new Set([
+    "saya", "aku", "kamu", "anda", "dia", "mereka", "kita", "bisa", "dapat", "apa", "apakah",
+    "siapa", "siapakah", "bagaimana", "gimana", "kenapa", "mengapa", "proyek", "keahlian",
+    "layanan", "terima", "kasih", "makasih", "tolong", "bantu", "halo", "hai", "selamat",
+    "pagi", "siang", "sore", "malam", "tentang", "hubungi", "kontak", "jasa", "biaya",
+    "harga", "buat", "bikin", "ngapain", "karya", "kerja", "kerjaan", "ada", "ngobrol",
+    "dong", "saja", "nih", "ya", "yuk", "ini", "itu", "dan", "atau", "dari", "ke", "di",
+  ]);
+  const enWordSet = new Set([
+    "i", "me", "my", "myself", "you", "your", "yours", "yourself", "he", "she", "it", "they", "we",
+    "what", "who", "whom", "whose", "how", "why", "when", "where", "can", "could", "would",
+    "will", "is", "are", "am", "was", "were", "do", "does", "did", "tell", "show", "give",
+    "list", "skills", "skill", "projects", "project", "services", "service", "contact",
+    "about", "hi", "hello", "hey", "greetings", "good", "morning", "afternoon", "evening",
+    "thanks", "thank", "please", "hire", "built", "pricing", "cost", "work", "works",
+    "help", "the", "a", "an", "this", "that", "and", "or", "from", "to", "in", "on", "at",
+  ]);
+
+  for (const t of tokens) {
+    if (idWordSet.has(t)) idScore += 1;
+    if (enWordSet.has(t)) enScore += 1;
+  }
+
+  if (enScore > idScore) return "en";
+  if (idScore > enScore) return "id";
   return defaultLang;
 }
 
@@ -337,13 +430,11 @@ export function queryAIEngine(
     };
   }
 
-  // Bahasa jawaban mengikuti bahasa UI (preferredLang), BUKAN teks pertanyaan.
-  // Sebelumnya memakai detectLanguage(cleanInput, preferredLang) yang mendeteksi
-  // bahasa dari teks pertanyaan — jadi saat UI = EN tapi user bertanya dalam
-  // Bahasa Indonesia ("siapa sigit adi?"), jawaban tetap keluar dalam Bahasa
-  // Indonesia. detectLanguage hanya dipakai untuk saran terjemahan otomatis di
-  // form admin, bukan untuk menentukan bahasa jawaban bot.
-  const lang = preferredLang;
+  // Bahasa jawaban mengikuti bahasa input agar selaras dan natural:
+  // Bila posisi UI ID tapi ada input EN -> dijawab EN.
+  // Bila posisi UI EN tapi ada input ID -> dijawab ID.
+  // Bila tidak terdeteksi (ambigu) -> jatuh ke preferredLang.
+  const lang = detectLanguage(cleanInput, preferredLang);
   const tokens = tokenize(cleanInput);
 
   let bestMatch: IntentDef | null = null;
@@ -368,18 +459,18 @@ export function queryAIEngine(
     };
   }
 
-  // Fallback generation: synthesize smart contextual answer dari data live
+  // Fallback generation: synthesize smart contextual answer dari data live (fokus dan anti-halu)
   const { name, headline } = localized(ctx, lang);
   const topSkills = ctx.skills.slice(0, 3).join(", ");
   if (lang === "en") {
     return {
-      text: `[Neural Model 2.6]: I analyzed "${cleanInput}". While not directly matching a static route, ${name} is ${headline}${topSkills ? ` with core skills in ${topSkills}` : ""}. Try asking about "skills", "projects", "services", or "contact" channels!`,
+      text: `[SigitOS AI]: I analyzed "${cleanInput}". To keep answers focused and avoid hallucinating outside context, I specialize in ${name}'s portfolio (${headline}${topSkills ? `, stack: ${topSkills}` : ""}). Try asking about "skills", "projects", "services", or "contact" channels!`,
       intent: "general_synthesis",
       confidence: 0.5,
     };
   }
   return {
-    text: `[Neural Model 2.6]: Saya menganalisis input "${cleanInput}". Meskipun belum ada rute langsung, ${name} adalah ${headline}${topSkills ? ` dengan keahlian inti di ${topSkills}` : ""}. Anda dapat menanyakan tentang "keahlian", "proyek", "layanan", atau "kontak"!`,
+    text: `[SigitOS AI]: Saya menganalisis input "${cleanInput}". Agar tetap fokus dan tidak halu keluar konteks, saya berspesialisasi pada portofolio ${name} (${headline}${topSkills ? `, keahlian: ${topSkills}` : ""}). Anda dapat menanyakan tentang "keahlian", "proyek", "layanan", atau "kontak"!`,
     intent: "general_synthesis",
     confidence: 0.5,
   };

@@ -587,7 +587,7 @@ export const translations: Record<Language, Translations> = {
     terminal_cmd_reboot: "Restart the kernel",
     // Command headers & feedback
     terminal_skills_header: "TECHNICAL SKILLS (live from profile):",
-    terminal_skills_manage: "Manage skills via Admin -> Profile -> Keahlian.",
+    terminal_skills_manage: "Manage skills via Admin -> Profile -> Skills.",
     terminal_contact_header: "CONTACT CHANNELS:",
     terminal_contact_none: "  (no social links configured)",
     terminal_contact_opening: "Opening Contact...",

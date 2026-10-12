@@ -36,7 +36,7 @@ import { verifyAdmin } from "./admin-auth";
 import { catalogUrl, detailUrl, getIndexNowBaseUrl, submitUrlsToIndexNow } from "@/lib/indexnow";
 import { isLivePublished, normalizePublishAt } from "@/lib/publish";
 import { isPlaceholderKey } from "@/lib/env";
-import { queryAIEngine, type EngineContext } from "@/lib/ai-engine";
+import { queryAIEngine, detectLanguage, type EngineContext } from "@/lib/ai-engine";
 import { buildCloudPrompt, buildCloudMessages, submitToGemini } from "@/lib/ai-provider";
 import {
   resolveCloudAIConfig,
@@ -1828,7 +1828,7 @@ export async function askSigitBot(
   preferredLang: "id" | "en" = "id"
 ): Promise<{ text: string; intent: string; confidence: number; source: "local" | "cloud" }> {
   const cleanInput = (rawInput || "").trim().slice(0, 500);
-  const lang = preferredLang === "en" ? "en" : "id";
+  const lang = detectLanguage(cleanInput, preferredLang === "en" ? "en" : "id");
   if (!cleanInput) {
     return {
       text: lang === "en" ? "Please enter a query or command." : "Silakan masukkan pertanyaan atau perintah.",
@@ -1893,15 +1893,28 @@ export async function askSigitBot(
       availableForHire: profile.availableForHire,
       skills: profile.skills || [],
       socialLinks: profile.socialLinks,
-      services: services.filter((s) => s.published !== false).map((s) => s.title),
+      services: services
+        .filter((s) => s.published !== false)
+        .map((s) => (lang === "en" ? s.titleEn || s.title : s.title)),
+      servicesEn: services
+        .filter((s) => s.published !== false)
+        .map((s) => s.titleEn || s.title),
       projects: projects
         .filter((p) => p.published)
         .slice(0, 8)
-        .map((p) => ({ title: p.title, slug: p.slug })),
+        .map((p) => ({
+          title: lang === "en" ? p.titleEn || p.title : p.title,
+          titleEn: p.titleEn,
+          slug: p.slug,
+        })),
       articles: articles
         .filter((a) => a.published)
         .slice(0, 8)
-        .map((a) => ({ title: a.title, slug: a.slug })),
+        .map((a) => ({
+          title: lang === "en" ? a.titleEn || a.title : a.title,
+          titleEn: a.titleEn,
+          slug: a.slug,
+        })),
     };
   } catch (err) {
     console.error("askSigitBot: gagal memuat konteks live:", err instanceof Error ? err.message.slice(0, 200) : err);

@@ -249,6 +249,19 @@ export function buildPrompt(type: RedaksiContentType, brief: string, lang: "id" 
     "FORMAT ISI PANJANG: teks polos bertanda. Gunakan '## ' untuk judul bagian, '### ' untuk sub bagian, '> ' untuk kutipan, dan blok kode diapit tiga backtick (```bahasa ... ```).",
     "Bila konten memuat kode perintah, konfigurasi, bash, json, html, sql, atau bahasa pemrograman, WAJIB diapit blok tiga backtick agar dirender di kotak khusus terminal.",
     "DILARANG KERAS menulis tag HTML, URL gambar, atau tautan ke luar situs (http/https). Tautan ke domain eksternal sama sekali TIDAK diizinkan.",
+    "",
+    "FOKUS & ANTI-HALUSINASI: Pahami brief dengan teliti, dilarang halusinasi, mengarang proyek fiktif, angka palsu, atau klaim yang keluar dari konteks pemilik situs.",
+    "GAYA PENULISAN: Natural, mengalir, santai, dan komunikatif dengan sentuhan humor segar yang proporsional agar tidak kaku atau terdengar seperti ensiklopedia kering, namun tetap berbobot dan profesional.",
+    "",
+    "TATA KELOLA FORMAT & HIERARKI TEKS (PENTING):",
+    "- JANGAN gunakan heading level 1 (# ). Mulai struktur isi dari level 2 (## ) dan level 3 (### ) agar hierarki heading rapi.",
+    "- DILARANG GABUNGKAN HEADING DENGAN BOLD (Dilarang menulis '## **Judul**' atau '### **Judul**') karena membuat teks terlalu besar, tebal berlebihan, dan merusak tata letak visual.",
+    "- HINDARI TEKS RATA MONOTON / WALL OF TEXT: Bagi isi menjadi paragraf pendek (2-4 kalimat), gunakan subjudul terstruktur (## / ###), bullet list (- ), dan kutipan (> ) secara proporsional agar mudah dipindai pembaca.",
+    "- Penebalan (**kata**) hanya dipakai hemat untuk 1-2 kata kunci atau istilah teknis penting per bagian, jangan menebalkan seluruh kalimat.",
+    "- STRUKTUR SEKSI FAQ (PERTANYAAN UMUM): Jika menyertakan bagian tanya jawab / FAQ, gunakan satu judul utama '## Pertanyaan Umum (FAQ)' atau '## Pertanyaan yang Sering Diajukan'.",
+    "- FORMAT PERTANYAAN DI BAWAH FAQ: Setiap butir pertanyaan WAJIB menggunakan level 3 ('### [Pertanyaan]?'), BUKAN level 2 ('## '). Ini wajib agar ukuran huruf proporsional dan tidak terlalu besar.",
+    "- FAQ WAJIB 100% RELEVAN & ANTI-HALU: Pertanyaan dan jawaban dalam FAQ harus benar-benar menyatu dengan brief/topik yang diminta. DILARANG membuat pertanyaan atau jawaban fiktif yang keluar dari konteks (seperti membicarakan server, latensi 250ms, pipeline CI/CD, atau DevOps jika topik bukan tentang hal tersebut).",
+    "- POSISI FAQ & LARANGAN HEADING BESAR SETELAHNYA: Bagian FAQ ditempatkan menjelang akhir artikel. DILARANG menaruh sub-judul besar (## ) dengan topik baru yang tidak nyambung di bawah FAQ. Setelah FAQ, hanya boleh ada penutup singkat (## Kesimpulan).",
   ];
   if (scope.internalLinkMin > 0) {
     lines.push(

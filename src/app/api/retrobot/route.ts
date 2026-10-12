@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfile, getServices, getProjects, getArticles } from "@/lib/actions";
-import { queryAIEngine, type EngineContext } from "@/lib/ai-engine";
+import { queryAIEngine, detectLanguage, type EngineContext } from "@/lib/ai-engine";
 import { buildCloudMessages, getGeminiFallbackModels, submitToGeminiMessages } from "@/lib/ai-provider";
 import { submitToOpenAIStream } from "@/lib/ai-openai";
 import { submitToAnthropic } from "@/lib/ai-anthropic";
@@ -133,6 +133,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "empty_input" }, { status: 400 });
   }
 
+  // Deteksi bahasa dari input pengguna agar jawaban selaras dengan input
+  // (mis. UI dalam ID tapi input dalam EN -> dijawab EN, dan sebaliknya).
+  const effectiveLang = detectLanguage(text, lang);
+
   // Konteks live (sama persis dengan askSigitBot): hanya data publik.
   let ctx: EngineContext;
   try {
@@ -154,21 +158,34 @@ export async function POST(req: NextRequest) {
       availableForHire: profile.availableForHire,
       skills: profile.skills || [],
       socialLinks: profile.socialLinks,
-      services: services.filter((s) => s.published !== false).map((s) => s.title),
+      services: services
+        .filter((s) => s.published !== false)
+        .map((s) => (effectiveLang === "en" ? s.titleEn || s.title : s.title)),
+      servicesEn: services
+        .filter((s) => s.published !== false)
+        .map((s) => s.titleEn || s.title),
       projects: projects
         .filter((p) => p.published)
         .slice(0, 8)
-        .map((p) => ({ title: p.title, slug: p.slug })),
+        .map((p) => ({
+          title: effectiveLang === "en" ? p.titleEn || p.title : p.title,
+          titleEn: p.titleEn,
+          slug: p.slug,
+        })),
       articles: articles
         .filter((a) => a.published)
         .slice(0, 8)
-        .map((a) => ({ title: a.title, slug: a.slug })),
+        .map((a) => ({
+          title: effectiveLang === "en" ? a.titleEn || a.title : a.title,
+          titleEn: a.titleEn,
+          slug: a.slug,
+        })),
     };
   } catch {
     return NextResponse.json({ error: "context_error" }, { status: 500 });
   }
 
-  const local = queryAIEngine(text, ctx, lang);
+  const local = queryAIEngine(text, ctx, effectiveLang);
   // Config efektif (pengaturan admin menimpa env) — di-resolve sekali di luar
   // stream agar key/model konsisten untuk seluruh permintaan ini.
   const cloudCfg = await resolveCloudAIConfig();
@@ -191,11 +208,12 @@ export async function POST(req: NextRequest) {
         );
       };
 
-      // Rute lokal HANYA saat cloud mati dan lokal yakin jawabannya
-      // (confidence >= 0.55). Saat cloud aktif, selalu lanjut ke eskalasi cloud
-      // di bawah — lokal tetap siap sebagai fallback bila cloud gagal.
-      // Kata dipecah ke chunk kecil agar jawaban lokal dapat efek ketik juga.
-      if (!cloudEnabled && local.confidence >= BASE_CONFIDENCE_THRESHOLD) {
+      // Selaras dengan Terminal (askSigitBot di actions.ts):
+      // Bila query cocok dengan intent lokal (confidence >= BASE_CONFIDENCE_THRESHOLD)
+      // ATAU cloud AI tidak aktif / unconfigured, layani langsung via mesin inferensi
+      // lokal (cepat, anti-halu, dan 100% selaras bahasa input pengguna).
+      // Hanya eskalasi ke cloud bila confidence lokal rendah (< 0.55) dan cloud aktif.
+      if (local.confidence >= BASE_CONFIDENCE_THRESHOLD || !cloudEnabled) {
         emit("meta", {
           source: "local",
           model: "tfidf-local",
@@ -211,7 +229,7 @@ export async function POST(req: NextRequest) {
         return;
       }
 
-      // Eskalasi cloud (streaming).
+      // Eskalasi cloud (streaming) untuk pertanyaan bebas di luar intent utama.
       emit("meta", {
         source: "cloud",
         model: cloudCfg.model,
@@ -221,18 +239,22 @@ export async function POST(req: NextRequest) {
       });
 
       // Urutan chat: system → riwayat (user/assistant bergantian) → user saat ini.
-      const [sys, user] = buildCloudMessages(text, ctx, lang, {
+      const [sys, user] = buildCloudMessages(text, ctx, effectiveLang, {
         systemPrompt: cloudCfg.systemPrompt,
         answerStyle: cloudCfg.answerStyle,
       });
       // Konteks halaman: aplikasi SigitOS yang sedang dibuka pengunjung, agar
       // jawaban relevan (mis. "proyek" → sebut proyek unggulan).
-      const appLine = appContextLine(app, lang);
+      const appLine = appContextLine(app, effectiveLang);
+      const langEnforce =
+        effectiveLang === "en"
+          ? "[MANDATORY: Answer strictly in natural English with a relaxed, witty tone. The visitor asked in English.]"
+          : "[WAJIB: Jawab sepenuhnya dalam Bahasa Indonesia yang santai dan sedikit humoris. Pengunjung bertanya dalam Bahasa Indonesia.]";
       const messages = [
         sys,
         ...history.map((h) => ({ role: h.role, content: h.content })),
         appLine ? { role: "user" as const, content: appLine } : null,
-        user,
+        { role: "user" as const, content: `${langEnforce}\n\n${user.content}` },
       ].filter((m): m is { role: "user" | "system" | "assistant"; content: string } => m !== null);
 
       let sentAny = false;
@@ -349,7 +371,7 @@ export async function POST(req: NextRequest) {
         emit("done", {});
       } catch {
         // Fallback: kirim jawaban lokal (sudah pasti ada, bisa kosong → generic).
-        const fallback = local.text || (lang === "en"
+        const fallback = local.text || (effectiveLang === "en"
           ? "I couldn't reach the cloud model, but I'm still here. Try asking about skills, projects, services, or contact."
           : "Saya tidak dapat menjangkau model cloud, tapi saya tetap di sini. Coba tanyakan tentang keahlian, proyek, layanan, atau kontak.");
         if (!sentAny) {
