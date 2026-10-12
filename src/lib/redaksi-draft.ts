@@ -246,12 +246,13 @@ export function buildPrompt(type: RedaksiContentType, brief: string, lang: "id" 
     "Anda adalah asisten redaksi untuk situs portofolio pemilik.",
     intentLine(type),
     "",
-    "FORMAT ISI PANJANG: teks polos bertanda. Gunakan '## ' untuk judul bagian, '### ' untuk sub bagian, '> ' untuk kutipan, dan blok kode diapit tiga backtick (```).",
-    "DILARANG menulis tag HTML, URL gambar, atau tautan ke luar situs (http/https).",
+    "FORMAT ISI PANJANG: teks polos bertanda. Gunakan '## ' untuk judul bagian, '### ' untuk sub bagian, '> ' untuk kutipan, dan blok kode diapit tiga backtick (```bahasa ... ```).",
+    "Bila konten memuat kode perintah, konfigurasi, bash, json, html, sql, atau bahasa pemrograman, WAJIB diapit blok tiga backtick agar dirender di kotak khusus terminal.",
+    "DILARANG KERAS menulis tag HTML, URL gambar, atau tautan ke luar situs (http/https). Tautan ke domain eksternal sama sekali TIDAK diizinkan.",
   ];
   if (scope.internalLinkMin > 0) {
     lines.push(
-      "TAUTAN internal BOLEH dipakai dan WAJIB ada minimal satu: tulis persis [teks anchor](/path) memakai path dari daftar halaman di bawah. Jangan mengarang path yang tidak ada di daftar."
+      "TAUTAN internal BOLEH dipakai dan WAJIB ada minimal satu: tulis persis [teks anchor](/path) memakai path dari daftar halaman situs sigitadi.id di bawah. Jangan mengarang path yang tidak ada di daftar, dan DILARANG menulis tautan eksternal."
     );
   }
   lines.push(
@@ -650,6 +651,7 @@ export function applySeoSync(
     bodyField: tdef.bodyField,
     related: related ? related.map((l) => ({ title: l.title, href: l.href })) : [],
     type,
+    expandThin: true,
   });
 
   const next: Record<string, unknown> = { ...data };
