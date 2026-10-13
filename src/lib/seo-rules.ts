@@ -249,7 +249,7 @@ const NUMBER = "\\d+(?:[.,]\\d+)?";
 export function countQuotableFacts(text: string): number {
   if (!text) return 0;
   // Satuan: versi panjang lebih dulu, lalu yang pendek.
-  const units = "(?:per detik|per menit|per hari|detik|menit|jam|hari|minggu|bulan|tahun|req|ms|kb|mb|gb|tb|px|%)";
+  const units = "(?:per detik|per menit|per hari|detik|menit|jam|hari|minggu|bulan|tahun|req|ms|kb|mb|gb|tb|px|%|persen)";
   const re = new RegExp(`(?<![\\p{L}\\p{N}])${NUMBER}\\s*${units}(?![\\p{L}\\p{N}])`, "giu");
   const raw = text.match(re) || [];
   // Hitung nilai unik: "40% dua kali" tetap satu fakta.

@@ -27,6 +27,8 @@ Dokumen ini menjelaskan **postur keamanan**, langkah hardening yang diterapkan, 
 | `POST /api/retrobot` | Abuse / prompt injection / egress data | Publik + rate-limit 20/5mnt/IP + input 500 char + history 4 turn + prompt hanya katalog publik |
 | Tabel `settings` (key `cloud_ai`) | Kebocoran API key cloud | Penulisan admin-only via `verifyAdmin()` + masking di `settings.ts` + tidak dikirim ke klien |
 | Upload gambar (tabel `media`, bytea Postgres) | Stored XSS / RCE | SVG blacklist, ekstensi dari MIME, validasi magic bytes terpusat di `storage.ts` |
+| `/admin/orders`, tracking invoice | Information Disclosure / Tampering | Mutasi status dan resi admin-only via `verifyAdmin()`; lookup tracking publik `/order` membutuhkan invoice valid dan nomor kontak terdaftar |
+| `/admin/whatsapp-bot`, sesi Baileys | Sesi WhatsApp hijacking | Akses QR pairing dan pengelolaan sesi admin-only; penyimpanan kredensial sesi lokal di server tidak terekspos ke publik |
 | Translate (Google/MyMemory) | Privacy egress | Opt-in per field, `ENABLE_EXTERNAL_TRANSLATE=false` mematikan total |
 | Session / CSRF | Session hijack | Clerk httpOnly session, `bodySizeLimit 25MB`, CSRF via same-origin |
 

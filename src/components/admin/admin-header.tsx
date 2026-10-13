@@ -1,10 +1,12 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, ExternalLink, Menu } from "lucide-react";
+import { LogOut, ExternalLink, Menu, Bell } from "lucide-react";
 import { UserButton, useUser } from "@clerk/nextjs";
 import { ADMIN_NAV_ITEMS } from "./admin-sidebar";
+import { getPendingOrdersCount } from "@/lib/order-actions";
 
 interface AdminHeaderProps {
   onToggleSidebar?: () => void;
@@ -14,6 +16,19 @@ interface AdminHeaderProps {
 export function AdminHeader({ onToggleSidebar, dbConnected }: AdminHeaderProps) {
   const pathname = usePathname();
   const { isSignedIn, user } = useUser();
+  const [pendingOrders, setPendingOrders] = useState<number>(0);
+
+  useEffect(() => {
+    let isMounted = true;
+    getPendingOrdersCount()
+      .then((c) => {
+        if (isMounted) setPendingOrders(c);
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [pathname]);
 
   const currentItem = ADMIN_NAV_ITEMS.find((item) =>
     item.href === "/admin"
@@ -79,6 +94,27 @@ export function AdminHeader({ onToggleSidebar, dbConnected }: AdminHeaderProps) 
             aria-label={dbConnected ? "Database terhubung" : "Database offline"}
           />
         )}
+
+        {/* Notifikasi Pesanan Masuk */}
+        <Link
+          href="/admin/orders"
+          className={`vt-btn vt-btn-chrome h-8 px-2 sm:px-2.5 text-[11px] font-mono font-bold gap-1.5 shrink-0 relative ${
+            pendingOrders > 0 ? "border-amber-500/50 text-amber-600 dark:text-amber-400" : ""
+          }`}
+          title={
+            pendingOrders > 0
+              ? `${pendingOrders} pesanan baru menunggu konfirmasi`
+              : "Kelola Pesanan"
+          }
+        >
+          <Bell className={`h-3.5 w-3.5 ${pendingOrders > 0 ? "text-amber-500 animate-bounce" : ""}`} />
+          <span className="hidden sm:inline">Pesanan</span>
+          {pendingOrders > 0 && (
+            <span className="inline-flex items-center justify-center min-w-4.5 h-4.5 px-1 text-[10px] font-bold rounded-full bg-amber-500 text-slate-900 leading-none">
+              {pendingOrders}
+            </span>
+          )}
+        </Link>
 
         <Link
           href="/"

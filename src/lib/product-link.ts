@@ -1,9 +1,10 @@
 import type { ProductData } from "@/lib/dummy-data";
 
-export type PurchaseType = "whatsapp" | "external" | "referral" | "affiliate";
+export type PurchaseType = "whatsapp" | "freelanceops" | "external" | "referral" | "affiliate";
 
 const PURCHASE_TYPES: readonly PurchaseType[] = [
   "whatsapp",
+  "freelanceops",
   "external",
   "referral",
   "affiliate",

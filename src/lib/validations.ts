@@ -134,6 +134,7 @@ export const ProductSchema = z.object({
     message: "URL gambar produk wajib diisi",
   }),
   priceLabel: z.string().max(100).optional().or(z.literal("")),
+  priceLabelEn: z.string().max(100).optional().or(z.literal("")),
   comparePriceLabel: z.string().max(100).optional().or(z.literal("")),
   priceAmount: z.preprocess(
     (v) => (v === "" || v === undefined ? null : v),
@@ -149,9 +150,10 @@ export const ProductSchema = z.object({
   ctaUrl: safeUrlSchema.optional().or(z.literal("")),
   published: z.boolean().default(true),
   order: z.number().int().min(0).max(9999).default(0),
-  purchaseType: z.enum(["whatsapp", "external", "referral", "affiliate"]).optional(),
+  purchaseType: z.enum(["whatsapp", "freelanceops", "external", "referral", "affiliate"]).optional(),
   customWhatsapp: z.string().max(30).optional().or(z.literal("")),
   customButtonLabel: z.string().max(50).optional().or(z.literal("")),
+  referralCode: z.string().max(50).optional().or(z.literal("")),
 });
 
 export const TestimonialSchema = z.object({
@@ -201,3 +203,31 @@ export type ServiceFormValues = z.infer<typeof ServiceSchema>;
 export type ProductFormValues = z.infer<typeof ProductSchema>;
 export type TestimonialFormValues = z.infer<typeof TestimonialSchema>;
 export type ArticleFormValues = z.infer<typeof ArticleSchema>;
+
+export const OrderItemSchema = z.object({
+  productId: z.string(),
+  title: z.string(),
+  titleEn: z.string().nullable().optional(),
+  price: z.number().int().min(0),
+  quantity: z.number().int().min(1),
+  subtotal: z.number().int().min(0),
+  imageUrl: z.string().nullable().optional(),
+});
+
+export const CreateOrderInputSchema = z.object({
+  customerName: z.string().min(2, "Nama minimal 2 karakter").max(100),
+  customerPhone: z.string().min(6, "Nomor WhatsApp/telepon tidak valid").max(30),
+  customerEmail: z.string().email("Format email tidak valid").optional().or(z.literal("")),
+  customerAddress: z.string().max(500).optional().or(z.literal("")),
+  customerNotes: z.string().max(1000).optional().or(z.literal("")),
+  items: z.array(OrderItemSchema).min(1, "Minimal 1 produk dalam pesanan"),
+  totalAmount: z.number().int().min(0),
+  currency: z.enum(["IDR", "USD"]).default("IDR"),
+  paymentMethod: z.enum(["qris", "bank", "wa_direct", "paypal", "wise", "freelanceops"]).default("qris"),
+  paymentProofUrl: z.string().optional().or(z.literal("")),
+  referralCode: z.string().max(50).optional().or(z.literal("")),
+});
+
+export type OrderItem = z.infer<typeof OrderItemSchema>;
+export type CreateOrderInput = z.infer<typeof CreateOrderInputSchema>;
+

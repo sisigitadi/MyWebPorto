@@ -172,9 +172,12 @@ export interface DraftPublicContext {
   skills?: string[];
 }
 
-function contextLine(ctx?: DraftPublicContext): string {
+function contextLine(ctx?: DraftPublicContext, type?: RedaksiContentType): string {
   if (!ctx) return "Konteks pemilik situs tidak tersedia; andalkan brief pengguna.";
   const skills = (ctx.skills || []).slice(0, 10).join(", ");
+  if (type === "article") {
+    return `Konteks keahlian teknis materi: ${skills}. (PERINGATAN KERAS: DILARANG menyebut atau memasukkan nama orang atau pemilik situs ke dalam tubuh artikel).`;
+  }
   return `Konteks pemilik situs (publik): nama="${ctx.name || ""}", headline="${ctx.headline || ""}", keahlian=${skills}.`;
 }
 
@@ -258,10 +261,13 @@ export function buildPrompt(type: RedaksiContentType, brief: string, lang: "id" 
     "- DILARANG GABUNGKAN HEADING DENGAN BOLD (Dilarang menulis '## **Judul**' atau '### **Judul**') karena membuat teks terlalu besar, tebal berlebihan, dan merusak tata letak visual.",
     "- HINDARI TEKS RATA MONOTON / WALL OF TEXT: Bagi isi menjadi paragraf pendek (2-4 kalimat), gunakan subjudul terstruktur (## / ###), bullet list (- ), dan kutipan (> ) secara proporsional agar mudah dipindai pembaca.",
     "- Penebalan (**kata**) hanya dipakai hemat untuk 1-2 kata kunci atau istilah teknis penting per bagian, jangan menebalkan seluruh kalimat.",
+    "- SELALU beri baris kosong ganda (dua kali enter / \\n\\n) sebelum dan sesudah setiap heading (## dan ###), jangan menempelkan teks langsung di bawah heading tanpa enter.",
     "- STRUKTUR SEKSI FAQ (PERTANYAAN UMUM): Jika menyertakan bagian tanya jawab / FAQ, gunakan satu judul utama '## Pertanyaan Umum (FAQ)' atau '## Pertanyaan yang Sering Diajukan'.",
-    "- FORMAT PERTANYAAN DI BAWAH FAQ: Setiap butir pertanyaan WAJIB menggunakan level 3 ('### [Pertanyaan]?'), BUKAN level 2 ('## '). Ini wajib agar ukuran huruf proporsional dan tidak terlalu besar.",
+    "- FORMAT PERTANYAAN DI BAWAH FAQ: Setiap butir pertanyaan WAJIB menggunakan level 3 ('### [Pertanyaan]?'), BUKAN level 2 ('## '). Ini wajib agar ukuran huruf proporsional dan nyaman dibaca.",
     "- FAQ WAJIB 100% RELEVAN & ANTI-HALU: Pertanyaan dan jawaban dalam FAQ harus benar-benar menyatu dengan brief/topik yang diminta. DILARANG membuat pertanyaan atau jawaban fiktif yang keluar dari konteks (seperti membicarakan server, latensi 250ms, pipeline CI/CD, atau DevOps jika topik bukan tentang hal tersebut).",
+    "- BLOK KODE / TERMINAL: HANYA sertakan blok kode jika relevan secara teknis dengan materi bahasan. Tulis dalam bahasa yang sesuai (misal python, javascript, bash) untuk menyelesaikan masalah spesifik topik. DILARANG KERAS menyertakan skrip fiktif acak seperti curl health check atau perintah server bila artikel membahas topik non-server.",
     "- POSISI FAQ & LARANGAN HEADING BESAR SETELAHNYA: Bagian FAQ ditempatkan menjelang akhir artikel. DILARANG menaruh sub-judul besar (## ) dengan topik baru yang tidak nyambung di bawah FAQ. Setelah FAQ, hanya boleh ada penutup singkat (## Kesimpulan).",
+    "- LARANGAN MENYEBUT NAMA PEMILIK: DILARANG KERAS memasukkan atau menyebut nama 'Sigit Adi Irianto', 'Sigit', atau nama pemilik ke dalam isi teks artikel (seperti 'Sigit Adi Irianto menekankan...', 'menurut Sigit...', dsb.). Tulisan harus bernada objektif, profesional, fokus murni pada materi teknis, dan TIDAK BOLEH memuat nama diri sendiri agar tidak terasa seperti AI slop narsistik yang dipaksakan.",
   ];
   if (scope.internalLinkMin > 0) {
     lines.push(
@@ -554,7 +560,7 @@ export async function draftContentWithAI(
     };
   }
 
-  const ctx = contextLine(publicCtx);
+  const ctx = contextLine(publicCtx, type);
   const prompt = buildPrompt(type, briefTrim, lang)
     .replace(PROFILE_CONTEXT_MARKER, ctx)
     .replace(INTERNAL_LINKS_MARKER, internalLinksPromptBlock(related || []));

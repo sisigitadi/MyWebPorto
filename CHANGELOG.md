@@ -4,7 +4,38 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
-### Security & Changed — Full Audit, Upgrade Next.js 16.4 & Penambalan CVE
+### Added, Changed & Fixed: Sistem Order WhatsApp, Universal Bot Engine & Audit Redaksi Anti-Slop
+
+Pembaruan besar sistem transaksi toko, unifikasi kecerdasan buatan antar-bot, sanitasi audio TTS, dan pembersihan menyeluruh konten redaksi:
+
+- **Sistem Order & Pelacakan Invoice (DDMMYYYY)**:
+  - Format invoice terstandarisasi dengan pola `DDMMYYYY` (contoh: `INV-13102026-XXXX`) menggantikan pola lama yyyymmdd.
+  - Dialog checkout toko interaktif: pilihan metode pembayaran (Transfer Bank multi-rekening, QRIS, WhatsApp langsung), form data pemesan, unggah bukti transfer, serta ringkasan belanja otomatis.
+  - Halaman pelacakan pesanan publik di `/order` dan modal Lacak Pesanan pada header toko & cart dialog untuk mengecek status transaksi berdasarkan invoice atau nomor WhatsApp.
+  - Panel admin manajemen pesanan di `/admin/orders`: filter status terpadu (menunggu, dibayar, diproses, selesai, dibatalkan), update nomor resi pengiriman, catatan admin, serta aksi follow-up WhatsApp langsung.
+  - Sesi dan bot WhatsApp Baileys di `/admin/whatsapp-bot`: pairing QR code, manajemen nomor WhatsApp toko, dan auto-reply pesanan.
+  - Persistensi ganda (Neon PostgreSQL + fallback `data/local-store.json`) menjamin integritas data pesanan dalam kondisi online maupun offline.
+
+- **Universal Bot Engine & Sanitasi Audio TTS**:
+  - Penyatuan engine kecerdasan buatan: WhatsApp Bot, RetroBot melayang, dan Terminal CRT kini menggunakan knowledge base terpadu yang memuat informasi katalog, stok produk, panduan pemesanan, dan FAQ rekening bank.
+  - Modul sanitasi audio TTS (`src/lib/tts-sanitizer.ts`): pembersihan menyeluruh ikon, emoji, simbol format markdown (bold, italic, code block), dan URL dari ucapan Web Speech API sehingga suara bot terdengar bersih dan alami tanpa mengeja karakter teknis.
+  - Formatter pesan WhatsApp (`src/lib/whatsapp-bot/formatter.ts`): penyelarasan format visual teks (bold `*`, italic `_`, monospace) untuk pesan WhatsApp yang rapi dan konsisten.
+
+- **Audit Konten Redaksi AI, Sanitasi Anti-Slop & Tipografi**:
+  - Eliminasi halusinasi AI pada fitur Redaksi & Remediator (`seo-remediate.ts`, `redaksi-draft.ts`): penghapusan inject boilerplate devops (`curl -fsSL`, `systemctl status`, healthcheck) yang tidak relevan dengan artikel.
+  - Penegakan aturan anti-slop: larangan pencantuman nama pemilik dalam teks konten artikel untuk menjaga objektivitas dan standar penulisan teknis profesional.
+  - Perbaikan parser format markdown (`FormattedText`) untuk menangani heading H2 dan H3 secara mulus tanpa mensyaratkan baris kosong sebelumnya, disertai penyesuaian ukuran tipografi yang nyaman dibaca di mobile dan desktop.
+  - Audit dan perapian 17 artikel di database Neon dan dummy store (eliminasi duplikasi bagian, penyesuaian code block kontekstual, pemenuhan skor SEO).
+
+- **Peningkatan Responsivitas Mobile**:
+  - Desain adaptif untuk antarmuka admin `/admin/orders` dan `/admin/whatsapp-bot` di perangkat mobile (tampilan card, tab ringkas, touch target optimal).
+  - Penataan antarmuka Store.zip dan keranjang belanja mobile dengan akses mudah untuk checkout dan lacak pesanan.
+
+- **Verifikasi Kualitas**:
+  - Seluruh 44 berkas test dan 578 unit test Vitest lulus 100%.
+  - Audit integritas media (`check:media`) dan sinkronisasi dokumentasi (`docs:check`) lulus 100%.
+
+### Security & Changed: Full Audit, Upgrade Next.js 16.4 & Penambalan CVE
 
 Pembaruan menyeluruh dependensi dan pengamanan rantai pasok (supply chain):
 - **Framework & Core**: Next.js 16.3.8 → 16.4.0 (Turbopack), Clerk 7.9.1 → 7.9.14 (`@clerk/ui` 1.40.0), Drizzle ORM 0.45.2 → 0.45.4 (`drizzle-kit` 0.31.11), Neon Serverless 1.1.0 → 1.2.0, Zod 4.6.5 → 4.6.6, Lucide React 1.44.0 → 1.55.0, Tailwind Merge 3.6.0 → 3.7.0, Radix UI primitives.

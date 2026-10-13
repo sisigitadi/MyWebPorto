@@ -22,7 +22,7 @@ export function AdminLayoutShell({
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen lg:h-screen lg:overflow-hidden flex desktop-wallpaper text-[var(--vt-ink)]">
+    <div className="min-h-[100dvh] lg:h-[100dvh] lg:overflow-hidden flex desktop-wallpaper text-[var(--vt-ink)] pb-[env(safe-area-inset-bottom,0px)]">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-64 shrink-0 flex-col bg-[var(--vt-chrome)] border-r-2 border-[var(--vt-edge-lo-2)]">
         <AdminSidebar

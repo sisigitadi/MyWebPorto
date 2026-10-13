@@ -57,6 +57,16 @@ function renderInline(str: string): React.ReactNode {
 }
 
 /**
+ * Normalisasi format teks sebelum dirender:
+ * 1. Pastikan setiap heading markdown (## dan ###) memiliki baris kosong ganda (\n\n)
+ *    setelahnya jika langsung ditempel oleh teks atau list tanpa baris kosong.
+ *    Ini mencegah seluruh paragraf/list terserap ke dalam tag heading <h2> / <h3>.
+ */
+function normalizeMarkdownBreaks(raw: string): string {
+  return raw.replace(/(^|\r?\n)(#{1,6}\s+[^\r\n]+)\r?\n(?!\r?\n)/g, "$1$2\n\n");
+}
+
+/**
  * Renderer teks konvensi MyWebPorto (sama persis dengan tampilan publik):
  * - `## ` → H2, `### ` → H3, `> ` → quote, ``` → blok kode terminal dengan header khusus & tombol copy,
  * - bullet `- ` / `1. ` → list semantik, `[teks](/path)` → Link internal, sisanya paragraf.
@@ -65,9 +75,114 @@ function renderInline(str: string): React.ReactNode {
 export function FormattedText({ text }: { text: string }) {
   if (!text) return null;
 
+  const normalized = normalizeMarkdownBreaks(text);
   // Pisahkan blok kode ``` lebih dulu agar tidak terpotong oleh pemisahan paragraf biasa
-  const rawParts = text.split(/(```[a-zA-Z0-9_-]*[\s\S]*?```)/g);
+  const rawParts = normalized.split(/(```[a-zA-Z0-9_-]*[\s\S]*?```)/g);
   const elements: React.ReactNode[] = [];
+
+  const processBlock = (blockText: string, key: string) => {
+    const bTrimmed = blockText.trim();
+    if (!bTrimmed) return;
+
+    // H2 Heading: ambil HANYA baris pertama sebagai heading
+    if (bTrimmed.startsWith("## ")) {
+      const lines = bTrimmed.split(/\r?\n/);
+      const headingLine = lines[0].replace(/^##\s+/, "");
+      elements.push(
+        <h2
+          key={key}
+          className="text-sm sm:text-base md:text-lg font-display font-bold text-foreground mt-7 mb-3 tracking-tight border-b border-border/60 pb-2 leading-snug break-words"
+        >
+          {renderInline(headingLine)}
+        </h2>
+      );
+      if (lines.length > 1) {
+        const remaining = lines.slice(1).join("\n").trim();
+        if (remaining) processBlock(remaining, `${key}-sub`);
+      }
+      return;
+    }
+
+    // H3 Heading: ambil HANYA baris pertama sebagai heading
+    if (bTrimmed.startsWith("### ")) {
+      const lines = bTrimmed.split(/\r?\n/);
+      const headingLine = lines[0].replace(/^###\s+/, "");
+      elements.push(
+        <h3
+          key={key}
+          className="text-xs sm:text-sm font-mono font-bold text-foreground mt-4 mb-2 tracking-tight leading-snug break-words"
+        >
+          {"> "}
+          {renderInline(headingLine)}
+        </h3>
+      );
+      if (lines.length > 1) {
+        const remaining = lines.slice(1).join("\n").trim();
+        if (remaining) processBlock(remaining, `${key}-sub`);
+      }
+      return;
+    }
+
+    // Blockquote
+    if (bTrimmed.startsWith("> ")) {
+      elements.push(
+        <blockquote
+          key={key}
+          className="border-l-4 border-primary bg-muted/40 p-4 rounded-r font-mono text-xs sm:text-sm text-[var(--vt-ink)] italic my-4"
+        >
+          {renderInline(bTrimmed.replace(/^>\s+/, ""))}
+        </blockquote>
+      );
+      return;
+    }
+
+    // Bullet or Numbered List
+    const lines = bTrimmed.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const isBulletList = lines.length > 0 && lines.every((l) => /^[-*+]\s+/.test(l));
+    const isNumberedList = lines.length > 0 && lines.every((l) => /^\d+\.\s+/.test(l));
+
+    if (isBulletList) {
+      elements.push(
+        <ul
+          key={key}
+          className="list-disc list-inside space-y-1.5 my-3 text-xs sm:text-sm font-mono text-[var(--vt-ink)]"
+        >
+          {lines.map((line, lIdx) => (
+            <li key={lIdx} className="leading-relaxed">
+              {renderInline(line.replace(/^[-*+]\s+/, ""))}
+            </li>
+          ))}
+        </ul>
+      );
+      return;
+    }
+
+    if (isNumberedList) {
+      elements.push(
+        <ol
+          key={key}
+          className="list-decimal list-inside space-y-1.5 my-3 text-xs sm:text-sm font-mono text-[var(--vt-ink)]"
+        >
+          {lines.map((line, lIdx) => (
+            <li key={lIdx} className="leading-relaxed">
+              {renderInline(line.replace(/^\d+\.\s+/, ""))}
+            </li>
+          ))}
+        </ol>
+      );
+      return;
+    }
+
+    // Regular Paragraph
+    elements.push(
+      <p
+        key={key}
+        className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] leading-relaxed sm:leading-loose my-3 mobile-safe-text whitespace-pre-line"
+      >
+        {renderInline(bTrimmed)}
+      </p>
+    );
+  };
 
   rawParts.forEach((part, partIdx) => {
     const trimmed = part.trim();
@@ -88,96 +203,7 @@ export function FormattedText({ text }: { text: string }) {
     // Blok teks biasa dipisah berdasarkan newline ganda
     const blocks = part.split(/\n\n+/);
     blocks.forEach((block, bIdx) => {
-      const bTrimmed = block.trim();
-      if (!bTrimmed) return;
-      const key = `${partIdx}-${bIdx}`;
-
-      // H2 Heading
-      if (bTrimmed.startsWith("## ")) {
-        elements.push(
-          <h2
-            key={key}
-            className="text-base sm:text-lg font-pixel font-bold text-foreground mt-7 mb-3 tracking-wide border-b border-border/60 pb-2"
-          >
-            {renderInline(bTrimmed.replace(/^##\s+/, ""))}
-          </h2>
-        );
-        return;
-      }
-
-      // H3 Heading
-      if (bTrimmed.startsWith("### ")) {
-        elements.push(
-          <h3
-            key={key}
-            className="text-xs sm:text-sm font-mono font-bold text-foreground mt-4 mb-2 tracking-tight"
-          >
-            {"> "}
-            {renderInline(bTrimmed.replace(/^###\s+/, ""))}
-          </h3>
-        );
-        return;
-      }
-
-      // Blockquote
-      if (bTrimmed.startsWith("> ")) {
-        elements.push(
-          <blockquote
-            key={key}
-            className="border-l-4 border-primary bg-muted/40 p-4 rounded-r font-mono text-xs sm:text-sm text-[var(--vt-ink)] italic my-4"
-          >
-            {renderInline(bTrimmed.replace(/^>\s+/, ""))}
-          </blockquote>
-        );
-        return;
-      }
-
-      // Bullet or Numbered List
-      const lines = bTrimmed.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-      const isBulletList = lines.length > 0 && lines.every((l) => /^[-*+]\s+/.test(l));
-      const isNumberedList = lines.length > 0 && lines.every((l) => /^\d+\.\s+/.test(l));
-
-      if (isBulletList) {
-        elements.push(
-          <ul
-            key={key}
-            className="list-disc list-inside space-y-1.5 my-3 text-xs sm:text-sm font-mono text-[var(--vt-ink)]"
-          >
-            {lines.map((line, lIdx) => (
-              <li key={lIdx} className="leading-relaxed">
-                {renderInline(line.replace(/^[-*+]\s+/, ""))}
-              </li>
-            ))}
-          </ul>
-        );
-        return;
-      }
-
-      if (isNumberedList) {
-        elements.push(
-          <ol
-            key={key}
-            className="list-decimal list-inside space-y-1.5 my-3 text-xs sm:text-sm font-mono text-[var(--vt-ink)]"
-          >
-            {lines.map((line, lIdx) => (
-              <li key={lIdx} className="leading-relaxed">
-                {renderInline(line.replace(/^\d+\.\s+/, ""))}
-              </li>
-            ))}
-          </ol>
-        );
-        return;
-      }
-
-      // Regular Paragraph
-      elements.push(
-        <p
-          key={key}
-          className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] leading-relaxed sm:leading-loose my-3 mobile-safe-text whitespace-pre-line"
-        >
-          {renderInline(bTrimmed)}
-        </p>
-      );
+      processBlock(block, `${partIdx}-${bIdx}`);
     });
   });
 

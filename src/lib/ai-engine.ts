@@ -40,6 +40,8 @@ export interface EngineContext {
   servicesEn?: string[];
   projects: { title: string; titleEn?: string | null; slug?: string | null }[];
   articles: { title: string; titleEn?: string | null; slug?: string | null }[];
+  products?: { title: string; titleEn?: string | null; priceIdr?: number; priceUsd?: number; slug?: string | null }[];
+  bankAccounts?: { bankName: string; accountNumber: string; accountHolder: string }[];
   socialLinks?: {
     github?: string | null;
     linkedin?: string | null;
@@ -318,6 +320,66 @@ const INTENTS: IntentDef[] = [
           ]
         : [
             `Engine Machine Learning MyWebPorto ini berjalan langsung pada browser (client-side NLP inferencing). Mampu melakukan tokenisasi, pembobotan vektor semantik TF-IDF, serta klasifikasi intent secara real-time tanpa latensi jaringan!`,
+          ],
+  },
+  {
+    intent: "products_store",
+    keywords: ["produk", "toko", "beli", "jual", "store", "product", "shop", "template", "ebook", "harga", "price", "katalog", "order"],
+    patterns: [
+      /(produk|toko|jual|katalog produk|beli apa|harga produk)/i,
+      /(products|store|shop|buy|pricing for product|digital goods)/i,
+    ],
+    build: (ctx, lang) => {
+      const prods = ctx.products || [];
+      if (prods.length === 0) {
+        return lang === "en"
+          ? ["Digital Store (Toko.zip) offers web templates, SaaS starter packs, and digital resources. Explore them directly in the Toko window!"]
+          : ["Toko Digital (Toko.zip) menyediakan template web, starter pack SaaS, dan panduan teknis. Buka jendela Toko untuk melihat katalog lengkap!"];
+      }
+      const list = prods
+        .slice(0, 5)
+        .map((p) => {
+          const title = lang === "en" && p.titleEn ? p.titleEn : p.title;
+          const price = lang === "en" && p.priceUsd ? `$${p.priceUsd}` : p.priceIdr ? `Rp ${p.priceIdr.toLocaleString("id-ID")}` : "Tersedia";
+          return `• ${title} (${price})`;
+        })
+        .join("\n");
+      return lang === "en"
+        ? [`Featured digital products in Toko.zip:\n${list}\n\nAdd them to your cart or checkout seamlessly!`]
+        : [`Produk digital unggulan di Toko.zip:\n${list}\n\nAnda dapat menambahkannya ke keranjang belanja dan checkout dengan QRIS atau transfer bank!`];
+    },
+  },
+  {
+    intent: "payment_bank",
+    keywords: ["rekening", "bank", "transfer", "qris", "bayar", "pembayaran", "payment", "paypal", "wise", "mandiri", "bni", "bsi"],
+    patterns: [
+      /(rekening|transfer bank|nomor rekening|cara bayar|metode pembayaran|qris)/i,
+      /(payment method|bank account|how to pay|paypal|wise transfer)/i,
+    ],
+    build: (ctx, lang) => {
+      const banks = ctx.bankAccounts || [];
+      const bankText = banks.length > 0
+        ? banks.map((b) => `• Bank ${b.bankName}: *${b.accountNumber}* a.n ${b.accountHolder}`).join("\n")
+        : "• Transfer Bank Resmi: Mandiri, BNI, BSI (Tercantum saat checkout)";
+      return lang === "en"
+        ? [`Official Payment Channels:\n${bankText}\n• Instant QRIS is available directly at checkout\n• International: PayPal & Wise supported.`]
+        : [`Metode Pembayaran Resmi:\n${bankText}\n• Pembayaran instan QRIS tersedia otomatis di jendela Toko\n• Pembayaran internasional dapat melalui PayPal atau Wise.`];
+    },
+  },
+  {
+    intent: "order_tracking",
+    keywords: ["lacak", "status", "pesanan", "order", "invoice", "resi", "track", "tracking", "cek status"],
+    patterns: [
+      /(lacak pesanan|status pesanan|cek invoice|cek pesanan|lacak status)/i,
+      /(track order|order status|check invoice|track my order)/i,
+    ],
+    build: (_ctx, lang) =>
+      lang === "en"
+        ? [
+            "To track your order status, please provide your invoice number (e.g. INV-13102026-0001 or INV-20261013-0001). You can also click 'Track Order' in the Toko.zip store section or visit /order/INV-XXXXXXXX-XXXX directly.",
+          ]
+        : [
+            "Untuk melacak status pesanan Anda, cukup ketikkan nomor invoice Anda di sini (contoh: INV-13102026-0001 atau INV-20261013-0001). Anda juga bisa menggunakan tombol 'Lacak Pesanan' pada jendela Toko.zip atau mengakses langsung tautan /order/INV-XXXXXXXX-XXXX.",
           ],
   },
 ];

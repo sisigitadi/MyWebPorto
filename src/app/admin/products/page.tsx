@@ -12,6 +12,15 @@ import {
   AlertCircle,
   Sparkles,
   Globe,
+  Share2,
+  QrCode,
+  CreditCard,
+  ShoppingBag,
+  ArrowRight,
+  Settings,
+  ChevronDown,
+  ChevronUp,
+  Briefcase,
 } from "lucide-react";
 import {
   Table,
@@ -49,6 +58,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUpload } from "@/components/admin/image-upload";
 import { ProductData } from "@/lib/dummy-data";
 import { getProducts, saveProduct, deleteProduct, translateFieldAction } from "@/lib/actions";
+import {
+  getStoreConfig,
+  saveStoreConfig,
+  getPendingOrdersCount,
+  StoreConfig,
+  BankAccountItem,
+} from "@/lib/order-actions";
+import { ProductShareModal } from "@/components/public/product-share-modal";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { getProductSlug, slugifyProduct } from "@/lib/product-link";
 import { isTranslationErrorPayload } from "@/lib/content-edit";
@@ -66,6 +83,27 @@ export default function AdminProductsPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [translating, setTranslating] = useState(false);
 
+  // Promo & Share modal state
+  const [promoProduct, setPromoProduct] = useState<ProductData | null>(null);
+  const [promoOpen, setPromoOpen] = useState(false);
+
+  // Store Settings (No WA Admin, Rekening, QRIS, Internasional)
+  const [storeConfigOpen, setStoreConfigOpen] = useState(false);
+  const [storeConfig, setStoreConfig] = useState<StoreConfig>({
+    adminWhatsapp: "",
+    bankAccounts: [],
+    qrisImageUrl: "",
+    internationalPayment: {
+      paypalUrl: "",
+      wiseInfo: "",
+      stripeUrl: "",
+      instructionsEn: "",
+    },
+    storeNotice: "",
+  });
+  const [savingStoreConfig, setSavingStoreConfig] = useState(false);
+  const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+
   // Form State
   const [formTitle, setFormTitle] = useState("");
   const [formSlug, setFormSlug] = useState("");
@@ -73,6 +111,7 @@ export default function AdminProductsPage() {
   const [formDescription, setFormDescription] = useState("");
   const [formDescriptionEn, setFormDescriptionEn] = useState("");
   const [formPriceFormatted, setFormPriceFormatted] = useState("");
+  const [formPriceLabelEn, setFormPriceLabelEn] = useState("");
   const [formComparePrice, setFormComparePrice] = useState("");
   const [formPriceAmount, setFormPriceAmount] = useState("");
   const [formBadge, setFormBadge] = useState("");
@@ -82,9 +121,12 @@ export default function AdminProductsPage() {
   const [formThumbnail, setFormThumbnail] = useState("");
   const [formCtaUrl, setFormCtaUrl] = useState("");
   const [formPublished, setFormPublished] = useState(true);
-  const [formPurchaseType, setFormPurchaseType] = useState<"whatsapp" | "external" | "referral" | "affiliate">("whatsapp");
+  const [formPurchaseType, setFormPurchaseType] = useState<
+    "whatsapp" | "freelanceops" | "external" | "referral" | "affiliate"
+  >("whatsapp");
   const [formCustomWhatsapp, setFormCustomWhatsapp] = useState("");
   const [formCustomButtonLabel, setFormCustomButtonLabel] = useState("");
+  const [formReferralCode, setFormReferralCode] = useState("");
 
   const fetchProducts = async () => {
     setIsLoading(true);
@@ -98,18 +140,27 @@ export default function AdminProductsPage() {
     }
   };
 
-  // Fetch-on-mount di client component (halaman admin memuat list dari server
-  // action saat dibuka). Refactor yang benar: fetch di Server Component & kirim
-  // data awal sebagai prop (fetchProducts tetap dipakai untuk refresh setelah
-  // mutasi via server action — itu event handler, bukan effect). Utang terpisah.
+  const loadStoreConfig = async () => {
+    try {
+      const [cfg, count] = await Promise.all([
+        getStoreConfig(),
+        getPendingOrdersCount(),
+      ]);
+      if (cfg) setStoreConfig(cfg);
+      setPendingOrdersCount(count);
+    } catch (err) {
+      console.error("[admin] loadStoreConfig failed:", err);
+    }
+  };
+
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchProducts();
+    const timer = setTimeout(() => {
+      fetchProducts();
+      loadStoreConfig();
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
-  // Guard "belum disimpan": baseline direset saat sessionKey berubah — yaitu
-  // saat dialog tambah/edit dibuka atau item lain dipilih. Mengetik di form
-  // tidak mengubah sessionKey, jadi perubahan terdeteksi sebagai dirty.
   useUnsavedChanges(
     selectedProduct?.id ?? (dialogOpen ? "new" : null),
     {
@@ -119,6 +170,7 @@ export default function AdminProductsPage() {
       formDescription,
       formDescriptionEn,
       formPriceFormatted,
+      formPriceLabelEn,
       formComparePrice,
       formPriceAmount,
       formBadge,
@@ -131,7 +183,8 @@ export default function AdminProductsPage() {
       formPurchaseType,
       formCustomWhatsapp,
       formCustomButtonLabel,
-    },
+      formReferralCode,
+    }
   );
 
   const filteredProducts = products.filter(
@@ -150,7 +203,8 @@ export default function AdminProductsPage() {
     setFormTitleEn("");
     setFormDescription("");
     setFormDescriptionEn("");
-    setFormPriceFormatted("Gratis");
+    setFormPriceFormatted("Gratis / Diskusi");
+    setFormPriceLabelEn("");
     setFormComparePrice("");
     setFormPriceAmount("");
     setFormBadge("");
@@ -163,6 +217,7 @@ export default function AdminProductsPage() {
     setFormPurchaseType("whatsapp");
     setFormCustomWhatsapp("");
     setFormCustomButtonLabel("");
+    setFormReferralCode("");
     setDialogOpen(true);
   };
 
@@ -176,6 +231,7 @@ export default function AdminProductsPage() {
     setFormDescription(product.description);
     setFormDescriptionEn(product.descriptionEn && !isTranslationErrorPayload(product.descriptionEn) ? product.descriptionEn : "");
     setFormPriceFormatted(product.priceFormatted);
+    setFormPriceLabelEn(product.priceLabelEn || "");
     setFormComparePrice(product.comparePriceLabel || "");
     setFormPriceAmount(product.priceAmount !== null && product.priceAmount !== undefined ? String(product.priceAmount) : "");
     setFormBadge(product.badge || "");
@@ -185,9 +241,12 @@ export default function AdminProductsPage() {
     setFormThumbnail(product.thumbnailUrl);
     setFormCtaUrl(product.ctaUrl);
     setFormPublished(product.published);
-    setFormPurchaseType(product.purchaseType ?? "whatsapp");
+    setFormPurchaseType(
+      (product.purchaseType as "whatsapp" | "freelanceops" | "external" | "referral" | "affiliate") || "whatsapp"
+    );
     setFormCustomWhatsapp(product.customWhatsapp || "");
     setFormCustomButtonLabel(product.customButtonLabel || "");
+    setFormReferralCode(product.referralCode || "");
     setDialogOpen(true);
   };
 
@@ -203,7 +262,7 @@ export default function AdminProductsPage() {
     if (isTranslationErrorPayload(formDescriptionEn)) setFormDescriptionEn("");
     let titleSuccess = false;
     let descSuccess = false;
-    let errorMessage = "";
+    let errMessage = "";
 
     try {
       if (formTitle) {
@@ -212,7 +271,7 @@ export default function AdminProductsPage() {
           setFormTitleEn(resTitle.text);
           titleSuccess = true;
         } else if (resTitle.error) {
-          errorMessage = resTitle.error;
+          errMessage = resTitle.error;
         }
       }
       if (formDescription) {
@@ -221,14 +280,14 @@ export default function AdminProductsPage() {
           setFormDescriptionEn(resDesc.text);
           descSuccess = true;
         } else if (resDesc.error) {
-          errorMessage = resDesc.error;
+          errMessage = resDesc.error;
         }
       }
 
       if (titleSuccess || descSuccess) {
         toast.success("Berhasil menerjemahkan ke bahasa Inggris!");
-      } else if (errorMessage) {
-        toast.error("Gagal menerjemahkan", { description: errorMessage });
+      } else if (errMessage) {
+        toast.error("Gagal menerjemahkan", { description: errMessage });
       }
     } catch (err: unknown) {
       toast.error("Gagal menerjemahkan teks", {
@@ -253,6 +312,7 @@ export default function AdminProductsPage() {
         descriptionEn: formDescriptionEn,
         imageUrl: formThumbnail,
         priceLabel: formPriceFormatted,
+        priceLabelEn: formPriceLabelEn.trim() || undefined,
         comparePriceLabel: formComparePrice.trim() || undefined,
         priceAmount: formPriceAmount.trim() === "" ? undefined : formPriceAmount.trim(),
         badge: formBadge.trim() || undefined,
@@ -264,6 +324,7 @@ export default function AdminProductsPage() {
         purchaseType: formPurchaseType,
         customWhatsapp: formCustomWhatsapp.trim() || undefined,
         customButtonLabel: formCustomButtonLabel.trim() || undefined,
+        referralCode: formReferralCode.trim() || undefined,
       };
 
       try {
@@ -305,23 +366,254 @@ export default function AdminProductsPage() {
     });
   };
 
+  // Simpan Pengaturan Toko Terpusat
+  const handleSaveStoreConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingStoreConfig(true);
+    try {
+      const res = await saveStoreConfig(storeConfig);
+      if (res.success) {
+        toast.success(res.message || "Pengaturan toko terpusat berhasil disimpan!");
+        await loadStoreConfig();
+      } else {
+        toast.error(res.error || "Gagal menyimpan pengaturan toko.");
+      }
+    } catch {
+      toast.error("Gagal menghubungi server saat menyimpan pengaturan toko.");
+    } finally {
+      setSavingStoreConfig(false);
+    }
+  };
+
+  const addBankAccount = () => {
+    setStoreConfig((prev) => ({
+      ...prev,
+      bankAccounts: [
+        ...prev.bankAccounts,
+        {
+          id: `bank-${Date.now()}`,
+          bankName: "BCA",
+          accountNumber: "",
+          accountHolder: "",
+        },
+      ],
+    }));
+  };
+
+  const removeBankAccount = (id: string) => {
+    setStoreConfig((prev) => ({
+      ...prev,
+      bankAccounts: prev.bankAccounts.filter((b) => b.id !== id),
+    }));
+  };
+
+  const updateBankAccount = (id: string, field: keyof BankAccountItem, value: string) => {
+    setStoreConfig((prev) => ({
+      ...prev,
+      bankAccounts: prev.bankAccounts.map((b) => (b.id === id ? { ...b, [field]: value } : b)),
+    }));
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header Halaman */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--vt-edge-lo-2)] pb-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-[var(--vt-ink)]">
-            Katalog Produk Digital & Template
+            Katalog Produk Digital, Jasa & Template
           </h1>
           <p className="text-sm text-[var(--vt-ink-mute)]">
-            Kelola boilerplate kode, ebook teknis, dan asset digital berbayar maupun gratis yang Anda tawarkan.
+            Kelola template kode, jasa proyek FreelanceOps, ebook, dan aset digital dengan nomor WA admin terpusat.
           </p>
         </div>
-        <Button onClick={openCreateDialog} size="sm" className="gap-2 text-xs h-9">
-          <Plus className="h-3.5 w-3.5" />
-          <span>Tambah Produk Baru</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/orders"
+            className="vt-btn vt-btn-chrome h-9 px-3 text-xs font-bold inline-flex items-center gap-1.5"
+          >
+            <ShoppingBag className="h-3.5 w-3.5 text-primary" />
+            <span>Kelola Pesanan</span>
+            {pendingOrdersCount > 0 && (
+              <Badge className="bg-amber-500 text-black text-[10px] font-bold px-1.5 py-0 h-4">
+                {pendingOrdersCount} Baru
+              </Badge>
+            )}
+          </Link>
+          <Button onClick={openCreateDialog} size="sm" className="gap-2 text-xs h-9">
+            <Plus className="h-3.5 w-3.5" />
+            <span>Tambah Produk Baru</span>
+          </Button>
+        </div>
       </div>
+
+      {/* BANNER PENGATURAN TOKO & NO WA ADMIN TERPUSAT */}
+      <Card className="bg-[var(--vt-card)] border-[var(--vt-edge-lo-2)] overflow-hidden">
+        <div
+          className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/40 transition-colors"
+          onClick={() => setStoreConfigOpen(!storeConfigOpen)}
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+              <Settings className="h-4 w-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <span>Pengaturan Toko &amp; No. WhatsApp Admin Terpusat</span>
+                <Badge variant="outline" className="text-[10px] font-mono">
+                  Satu Nomor untuk Semua Produk
+                </Badge>
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                {storeConfig.adminWhatsapp
+                  ? `Nomor WA Admin Aktif: ${storeConfig.adminWhatsapp} • ${storeConfig.bankAccounts.length} Rekening Bank`
+                  : "Nomor WhatsApp admin toko belum diisi (masih fallback ke profil pribadi)."}
+              </p>
+            </div>
+          </div>
+
+          <Button variant="ghost" size="sm" className="gap-1 text-xs">
+            <span>{storeConfigOpen ? "Tutup Pengaturan" : "Buka Pengaturan"}</span>
+            {storeConfigOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+        </div>
+
+        {storeConfigOpen && (
+          <form onSubmit={handleSaveStoreConfig} className="p-4 pt-0 border-t border-border space-y-4 animate-in fade-in">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+              {/* No. WhatsApp Admin Khusus Toko */}
+              <div className="space-y-1.5">
+                <Label htmlFor="adminWhatsapp" className="text-xs font-medium">
+                  Nomor WhatsApp Admin Toko (Semua Produk) *
+                </Label>
+                <Input
+                  id="adminWhatsapp"
+                  required
+                  placeholder="6281234567890 (format angka tanpa + atau spasi)"
+                  value={storeConfig.adminWhatsapp}
+                  onChange={(e) => setStoreConfig({ ...storeConfig, adminWhatsapp: e.target.value })}
+                  className="text-xs bg-[var(--vt-paper)] font-mono"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Semua transaksi checkout akan langsung diarahkan ke nomor ini, terpisah dari kontak profil pribadi.
+                </p>
+              </div>
+
+              {/* Akun Internasional PayPal */}
+              <div className="space-y-1.5">
+                <Label htmlFor="paypalUrl" className="text-xs font-medium">
+                  Tautan Pembayaran PayPal / Kartu Internasional (Opsional)
+                </Label>
+                <Input
+                  id="paypalUrl"
+                  placeholder="https://paypal.me/username..."
+                  value={storeConfig.internationalPayment?.paypalUrl || ""}
+                  onChange={(e) =>
+                    setStoreConfig({
+                      ...storeConfig,
+                      internationalPayment: {
+                        ...storeConfig.internationalPayment,
+                        paypalUrl: e.target.value,
+                      },
+                    })
+                  }
+                  className="text-xs bg-[var(--vt-paper)] font-mono"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Ditampilkan pada modal checkout saat pembeli luar negeri memilih mode bahasa Inggris (EN).
+                </p>
+              </div>
+            </div>
+
+            {/* Gambar Barcode QRIS Toko */}
+            <div className="space-y-2 pt-2 border-t border-border">
+              <Label className="text-xs font-medium block">Gambar Barcode / QRIS Toko Resmi</Label>
+              <div className="max-w-xs">
+                <ImageUpload
+                  value={storeConfig.qrisImageUrl}
+                  onChange={(url) => setStoreConfig({ ...storeConfig, qrisImageUrl: url })}
+                  label="Unggah QRIS Toko"
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Digunakan pada modal checkout pembeli dengan fitur pembesar resolusi dan tombol unduh barcode.
+              </p>
+            </div>
+
+            {/* Pengaturan Rekening Bank Terstruktur */}
+            <div className="space-y-2 pt-2 border-t border-border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-xs font-medium block">Daftar Rekening Bank Toko</Label>
+                  <p className="text-[10px] text-muted-foreground">
+                    Pelanggan dapat menyalin nomor rekening dengan 1-klik di modal checkout.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={addBankAccount}
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1"
+                >
+                  <Plus className="h-3 w-3" />
+                  <span>Tambah Rekening</span>
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                {storeConfig.bankAccounts.map((acc, index) => (
+                  <div
+                    key={acc.id}
+                    className="flex flex-col sm:flex-row items-center gap-2 p-2 bg-muted/40 rounded border border-border"
+                  >
+                    <div className="w-full sm:w-32">
+                      <Input
+                        placeholder="Nama Bank (BCA)"
+                        value={acc.bankName}
+                        onChange={(e) => updateBankAccount(acc.id, "bankName", e.target.value)}
+                        className="text-xs bg-[var(--vt-paper)] uppercase font-bold"
+                      />
+                    </div>
+                    <div className="w-full sm:flex-1">
+                      <Input
+                        placeholder="Nomor Rekening"
+                        value={acc.accountNumber}
+                        onChange={(e) => updateBankAccount(acc.id, "accountNumber", e.target.value)}
+                        className="text-xs bg-[var(--vt-paper)] font-mono"
+                      />
+                    </div>
+                    <div className="w-full sm:flex-1">
+                      <Input
+                        placeholder="Atas Nama (a.n.)"
+                        value={acc.accountHolder}
+                        onChange={(e) => updateBankAccount(acc.id, "accountHolder", e.target.value)}
+                        className="text-xs bg-[var(--vt-paper)]"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeBankAccount(acc.id)}
+                      className="h-8 w-8 text-rose-500 hover:text-rose-600 shrink-0"
+                      title="Hapus Rekening"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <Button type="submit" disabled={savingStoreConfig} size="sm" className="text-xs gap-1.5 h-8">
+                {savingStoreConfig && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                <span>Simpan Pengaturan Toko</span>
+              </Button>
+            </div>
+          </form>
+        )}
+      </Card>
 
       {/* Filter & Search */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -336,18 +628,104 @@ export default function AdminProductsPage() {
         </div>
 
         <div className="text-xs text-[var(--vt-ink-mute)]">
-          Total: <strong>{products.length}</strong> produk digital
+          Total: <strong>{products.length}</strong> produk / jasa
         </div>
       </div>
 
-      {/* Table */}
-       <Card className="overflow-hidden bg-[var(--vt-card)] border-[var(--vt-edge-lo-2)]">
-        <div className="overflow-x-auto">
+      {/* Table Katalog Produk (Mobile Cards + Desktop Table) */}
+      <Card className="overflow-hidden bg-[var(--vt-card)] border-[var(--vt-edge-lo-2)]">
+        {/* Mobile View (<md) */}
+        <div className="md:hidden divide-y divide-[var(--vt-edge-lo-2)]">
+          {isLoading ? (
+            <div className="h-32 flex flex-col items-center justify-center text-muted-foreground text-xs font-mono">
+              <Loader2 className="h-5 w-5 animate-spin mb-2" />
+              <span>Memuat produk...</span>
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="h-32 flex items-center justify-center text-muted-foreground text-xs font-mono">
+              Tidak ada produk digital yang ditemukan.
+            </div>
+          ) : (
+            filteredProducts.map((product) => (
+              <div key={`m-prod-${product.id}`} className="p-3.5 space-y-3 font-mono text-xs">
+                <div className="flex items-start gap-3">
+                  <div className="h-12 w-12 rounded overflow-hidden bg-muted shrink-0 border border-[var(--vt-edge-lo-2)]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={product.thumbnailUrl}
+                      alt={product.title}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p className="font-bold text-xs text-[var(--vt-ink)] truncate">{product.title}</p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">{product.priceFormatted}</span>
+                      {product.priceLabelEn && (
+                        <span className="text-[10px] text-muted-foreground">({product.priceLabelEn})</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 pt-0.5">
+                      <Badge variant={product.published ? "default" : "outline"} className="text-[9px] px-1 h-4">
+                        {product.published ? "Terbit" : "Draf"}
+                      </Badge>
+                      <Badge variant="outline" className="text-[9px] px-1 h-4 uppercase">
+                        {product.purchaseType || "whatsapp"}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-1 pt-1 border-t border-border/50">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setPromoProduct(product);
+                      setPromoOpen(true);
+                    }}
+                    className="h-7 px-2 text-xs text-primary gap-1"
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    <span>Bagikan</span>
+                  </Button>
+                  <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                    <Link href={`/toko/${getProductSlug(product)}`} target="_blank">
+                      <Globe className="h-3.5 w-3.5" />
+                      <span>Lihat</span>
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openEditDialog(product)}
+                    className="h-7 px-2 text-xs gap-1"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    <span>Edit</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openDeleteConfirmation(product)}
+                    className="h-7 px-2 text-xs text-red-500 hover:text-red-700"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop View (>=md) */}
+        <div className="hidden md:block overflow-x-auto">
           <Table className="admin-table">
             <TableHeader>
-                 <TableRow className="bg-[var(--vt-card)] hover:bg-[var(--vt-edge-hi-2)]">
-                <TableHead className="w-[320px] text-xs font-semibold">Produk</TableHead>
-                <TableHead className="text-xs font-semibold">Harga</TableHead>
+              <TableRow className="bg-[var(--vt-card)] hover:bg-[var(--vt-edge-hi-2)]">
+                <TableHead className="w-[320px] text-xs font-semibold">Produk / Layanan</TableHead>
+                <TableHead className="text-xs font-semibold">Harga (ID / EN)</TableHead>
+                <TableHead className="text-xs font-semibold">Tipe Penjualan</TableHead>
                 <TableHead className="text-xs font-semibold">Status</TableHead>
                 <TableHead className="text-right text-xs font-semibold">Aksi</TableHead>
               </TableRow>
@@ -355,23 +733,23 @@ export default function AdminProductsPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-32 text-center text-muted-foreground text-xs">
+                  <TableCell colSpan={5} className="h-32 text-center text-muted-foreground text-xs">
                     <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
                     Memuat produk...
                   </TableCell>
                 </TableRow>
               ) : filteredProducts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-32 text-center text-muted-foreground text-xs">
+                  <TableCell colSpan={5} className="h-32 text-center text-muted-foreground text-xs">
                     Tidak ada produk digital yang ditemukan.
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredProducts.map((product) => (
-                  <TableRow key={product.id} className="hover:bg-muted/30">
-                    <TableCell className="py-3">
+                  <TableRow key={product.id} className="hover:bg-[var(--vt-edge-hi-2)]">
+                    <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-16 relative rounded-md overflow-hidden bg-muted/50 shrink-0 border border-[var(--vt-edge-lo-2)]">
+                        <div className="h-10 w-10 rounded overflow-hidden bg-muted shrink-0 border border-[var(--vt-edge-lo-2)]">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={product.thumbnailUrl}
@@ -379,78 +757,96 @@ export default function AdminProductsPage() {
                             className="h-full w-full object-cover"
                           />
                         </div>
-                        <div className="space-y-0.5 max-w-sm">
-                           <p className="text-xs font-semibold text-[var(--vt-ink)] line-clamp-1">
-                            {product.title}
-                          </p>
-                          {product.titleEn && (
-                               <p className="text-[10px] text-[var(--vt-ink-mute)] line-clamp-1 flex items-center gap-1">
-                              <span className="text-[9px] bg-muted px-1 rounded border font-mono">EN</span>
-                              <span>{product.titleEn}</span>
-                            </p>
-                          )}
-                           <p className="text-[11px] text-[var(--vt-ink-mute)] line-clamp-1">
-                            {product.description}
-                          </p>
+                        <div className="min-w-0 max-w-[240px]">
+                          <p className="font-medium text-xs truncate text-[var(--vt-ink)]">{product.title}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">{product.category || "Digital"}</p>
                         </div>
                       </div>
                     </TableCell>
 
-                    <TableCell className="py-3">
-                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                        {product.priceFormatted}
-                      </span>
+                    <TableCell className="text-xs font-mono">
+                      <div>{product.priceFormatted}</div>
+                      {product.priceLabelEn && (
+                        <div className="text-[10px] text-muted-foreground">{product.priceLabelEn}</div>
+                      )}
                     </TableCell>
 
-                    <TableCell className="py-3 admin-cell-meta">
+                    <TableCell>
+                      {product.purchaseType === "freelanceops" ? (
+                        <Badge className="bg-primary text-primary-foreground text-[10px]">
+                          FreelanceOps
+                        </Badge>
+                      ) : product.purchaseType === "referral" ? (
+                        <Badge variant="outline" className="text-amber-500 border-amber-500 text-[10px]">
+                          Referral
+                        </Badge>
+                      ) : product.purchaseType === "affiliate" ? (
+                        <Badge variant="outline" className="text-purple-500 border-purple-500 text-[10px]">
+                          Affiliate
+                        </Badge>
+                      ) : product.purchaseType === "external" ? (
+                        <Badge variant="secondary" className="text-[10px]">
+                          Eksternal
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px]">
+                          Toko WA
+                        </Badge>
+                      )}
+                    </TableCell>
+
+                    <TableCell>
                       <Badge
-                        variant={product.published ? "secondary" : "outline"}
-                        className="text-[10px] py-0 px-2 font-normal"
+                        variant={product.published ? "default" : "secondary"}
+                        className="text-[10px] font-normal"
                       >
-                        {product.published ? "Tersedia" : "Disembunyikan"}
+                        {product.published ? "Tayang" : "Draft"}
                       </Badge>
                     </TableCell>
 
-                    <TableCell className="py-3 text-right admin-cell-actions">
+                    <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {product.ctaUrl && (
-                          <Button
-                            asChild
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-[var(--vt-ink)] hover:bg-[var(--vt-edge-hi-2)]"
-                            title="Buka Tautan Pembelian"
-                          >
-                            <Link href={product.ctaUrl} target="_blank">
-                              <ExternalLink className="h-3.5 w-3.5" />
-                            </Link>
-                          </Button>
-                        )}
+                        {/* Tombol Bagikan & Promosi (Share Kit) */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setPromoProduct(product);
+                            setPromoOpen(true);
+                          }}
+                          className="h-8 w-8 text-primary hover:bg-primary/10 cursor-pointer"
+                          title="Alat Promosi & Bagikan (Share Kit)"
+                        >
+                          <Share2 className="h-3.5 w-3.5" />
+                        </Button>
+
                         <Button
                           asChild
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-[var(--vt-ink)] hover:bg-[var(--vt-edge-hi-2)]"
-                          title="Preview Halaman Produk"
+                          className="h-8 w-8 text-[var(--vt-ink)] hover:bg-[var(--vt-edge-hi-2)] cursor-pointer"
+                          title="Preview Halaman Publik"
                         >
-                          <Link href={`/toko/${getProductSlug(product)}`}>
+                          <Link href={`/toko/${getProductSlug(product)}`} target="_blank">
                             <Globe className="h-3.5 w-3.5" />
                           </Link>
                         </Button>
+
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => openEditDialog(product)}
-                          className="h-8 w-8 text-[var(--vt-ink)] hover:bg-[var(--vt-edge-hi-2)]"
+                          className="h-8 w-8 text-[var(--vt-ink)] hover:bg-[var(--vt-edge-hi-2)] cursor-pointer"
                           title="Sunting Produk"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
+
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => openDeleteConfirmation(product)}
-                          className="h-8 w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                          className="h-8 w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
                           title="Hapus Produk"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -469,11 +865,11 @@ export default function AdminProductsPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-                         <DialogTitle className="text-base font-semibold text-[var(--vt-ink)]">
-              {isEditing ? "Sunting Data Produk Digital" : "Tambah Produk Digital Baru"}
+            <DialogTitle className="text-base font-semibold text-[var(--vt-ink)]">
+              {isEditing ? "Sunting Data Produk / Jasa" : "Tambah Produk / Jasa Baru"}
             </DialogTitle>
             <DialogDescription className="text-xs text-[var(--vt-ink-mute)]">
-              Katalog produk digital yang dipajang di halaman muka portofolio Anda.
+              Katalog produk digital dan jasa proyek yang dipajang di etalase toko.
             </DialogDescription>
           </DialogHeader>
 
@@ -486,22 +882,20 @@ export default function AdminProductsPage() {
 
           <form onSubmit={handleSaveProduct} className="space-y-4 pt-2">
             <Tabs defaultValue="id" className="w-full">
-               <TabsList className="grid grid-cols-2 mb-3 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)]">
+              <TabsList className="grid grid-cols-2 mb-3 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)]">
                 <TabsTrigger value="id" className="text-xs gap-1.5">
                   <span>🇮🇩</span> Bahasa Indonesia
                 </TabsTrigger>
                 <TabsTrigger value="en" className="text-xs gap-1.5">
                   <span>🇬🇧</span> English (EN)
-                  {formTitleEn ? (
-                    <span className="ml-1 text-[10px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1 rounded">✓</span>
-                  ) : null}
+                  {formTitleEn ? <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> : null}
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="id" className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="title" className="text-xs font-medium text-[var(--vt-ink)]">
-                    Nama Produk Digital (ID) *
+                    Nama Produk / Jasa (ID) *
                   </Label>
                   <Input
                     id="title"
@@ -520,7 +914,7 @@ export default function AdminProductsPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <Label htmlFor="desc" className="text-xs font-medium text-[var(--vt-ink)]">
-                      Deskripsi Singkat & Fitur Utama (ID) *
+                      Deskripsi Singkat &amp; Fitur Utama (ID) *
                     </Label>
                     <span className="text-[10px] text-muted-foreground font-mono">
                       {formDescription.length.toLocaleString("id-ID")} / 50.000
@@ -530,7 +924,7 @@ export default function AdminProductsPage() {
                     id="desc"
                     required
                     rows={4}
-                    placeholder="Template production-ready dengan otentikasi, database, dan payment gateway..."
+                    placeholder="Template production-ready dengan auth, database, dan payment..."
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
                     className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
@@ -539,7 +933,7 @@ export default function AdminProductsPage() {
               </TabsContent>
 
               <TabsContent value="en" className="space-y-4">
-                 <div className="flex items-center justify-between bg-[var(--vt-card)] p-2.5 rounded-md border border-[var(--vt-edge-lo-2)]">
+                <div className="flex items-center justify-between bg-[var(--vt-card)] p-2.5 rounded-md border border-[var(--vt-edge-lo-2)]">
                   <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                     <Globe className="h-3.5 w-3.5 text-primary" />
                     <span>Kosongkan bila mode EN cukup memakai teks Indonesia</span>
@@ -563,7 +957,7 @@ export default function AdminProductsPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="titleEn" className="text-xs font-medium text-[var(--vt-ink)]">
-                    Nama Produk Digital (EN)
+                    Nama Produk / Jasa (EN)
                   </Label>
                   <Input
                     id="titleEn"
@@ -577,7 +971,7 @@ export default function AdminProductsPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <Label htmlFor="descEn" className="text-xs font-medium">
-                      Deskripsi Singkat & Fitur Utama (EN)
+                      Deskripsi Singkat &amp; Fitur Utama (EN)
                     </Label>
                     <span className="text-[10px] text-muted-foreground font-mono">
                       {formDescriptionEn.length.toLocaleString("id-ID")} / 50.000
@@ -607,22 +1001,35 @@ export default function AdminProductsPage() {
                 onChange={(e) => setFormSlug(slugifyProduct(e.target.value))}
                 className="text-xs font-mono"
               />
-               <p className="text-[10px] text-[var(--vt-ink-mute)] font-mono">
-                  Link share: /toko/{formSlug || "slug-produk"}
+              <p className="text-[10px] text-[var(--vt-ink-mute)] font-mono">
+                Link share: /toko/{formSlug || "slug-produk"}
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[var(--vt-edge-lo-2)]">
               <div className="space-y-2">
                 <Label htmlFor="price" className="text-xs font-medium text-[var(--vt-ink)]">
-                  Label Harga (ID/EN) *
+                  Label Harga (ID) *
                 </Label>
                 <Input
                   id="price"
                   required
-                  placeholder="Rp 199.000 / $19"
+                  placeholder="Rp 199.000"
                   value={formPriceFormatted}
                   onChange={(e) => setFormPriceFormatted(e.target.value)}
+                  className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="priceEn" className="text-xs font-medium text-[var(--vt-ink)]">
+                  Label Harga Internasional (EN)
+                </Label>
+                <Input
+                  id="priceEn"
+                  placeholder="$19 USD"
+                  value={formPriceLabelEn}
+                  onChange={(e) => setFormPriceLabelEn(e.target.value)}
                   className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
                 />
               </div>
@@ -642,7 +1049,7 @@ export default function AdminProductsPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="priceAmount" className="text-xs font-medium text-[var(--vt-ink)]">
-                  Nominal Rp (angka, untuk keranjang)
+                  Nominal Angka (untuk kalkulasi keranjang)
                 </Label>
                 <Input
                   id="priceAmount"
@@ -689,13 +1096,14 @@ export default function AdminProductsPage() {
                 </Label>
                 <Input
                   id="category"
-                  placeholder="Template, E-Book, Jasa"
+                  placeholder="Template, E-Book, Jasa Website"
                   value={formCategory}
                   onChange={(e) => setFormCategory(e.target.value)}
                   className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
                 />
               </div>
 
+              {/* Tipe Penjualan */}
               <div className="space-y-2">
                 <Label htmlFor="purchaseType" className="text-xs font-medium text-[var(--vt-ink)]">
                   Tipe Penjualan *
@@ -703,12 +1111,17 @@ export default function AdminProductsPage() {
                 <select
                   id="purchaseType"
                   value={formPurchaseType}
-                  onChange={(e) =>
-                    setFormPurchaseType(e.target.value as "whatsapp" | "external" | "referral" | "affiliate")
-                  }
-                  className="flex h-9 w-full rounded-md border border-[var(--vt-edge-lo-2)] bg-[var(--vt-paper)] px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  onChange={(e) => {
+                    const nextVal = e.target.value as "whatsapp" | "freelanceops" | "external" | "referral" | "affiliate";
+                    setFormPurchaseType(nextVal);
+                    if (nextVal === "freelanceops" && !formCtaUrl) {
+                      setFormCtaUrl("https://freelanceops.sigitadi.id/");
+                    }
+                  }}
+                  className="flex h-9 w-full rounded-md border border-[var(--vt-edge-lo-2)] bg-[var(--vt-paper)] px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
-                  <option value="whatsapp">WhatsApp Langsung</option>
+                  <option value="whatsapp">WhatsApp Langsung (Toko Digital)</option>
+                  <option value="freelanceops">Jasa / Proyek (Portal FreelanceOps)</option>
                   <option value="external">Toko Online / Platform Eksternal</option>
                   <option value="referral">Link Referral</option>
                   <option value="affiliate">Link Affiliate</option>
@@ -717,12 +1130,12 @@ export default function AdminProductsPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="ctaUrl" className="text-xs font-medium text-[var(--vt-ink)]">
-                  URL Tujuan (Jika eksternal/referral/affiliate)
+                  URL Tujuan (FreelanceOps / Eksternal / Affiliate)
                 </Label>
                 <Input
                   id="ctaUrl"
-                  placeholder="https://shopee.co.id/..."
-                  value={formCtaUrl || ''}
+                  placeholder="https://freelanceops.sigitadi.id/..."
+                  value={formCtaUrl || ""}
                   onChange={(e) => setFormCtaUrl(e.target.value)}
                   className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
                   disabled={formPurchaseType === "whatsapp"}
@@ -730,16 +1143,15 @@ export default function AdminProductsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="customWhatsapp" className="text-xs font-medium text-[var(--vt-ink)]">
-                  No. WA Khusus (Jika WhatsApp)
+                <Label htmlFor="referralCode" className="text-xs font-medium text-[var(--vt-ink)]">
+                  Kode Promo Referral Mitra (Opsional)
                 </Label>
                 <Input
-                  id="customWhatsapp"
-                  placeholder="6281234567890 (kosongkan u/ profil utama)"
-                  value={formCustomWhatsapp || ''}
-                  onChange={(e) => setFormCustomWhatsapp(e.target.value)}
-                  className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
-                  disabled={formPurchaseType !== "whatsapp"}
+                  id="referralCode"
+                  placeholder="PROMO50"
+                  value={formReferralCode || ""}
+                  onChange={(e) => setFormReferralCode(e.target.value)}
+                  className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)] font-mono"
                 />
               </div>
 
@@ -749,8 +1161,8 @@ export default function AdminProductsPage() {
                 </Label>
                 <Input
                   id="customButtonLabel"
-                  placeholder="Mis: Beli di Shopee"
-                  value={formCustomButtonLabel || ''}
+                  placeholder="Mis: Mulai Proyek di FreelanceOps"
+                  value={formCustomButtonLabel || ""}
                   onChange={(e) => setFormCustomButtonLabel(e.target.value)}
                   className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
                 />
@@ -855,6 +1267,19 @@ export default function AdminProductsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal Share & Promo Kit */}
+      {promoProduct && (
+        <ProductShareModal
+          product={promoProduct}
+          isOpen={promoOpen}
+          onClose={() => {
+            setPromoOpen(false);
+            setPromoProduct(null);
+          }}
+          isEn={false}
+        />
+      )}
     </div>
   );
 }

@@ -39,15 +39,17 @@ MyWebPorto adalah website portofolio pribadi berbasis Next.js 15 yang menggabung
 - Detail artikel `/artikel/[slug]`.
 - Panel admin `/admin`.
 - CRUD profil, proyek, layanan, produk, testimoni, dan artikel.
+- Sistem Order WhatsApp terpadu: keranjang belanja, checkout modal, transfer bank multi-rekening/QRIS, unggah bukti bayar, format invoice `INV-DDMMYYYY-XXXX`, dan pelacakan pesanan publik `/order`.
+- Universal Bot Engine & TTS Audio Sanitizer: penyatuan knowledge base antara WhatsApp Bot, RetroBot, dan Terminal CRT dengan pembersihan ucapan audio dari simbol/emoji.
 - Konten bilingual untuk beberapa field Indonesia/Inggris.
-- Terjemahan ID → EN opt-in per field melalui tombol di form admin (bukan otomatis saat menyimpan).
-- Upload gambar lokal ke `public/uploads`.
+- Terjemahan ID -> EN opt-in per field melalui tombol di form admin (bukan otomatis saat menyimpan).
+- Penyimpanan gambar biner langsung di database PostgreSQL (tabel `media`, bytea) dengan validasi magic bytes dan cache immutable via `/api/media/[id]`.
 - SEO metadata, Open Graph, Twitter Card, sitemap, robots.txt, JSON-LD.
 - Fallback data lokal saat database tidak tersedia.
 
 ### Di Luar Scope Saat Ini
 
-- **Payment gateway** — checkout diakhiri di pesan WhatsApp; tidak ada pembayaran online.
+- **Payment gateway online pihak ketiga**: checkout diakhiri melalui pesan WhatsApp dan verifikasi transfer manual; tidak ada gateway otomatis seperti Midtrans/Xendit.
 - Marketplace multi-penjual.
 - Akun publik untuk pengunjung.
 - Role-based access control kompleks.
@@ -64,6 +66,7 @@ MyWebPorto adalah website portofolio pribadi berbasis Next.js 15 yang menggabung
 | `/proyek` | Katalog Proyek | Menampilkan semua proyek yang `published = true`. |
 | `/proyek/[slug]` | Detail Proyek | Menampilkan studi kasus proyek, tech stack, demo, repo, dan CTA. |
 | `/toko/[slug]` | Detail Produk | Menampilkan detail produk digital, harga, metadata, dan CTA checkout/download. |
+| `/order` | Lacak Pesanan | Halaman publik pelacakan status pesanan berdasarkan nomor invoice atau nomor WhatsApp. |
 | `/artikel` | Katalog Artikel | Menampilkan semua artikel yang `published = true` dan `publishAt` sudah lewat (atau null). |
 | `/artikel/[slug]` | Detail Artikel | Menampilkan artikel teknis lengkap, metadata, tag, dan profil penulis. |
 | `/feed.xml` | RSS | Feed artikel dengan autodiscovery. |
@@ -82,9 +85,18 @@ MyWebPorto adalah website portofolio pribadi berbasis Next.js 15 yang menggabung
 | `/admin/articles` | Kelola Artikel | Tambah, ubah, hapus, publish, featured, jadwal tayang, tag, cover, dan konten artikel bilingual. |
 | `/admin/services` | Kelola Layanan | Tambah, ubah, hapus, publish, dan urutkan layanan. |
 | `/admin/products` | Kelola Produk | Tambah, ubah, hapus, publish, harga coret + nominal, stok, badge, kategori, galeri, dan CTA produk. |
+| `/admin/orders` | Kelola Pesanan | Manajemen pesanan toko: pantau pesanan masuk, filter status, update nomor resi, catatan pengiriman, konfirmasi bayar, dan aksi WhatsApp. |
+| `/admin/whatsapp-bot` | WhatsApp Bot | Konfigurasi bot toko Baileys: pairing QR code, nomor toko tujuan, template pesan, dan status sesi. |
 | `/admin/testimonials` | Kelola Testimoni | Tambah, ubah, hapus, publish, rating, avatar, dan identitas klien. |
-| `/admin/media` | Media Library | Daftar gambar di Bunny Storage (bila terkonfigurasi) dengan hapus. |
-| `/admin/system` | Sistem & Logs | Kelayakan deploy (validasi env), tracing `x-request-id`, audit log mutasi, dan konfigurasi Cloud AI. |
+| `/admin/media` | Media Library | Daftar gambar di database PostgreSQL (tabel `media`, bytea) dengan fitur hapus. |
+| `/admin/analytics` | Visitor Analytics | Analitik kunjungan mandiri ramah privasi UU PDP (salted SHA-256) berbasis zona waktu WIB. |
+| `/admin/cloud-ai` | Konfigurasi Cloud AI | Pemilihan provider AI (Gemini, OpenAI, Anthropic, dll.), model realtime, dan preferensi gaya jawaban. |
+| `/admin/redaksi` | Redaksi AI & SEO | Composer draf AI untuk 6 tipe konten dengan sinkronisasi SEO otomatis tanpa boilerplate. |
+| `/admin/seo` | SEO & SEM | Konfigurasi token GSC, Bing Webmaster, key IndexNow, dan Open Graph override. |
+| `/admin/appearance` | God Mode Tampilan | Pengaturan aplikasi SigitOS yang aktif dan urutan tampilan ikon/taskbar. |
+| `/admin/strings` | God Mode Teks UI | Kustomisasi teks judul dan tombol CTA tanpa redeploy. |
+| `/admin/features` | God Mode Feature Flags | Sakelar fitur global (terminal, cart toko, artikel, maintenance mode). |
+| `/admin/system` | Sistem & Logs | Kelayakan deploy (validasi env), tracing `x-request-id`, audit log mutasi. |
 
 ## 4. Fitur Utama
 
@@ -96,8 +108,8 @@ Kebutuhan:
 
 - Menampilkan profil, kontak, layanan, proyek, produk, testimoni, dan artikel.
 - Menyediakan terminal/CRT interaction sebagai elemen identitas.
-- Menyediakan asisten AI Sigit_Bot yang menjalankan mesin NLP/ML lokal (`src/lib/ai-engine.ts`), dengan fallback cloud opt-in (`src/lib/ai-provider.ts`, `src/lib/ai-openai.ts`) bila provider dikonfigurasi dan confidence lokal rendah.
-- Menyediakan RetroBot — asisten melayang yang sadar halaman (tahu app SigitOS mana yang sedang dibuka) dan memandu navigasi lewat nav chip di percakapan.
+- Menyediakan asisten AI yang menjalankan Universal Bot Engine: RetroBot melayang, Terminal CRT, dan WhatsApp Bot berbagi knowledge base katalog dan tanya-jawab yang sama.
+- Modul TTS Sanitizer (`src/lib/tts-sanitizer.ts`) membersihkan emoji, simbol format markdown, kode, dan URL dari ucapan audio Web Speech API sehingga suara terdengar alami tanpa mengeja karakter teknis.
 - Mendukung 4 tema (Retro 90s default, Dark, Tokyo Night, VS Code) yang dipertahankan di `localStorage`.
 - Tetap menyediakan konten SSR tersembunyi untuk SEO dan aksesibilitas.
 - Memakai data yang sama dengan halaman katalog dan admin.
@@ -120,6 +132,7 @@ Kebutuhan:
 - Artikel unggulan memakai `featured = true`.
 - Slug harus unik.
 - Artikel mendukung title, summary, content, cover image, tags, dan field Inggris.
+- Konten artikel wajib bebas dari promosi berlebih/AI-slop dan tidak mencantumkan nama pemilik di dalam badan tulisan teknis.
 - Halaman detail artikel menampilkan estimasi waktu baca.
 - Artikel memiliki metadata SEO dan JSON-LD yang sesuai.
 
@@ -132,13 +145,17 @@ Kebutuhan:
 - CTA diarahkan ke kontak manual.
 - Tidak ada transaksi otomatis.
 
-### 4.5 Produk
+### 4.5 Produk dan Sistem Order
 
 Kebutuhan:
 
-- Produk berfungsi sebagai katalog + checkout WhatsApp (bukan payment gateway).
-- Produk dapat memiliki `priceLabel` (label tampilan), `comparePriceLabel` (harga coret), `priceAmount` (nominal Rupiah untuk keranjang; null = tanya/hubungi), `badge`, `category`, `stock` (null = digital/tanpa batas), dan `gallery`.
-- Keranjang belanja (`cart-context.tsx`) persisten di `localStorage`; checkout merakit pesan WhatsApp via `whatsapp-order.ts` dengan data pelanggan dan total.
+- Produk berfungsi sebagai etalase katalog toko digital dan fisik.
+- Produk dapat memiliki `priceLabel` (label tampilan), `comparePriceLabel` (harga coret), `priceAmount` (nominal Rupiah untuk keranjang; null = hubungi kami), `badge`, `category`, `stock` (null = digital/tanpa batas), dan `gallery`.
+- Keranjang belanja (`cart-context.tsx`) persisten di `localStorage`.
+- Dialog checkout interaktif dengan opsi Transfer Bank multi-rekening, QRIS, atau pesan WhatsApp langsung, serta formulir data pemesan dan unggah bukti transfer.
+- Pembuatan nomor invoice terstandarisasi dengan pola `INV-DDMMYYYY-XXXX` untuk ketepatan waktu transaksi.
+- Pelacakan pesanan mandiri melalui rute publik `/order` dan modal Lacak Pesanan pada header toko & cart dialog berdasarkan nomor invoice atau nomor WhatsApp.
+- Panel admin `/admin/orders` mengelola status pesanan (pending, paid, processed, completed, cancelled), input nomor resi pengiriman, catatan admin, konfirmasi bukti transfer, dan integrasi chat WhatsApp.
 - Produk unpublished tidak tampil di publik.
 - Gambar produk wajib tersedia untuk item yang dibuat melalui form.
 - Produk memiliki slug stabil yang dapat dikelola dari admin dan dinormalisasi lewat `src/lib/product-link.ts`.

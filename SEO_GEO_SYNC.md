@@ -152,6 +152,12 @@ Kalau salah satu ini dilanggar, desync akan muncul lagi:
 8. **Kata kunci untuk disuntik ke deskripsi diambil dari `pickPrimaryKeyword`**,
    algoritma yang sama dengan analyzer. Kalau remediator menebak sendiri,
    "sudah diberi kata kunci" bisa tetap ditolak temuan `meta-keyword`.
+9. **Anti-slop dan integritas konten kontekstual**: Generator draf (`redaksi-draft.ts`)
+   dan remediator (`seo-remediate.ts`) dilarang menyuntikkan boilerplate devops
+   generik (seperti perintah curl, systemctl status, atau health check acak) yang tidak
+   berkaitan langsung dengan topik artikel. Struktur heading markdown wajib
+   menggunakan baris baru ganda, dan dilarang mencantumkan nama personal pemilik
+   di dalam badan tulisan teknis untuk menjaga objektivitas ulasan.
 
 ---
 

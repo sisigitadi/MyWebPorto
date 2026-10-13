@@ -22,6 +22,7 @@ import { playOS } from "@/lib/os-sound";
 import { ProfileData, ServiceData, ProjectData, ArticleData } from "@/lib/dummy-data";
 import { buildSocialLinks } from "@/components/public/social-icons";
 import { MiniMarkdownInline } from "@/components/public/mini-markdown";
+import { cleanTextForTTS } from "@/lib/tts-sanitizer";
 
 interface OSCrtTerminalProps {
   ownerName: string;
@@ -323,13 +324,7 @@ export function OSCrtTerminal({
       };
 
       // Bersihkan simbol/penanda agar dibaca sebagai kalimat wajar
-      const clean = text
-        .replace(/```[\s\S]*?```/g, " ")
-        .replace(/[*_`#>|]/g, " ")
-        .replace(/\bhttps?:\/\/\S+/g, " ")
-        .replace(/\s*->\s*/g, ", ")
-        .replace(/\s+/g, " ")
-        .trim();
+      const clean = cleanTextForTTS(text);
       if (!clean) return;
 
       // Pecah per kalimat — mesin TTS sering memotong teks panjang di tengah

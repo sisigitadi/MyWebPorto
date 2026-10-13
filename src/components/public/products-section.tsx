@@ -15,6 +15,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ProductData, ProfileData } from "@/lib/dummy-data";
 import { storeName } from "@/lib/store";
 import { getProductSlug } from "@/lib/product-link";
@@ -36,6 +37,7 @@ interface ProductsSectionProps {
 }
 
 export function ProductsSection({ products: propProducts, profile }: ProductsSectionProps) {
+  const router = useRouter();
   const { t, language } = useTranslation();
   const { addItem, totalCount, setIsOpen } = useCart();
 
@@ -50,6 +52,32 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [sortBy, setSortBy] = useState<"default" | "price_asc" | "price_desc">("default");
+
+  // State untuk modal Lacak_Pesanan.exe
+  const [showTrackerModal, setShowTrackerModal] = useState(false);
+  const [trackerInvoiceInput, setTrackerInvoiceInput] = useState("");
+  const [trackerError, setTrackerError] = useState("");
+
+  const handleTrackOrder = (e: React.FormEvent) => {
+    e.preventDefault();
+    const raw = trackerInvoiceInput.trim().toUpperCase();
+    if (!raw) {
+      setTrackerError(language === "en" ? "Please enter an invoice number." : "Masukkan nomor invoice.");
+      return;
+    }
+    const match = raw.match(/INV-\d{8}-[A-Za-z0-9]{4}/);
+    if (!match) {
+      setTrackerError(
+        language === "en"
+          ? "Invoice format should be INV-DDMMYYYY-XXXX (e.g. INV-13102026-0001)"
+          : "Format invoice harus berupa INV-DDMMYYYY-XXXX (contoh: INV-13102026-0001)"
+      );
+      return;
+    }
+    setTrackerError("");
+    setShowTrackerModal(false);
+    router.push(`/order/${match[0]}`);
+  };
 
   // Tanpa fallback dummy: katalog kosong ditampilkan jujur sebagai empty state
   const allProducts = ((propProducts && Array.isArray(propProducts)) ? propProducts : []).filter(
@@ -138,23 +166,38 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
             </p>
           </div>
 
-          {/* Quick Cart Trigger — disembunyikan saat enable_store_cart OFF */}
-          {enableStoreCart && (
+          {/* Quick Actions: Lacak Pesanan & Cart Trigger */}
+          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
             <button
               type="button"
-              onClick={() => setIsOpen(true)}
-              className={`group vt-btn vt-btn-pink px-3.5 py-2 text-xs font-mono font-bold flex items-center gap-2 cursor-pointer shadow-md transition-all self-start sm:self-auto ${
-                totalCount > 0 ? "animate-pulse ring-2 ring-primary" : ""
-              }`}
-              title="Buka Keranjang Belanja"
+              onClick={() => {
+                setTrackerError("");
+                setShowTrackerModal(true);
+              }}
+              className="vt-btn vt-btn-chrome px-3 py-2 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer shadow-sm hover:border-[var(--vt-cyan)]"
+              title={language === "en" ? "Track order status by invoice" : "Lacak status pesanan invoice"}
             >
-              <ShoppingCart className="h-4 w-4" />
-              <span>{language === "en" ? "Cart.zip" : "Keranjang"}</span>
-              <span className="px-1.5 py-0.2 rounded-xs bg-white text-black font-extrabold text-[11px]">
-                {totalCount}
-              </span>
+              <Search className="h-3.5 w-3.5 text-[var(--vt-cyan)]" />
+              <span>{language === "en" ? "Track Order" : "Lacak Pesanan"}</span>
             </button>
-          )}
+
+            {enableStoreCart && (
+              <button
+                type="button"
+                onClick={() => setIsOpen(true)}
+                className={`group vt-btn vt-btn-pink px-3.5 py-2 text-xs font-mono font-bold flex items-center gap-2 cursor-pointer shadow-md transition-all ${
+                  totalCount > 0 ? "animate-pulse ring-2 ring-primary" : ""
+                }`}
+                title={language === "en" ? "Open Shopping Cart" : "Buka Keranjang Belanja"}
+              >
+                <ShoppingCart className="h-4 w-4" />
+                <span>{language === "en" ? "Cart.zip" : "Keranjang"}</span>
+                <span className="px-1.5 py-0.2 rounded-xs bg-white text-black font-extrabold text-[11px]">
+                  {totalCount}
+                </span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Search, Filter & Sort Toolbar */}
@@ -422,6 +465,78 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
           </div>
         )}
       </div>
+
+      {/* Order Tracker Modal */}
+      {showTrackerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-xs">
+          <div className="w-full max-w-md">
+            <OSWindow
+              title="Lacak_Pesanan.exe"
+              icon={<Search className="h-4 w-4 text-[var(--vt-cyan)]" />}
+              statusText="INVOICE_TRACKER_V1.0"
+              onClose={() => {
+                setShowTrackerModal(false);
+                setTrackerError("");
+              }}
+              className="w-full shadow-2xl vt-window-pop"
+              bodyClassName="p-4 sm:p-5 bg-[var(--vt-paper)] text-[var(--vt-ink)] font-mono text-xs space-y-4"
+            >
+              <div>
+                <p className="font-bold text-sm mb-1 text-[var(--vt-ink)]">
+                  {language === "en" ? "Track Your Digital Order" : "Lacak Status Pesanan Digital"}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {language === "en"
+                    ? "Enter your invoice number received after checkout (e.g. INV-13102026-4821)."
+                    : "Masukkan nomor invoice yang Anda peroleh saat checkout (contoh: INV-13102026-4821)."}
+                </p>
+              </div>
+
+              <form onSubmit={handleTrackOrder} className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold block text-muted-foreground uppercase">
+                    {language === "en" ? "Invoice Number" : "Nomor Invoice"}
+                  </label>
+                  <input
+                    type="text"
+                    value={trackerInvoiceInput}
+                    onChange={(e) => {
+                      setTrackerInvoiceInput(e.target.value);
+                      if (trackerError) setTrackerError("");
+                    }}
+                    placeholder="INV-DDMMYYYY-XXXX"
+                    autoFocus
+                    className="w-full px-3 py-2 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)] rounded-xs font-mono font-bold text-xs uppercase focus:outline-none focus:border-[var(--vt-cyan)] placeholder:text-muted-foreground/60"
+                  />
+                  {trackerError && (
+                    <p className="text-red-500 font-bold text-[11px] mt-1">{trackerError}</p>
+                  )}
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowTrackerModal(false);
+                      setTrackerError("");
+                    }}
+                    className="vt-btn vt-btn-chrome px-3 py-2 font-bold cursor-pointer"
+                  >
+                    {language === "en" ? "Cancel" : "Batal"}
+                  </button>
+                  <button
+                    type="submit"
+                    className="vt-btn vt-btn-pink flex-1 py-2 px-4 font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                  >
+                    <Search className="h-3.5 w-3.5" />
+                    <span>{language === "en" ? "Check Order Status" : "Cek Status Pesanan"}</span>
+                  </button>
+                </div>
+              </form>
+            </OSWindow>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -1051,6 +1051,7 @@ export async function getProducts(): Promise<ProductData[]> {
       description: p.description,
       descriptionEn: p.descriptionEn && !isTranslationErrorPayload(p.descriptionEn) ? p.descriptionEn : null,
       priceFormatted: p.priceLabel || "Gratis / Diskusi",
+      priceLabelEn: p.priceLabelEn || null,
       comparePriceLabel: p.comparePriceLabel || null,
       priceAmount: typeof p.priceAmount === "number" ? p.priceAmount : null,
       badge: p.badge || null,
@@ -1062,6 +1063,7 @@ export async function getProducts(): Promise<ProductData[]> {
       purchaseType: normalizePurchaseType(p.purchaseType),
       customWhatsapp: p.customWhatsapp?.trim() || null,
       customButtonLabel: p.customButtonLabel?.trim() || null,
+      referralCode: p.referralCode?.trim() || null,
       published: p.published ?? true,
     }));
   } catch (error) {
@@ -1128,6 +1130,7 @@ export async function saveProduct(data: unknown) {
     description: productData.description,
     descriptionEn: productData.descriptionEn,
     priceFormatted: productData.priceLabel || "Gratis / Diskusi",
+    priceLabelEn: productData.priceLabelEn?.trim() || null,
     comparePriceLabel: productData.comparePriceLabel?.trim() || null,
     priceAmount: typeof productData.priceAmount === "number" ? productData.priceAmount : null,
     badge: productData.badge?.trim() || null,
@@ -1139,6 +1142,7 @@ export async function saveProduct(data: unknown) {
     purchaseType: productData.purchaseType ?? "whatsapp",
     customWhatsapp: productData.customWhatsapp?.trim() || null,
     customButtonLabel: productData.customButtonLabel?.trim() || null,
+    referralCode: productData.referralCode?.trim() || null,
     published: productData.published ?? true,
   };
 
@@ -1929,17 +1933,51 @@ export async function askSigitBot(
     };
   }
 
-  // Konteks live dipakai BOTH jalur lokal (TF-IDF) dan cloud (Gemini) — sebelumnya
-  // inferensi lokal memakai KNOWLEDGE_BASE statik di ai-engine.ts, sehingga jawaban
-  // bisa drift dari data yang diatur admin (mis. email diganti di admin → bot masih
-  // menyebut yang lama). Getter di bawah tidak pernah throw (fallback ke data lokal).
+  // 1. Deteksi Nomor Invoice / Lacak Pesanan Langsung di Terminal
+  try {
+    const { detectAndLookupInvoice } = await import("@/lib/whatsapp-bot/wa-knowledge");
+    const invoiceReply = await detectAndLookupInvoice(cleanInput);
+    if (invoiceReply) {
+      return {
+        text: invoiceReply,
+        intent: "order_status",
+        confidence: 1.0,
+        source: "local",
+      };
+    }
+  } catch {
+    /* fallback */
+  }
+
+  // 2. Cek Jawaban Instan dari FAQ Kustom Admin
+  try {
+    const { buildWhatsAppBotKnowledge, findDirectFAQMatch } = await import("@/lib/whatsapp-bot/wa-knowledge");
+    const waKnowledge = await buildWhatsAppBotKnowledge().catch(() => null);
+    if (waKnowledge) {
+      const directFAQ = findDirectFAQMatch(cleanInput, waKnowledge.config.faqs);
+      if (directFAQ) {
+        return {
+          text: directFAQ,
+          intent: "faq",
+          confidence: 0.95,
+          source: "local",
+        };
+      }
+    }
+  } catch {
+    /* fallback */
+  }
+
+  // Konteks live terpadu: dipakai BOTH jalur lokal (TF-IDF) dan cloud (Gemini/OpenAI/Anthropic)
   let ctx: EngineContext;
   try {
-    const [profile, services, projects, articles] = await Promise.all([
+    const [profile, services, projects, articles, products, storeConfig] = await Promise.all([
       getProfile(),
       getServices(),
       getProjects(),
       getArticles(),
+      getProducts().catch(() => []),
+      import("@/lib/order-actions").then((m) => m.getStoreConfig()).catch(() => null),
     ]);
     ctx = {
       ownerName: profile.name,
@@ -1975,6 +2013,17 @@ export async function askSigitBot(
           titleEn: a.titleEn,
           slug: a.slug,
         })),
+      products: products
+        .filter((p) => p.published)
+        .slice(0, 8)
+        .map((p) => ({
+          title: lang === "en" ? p.titleEn || p.title : p.title,
+          titleEn: p.titleEn || undefined,
+          priceIdr: (typeof p.priceAmount === "number" && p.priceAmount > 0) ? p.priceAmount : undefined,
+          priceUsd: undefined,
+          slug: p.slug || undefined,
+        })),
+      bankAccounts: storeConfig?.bankAccounts || [],
     };
   } catch (err) {
     console.error("askSigitBot: gagal memuat konteks live:", err instanceof Error ? err.message.slice(0, 200) : err);

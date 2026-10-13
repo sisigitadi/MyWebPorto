@@ -16,18 +16,15 @@ interface OSMenubarProps {
 export function OSMenubar({ profile }: OSMenubarProps) {
   const { theme, setTheme } = useOSTheme();
   const { t, language, setLanguage } = useTranslation();
-  const [shortDate, setShortDate] = useState("");
   const [fullDate, setFullDate] = useState("");
 
-  // Tanggal format dd/mm/yyyy (mobile: dd/mm/yy — lihat catatan render di
-  // bawah kenapa tahun 4 digit tidak muat di layar sempit).
+  // Tanggal format DD/MM/YYYY (contoh: 13/10/2026) seragam untuk semua viewport.
   useEffect(() => {
     const updateDate = () => {
       const now = new Date();
       const dd = String(now.getDate()).padStart(2, "0");
       const mm = String(now.getMonth() + 1).padStart(2, "0");
       const yyyy = now.getFullYear();
-      setShortDate(`${dd}/${mm}/${String(yyyy).slice(2)}`);
       setFullDate(`${dd}/${mm}/${yyyy}`);
     };
     updateDate();
@@ -127,13 +124,7 @@ export function OSMenubar({ profile }: OSMenubarProps) {
               mismatch: SSR memakai "13/09/2026", client mengisi tanggal asli
               → React warning + event handler bisa terputus, terlihat seperti
               "hang di loading / tidak masuk menu". */}
-            {/* Mobile: dd/mm/yy. Header kanan menampung language + theme +
-              tanggal di ruang sempit; tahun 4 digit ("17/09/2026") membuat
-              total lebar melebihi viewport sehingga angka tahun terpotong /
-              tidak terlihat. Tahun 2 digit tetap informatif (retro clock)
-              dan title attribute menyimpan tanggal lengkap. */}
-            <span className="sm:hidden">{shortDate}</span>
-            <span className="hidden sm:inline">{fullDate}</span>
+            <span>{fullDate}</span>
           </div>
 
           {/* User Button / Admin link — hanya saat Clerk aktif (MenubarUser).
