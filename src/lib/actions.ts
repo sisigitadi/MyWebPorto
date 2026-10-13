@@ -28,7 +28,7 @@ import {
   type ArticleData,
   type ProfileData,
 } from "@/lib/dummy-data";
-import { translateText, isExternalTranslateEnabled } from "@/lib/translate";
+import { translateText, isExternalTranslateEnabled, isTranslationErrorPayload } from "@/lib/translate";
 import { getProductSlug, normalizePurchaseType, slugifyProduct } from "@/lib/product-link";
 import { sanitizeError } from "@/lib/error-utils";
 import { logAudit } from "@/lib/audit";
@@ -278,13 +278,23 @@ export async function translateFieldAction(
   if (!text || !text.trim()) return { success: true, text: "" };
   try {
     const translated = await translateText(text, from, to);
+    if (isTranslationErrorPayload(translated)) {
+      return {
+        success: false,
+        text,
+        error: "Layanan penerjemah mengembalikan respons error tidak valid.",
+      };
+    }
     return { success: true, text: translated };
-  } catch (err) {
+  } catch (err: unknown) {
     console.error("Auto-translate gagal:", err);
     return {
       success: false,
       text,
-      error: "Gagal menerjemahkan teks. Periksa log server untuk detail teknis.",
+      error:
+        err instanceof Error
+          ? err.message
+          : "Gagal menerjemahkan teks. Periksa log server untuk detail teknis.",
     };
   }
 }
@@ -358,12 +368,16 @@ export async function getProfile(): Promise<ProfileData> {
       });
     }
 
+    const safeResHeadlineEn = res.headlineEn && !isTranslationErrorPayload(res.headlineEn) ? res.headlineEn.trim() : null;
+    const safeResBioEn = res.bioEn && !isTranslationErrorPayload(res.bioEn) ? res.bioEn.trim() : null;
+    const safeBaseHeadlineEn = baseProfile.headlineEn && !isTranslationErrorPayload(baseProfile.headlineEn) ? baseProfile.headlineEn : null;
+    const safeBaseBioEn = baseProfile.bioEn && !isTranslationErrorPayload(baseProfile.bioEn) ? baseProfile.bioEn : null;
+
     return {
       ...baseProfile,
       ...res,
-      // Gunakan nullish check agar string kosong "" (sengaja dihapus) tidak fallback ke dummy
-      headlineEn: res.headlineEn?.trim() ? res.headlineEn : baseProfile.headlineEn,
-      bioEn: res.bioEn?.trim() ? res.bioEn : baseProfile.bioEn,
+      headlineEn: safeResHeadlineEn ?? safeBaseHeadlineEn,
+      bioEn: safeResBioEn ?? safeBaseBioEn,
       avatarUrl: res.avatarUrl?.trim() ? res.avatarUrl : baseProfile.avatarUrl,
       phone: res.phone ?? baseProfile.phone,
       location: res.location ?? baseProfile.location,
@@ -381,7 +395,11 @@ export async function getProfile(): Promise<ProfileData> {
     };
   } catch (error) {
     console.warn("Database query getProfile gagal, menggunakan data lokal:", error);
-    return baseProfile;
+    return {
+      ...baseProfile,
+      headlineEn: baseProfile.headlineEn && !isTranslationErrorPayload(baseProfile.headlineEn) ? baseProfile.headlineEn : null,
+      bioEn: baseProfile.bioEn && !isTranslationErrorPayload(baseProfile.bioEn) ? baseProfile.bioEn : null,
+    };
   }
 }
 
@@ -403,8 +421,10 @@ export async function updateProfile(data: unknown) {
   // Field English dipakai apa adanya. Tidak ada terjemahan otomatis saat simpan:
   // penerjemahan mengirim teks ke layanan pihak ketiga (lihat src/lib/translate.ts)
   // dan hanya dijalankan bila admin menekan tombol "Terjemahkan (ID → EN)".
-  const headlineEn = parsed.data.headlineEn?.trim() || null;
-  const bioEn = parsed.data.bioEn?.trim() || null;
+  const rawHeadlineEn = parsed.data.headlineEn?.trim() || null;
+  const rawBioEn = parsed.data.bioEn?.trim() || null;
+  const headlineEn = rawHeadlineEn && !isTranslationErrorPayload(rawHeadlineEn) ? rawHeadlineEn : null;
+  const bioEn = rawBioEn && !isTranslationErrorPayload(rawBioEn) ? rawBioEn : null;
   const availabilityBadge = parsed.data.availabilityBadge?.trim() || null;
   const availabilityBadgeEn = parsed.data.availabilityBadgeEn?.trim() || null;
 
@@ -517,21 +537,22 @@ export async function getProjects(
       const summaryId =
         (p.summary && p.summary.trim()) ||
         p.description.slice(0, 120) + (p.description.length > 120 ? "..." : "");
-      const summaryEn =
+      const rawSummaryEn =
         (p.summaryEn && p.summaryEn.trim()) ||
         (p.descriptionEn
           ? p.descriptionEn.slice(0, 120) + (p.descriptionEn.length > 120 ? "..." : "")
           : null);
+      const summaryEn = rawSummaryEn && !isTranslationErrorPayload(rawSummaryEn) ? rawSummaryEn : null;
 
       return {
         id: p.id,
         title: p.title,
-        titleEn: p.titleEn || null,
+        titleEn: p.titleEn && !isTranslationErrorPayload(p.titleEn) ? p.titleEn : null,
         slug: p.slug,
         summary: summaryId,
         summaryEn: summaryEn,
         description: p.description,
-        descriptionEn: p.descriptionEn || null,
+        descriptionEn: p.descriptionEn && !isTranslationErrorPayload(p.descriptionEn) ? p.descriptionEn : null,
         thumbnailUrl: p.imageUrl?.trim() || "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=800&auto=format&fit=crop",
         techStack: (p.techStacks as string[]) || [],
         demoUrl: p.demoUrl || undefined,
@@ -545,7 +566,12 @@ export async function getProjects(
     );
   } catch (error) {
     console.warn("Database query getProjects gagal, menggunakan data lokal:", error);
-    return visible(baseProjects);
+    return visible(baseProjects.map((p) => ({
+      ...p,
+      titleEn: p.titleEn && !isTranslationErrorPayload(p.titleEn) ? p.titleEn : null,
+      summaryEn: p.summaryEn && !isTranslationErrorPayload(p.summaryEn) ? p.summaryEn : null,
+      descriptionEn: p.descriptionEn && !isTranslationErrorPayload(p.descriptionEn) ? p.descriptionEn : null,
+    })));
   }
 }
 
@@ -575,14 +601,16 @@ export async function saveProject(data: unknown) {
 
   // Field English dipakai apa adanya (tanpa terjemahan otomatis). Penerjemahan
   // hanya terjadi bila admin menekan tombol "Terjemahkan (ID → EN)".
-  const titleEn = parsed.data.titleEn?.trim() || null;
-  const descriptionEn = parsed.data.descriptionEn?.trim() || null;
+  const rawTitleEn = parsed.data.titleEn?.trim() || null;
+  const rawDescriptionEn = parsed.data.descriptionEn?.trim() || null;
+  const titleEn = rawTitleEn && !isTranslationErrorPayload(rawTitleEn) ? rawTitleEn : null;
+  const descriptionEn = rawDescriptionEn && !isTranslationErrorPayload(rawDescriptionEn) ? rawDescriptionEn : null;
 
   const { id, ...rest } = parsed.data;
   const projectData = {
     ...rest,
-    titleEn: titleEn || null,
-    descriptionEn: descriptionEn || null,
+    titleEn: titleEn,
+    descriptionEn: descriptionEn,
   };
 
   const rawData = data as Record<string, unknown>;
@@ -796,14 +824,18 @@ export async function getServices(): Promise<ServiceData[]> {
       id: s.id,
       order: s.order,
       title: s.title,
-      titleEn: s.titleEn || null,
+      titleEn: s.titleEn && !isTranslationErrorPayload(s.titleEn) ? s.titleEn : null,
       description: s.description,
-      descriptionEn: s.descriptionEn || null,
+      descriptionEn: s.descriptionEn && !isTranslationErrorPayload(s.descriptionEn) ? s.descriptionEn : null,
       published: s.published ?? true,
     }));
   } catch (error) {
     console.warn("Database query getServices gagal, menggunakan data lokal:", error);
-    return baseServices;
+    return baseServices.map((s) => ({
+      ...s,
+      titleEn: s.titleEn && !isTranslationErrorPayload(s.titleEn) ? s.titleEn : null,
+      descriptionEn: s.descriptionEn && !isTranslationErrorPayload(s.descriptionEn) ? s.descriptionEn : null,
+    }));
   }
 }
 
@@ -824,14 +856,16 @@ export async function saveService(data: unknown) {
 
   // Field English dipakai apa adanya (tanpa terjemahan otomatis). Penerjemahan
   // hanya terjadi bila admin menekan tombol "Terjemahkan (ID → EN)".
-  const titleEn = parsed.data.titleEn?.trim() || null;
-  const descriptionEn = parsed.data.descriptionEn?.trim() || null;
+  const rawTitleEn = parsed.data.titleEn?.trim() || null;
+  const rawDescriptionEn = parsed.data.descriptionEn?.trim() || null;
+  const titleEn = rawTitleEn && !isTranslationErrorPayload(rawTitleEn) ? rawTitleEn : null;
+  const descriptionEn = rawDescriptionEn && !isTranslationErrorPayload(rawDescriptionEn) ? rawDescriptionEn : null;
 
   const { id, ...rest } = parsed.data;
   const serviceData = {
     ...rest,
-    titleEn: titleEn || null,
-    descriptionEn: descriptionEn || null,
+    titleEn: titleEn,
+    descriptionEn: descriptionEn,
   };
 
   const targetId = id || `serv-${Date.now()}`;
@@ -974,6 +1008,12 @@ export async function getProducts(): Promise<ProductData[]> {
     const list = await db.query.products.findMany({
       orderBy: [asc(schema.products.order)],
     });
+    const sanitizeProduct = (p: ProductData): ProductData => ({
+      ...p,
+      titleEn: p.titleEn && !isTranslationErrorPayload(p.titleEn) ? p.titleEn : null,
+      descriptionEn: p.descriptionEn && !isTranslationErrorPayload(p.descriptionEn) ? p.descriptionEn : null,
+    });
+
     if (!list || list.length === 0) {
       try {
         for (let i = 0; i < DUMMY_PRODUCTS.length; i++) {
@@ -1001,15 +1041,15 @@ export async function getProducts(): Promise<ProductData[]> {
       } catch (seedErr) {
         console.warn("Auto-seed products dilewati:", seedErr);
       }
-      return baseProducts;
+      return baseProducts.map(sanitizeProduct);
     }
     return list.map((p) => ({
       id: p.id,
       slug: p.slug || null,
       title: p.title,
-      titleEn: p.titleEn || null,
+      titleEn: p.titleEn && !isTranslationErrorPayload(p.titleEn) ? p.titleEn : null,
       description: p.description,
-      descriptionEn: p.descriptionEn || null,
+      descriptionEn: p.descriptionEn && !isTranslationErrorPayload(p.descriptionEn) ? p.descriptionEn : null,
       priceFormatted: p.priceLabel || "Gratis / Diskusi",
       comparePriceLabel: p.comparePriceLabel || null,
       priceAmount: typeof p.priceAmount === "number" ? p.priceAmount : null,
@@ -1026,7 +1066,11 @@ export async function getProducts(): Promise<ProductData[]> {
     }));
   } catch (error) {
     console.warn("Database query getProducts gagal, menggunakan data lokal:", error);
-    return baseProducts;
+    return baseProducts.map((p) => ({
+      ...p,
+      titleEn: p.titleEn && !isTranslationErrorPayload(p.titleEn) ? p.titleEn : null,
+      descriptionEn: p.descriptionEn && !isTranslationErrorPayload(p.descriptionEn) ? p.descriptionEn : null,
+    }));
   }
 }
 
@@ -1060,15 +1104,17 @@ export async function saveProduct(data: unknown) {
 
   // Field English dipakai apa adanya (tanpa terjemahan otomatis). Penerjemahan
   // hanya terjadi bila admin menekan tombol "Terjemahkan (ID → EN)".
-  const titleEn = parsed.data.titleEn?.trim() || null;
-  const descriptionEn = parsed.data.descriptionEn?.trim() || null;
+  const rawTitleEn = parsed.data.titleEn?.trim() || null;
+  const rawDescriptionEn = parsed.data.descriptionEn?.trim() || null;
+  const titleEn = rawTitleEn && !isTranslationErrorPayload(rawTitleEn) ? rawTitleEn : null;
+  const descriptionEn = rawDescriptionEn && !isTranslationErrorPayload(rawDescriptionEn) ? rawDescriptionEn : null;
 
   const { id, ...rest } = parsed.data;
   const productData = {
     ...rest,
     slug: effectiveProductSlug,
-    titleEn: titleEn || null,
-    descriptionEn: descriptionEn || null,
+    titleEn: titleEn,
+    descriptionEn: descriptionEn,
   };
 
   const ctaUrl = parsed.data.ctaUrl?.trim() || null;
@@ -1275,16 +1321,20 @@ export async function getTestimonials(): Promise<TestimonialData[]> {
       id: t.id,
       clientName: t.clientName,
       clientRole: t.clientRole || "Klien",
-      clientRoleEn: t.clientRoleEn || null,
+      clientRoleEn: t.clientRoleEn && !isTranslationErrorPayload(t.clientRoleEn) ? t.clientRoleEn : null,
       content: t.content,
-      contentEn: t.contentEn || null,
+      contentEn: t.contentEn && !isTranslationErrorPayload(t.contentEn) ? t.contentEn : null,
       avatarUrl: t.avatarUrl?.trim() || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop",
       rating: t.rating ?? 5,
       published: t.published ?? true,
     }));
   } catch (error) {
     console.warn("Database query getTestimonials gagal, menggunakan data lokal:", error);
-    return baseTestimonials;
+    return baseTestimonials.map((t) => ({
+      ...t,
+      clientRoleEn: t.clientRoleEn && !isTranslationErrorPayload(t.clientRoleEn) ? t.clientRoleEn : null,
+      contentEn: t.contentEn && !isTranslationErrorPayload(t.contentEn) ? t.contentEn : null,
+    }));
   }
 }
 
@@ -1305,8 +1355,10 @@ export async function saveTestimonial(data: unknown) {
 
   // Field English dipakai apa adanya (tanpa terjemahan otomatis). Penerjemahan
   // hanya terjadi bila admin menekan tombol "Terjemahkan (ID → EN)".
-  const contentEn = parsed.data.contentEn?.trim() || null;
-  const clientRoleEn = parsed.data.clientRoleEn?.trim() || null;
+  const rawContentEn = parsed.data.contentEn?.trim() || null;
+  const rawClientRoleEn = parsed.data.clientRoleEn?.trim() || null;
+  const contentEn = rawContentEn && !isTranslationErrorPayload(rawContentEn) ? rawContentEn : null;
+  const clientRoleEn = rawClientRoleEn && !isTranslationErrorPayload(rawClientRoleEn) ? rawClientRoleEn : null;
 
   const { id, ...rest } = parsed.data;
   const rating = parsed.data.rating ?? 5;
@@ -1503,11 +1555,11 @@ export async function getArticles(
       id: a.id,
       slug: a.slug,
       title: a.title,
-      titleEn: a.titleEn || null,
+      titleEn: a.titleEn && !isTranslationErrorPayload(a.titleEn) ? a.titleEn : null,
       summary: a.summary || null,
-      summaryEn: a.summaryEn || null,
+      summaryEn: a.summaryEn && !isTranslationErrorPayload(a.summaryEn) ? a.summaryEn : null,
       content: a.content,
-      contentEn: a.contentEn || null,
+      contentEn: a.contentEn && !isTranslationErrorPayload(a.contentEn) ? a.contentEn : null,
       imageUrl: a.imageUrl || null,
       tags: (Array.isArray(a.tags) ? a.tags : []) as string[],
       featured: a.featured,
@@ -1520,7 +1572,12 @@ export async function getArticles(
     );
   } catch (error) {
     console.warn("Neon DB query getArticles gagal, beralih ke local-store/dummy:", error);
-    return visible(baseArticles);
+    return visible(baseArticles.map((a) => ({
+      ...a,
+      titleEn: a.titleEn && !isTranslationErrorPayload(a.titleEn) ? a.titleEn : null,
+      summaryEn: a.summaryEn && !isTranslationErrorPayload(a.summaryEn) ? a.summaryEn : null,
+      contentEn: a.contentEn && !isTranslationErrorPayload(a.contentEn) ? a.contentEn : null,
+    })));
   }
 }
 
@@ -1581,9 +1638,12 @@ export async function saveArticle(data: unknown) {
   // Field English dipakai apa adanya. Sebelumnya di sini ada pemanggilan otomatis
   // ke penyedia terjemahan pihak ketiga — dihapus, karena menyimpan artikel tidak
   // boleh berarti mengirim seluruh isinya ke layanan eksternal tanpa persetujuan.
-  const resolvedTitleEn = titleEn?.trim() || null;
-  const resolvedSummaryEn = summaryEn?.trim() || null;
-  const resolvedContentEn = contentEn?.trim() || null;
+  const rawTitleEn = titleEn?.trim() || null;
+  const rawSummaryEn = summaryEn?.trim() || null;
+  const rawContentEn = contentEn?.trim() || null;
+  const resolvedTitleEn = rawTitleEn && !isTranslationErrorPayload(rawTitleEn) ? rawTitleEn : null;
+  const resolvedSummaryEn = rawSummaryEn && !isTranslationErrorPayload(rawSummaryEn) ? rawSummaryEn : null;
+  const resolvedContentEn = rawContentEn && !isTranslationErrorPayload(rawContentEn) ? rawContentEn : null;
 
   const articleId = id || crypto.randomUUID();
   const now = new Date().toISOString();

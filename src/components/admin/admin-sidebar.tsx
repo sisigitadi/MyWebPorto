@@ -23,6 +23,7 @@ import {
   Newspaper,
   Bot,
   Cloud,
+  BarChart3,
 } from "lucide-react";
 import { useUser, SignOutButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
@@ -152,6 +153,12 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     title: "Pengaturan Cloud AI",
     href: "/admin/cloud-ai",
     icon: Cloud,
+    group: "godmode",
+  },
+  {
+    title: "Visitor Analytics",
+    href: "/admin/analytics",
+    icon: BarChart3,
     group: "godmode",
   },
   {

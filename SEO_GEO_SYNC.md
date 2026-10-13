@@ -14,11 +14,11 @@ keduanya membaca **satu sumber kebenaran**.
 ## 1. Peta modul
 
 | Berkas | Peran | Wajib import? |
-| --- | --- | --- |
+| ---------------------------- | -------------------------------------------------------- | ----------------------------------------------------- |
 | `src/lib/seo-rules.ts` | Satu-satunya sumber ambang + skop per tipe + blok prompt | Tidak mengimpor modul lain — murni |
-| `src/lib/seo-keywords.ts` | `analyzeSeo()` — analyzer SEO + GEO | Mengimpor `seo-rules` |
-| `src/lib/seo-remediate.ts` | `remediateDraft()` — perbaikan otomatis draf | Mengimpor `seo-rules` **dan** `seo-keywords` |
-| `src/lib/redaksi-meta.ts` | Registry tipe konten + `seoFieldsFor()` pemetaan field | Murni, aman di bundle browser |
+| `src/lib/seo-keywords.ts` | `analyzeSeo()` — analyzer SEO + GEO | Mengimpor`seo-rules` |
+| `src/lib/seo-remediate.ts` | `remediateDraft()` — perbaikan otomatis draf | Mengimpor`seo-rules` **dan** `seo-keywords` |
+| `src/lib/redaksi-meta.ts` | Registry tipe konten +`seoFieldsFor()` pemetaan field | Murni, aman di bundle browser |
 | `src/lib/redaksi-draft.ts` | `buildPrompt()` + `applySeoSync()` + jalur provider | Server-only |
 | `src/lib/actions.ts` | `analyzeContentSeoAction()` meneruskan `type` | Server-only |
 
@@ -46,7 +46,7 @@ Aturan artikel tidak berlaku untuk semua tipe. `SEO_SCOPES` menentukan mana
 yang berlaku:
 
 | Tipe | slug | meta | minWords | H2 | internal link | density | GEO |
-| --- | --- | --- | --- | --- | --- | --- | --- |
+| --------------- | ----- | ----- | -------- | -------------- | ------------- | ------- | --------- |
 | `article` | ya | ya | 600 | min 1, ideal 3 | 1 | ya | `full` |
 | `project` | ya | ya | 600 | min 1, ideal 3 | 1 | ya | `full` |
 | `product` | ya | tidak | 250 | min 1, ideal 2 | 0 | ya | `basic` |
@@ -105,13 +105,13 @@ melewati sinkronisasi mustahil ditulis tanpa terlihat.
 
 Isi `seoReport`:
 
-| Field | Arti |
-| --- | --- |
-| `applied` | Perbaikan otomatis yang benar-benar dijalankan (Bahasa Indonesia) |
-| `remaining` | **Temuan `analyzeSeo` apa adanya**, urut kritis → perhatian → peluang |
-| `usedFallback` | `true` bila yang dimuat adalah kerangka lokal, bukan hasil AI |
-| `providerError` | Alasan provider gagal dalam Bahasa Indonesia (bila ada) |
-| `score` / `geoScore` | Angka analyzer yang sama persis dengan panel Analisis SEO |
+| Field                    | Arti                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------- |
+| `applied`              | Perbaikan otomatis yang benar-benar dijalankan (Bahasa Indonesia)               |
+| `remaining`            | **Temuan `analyzeSeo` apa adanya**, urut kritis → perhatian → peluang |
+| `usedFallback`         | `true` bila yang dimuat adalah kerangka lokal, bukan hasil AI                 |
+| `providerError`        | Alasan provider gagal dalam Bahasa Indonesia (bila ada)                         |
+| `score` / `geoScore` | Angka analyzer yang sama persis dengan panel Analisis SEO                       |
 
 `remaining` sengaja **bukan** daftar karangan modul sendiri. Dulu
 `seo-remediate.ts` punya penghitung kata, density, dan H2 dengan tokenizer
@@ -169,10 +169,10 @@ Kalau salah satu ini dilanggar, desync akan muncul lagi:
 
 ## 6. Test yang menjaga kontrak
 
-| Berkas test | Yang dijaga |
-| --- | --- |
-| `tests/seo-rules.test.ts` | Angka di prompt == angka analyzer; detektor GEO; `remediateDraft` tidak mengarang |
-| `tests/seo-scope.test.ts` | Aturan per tipe (prompt, analyzer, laporan); pemetaan field tunggal; `remaining` == temuan analyzer |
+| Berkas test                     | Yang dijaga                                                                                                            |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `tests/seo-rules.test.ts`     | Angka di prompt == angka analyzer; detektor GEO;`remediateDraft` tidak mengarang                                     |
+| `tests/seo-scope.test.ts`     | Aturan per tipe (prompt, analyzer, laporan); pemetaan field tunggal;`remaining` == temuan analyzer                   |
 | `tests/redaksi-draft.test.ts` | `applySeoSync` memperbaiki draf dan skornya cocok dengan analisis manual; `buildPrompt` hanya meminta yang berlaku |
 
 Semua modul yang diuji murni (tanpa network, tanpa database), jadi kontrak ini

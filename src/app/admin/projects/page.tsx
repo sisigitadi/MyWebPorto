@@ -51,6 +51,7 @@ import { ContentEditor } from "@/components/admin/content-editor";
 import { isScheduled, localInputToUtcIso, utcIsoToLocalInput } from "@/lib/publish";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { toast } from "sonner";
+import { isTranslationErrorPayload } from "@/lib/content-edit";
 import {
   getProjects,
   saveProject,
@@ -167,9 +168,9 @@ export default function AdminProjectsPage() {
     setFormSlug(project.slug);
     setFormSummary(project.summary);
     setFormDescription(project.description);
-    setFormTitleEn(project.titleEn || "");
-    setFormSummaryEn(project.summaryEn || "");
-    setFormDescriptionEn(project.descriptionEn || "");
+    setFormTitleEn(project.titleEn && !isTranslationErrorPayload(project.titleEn) ? project.titleEn : "");
+    setFormSummaryEn(project.summaryEn && !isTranslationErrorPayload(project.summaryEn) ? project.summaryEn : "");
+    setFormDescriptionEn(project.descriptionEn && !isTranslationErrorPayload(project.descriptionEn) ? project.descriptionEn : "");
     setFormThumbnail(project.thumbnailUrl);
     setFormTechStack(project.techStack);
     setTechInput("");
@@ -189,21 +190,51 @@ export default function AdminProjectsPage() {
   const handleAutoTranslateToEn = async () => {
     if (!formTitle && !formSummary && !formDescription) return;
     setIsTranslating(true);
+    if (isTranslationErrorPayload(formTitleEn)) setFormTitleEn("");
+    if (isTranslationErrorPayload(formSummaryEn)) setFormSummaryEn("");
+    if (isTranslationErrorPayload(formDescriptionEn)) setFormDescriptionEn("");
+    let anySuccess = false;
+    let errorMessage = "";
+
     try {
       if (formTitle) {
         const resTitle = await translateFieldAction(formTitle, "id", "en");
-        if (resTitle.success && resTitle.text) setFormTitleEn(resTitle.text);
+        if (resTitle.success && resTitle.text && !isTranslationErrorPayload(resTitle.text)) {
+          setFormTitleEn(resTitle.text);
+          anySuccess = true;
+        } else if (resTitle.error) {
+          errorMessage = resTitle.error;
+        }
       }
       if (formSummary) {
         const resSum = await translateFieldAction(formSummary, "id", "en");
-        if (resSum.success && resSum.text) setFormSummaryEn(resSum.text);
+        if (resSum.success && resSum.text && !isTranslationErrorPayload(resSum.text)) {
+          setFormSummaryEn(resSum.text);
+          anySuccess = true;
+        } else if (resSum.error) {
+          errorMessage = resSum.error;
+        }
       }
       if (formDescription) {
         const resDesc = await translateFieldAction(formDescription, "id", "en");
-        if (resDesc.success && resDesc.text) setFormDescriptionEn(resDesc.text);
+        if (resDesc.success && resDesc.text && !isTranslationErrorPayload(resDesc.text)) {
+          setFormDescriptionEn(resDesc.text);
+          anySuccess = true;
+        } else if (resDesc.error) {
+          errorMessage = resDesc.error;
+        }
       }
-    } catch (e) {
+
+      if (anySuccess) {
+        toast.success("Berhasil menerjemahkan ke bahasa Inggris!");
+      } else if (errorMessage) {
+        toast.error("Gagal menerjemahkan", { description: errorMessage });
+      }
+    } catch (e: unknown) {
       console.error("Auto-translate error:", e);
+      toast.error("Gagal menerjemahkan teks", {
+        description: e instanceof Error ? e.message : "Terjadi kesalahan koneksi",
+      });
     } finally {
       setIsTranslating(false);
     }

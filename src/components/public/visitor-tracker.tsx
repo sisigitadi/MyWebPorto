@@ -3,10 +3,10 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
-const WORKER_URL = "https://portofolio-visitor-tracker.si-sigitadi.workers.dev";
+const TRACKER_URL = "/api/visitor-hit";
 
 /**
- * Anonymous visit beacon → self-hosted Cloudflare Worker hit counter.
+ * Anonymous visit beacon → internal Postgres Neon hit counter.
  * No cookies, no third-party analytics; raw IPs are never stored
  * (salted SHA-256 hash only, UU PDP friendly).
  */
@@ -14,21 +14,36 @@ export default function VisitorTracker() {
   const pathname = usePathname();
 
   useEffect(() => {
+    let timezone: string | undefined;
+    try {
+      timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+      /* fallback ke edge header jika intl tidak tersedia */
+    }
+
+    let connection: string | undefined;
+    try {
+      const nav = typeof navigator !== "undefined" ? (navigator as unknown as {
+        connection?: { effectiveType?: string };
+      }) : undefined;
+      if (nav?.connection?.effectiveType) {
+        connection = nav.connection.effectiveType.toUpperCase();
+      }
+    } catch {
+      /* ignore */
+    }
+
     const payload = {
       path: pathname || "/",
       referrer: typeof document !== "undefined" ? document.referrer || undefined : undefined,
+      timezone,
+      connection,
     };
-    const url = `${WORKER_URL}/hit`;
     const body = JSON.stringify(payload);
-    // fetch + keepalive (bukan sendBeacon): beacon sesuai spesifikasi SELALU
-    // berjalan dengan credentials mode "include", dan Blob application/json
-    // memicu preflight — worker membalas Access-Control-Allow-Origin: * tanpa
-    // Allow-Credentials, sehingga preflight DITOLAK browser dan hit tidak
-    // pernah terkirim (analytics mati + error CORS di console, terverifikasi
-    // 2026-10-04). fetch dengan credentials "omit" lolos preflight wildcard,
-    // tetap tanpa cookie (sesuai desain anonim tracker), dan keepalive menjaga
-    // pengiriman saat unload tanpa menahan network-idle Lighthouse.
-    fetch(url, {
+    // fetch + keepalive: credentials "omit" tanpa cookie (sesuai desain anonim
+    // tracker), dan keepalive menjaga pengiriman saat navigasi/unload tanpa
+    // menahan network-idle Lighthouse.
+    fetch(TRACKER_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body,

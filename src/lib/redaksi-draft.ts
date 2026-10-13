@@ -66,19 +66,19 @@ const ProjectDraftSchema = z.object({
   title: z.string().min(2).max(150).optional(),
   slug: z.string().max(100).optional(),
   summary: z.string().max(500).optional(),
-  description: z.string().min(10).max(10000),
+  description: z.string().min(10).max(50000),
   techStacks: z.array(z.string().max(40)).max(30).default([]),
 });
 
 const ServiceDraftSchema = z.object({
   title: z.string().min(2).max(150).optional(),
-  description: z.string().min(5).max(5000),
+  description: z.string().min(5).max(50000),
 });
 
 const ProductDraftSchema = z.object({
   title: z.string().min(2).max(150).optional(),
   slug: z.string().max(100).optional(),
-  description: z.string().min(5).max(5000),
+  description: z.string().min(5).max(50000),
   priceLabel: z.string().max(100).optional(),
   category: z.string().max(60).optional(),
 });
@@ -92,7 +92,7 @@ const TestimonialDraftSchema = z.object({
 const ProfileDraftSchema = z.object({
   name: z.string().min(2).max(100).optional(),
   headline: z.string().min(2).max(200).optional(),
-  bio: z.string().min(10).max(5000),
+  bio: z.string().min(10).max(50000),
   skills: z.array(z.string().max(50)).max(50).default([]),
 });
 

@@ -46,6 +46,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ServiceData } from "@/lib/dummy-data";
 import { getServices, saveService, deleteService, translateFieldAction } from "@/lib/actions";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
+import { isTranslationErrorPayload } from "@/lib/content-edit";
 import { toast } from "sonner";
 
 export default function AdminServicesPage() {
@@ -112,9 +113,9 @@ export default function AdminServicesPage() {
     setSelectedService(service);
     setErrorMessage("");
     setFormTitle(service.title);
-    setFormTitleEn(service.titleEn || "");
+    setFormTitleEn(service.titleEn && !isTranslationErrorPayload(service.titleEn) ? service.titleEn : "");
     setFormDescription(service.description);
-    setFormDescriptionEn(service.descriptionEn || "");
+    setFormDescriptionEn(service.descriptionEn && !isTranslationErrorPayload(service.descriptionEn) ? service.descriptionEn : "");
     setFormOrder(service.order);
     setFormPublished(service.published);
     setDialogOpen(true);
@@ -126,20 +127,42 @@ export default function AdminServicesPage() {
   };
 
   const handleAutoTranslateToEn = async () => {
+    if (!formTitle && !formDescription) return;
     setTranslating(true);
+    if (isTranslationErrorPayload(formTitleEn)) setFormTitleEn("");
+    if (isTranslationErrorPayload(formDescriptionEn)) setFormDescriptionEn("");
+    let anySuccess = false;
+    let errorMessage = "";
+
     try {
       if (formTitle) {
         const resTitle = await translateFieldAction(formTitle, "id", "en");
-        if (resTitle.success && resTitle.text) {
+        if (resTitle.success && resTitle.text && !isTranslationErrorPayload(resTitle.text)) {
           setFormTitleEn(resTitle.text);
+          anySuccess = true;
+        } else if (resTitle.error) {
+          errorMessage = resTitle.error;
         }
       }
       if (formDescription) {
         const resDesc = await translateFieldAction(formDescription, "id", "en");
-        if (resDesc.success && resDesc.text) {
+        if (resDesc.success && resDesc.text && !isTranslationErrorPayload(resDesc.text)) {
           setFormDescriptionEn(resDesc.text);
+          anySuccess = true;
+        } else if (resDesc.error) {
+          errorMessage = resDesc.error;
         }
       }
+
+      if (anySuccess) {
+        toast.success("Berhasil menerjemahkan ke bahasa Inggris!");
+      } else if (errorMessage) {
+        toast.error("Gagal menerjemahkan", { description: errorMessage });
+      }
+    } catch (err: unknown) {
+      toast.error("Gagal menerjemahkan teks", {
+        description: err instanceof Error ? err.message : "Terjadi kesalahan koneksi",
+      });
     } finally {
       setTranslating(false);
     }
