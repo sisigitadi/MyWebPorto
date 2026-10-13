@@ -4,6 +4,7 @@ import {
   hashIp,
   extractReferrerDomain,
   recordVisitorHit,
+  formatReadableNetwork,
 } from "@/lib/visitor-analytics";
 
 describe("Visitor Analytics — parseUserAgent", () => {
@@ -188,6 +189,44 @@ describe("Visitor Analytics — getVisitorAnalytics", () => {
       connection: "4G",
     });
     expect(res.ok).toBe(true);
+  });
+});
+
+describe("Visitor Analytics — formatReadableNetwork", () => {
+  it("mengonversi kode ASN Indonesia ke nama ISP manusiawi yang ramah", () => {
+    expect(formatReadableNetwork("AS17974")).toBe("Telkomsel (PT Telekomunikasi Selular)");
+    expect(formatReadableNetwork("AS7713")).toBe("Telkom Indonesia (IndiHome)");
+    expect(formatReadableNetwork("AS23693")).toBe("Biznet Networks (PT Supra Primatama Nusantara)");
+    expect(formatReadableNetwork("AS24213")).toBe("XL Axiata (PT XL Axiata Tbk)");
+    expect(formatReadableNetwork("AS136052")).toBe("First Media (PT Link Net Tbk)");
+    expect(formatReadableNetwork("AS24203")).toBe("Indosat Ooredoo Hutchison (IM3)");
+  });
+
+  it("mengonversi kode ASN global (Cloud/CDN/Tech) dengan tepat", () => {
+    expect(formatReadableNetwork("AS13335")).toBe("Cloudflare, Inc.");
+    expect(formatReadableNetwork("AS15169")).toBe("Google LLC");
+    expect(formatReadableNetwork("AS16509")).toBe("Amazon Web Services (AWS)");
+    expect(formatReadableNetwork("AS8075")).toBe("Microsoft Corporation");
+  });
+
+  it("membersihkan string gabungan prefix ASN dengan nama organisasi", () => {
+    expect(formatReadableNetwork("AS7713 PT Telekomunikasi Indonesia")).toBe("Telkom Indonesia (IndiHome)");
+    expect(formatReadableNetwork("AS13335 CLOUDFLARENET")).toBe("Cloudflare, Inc.");
+  });
+
+  it("mengonversi tipe koneksi seluler perangkat browser", () => {
+    expect(formatReadableNetwork("Cellular / 4G")).toBe("Koneksi Seluler (4G / LTE)");
+    expect(formatReadableNetwork("Cellular / 5g")).toBe("Koneksi Seluler (5G Superfast)");
+    expect(formatReadableNetwork("Cellular / 3G")).toBe("Koneksi Seluler (3G / HSPA)");
+    expect(formatReadableNetwork("Cellular / 2G")).toBe("Koneksi Seluler (2G / Edge)");
+  });
+
+  it("menangani nilai kosong, tidak diketahui, atau ASN non-katalog secara anggun", () => {
+    expect(formatReadableNetwork(null)).toBe("Jaringan Publik / Terbuka");
+    expect(formatReadableNetwork("Unknown")).toBe("Jaringan Publik / Terbuka");
+    expect(formatReadableNetwork(null, "AS99999")).toBe("Jaringan AS99999 (ISP Publik)");
+    expect(formatReadableNetwork("AS88888")).toBe("Jaringan AS88888 (ISP Publik)");
+    expect(formatReadableNetwork("My Custom Corporate Network")).toBe("My Custom Corporate Network");
   });
 });
 

@@ -240,15 +240,20 @@ export function AdminSidebar({
           onClick={onItemClick}
           className="flex items-center gap-2 font-semibold text-[var(--vt-ink)] group"
         >
-          <div className="h-8 w-8 rounded-xs bg-[var(--vt-blue)] text-white flex items-center justify-center font-pixel font-bold text-xs shadow-none">
-            MW
+          <div className="h-8 w-8 rounded-xs overflow-hidden border border-[var(--vt-edge-lo-2)] bg-[#0a0f1e] flex items-center justify-center shrink-0 shadow-xs">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/icons/icon-192.png"
+              alt="Sigit Adi Shield Logo"
+              className="w-full h-full object-cover"
+            />
           </div>
           <div className="flex flex-col">
             <span className="text-sm font-semibold tracking-tight text-[var(--vt-ink)] group-hover:text-primary transition-colors">
-              MyWebPorto
+              Sigit Adi
             </span>
             <span className="text-[10px] text-[var(--vt-ink-mute)] uppercase tracking-wider font-medium">
-              Admin Panel
+              Admin Workstation
             </span>
           </div>
         </Link>
