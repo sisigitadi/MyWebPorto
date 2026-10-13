@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProfile, getServices, getProjects, getArticles } from "@/lib/actions";
+import { getProfile, getServices, getProjects, getArticles, getProducts } from "@/lib/actions";
+import { getStoreConfig } from "@/lib/order-actions";
 import { queryAIEngine, detectLanguage, type EngineContext } from "@/lib/ai-engine";
 import { buildCloudMessages, getGeminiFallbackModels, submitToGeminiMessages } from "@/lib/ai-provider";
 import { submitToOpenAIStream } from "@/lib/ai-openai";
@@ -8,6 +9,11 @@ import { resolveCloudAIConfig, isCloudAIConfigEnabled, getAnswerStyleBudget } fr
 import { getApiStyle } from "@/lib/ai-providers";
 import { resolveFeatures } from "@/lib/features-config";
 import { rateLimit, cleanupRateLimits } from "@/lib/rate-limit";
+import {
+  buildWhatsAppBotKnowledge,
+  detectAndLookupInvoice,
+  findDirectFAQMatch,
+} from "@/lib/whatsapp-bot/wa-knowledge";
 
 // Hardening: endpoint publik (pengunjung anon) — rate-limit ketat, input dibatasi,
 // prompt hanya katalog publik. Sama filosofinya dengan askSigitBot di actions.ts.
@@ -133,18 +139,77 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "empty_input" }, { status: 400 });
   }
 
+  // 1. Cek Deteksi Nomor Invoice / Lacak Pesanan Langsung
+  const invoiceReply = await detectAndLookupInvoice(text);
+  if (invoiceReply) {
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode(`event: meta\ndata: ${JSON.stringify({ source: "local", model: "order-db", intent: "order_status" })}\n\n`)
+        );
+        controller.enqueue(
+          encoder.encode(`event: delta\ndata: ${JSON.stringify({ t: invoiceReply })}\n\n`)
+        );
+        controller.enqueue(
+          encoder.encode(`event: done\ndata: {}\n\n`)
+        );
+        controller.close();
+      },
+    });
+    return new NextResponse(stream, {
+      headers: {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+      },
+    });
+  }
+
+  // 2. Cek Jawaban Instan dari FAQ Kustom Admin
+  const waKnowledge = await buildWhatsAppBotKnowledge().catch(() => null);
+  if (waKnowledge) {
+    const directFAQ = findDirectFAQMatch(text, waKnowledge.config.faqs);
+    if (directFAQ) {
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(
+            encoder.encode(`event: meta\ndata: ${JSON.stringify({ source: "local", model: "faq-db", intent: "faq" })}\n\n`)
+          );
+          controller.enqueue(
+            encoder.encode(`event: delta\ndata: ${JSON.stringify({ t: directFAQ })}\n\n`)
+          );
+          controller.enqueue(
+            encoder.encode(`event: done\ndata: {}\n\n`)
+          );
+          controller.close();
+        },
+      });
+      return new NextResponse(stream, {
+        headers: {
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive",
+        },
+      });
+    }
+  }
+
   // Deteksi bahasa dari input pengguna agar jawaban selaras dengan input
   // (mis. UI dalam ID tapi input dalam EN -> dijawab EN, dan sebaliknya).
   const effectiveLang = detectLanguage(text, lang);
 
-  // Konteks live (sama persis dengan askSigitBot): hanya data publik.
+  // Konteks live terpadu: portofolio, produk digital, dan rekening toko.
   let ctx: EngineContext;
   try {
-    const [profile, services, projects, articles] = await Promise.all([
+    const [profile, services, projects, articles, products, storeConfig] = await Promise.all([
       getProfile(),
       getServices(),
       getProjects(),
       getArticles(),
+      getProducts().catch(() => []),
+      getStoreConfig().catch(() => null),
     ]);
     ctx = {
       ownerName: profile.name,
@@ -180,6 +245,17 @@ export async function POST(req: NextRequest) {
           titleEn: a.titleEn,
           slug: a.slug,
         })),
+      products: products
+        .filter((p) => p.published)
+        .slice(0, 8)
+        .map((p) => ({
+          title: effectiveLang === "en" ? p.titleEn || p.title : p.title,
+          titleEn: p.titleEn || undefined,
+          priceIdr: (typeof p.priceAmount === "number" && p.priceAmount > 0) ? p.priceAmount : undefined,
+          priceUsd: undefined,
+          slug: p.slug || undefined,
+        })),
+      bankAccounts: storeConfig?.bankAccounts || [],
     };
   } catch {
     return NextResponse.json({ error: "context_error" }, { status: 500 });

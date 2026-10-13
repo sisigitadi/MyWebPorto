@@ -13,11 +13,12 @@ Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager int
 - Boot screen sekali per sesi (`sessionStorage`) agar animasi tidak berulang saat navigasi antar halaman; hash `#proyek` dsb. langsung membuka app yang dimaksud sebelum first paint.
 - Katalog proyek di `/proyek`.
 - Detail proyek di `/proyek/[slug]`.
-- Katalog Store.zip pada section `#produk`, dengan **keranjang belanja** (persisten di `localStorage`) dan checkout **pesan WhatsApp** otomatis (stok terbatas, label harga coret, etalase badge/kategori/galeri).
+- Katalog Store.zip pada section `#produk`, dengan **keranjang belanja** (persisten di `localStorage`), checkout **pesan WhatsApp** otomatis (stok terbatas, label harga coret, etalase badge/kategori/galeri), rincian transfer bank/QRIS, unggah bukti pembayaran, dan nomor invoice terstandarisasi format `INV-DDMMYYYY-XXXX`.
+- Pelacakan pesanan publik di `/order` dan modal Lacak Pesanan pada header toko & cart dialog untuk verifikasi status pengiriman dan transaksi.
 - Detail produk shareable di `/toko/[slug]`.
 - Katalog artikel di `/artikel`.
 - Detail artikel di `/artikel/[slug]` dengan reading progress, share X/LinkedIn/WhatsApp, dan related articles berperingkat tag.
-- **RetroBot** — asisten AI melayang yang sadar halaman (tahu app SigitOS mana yang sedang dibuka), memandu lewat *nav chip* di dalam percakapan, efek visual (scan ring, radar ping, burst partikel, hover tip, panel-in, nudge), dan quick prompt per app.
+- **RetroBot & Terminal CRT (Universal Bot Engine)**: asisten AI melayang yang sadar halaman (tahu app SigitOS mana yang sedang dibuka), memandu lewat nav chip di dalam percakapan, efek visual (scan ring, radar ping, burst partikel), natural language chat, serta **sanitasi audio TTS** (membersihkan simbol format, emoji, dan URL sebelum diucapkan agar suara alami).
 - Metadata SEO, Open Graph, Twitter Card, sitemap, robots.txt, JSON-LD, **`llms.txt`** dinamis untuk AI crawler, dan **OG preview dinamis** per route/slug.
 - **PWA**: manifest, ikon avatar (192/512/maskable/Apple), halaman offline + service worker fallback, theme-color.
 - **RSS** di `/feed.xml` dengan autodiscovery.
@@ -31,6 +32,8 @@ Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager int
 - **Visitor Analytics Internal** di `/admin/analytics`: analitik kunjungan mandiri ramah privasi UU PDP (salted SHA-256, nol cookie pelacak), identifikasi operator jaringan/ISP ramah manusia berbasis kamus ASN (seperti Telkomsel, IndiHome, Biznet, First Media, Cloudflare, Google), zona waktu **WIB (Asia/Jakarta / UTC+7)** untuk batas harian & log kunjungan, sebaran lokasi edge (negara, kota, provinsi), dan breakdown teknologi pengunjung.
 - **Identitas Branding Baru (Cyber-Shield SA Monogram)**: favicon multi-resolusi (16/32/48 ICO & PNG), app icon (192/512/maskable/Apple Touch Icon), Next.js icon route dinamis, menubar retro SigitOS, dan header sidebar admin terintegrasi dengan lambang perisai futuristik SA.
 - CRUD profil, proyek, layanan, produk, testimoni, dan artikel.
+- **Manajemen Pesanan Toko** di `/admin/orders`: pantau pesanan masuk, filter status transaksi (menunggu, dibayar, diproses, selesai, dibatalkan), perbarui nomor resi pengiriman, catatan admin, konfirmasi pembayaran bukti transfer, dan integrasi WhatsApp follow-up.
+- **WhatsApp Bot & Integrasi Toko** di `/admin/whatsapp-bot`: koneksi sesi Baileys WhatsApp via QR code, kustomisasi nomor toko tujuan order, auto-reply chat, serta sinkronisasi knowledge base katalog produk.
 - **Sistem & Logs** di `/admin/system`: kelayakan deploy (validasi env terpusat), tracing `x-request-id`, dan audit log mutasi.
 - **Redaksi** di `/admin/redaksi`: composer draf untuk 6 tipe konten (artikel, proyek, layanan, produk, testimoni, profil) dengan tombol **"Bantuan AI"** (Cloud AI) dan **"Analisis SEO"**. Draf AI selalu melewati sinkronisasi otomatis terhadap aturan yang sama persis dengan analyzer — judul/slug/deskripsi dirapikan, lead GEO dan internal link disisipkan dari halaman terbit — lalu laporan menampilkan skor, apa yang diperbaiki, dan sisa masalah yang hanya bisa ditulis manusia. Kelengkapan kontrak ini (satu sumber ambang, skop per tipe, satu pemetaan field) dijelaskan di **`SEO_GEO_SYNC.md`**.
 - **Media Library** di `/admin/media`: daftar gambar di database (tabel `media`, bytea Postgres) dengan hapus.
@@ -90,13 +93,16 @@ Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager int
 ```text
 src/
 |-- app/
-|   |-- (public)/          # Rute publik: beranda, proyek, artikel, toko
+|   |-- (public)/          # Rute publik: beranda, proyek, artikel, toko, order
 |   |   |-- layout.tsx     # CartProvider + CartDialog + locale hreflang
 |   |   |-- page.tsx       # Beranda SigitOS
 |   |   |-- proyek/        # Katalog + detail proyek
 |   |   |-- artikel/       # Katalog + detail artikel
+|   |   |-- order/         # Pelacakan pesanan publik & invoice
 |   |   `-- toko/[slug]/    # Detail produk shareable
 |   |-- admin/             # Panel admin terproteksi (single-owner)
+|   |   |-- orders/        # Manajemen pesanan toko & invoice
+|   |   |-- whatsapp-bot/  # Integrasi WhatsApp bot & sesi Baileys
 |   |   |-- appearance/    # God Mode Fase 1: app SigitOS aktif + urutan (settings.os_apps)
 |   |   |-- strings/       # God Mode Fase 2: editor teks UI (settings.ui_strings)
 |   |   |-- features/      # God Mode Fase 3: feature flag global (settings.features)
@@ -144,7 +150,7 @@ src/
 |   `-- ui/                # Komponen UI berbasis shadcn
 |-- db/
 |   |-- index.ts           # Koneksi Drizzle ke Neon
-|   `-- schema.ts          # Skema 11 tabel (lihat "Model Data")
+|   `-- schema.ts          # Skema 13 tabel (lihat "Model Data")
 `-- lib/
     |-- actions.ts         # Server Actions CRUD, query, askSigitBot, listCloudModels
     |-- ai-engine.ts       # Mesin NLP/ML lokal (TF-IDF) untuk terminal & bot
@@ -166,7 +172,10 @@ src/
     |-- local-upload.ts    # Server actions upload/list/delete media
     |-- cart-context.tsx   # Keranjang belanja (localStorage)
     |-- cart-stock.ts      # Logika stok & batas qty
-    |-- whatsapp-order.ts  # Builder pesan WhatsApp order
+    |-- whatsapp-order.ts  # Builder pesan WhatsApp order & generator invoice DDMMYYYY
+    |-- order-actions.ts   # Server actions manajemen pesanan, tracking, status update
+    |-- tts-sanitizer.ts   # Sanitasi audio Web Speech API (bersihkan emoji, simbol, URL)
+    |-- whatsapp-bot/      # Engine bot Baileys, auto-reply, formatter pesan
     |-- publish.ts         # Filter published/publishAt (draft & schedule)
     |-- indexnow.ts        # Ping IndexNow best-effort
     |-- seo.ts             # Helper SEO
@@ -190,7 +199,7 @@ src/
 
 # Di luar src/:
 drizzle/                   # Migrasi SQL 0000–0012 + meta snapshot
-tests/                     # Unit test Vitest (40 file, 555 test)
+tests/                     # Unit test Vitest (44 file, 578 test)
 e2e/                       # E2E Playwright area publik
 scripts/                   # seed.mjs, package-deploy.mjs, dll
 data/                      # Local store: local-store.json, local-settings.json
@@ -199,7 +208,7 @@ deploy_package/            # Hasil `npm run package` (standalone + PM2)
 
 ## Model Data
 
-Skema database utama berada di `src/db/schema.ts` (11 tabel). Migrasi: `drizzle/0000`–`0012`.
+Skema database utama berada di `src/db/schema.ts` (13 tabel). Migrasi: `drizzle/0000`–`0012`.
 
 - `profiles`: data pemilik website, kontak, avatar, skill, statistik, sosial media (GitHub, LinkedIn, Instagram, X, Medium, YouTube, TikTok, Telegram, Facebook, Discord, Slack, Reddit, Portofolio), serta status available for hire. Sosial media tampil hanya jika URL terisi.
 - `projects`: portofolio proyek, slug, summary, deskripsi, gambar, demo, repo, tech stack (array, dikelola via editor chip), featured, published, `publishAt` (jadwal tayang), dan urutan.
@@ -212,6 +221,8 @@ Skema database utama berada di `src/db/schema.ts` (11 tabel). Migrasi: `drizzle/
 - `settings_history`: snapshot konfigurasi God Mode (`features`, `ui_strings`, `os_apps`) yang dicatat setiap kali dipublikasikan — dasar fitur Riwayat & Rollback 1-klik (God Mode Fase 4).
 - `media`: gambar upload admin disimpan sebagai biner di Postgres (id UUID, MIME dan ukuran hasil validasi magic bytes), disajikan via `GET /api/media/[id]` dengan cache immutable.
 - `visitor_hits`: log analitik kunjungan mandiri (path, referrer, hash IP salted SHA-256 tanpa raw IP, bot flag, OS, browser, device, negara, kota, network/ISP, location koordinat, dan timezone) untuk panel `/admin/analytics`.
+- `orders`: pesanan toko dan transaksi produk digital atau jasa (nomor invoice unik, data pemesan, items belanja, nominal, mata uang IDR/USD, metode bayar QRIS/Bank/WA/FreelanceOps, referral code, tautan project workspace, status, dan catatan admin).
+- `customers`: direktori pembeli terpusat untuk CRM dan program retensi/promosi (nama, nomor kontak WhatsApp, email, total pesanan, total belanja LTV, tanggal order terakhir, dan tag segmentasi otomatis).
 
 Sebagian tabel mendukung field bilingual seperti `titleEn`, `descriptionEn`, `contentEn`, `summaryEn`, dan sejenisnya.
 
@@ -332,7 +343,7 @@ npm run lint            # ESLint (flat config)
 npm run docs:check      # cek dokumentasi vs kode (angka README & daftar env var)
 ```
 
-Unit test Vitest mencakup **40 file / 555 test** (`npx vitest run`): AI engine (TF-IDF), provider & config Cloud AI, daftar model & quota Gemini, validasi env, IndexNow, helper slug & host produk, logika publish/schedule, validasi storage & audit URL media, stok keranjang, builder pesan WhatsApp, unsaved-changes guard, analyzer & remediator SEO/GEO, redaksi-draft & otomasi Redaksi, serta config God Mode (`settings.os_apps`, `ui_strings`, `features`, `settings_history`). Test yang butuh `DATABASE_URL` (audit URL media) otomatis di-skip tanpa DB, jadi CI tanpa DB tetap hijau; test metadata OG sengaja hermetik (fetch di-stub) sehingga tidak menyentuh jaringan. E2E `test:e2e:godmode` memverifikasi utas penuh config → props → DOM. CI (`.github/workflows/ci.yml`) menjalankan **lint + typecheck + unit test + build** otomatis di setiap PR ke `main` — jadikan *required status check* sebelum merge.
+Unit test Vitest mencakup **44 file / 578 test** (`npx vitest run`): AI engine (TF-IDF), provider & config Cloud AI, daftar model & quota Gemini, validasi env, IndexNow, helper slug & host produk, logika publish/schedule, validasi storage & audit URL media, stok keranjang, builder pesan WhatsApp, unsaved-changes guard, analyzer & remediator SEO/GEO, redaksi-draft & otomasi Redaksi, serta config God Mode (`settings.os_apps`, `ui_strings`, `features`, `settings_history`). Test yang butuh `DATABASE_URL` (audit URL media) otomatis di-skip tanpa DB, jadi CI tanpa DB tetap hijau; test metadata OG sengaja hermetik (fetch di-stub) sehingga tidak menyentuh jaringan. E2E `test:e2e:godmode` memverifikasi utas penuh config → props → DOM. CI (`.github/workflows/ci.yml`) menjalankan **lint + typecheck + unit test + build** otomatis di setiap PR ke `main` — jadikan *required status check* sebelum merge.
 
 ### Penjaga drift dokumentasi
 

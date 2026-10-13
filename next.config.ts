@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
+  serverExternalPackages: ["@whiskeysockets/baileys", "qrcode", "jimp"],
   // Next 16 memblokir akses cross-origin ke resource dev (/_next/hmr) dari
   // host tak terdaftar. Playwright memakai 127.0.0.1 sedangkan dev server
   // mengidentifikasi diri sebagai localhost → tanpa allow-list, handshake

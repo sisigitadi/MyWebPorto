@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -24,8 +24,12 @@ import {
   Bot,
   Cloud,
   BarChart3,
+  ShoppingBag,
+  MessageSquare,
 } from "lucide-react";
 import { useUser, SignOutButton } from "@clerk/nextjs";
+import { getPendingOrdersCount } from "@/lib/order-actions";
+
 import { cn } from "@/lib/utils";
 import { hasUnsavedChanges, setUnsavedChanges } from "@/lib/unsaved-changes";
 import { Badge } from "@/components/ui/badge";
@@ -41,7 +45,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-export type NavGroup = "manajemen" | "redaksi" | "godmode";
+export type NavGroup = "toko" | "portofolio" | "otomasi" | "sistem";
 
 export interface NavItem {
   title: string;
@@ -53,119 +57,137 @@ export interface NavItem {
 }
 
 /**
- * Kelompok menu sesuai urutan tampilan. Pemisahan ini bersifat presentasi
- * (route TIDAK berubah): Manajemen = operasional CRUD konten harian, Redaksi =
- * hub penulisan + otomasi, God Mode = konfigurasi global situs (penampilan,
- * teks, fitur, sistem) yang mempengaruhi seluruh halaman publik.
+ * Kelompok menu sesuai urutan tampilan.
+ * Pemisahan 4 grup logis: Toko & Transaksi, Portofolio & Konten, Kecerdasan & Bot, Sistem & Pengaturan.
  */
 export const NAV_GROUPS: { id: NavGroup; label: string }[] = [
-  { id: "manajemen", label: "Manajemen Konten" },
-  { id: "redaksi", label: "Redaksi" },
-  { id: "godmode", label: "God Mode" },
+  { id: "toko", label: "Toko & Transaksi" },
+  { id: "portofolio", label: "Portofolio & Konten" },
+  { id: "otomasi", label: "Kecerdasan & Bot" },
+  { id: "sistem", label: "Sistem & Pengaturan" },
 ];
 
 export const ADMIN_NAV_ITEMS: NavItem[] = [
+  // 1. Toko & Transaksi
   {
     title: "Dashboard",
     href: "/admin",
     icon: LayoutDashboard,
-    group: "manajemen",
+    group: "toko",
   },
   {
-    title: "Profil Pribadi",
-    href: "/admin/profile",
-    icon: User,
-    group: "manajemen",
-  },
-  {
-    title: "Kelola Proyek",
-    href: "/admin/projects",
-    icon: FolderGit2,
-    group: "manajemen",
-  },
-  {
-    title: "Kelola Layanan",
-    href: "/admin/services",
-    icon: Briefcase,
-    group: "manajemen",
+    title: "Kelola Pesanan",
+    href: "/admin/orders",
+    icon: ShoppingBag,
+    group: "toko",
   },
   {
     title: "Kelola Produk",
     href: "/admin/products",
     icon: Package,
-    group: "manajemen",
+    group: "toko",
+  },
+
+  // 2. Portofolio & Konten
+  {
+    title: "Profil Pribadi",
+    href: "/admin/profile",
+    icon: User,
+    group: "portofolio",
   },
   {
-    title: "Kelola Testimoni",
-    href: "/admin/testimonials",
-    icon: MessageSquareQuote,
-    group: "manajemen",
+    title: "Kelola Proyek",
+    href: "/admin/projects",
+    icon: FolderGit2,
+    group: "portofolio",
+  },
+  {
+    title: "Kelola Layanan",
+    href: "/admin/services",
+    icon: Briefcase,
+    group: "portofolio",
   },
   {
     title: "Kelola Artikel",
     href: "/admin/articles",
     icon: FileText,
-    group: "manajemen",
+    group: "portofolio",
+  },
+  {
+    title: "Kelola Testimoni",
+    href: "/admin/testimonials",
+    icon: MessageSquareQuote,
+    group: "portofolio",
   },
   {
     title: "Media Library",
     href: "/admin/media",
     icon: Images,
-    group: "manajemen",
+    group: "portofolio",
   },
   {
     title: "Redaksi — Tulis Konten",
     href: "/admin/redaksi",
     icon: Newspaper,
-    group: "redaksi",
+    group: "portofolio",
   },
+
+  // 3. Kecerdasan & Bot
   {
-    title: "Otomasi Redaksi",
-    href: "/admin/redaksi/otomasi",
-    icon: Bot,
-    group: "redaksi",
-  },
-  {
-    title: "Tampilan & App OS",
-    href: "/admin/appearance",
-    icon: Palette,
-    group: "godmode",
-  },
-  {
-    title: "Teks & Bahasa",
-    href: "/admin/strings",
-    icon: Languages,
-    group: "godmode",
-  },
-  {
-    title: "Fitur & Mode",
-    href: "/admin/features",
-    icon: ToggleLeft,
-    group: "godmode",
-  },
-  {
-    title: "SEO & SEM",
-    href: "/admin/seo",
-    icon: Search,
-    group: "godmode",
+    title: "Bot WhatsApp AI",
+    href: "/admin/whatsapp-bot",
+    icon: MessageSquare,
+    group: "otomasi",
   },
   {
     title: "Pengaturan Cloud AI",
     href: "/admin/cloud-ai",
     icon: Cloud,
-    group: "godmode",
+    group: "otomasi",
+  },
+  {
+    title: "Otomasi Redaksi",
+    href: "/admin/redaksi/otomasi",
+    icon: Bot,
+    group: "otomasi",
+  },
+
+  // 4. Sistem & Pengaturan
+  {
+    title: "Tampilan & App OS",
+    href: "/admin/appearance",
+    icon: Palette,
+    group: "sistem",
+  },
+  {
+    title: "Teks & Bahasa",
+    href: "/admin/strings",
+    icon: Languages,
+    group: "sistem",
+  },
+  {
+    title: "Fitur & Mode",
+    href: "/admin/features",
+    icon: ToggleLeft,
+    group: "sistem",
+  },
+  {
+    title: "SEO & SEM",
+    href: "/admin/seo",
+    icon: Search,
+    group: "sistem",
   },
   {
     title: "Visitor Analytics",
     href: "/admin/analytics",
     icon: BarChart3,
-    group: "godmode",
+    group: "sistem",
   },
   {
     title: "Sistem & Logs",
     href: "/admin/system",
     icon: Activity,
-    group: "godmode",
+    group: "sistem",
   },
 ];
 
@@ -187,8 +209,21 @@ export function AdminSidebar({
   // Guard navigasi in-app: AdminSidebar tidak tahu state form (form hidup di
   // halaman), jadi cek flag module saat klik terjadi. Sebelumnya, pindah menu
   // sambil sedang mengetik draf artikel/proyek langsung membuang isinya tanpa
-  // peringatan — kerugian paling nyata bagi admin.
+  // peringatan: kerugian paling nyata bagi admin.
   const [pendingNav, setPendingNav] = useState<string | null>(null);
+  const [pendingOrdersCount, setPendingOrdersCount] = useState<number>(0);
+
+  useEffect(() => {
+    let isMounted = true;
+    getPendingOrdersCount()
+      .then((cnt) => {
+        if (isMounted) setPendingOrdersCount(cnt);
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [pathname]);
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (!hasUnsavedChanges()) {
@@ -294,15 +329,28 @@ export function AdminSidebar({
                       />
                       <span className={isActive ? "text-white" : "text-[var(--vt-ink)]"}>{item.title}</span>
                     </div>
-                    {item.badge && (
+                    {item.href === "/admin/orders" && pendingOrdersCount > 0 ? (
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          "text-[10px] h-4 px-1.5 font-bold animate-pulse",
+                          isActive
+                            ? "bg-amber-400 text-slate-900"
+                            : "bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                        )}
+                      >
+                        {pendingOrdersCount}
+                      </Badge>
+                    ) : item.badge ? (
                       <Badge
                         variant={isActive ? "secondary" : "outline"}
                         className="text-[10px] h-4 px-1.5 font-normal"
                       >
                         {item.badge}
                       </Badge>
-                    )}
+                    ) : null}
                   </Link>
+
                 );
               })}
             </div>

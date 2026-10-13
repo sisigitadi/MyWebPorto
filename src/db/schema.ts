@@ -152,6 +152,7 @@ export const products = pgTable(
     descriptionEn: text("description_en"),
     imageUrl: text("image_url").notNull(),
     priceLabel: text("price_label"),
+    priceLabelEn: text("price_label_en"),
     // Harga coret (label) + nominal Rupiah untuk keranjang (null = tanya/hubungi)
     comparePriceLabel: text("compare_price_label"),
     priceAmount: integer("price_amount"),
@@ -164,6 +165,7 @@ export const products = pgTable(
     purchaseType: text("purchase_type").notNull().default("whatsapp"),
     customWhatsapp: text("custom_whatsapp"),
     customButtonLabel: text("custom_button_label"),
+    referralCode: text("referral_code"),
     published: boolean("published").notNull().default(true),
     order: integer("order").notNull().default(0),
     updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -409,4 +411,96 @@ export type NewArticle = typeof articles.$inferInsert;
 
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type NewAuditLog = typeof auditLogs.$inferInsert;
+
+/**
+ * Pesanan toko (orders) — mencatat setiap transaksi produk digital atau pesanan jasa.
+ */
+export const orders = pgTable(
+  "orders",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    invoiceNumber: text("invoice_number").notNull().unique(),
+    customerName: text("customer_name").notNull(),
+    customerPhone: text("customer_phone").notNull(),
+    customerEmail: text("customer_email"),
+    customerAddress: text("customer_address"),
+    customerNotes: text("customer_notes"),
+    items: jsonb("items")
+      .$type<
+        Array<{
+          productId: string;
+          title: string;
+          titleEn?: string | null;
+          price: number;
+          quantity: number;
+          subtotal: number;
+          imageUrl?: string | null;
+        }>
+      >()
+      .notNull()
+      .default([]),
+    totalAmount: integer("total_amount").notNull().default(0),
+    currency: text("currency").notNull().default("IDR"),
+    paymentMethod: text("payment_method").notNull().default("qris"),
+    paymentProofUrl: text("payment_proof_url"),
+    status: text("status").notNull().default("pending"),
+    referralCode: text("referral_code"),
+    projectUrl: text("project_url"),
+    adminNotes: text("admin_notes"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("orders_invoice_idx").on(table.invoiceNumber),
+    index("orders_status_idx").on(table.status),
+    index("orders_created_at_idx").on(table.createdAt),
+    index("orders_customer_phone_idx").on(table.customerPhone),
+  ]
+);
+
+export type Order = typeof orders.$inferSelect;
+export type NewOrder = typeof orders.$inferInsert;
+
+/**
+ * Direktori pelanggan (customers) — mencatat profil pembeli untuk retensi, loyalitas, dan promosi.
+ */
+export const customers = pgTable(
+  "customers",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull(),
+    phone: text("phone").notNull().unique(),
+    email: text("email"),
+    address: text("address"),
+    totalOrders: integer("total_orders").notNull().default(1),
+    totalSpent: integer("total_spent").notNull().default(0),
+    lastOrderAt: timestamp("last_order_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    tags: jsonb("tags").$type<string[]>().notNull().default([]),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("customers_phone_idx").on(table.phone),
+    index("customers_email_idx").on(table.email),
+    index("customers_last_order_idx").on(table.lastOrderAt),
+  ]
+);
+
+export type Customer = typeof customers.$inferSelect;
+export type NewCustomer = typeof customers.$inferInsert;
 

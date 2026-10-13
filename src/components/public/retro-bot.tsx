@@ -33,6 +33,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { cleanTextForTTS } from "@/lib/tts-sanitizer";
 import { useFeature } from "@/lib/features-context";
 import { playOS } from "@/lib/os-sound";
 import { RetroBotAvatar, type RetroBotMood } from "./retro-bot-avatar";
@@ -157,6 +158,8 @@ const APP_QUICK_PROMPTS: Record<
   toko: [
     { id: "Produk digital apa saja yang dijual?", en: "What digital products are sold?" },
     { id: "Bagaimana cara memesan?", en: "How do I order?" },
+    { id: "Rekening pembayaran resmi apa saja?", en: "What are the official payment accounts?" },
+    { id: "Cek status pesanan invoice", en: "Track order status invoice" },
     { id: "Apakah ada garansi/dukungan?", en: "Is there a warranty/support?" },
   ],
   testimoni: [
@@ -278,13 +281,7 @@ export function RetroBot() {
           return null;
         };
 
-        const clean = text
-          .replace(/```[\s\S]*?```/g, " ")
-          .replace(/[*_`#>|]/g, " ")
-          .replace(/\bhttps?:\/\/\S+/g, " ")
-          .replace(/\s*->\s*/g, ", ")
-          .replace(/\s+/g, " ")
-          .trim();
+        const clean = cleanTextForTTS(text);
         if (!clean) return;
 
         const chunks = (clean.match(/[^.!?]+[.!?]?/g) ?? [clean])

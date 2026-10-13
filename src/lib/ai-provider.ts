@@ -38,6 +38,8 @@ export interface LiveContext {
   // (EngineContext di ai-engine.ts) mengizinkan slug null untuk data lama.
   projects: { title: string; slug?: string | null }[];
   articles: { title: string; slug?: string | null }[];
+  products?: { title: string; priceIdr?: number; priceUsd?: number }[];
+  bankAccounts?: Array<string | { bankName: string; accountNumber: string; accountHolder: string }>;
 }
 
 /**
@@ -111,7 +113,13 @@ export function buildCloudPrompt(
     `Services: ${services}.`,
     `Projects: ${projects}.`,
     `Articles: ${articles}.`,
-    "Only answer questions about the owner, skills, services, projects, articles, hiring contact, or general technology topics. For anything else, politely redirect to those topics.",
+    ...(ctx.products && ctx.products.length
+      ? [`Digital products: ${ctx.products.map((p) => `${p.title}${p.priceIdr ? ` (Rp ${p.priceIdr.toLocaleString("id-ID")})` : ""}${p.priceUsd ? ` ($${p.priceUsd})` : ""}`).join("; ")}.`]
+      : []),
+    ...(ctx.bankAccounts && ctx.bankAccounts.length
+      ? [`Official payment accounts: ${ctx.bankAccounts.map((b) => (typeof b === "string" ? b : `${b.bankName} ${b.accountNumber} a.n ${b.accountHolder}`)).join("; ")}.`]
+      : []),
+    "Only answer questions about the owner, skills, services, projects, articles, products, payment, hiring contact, or general technology topics. For anything else, politely redirect to those topics.",
     langLine,
     `Visitor question: ${q}`,
   ].join("\n");
@@ -177,7 +185,13 @@ export function buildCloudMessages(
     `Services: ${services}.`,
     `Projects: ${projects}.`,
     `Articles: ${articles}.`,
-    "Only answer questions about the owner, skills, services, projects, articles, hiring contact, or general technology topics. For anything else, politely redirect to those topics.",
+    ...(ctx.products && ctx.products.length
+      ? [`Digital products: ${ctx.products.map((p) => `${p.title}${p.priceIdr ? ` (Rp ${p.priceIdr.toLocaleString("id-ID")})` : ""}${p.priceUsd ? ` ($${p.priceUsd})` : ""}`).join("; ")}.`]
+      : []),
+    ...(ctx.bankAccounts && ctx.bankAccounts.length
+      ? [`Official payment accounts: ${ctx.bankAccounts.map((b) => (typeof b === "string" ? b : `${b.bankName} ${b.accountNumber} a.n ${b.accountHolder}`)).join("; ")}.`]
+      : []),
+    "Only answer questions about the owner, skills, services, projects, articles, products, payment, hiring contact, or general technology topics. For anything else, politely redirect to those topics.",
     langLine,
   ].join("\n");
   return [

@@ -6,6 +6,7 @@ import { LanguageProvider } from "@/lib/i18n";
 import { CartProvider } from "@/lib/cart-context";
 import { CartDialog } from "@/components/public/cart-dialog";
 import { getProfile } from "@/lib/actions";
+import { getStoreConfig } from "@/lib/order-actions";
 import { resolveUIStrings } from "@/lib/ui-strings-config";
 import { resolveFeatures } from "@/lib/features-config";
 import { FeaturesProvider } from "@/lib/features-context";
@@ -34,6 +35,7 @@ export default async function RootPublicLayout({
   const isPreview = dm.isEnabled;
 
   const profile = await getProfile();
+  const storeConfig = await getStoreConfig();
   const uiStrings = await resolveUIStrings({ preview: isPreview });
   const features = await resolveFeatures({ preview: isPreview });
 
@@ -53,7 +55,7 @@ export default async function RootPublicLayout({
       <LanguageProvider overrides={uiStrings}>
         <ThemeProvider>
           <CartProvider>
-            <div className="h-screen max-h-screen w-screen max-w-full desktop-viewport flex flex-col desktop-wallpaper text-foreground overflow-hidden relative">
+            <div className="min-h-[100dvh] h-[100dvh] max-h-[100dvh] w-screen max-w-full desktop-viewport flex flex-col desktop-wallpaper text-foreground overflow-hidden relative pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
               {/* 1. Authentic 5s Retro BIOS Boot Loader (Session Persistent) */}
               <OSBootLoader />
 
@@ -78,7 +80,7 @@ export default async function RootPublicLayout({
               </main>
 
               {/* Global Shopping Cart Modal */}
-              <CartDialog profile={profile} />
+              <CartDialog profile={profile} initialStoreConfig={storeConfig} />
             </div>
           </CartProvider>
         </ThemeProvider>

@@ -16,6 +16,14 @@ import {
   Wifi,
   Clock,
   MapPin,
+  ShoppingBag,
+  MessageSquare,
+  Phone,
+  CreditCard,
+  CheckCircle2,
+  AlertCircle,
+  ExternalLink,
+  Zap,
 } from "lucide-react";
 import {
   Card,
@@ -34,6 +42,9 @@ import {
   getTestimonials,
   getArticles,
 } from "@/lib/actions";
+import { getOrders } from "@/lib/order-actions";
+import { getWABotState } from "@/lib/whatsapp-bot/wa-service";
+import { formatIdr } from "@/lib/whatsapp-order";
 import { isLivePublished } from "@/lib/publish";
 import { getVisitorAnalytics } from "@/lib/visitor-analytics";
 
@@ -41,17 +52,35 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminDashboardPage() {
-  const [user, profile, projects, services, products, testimonials, articles, analytics] =
-    await Promise.all([
-      currentUser(),
-      getProfile(),
-      getProjects({ includeScheduled: true }),
-      getServices(),
-      getProducts(),
-      getTestimonials(),
-      getArticles({ includeScheduled: true }),
-      getVisitorAnalytics("30d", false).catch(() => null),
-    ]);
+  const [
+    user,
+    profile,
+    projects,
+    services,
+    products,
+    testimonials,
+    articles,
+    ordersResult,
+    analytics,
+  ] = await Promise.all([
+    currentUser(),
+    getProfile(),
+    getProjects({ includeScheduled: true }),
+    getServices(),
+    getProducts(),
+    getTestimonials(),
+    getArticles({ includeScheduled: true }),
+    getOrders().catch(() => ({ success: false, orders: [], total: 0 })),
+    getVisitorAnalytics("30d", false).catch(() => null),
+  ]);
+
+  const orders = Array.isArray(ordersResult)
+    ? ordersResult
+    : (ordersResult && "orders" in ordersResult && Array.isArray(ordersResult.orders)
+      ? ordersResult.orders
+      : []);
+
+  const waState = getWABotState();
 
   const displayName =
     user?.fullName ||
@@ -62,88 +91,53 @@ export default async function AdminDashboardPage() {
     profile.name ||
     "Admin";
 
-  // "Terbit" mengikuti aturan tayang yang sama dengan halaman publik:
-  // published=true DAN jadwal publishAt sudah lewat (bukan sekadar flag).
   const publishedProjects = projects.filter((p) => isLivePublished(p)).length;
   const publishedServices = services.filter((s) => s.published).length;
   const publishedProducts = products.filter((p) => p.published).length;
   const publishedTestimonials = testimonials.filter((t) => t.published).length;
   const publishedArticles = articles.filter((a) => isLivePublished(a)).length;
 
-  const stats = [
-    {
-      title: "Total Proyek",
-      total: projects.length,
-      published: publishedProjects,
-      description: "Portofolio karya digital",
-      href: "/admin/projects",
-      icon: FolderGit2,
-      action: "Kelola Proyek",
-    },
-    {
-      title: "Layanan Ditawarkan",
-      total: services.length,
-      published: publishedServices,
-      description: "Solusi & keahlian teknis",
-      href: "/admin/services",
-      icon: Briefcase,
-      action: "Kelola Layanan",
-    },
-    {
-      title: "Katalog Produk",
-      total: products.length,
-      published: publishedProducts,
-      description: "Produk digital & starter",
-      href: "/admin/products",
-      icon: Package,
-      action: "Kelola Produk",
-    },
-    {
-      title: "Testimoni Klien",
-      total: testimonials.length,
-      published: publishedTestimonials,
-      description: "Ulasan kepuasan mitra",
-      href: "/admin/testimonials",
-      icon: MessageSquareQuote,
-      action: "Kelola Testimoni",
-    },
-    {
-      title: "Artikel & Tulisan",
-      total: articles.length,
-      published: publishedArticles,
-      description: "Catatan teknis & wawasan",
-      href: "/admin/articles",
-      icon: FileText,
-      action: "Kelola Artikel",
-    },
-  ];
+  // Metrik Pesanan & Pendapatan Toko
+  const pendingOrders = orders.filter((o) => o.status === "pending");
+  const paidOrders = orders.filter((o) =>
+    ["paid", "processing", "completed"].includes(o.status)
+  );
+  const totalRevenueIdr = paidOrders
+    .filter((o) => o.currency === "IDR")
+    .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
   const initial = (displayName[0] || "A").toUpperCase();
 
   return (
-    <div className="space-y-8">
-      {/* Welcome Banner */}
+    <div className="space-y-6">
+      {/* Welcome & Command Center Banner */}
       <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5 sm:p-6 md:p-8">
-        <div className="max-w-3xl space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border border-border bg-muted/40 text-foreground">
+        <div className="max-w-3xl space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-medium border border-border bg-muted/40 text-foreground">
             <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
-            <span>Panel Administrasi MyWebPorto</span>
+            <span>Command Center MyWebPorto</span>
           </div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-foreground break-words">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-foreground font-mono break-words">
             Selamat Datang, {displayName}
           </h1>
-          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed break-words">
-            Kelola data portofolio, pameran produk digital, keahlian layanan, dan ulasan kepuasan klien Anda secara langsung dan terstruktur dari satu pusat kendali.
+          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed break-words">
+            Pusat kendali terpadu untuk memantau transaksi toko, merespons chat WhatsApp otomatis, dan memperbarui portofolio digital Anda.
           </p>
         </div>
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <Button asChild size="sm" className="gap-1.5 text-xs h-9">
-            <Link href="/admin/profile">
-              <Settings className="h-3.5 w-3.5" />
-              <span>Perbarui Profil</span>
+        <div className="mt-5 flex flex-wrap items-center gap-2.5">
+          <Button asChild size="sm" className="gap-1.5 text-xs h-8 font-mono">
+            <Link href="/admin/orders">
+              <ShoppingBag className="h-3.5 w-3.5" />
+              <span>Kelola Pesanan ({pendingOrders.length} Pending)</span>
             </Link>
           </Button>
-          <Button asChild variant="outline" size="sm" className="gap-1.5 text-xs h-9 text-muted-foreground hover:text-foreground">
+          <Button asChild variant="outline" size="sm" className="gap-1.5 text-xs h-8 font-mono">
+            <Link href="/admin/whatsapp-bot">
+              <MessageSquare className="h-3.5 w-3.5 text-emerald-500" />
+              <span>Bot WhatsApp AI</span>
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm" className="gap-1.5 text-xs h-8 font-mono text-muted-foreground hover:text-foreground">
             <Link href="/" target="_blank" rel="noopener noreferrer">
               <Eye className="h-3.5 w-3.5" />
               <span>Kunjungi Website Publik</span>
@@ -152,45 +146,225 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Metric Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {stats.map((item) => {
-          const Icon = item.icon;
-          return (
-            <Card key={item.title} className="flex flex-col justify-between hover:border-foreground/30 transition-all">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {item.title}
+      {/* Actionable Alert: Pesanan Baru Menunggu Tindakan */}
+      {pendingOrders.length > 0 && (
+        <Card className="border-amber-500/40 bg-amber-500/5 shadow-xs">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <AlertCircle className="h-4 w-4" />
+              </div>
+              <div>
+                <CardTitle className="text-sm font-bold font-mono text-amber-900 dark:text-amber-200">
+                  {pendingOrders.length} Pesanan Baru Menunggu Verifikasi Pembayaran
                 </CardTitle>
-                <div className="h-8 w-8 rounded-md bg-muted/50 flex items-center justify-center text-muted-foreground">
-                  <Icon className="h-4 w-4" />
+                <CardDescription className="text-xs text-amber-700/80 dark:text-amber-300/80 font-mono">
+                  Segera hubungi pelanggan via WhatsApp untuk konfirmasi bukti transfer atau kirim pesanan.
+                </CardDescription>
+              </div>
+            </div>
+            <Button asChild size="sm" variant="outline" className="text-xs font-mono h-8 border-amber-500/30">
+              <Link href="/admin/orders">Lihat Semua Pesanan</Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 font-mono text-xs">
+              {pendingOrders.slice(0, 3).map((order) => (
+                <div
+                  key={order.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-md bg-[var(--vt-card)] border border-border"
+                >
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-[var(--vt-ink)]">
+                        {order.invoiceNumber}
+                      </span>
+                      <Badge variant="outline" className="text-[9px] uppercase border-amber-500/40 text-amber-600">
+                        Menunggu Pembayaran
+                      </Badge>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {order.customerName} ({order.customerPhone}) • Total:{" "}
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                        {order.currency === "USD" ? `$${order.totalAmount}` : formatIdr(order.totalAmount)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={`https://wa.me/${order.customerPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                        `Halo Kak ${order.customerName}, kami dari Sigit Web Store mengonfirmasi pesanan #${order.invoiceNumber}. Apakah pembayaran sudah dilakukan? Terima kasih!`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold"
+                    >
+                      <Phone className="h-3 w-3" />
+                      <span>Follow Up WA</span>
+                    </a>
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold tracking-tight text-foreground">
-                    {item.total}
-                  </span>
-                  <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-normal border-border bg-muted/30 text-muted-foreground">
-                    {item.published} Terbit
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {item.description}
-                </p>
-                <div className="pt-2 border-t border-border">
-                  <Link
-                    href={item.href}
-                    className="inline-flex items-center text-xs font-medium text-foreground hover:underline gap-1 group"
-                  >
-                    <span>{item.action}</span>
-                    <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Command Center 4 Core Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Metric 1: Pesanan & Toko */}
+        <Card className="hover:border-foreground/30 transition-all">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-mono font-bold text-muted-foreground">
+              Pesanan Toko
+            </CardTitle>
+            <div className="h-8 w-8 rounded-md bg-muted/50 flex items-center justify-center text-muted-foreground">
+              <ShoppingBag className="h-4 w-4" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2 font-mono">
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold tracking-tight text-foreground">
+                {orders.length}
+              </span>
+              <Badge
+                variant="outline"
+                className={`text-[10px] h-5 px-1.5 font-bold ${
+                  pendingOrders.length > 0
+                    ? "bg-amber-500/10 text-amber-600 border-amber-500/30 animate-pulse"
+                    : "border-border text-muted-foreground"
+                }`}
+              >
+                {pendingOrders.length} Pending
+              </Badge>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Omzet Selesai: <span className="font-bold text-emerald-600">{formatIdr(totalRevenueIdr)}</span>
+            </p>
+            <div className="pt-2 border-t border-border">
+              <Link
+                href="/admin/orders"
+                className="inline-flex items-center text-xs font-medium text-foreground hover:underline gap-1 group"
+              >
+                <span>Buka Kelola Pesanan</span>
+                <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Metric 2: Bot WhatsApp AI */}
+        <Card className="hover:border-foreground/30 transition-all">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-mono font-bold text-muted-foreground">
+              Bot WhatsApp AI
+            </CardTitle>
+            <div className="h-8 w-8 rounded-md bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+              <MessageSquare className="h-4 w-4" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2 font-mono">
+            <div className="flex items-baseline gap-2">
+              <span className="text-sm font-bold tracking-tight text-foreground">
+                {waState.status === "CONNECTED"
+                  ? "● Online 24/7"
+                  : waState.status === "QR_READY"
+                  ? "▲ Siap Scan QR"
+                  : "■ Terputus"}
+              </span>
+              <Badge
+                variant="outline"
+                className={`text-[9px] h-4 px-1 ${
+                  waState.status === "CONNECTED"
+                    ? "text-emerald-500 border-emerald-500/30"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {waState.connectedPhone || "Offline"}
+              </Badge>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Auto-Reply: <span className="font-bold text-blue-500">{waState.messagesCount.replied} Terkirim</span>
+            </p>
+            <div className="pt-2 border-t border-border">
+              <Link
+                href="/admin/whatsapp-bot"
+                className="inline-flex items-center text-xs font-medium text-foreground hover:underline gap-1 group"
+              >
+                <span>Pusat Kendali WhatsApp</span>
+                <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Metric 3: Katalog Produk */}
+        <Card className="hover:border-foreground/30 transition-all">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-mono font-bold text-muted-foreground">
+              Katalog Produk
+            </CardTitle>
+            <div className="h-8 w-8 rounded-md bg-muted/50 flex items-center justify-center text-muted-foreground">
+              <Package className="h-4 w-4" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2 font-mono">
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold tracking-tight text-foreground">
+                {products.length}
+              </span>
+              <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-normal border-border bg-muted/30 text-muted-foreground">
+                {publishedProducts} Terbit
+              </Badge>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Starter pack, SaaS &amp; Template digital
+            </p>
+            <div className="pt-2 border-t border-border">
+              <Link
+                href="/admin/products"
+                className="inline-flex items-center text-xs font-medium text-foreground hover:underline gap-1 group"
+              >
+                <span>Kelola Etalase Produk</span>
+                <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Metric 4: Portofolio & Proyek */}
+        <Card className="hover:border-foreground/30 transition-all">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-mono font-bold text-muted-foreground">
+              Portofolio &amp; Layanan
+            </CardTitle>
+            <div className="h-8 w-8 rounded-md bg-muted/50 flex items-center justify-center text-muted-foreground">
+              <FolderGit2 className="h-4 w-4" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2 font-mono">
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold tracking-tight text-foreground">
+                {projects.length}
+              </span>
+              <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-normal border-border bg-muted/30 text-muted-foreground">
+                {publishedProjects} Terbit
+              </Badge>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {services.length} Solusi &amp; Jasa aktif
+            </p>
+            <div className="pt-2 border-t border-border">
+              <Link
+                href="/admin/projects"
+                className="inline-flex items-center text-xs font-medium text-foreground hover:underline gap-1 group"
+              >
+                <span>Kelola Karya &amp; Jasa</span>
+                <ArrowUpRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Sebaran Geografi & Trafik Pengunjung (Internal Neon) */}
@@ -200,199 +374,86 @@ export default async function AdminDashboardPage() {
             <div className="flex items-center gap-2">
               <Globe2 className="h-4 w-4 text-primary" />
               <CardTitle className="text-base font-semibold text-foreground">
-                Sebaran Geografi & Trafik Pengunjung
+                Sebaran Geografi Pengunjung (30 Hari)
               </CardTitle>
             </div>
             <CardDescription className="text-xs text-muted-foreground mt-0.5">
-              Data kunjungan internal PostgreSQL Neon · 30 hari terakhir · UU PDP Friendly (Salted SHA-256)
+              Data analitik privat dari beacon tanpa cookies.
             </CardDescription>
           </div>
-          <Button asChild variant="outline" size="sm" className="h-8 text-xs gap-1.5 self-start sm:self-auto">
-            <Link href="/admin/analytics">
-              <Activity className="h-3.5 w-3.5 text-primary" />
-              <span>Buka Analytics Lengkap</span>
-              <ArrowUpRight className="h-3 w-3" />
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs font-mono">
+              Total Hits: {analytics?.totalHits ?? 0}
+            </Badge>
+            <Button asChild variant="ghost" size="sm" className="h-7 text-xs">
+              <Link href="/admin/analytics">
+                Detail Lengkap
+                <ArrowUpRight className="h-3 w-3 ml-1" />
+              </Link>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <div className="p-3 rounded-lg border border-border bg-muted/20">
-              <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider block">
-                Total Tayangan (30h)
-              </span>
-              <span className="text-xl font-bold font-mono text-foreground mt-0.5 block">
-                {analytics?.totalHits.toLocaleString("id-ID") ?? 0}
-              </span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-3 rounded-lg border border-border bg-muted/20 space-y-1">
+              <span className="text-xs text-muted-foreground">Pengunjung Unik</span>
+              <p className="text-xl font-bold font-mono text-foreground">
+                {analytics?.uniqueVisitors ?? 0}
+              </p>
             </div>
-            <div className="p-3 rounded-lg border border-border bg-muted/20">
-              <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider block">
-                Pengunjung Unik
-              </span>
-              <span className="text-xl font-bold font-mono text-[var(--vt-blue)] mt-0.5 block">
-                {analytics?.uniqueVisitors.toLocaleString("id-ID") ?? 0}
-              </span>
+            <div className="p-3 rounded-lg border border-border bg-muted/20 space-y-1">
+              <span className="text-xs text-muted-foreground">Tayangan Halaman (Hits)</span>
+              <p className="text-xl font-bold font-mono text-foreground">
+                {analytics?.totalHits ?? 0}
+              </p>
             </div>
-            <div className="p-3 rounded-lg border border-border bg-muted/20">
-              <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider block">
-                Tayangan Hari Ini
-              </span>
-              <span className="text-xl font-bold font-mono text-emerald-600 mt-0.5 block">
-                {analytics?.todayHits.toLocaleString("id-ID") ?? 0}
-              </span>
-            </div>
-            <div className="p-3 rounded-lg border border-border bg-muted/20">
-              <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider block">
-                Unik Hari Ini
-              </span>
-              <span className="text-xl font-bold font-mono text-purple-600 mt-0.5 block">
-                {analytics?.todayUniq.toLocaleString("id-ID") ?? 0}
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-3 border-t border-border/60">
-            {/* Negara Teratas */}
-            <div className="space-y-2">
-              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Globe2 className="h-3.5 w-3.5 text-indigo-600" /> Asal Negara
-              </span>
-              {!analytics || analytics.countryBreakdown.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-2 italic">Belum ada data.</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {analytics.countryBreakdown.slice(0, 4).map((c) => (
-                    <div key={c.code} className="flex items-center justify-between text-xs p-1.5 rounded-md hover:bg-muted/40 transition-colors">
-                      <div className="flex items-center gap-2 truncate pr-1">
-                        <span className="text-sm shrink-0">{c.flag}</span>
-                        <span className="font-medium text-foreground truncate">{c.name}</span>
-                      </div>
-                      <div className="font-mono text-right shrink-0 text-muted-foreground text-[10px]">
-                        <span className="font-bold text-foreground text-xs">{c.count}</span> ({c.percentage}%)
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Lokasi Lengkap (Location) */}
-            <div className="space-y-2">
-              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-emerald-600" /> Lokasi (Location)
-              </span>
-              {!analytics || analytics.locationBreakdown.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-2 italic">Belum ada data.</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {analytics.locationBreakdown.slice(0, 4).map((loc, idx) => (
-                    <div key={`${loc.fullLocation}-${idx}`} className="flex items-center justify-between text-xs p-1.5 rounded-md hover:bg-muted/40 transition-colors">
-                      <div className="flex items-center gap-1.5 truncate pr-1">
-                        <span className="text-xs shrink-0">{loc.flag}</span>
-                        <span className="font-medium text-foreground truncate">{loc.fullLocation}</span>
-                      </div>
-                      <div className="font-mono text-right shrink-0 text-muted-foreground text-[10px]">
-                        <span className="font-bold text-foreground text-xs">{loc.count}</span> ({loc.percentage}%)
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Jaringan & ISP (Network) */}
-            <div className="space-y-2">
-              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Wifi className="h-3.5 w-3.5 text-cyan-600" /> Jaringan (Network)
-              </span>
-              {!analytics || analytics.networkBreakdown.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-2 italic">Belum ada data.</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {analytics.networkBreakdown.slice(0, 4).map((net) => (
-                    <div key={net.network} className="flex items-center justify-between text-xs p-1.5 rounded-md hover:bg-muted/40 transition-colors">
-                      <div className="flex items-center gap-1.5 truncate pr-1">
-                        <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 shrink-0" />
-                        <span className="font-medium text-foreground font-mono truncate text-[11px]">{net.network}</span>
-                      </div>
-                      <div className="font-mono text-right shrink-0 text-muted-foreground text-[10px]">
-                        <span className="font-bold text-foreground text-xs">{net.count}</span> ({net.percentage}%)
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Zona Waktu (Timezone) */}
-            <div className="space-y-2">
-              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 text-amber-600" /> Zona Waktu
-              </span>
-              {!analytics || analytics.timezoneBreakdown.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-2 italic">Belum ada data.</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {analytics.timezoneBreakdown.slice(0, 4).map((tz) => (
-                    <div key={tz.timezone} className="flex items-center justify-between text-xs p-1.5 rounded-md hover:bg-muted/40 transition-colors">
-                      <div className="flex items-center gap-1.5 truncate pr-1">
-                        <Clock className="h-3 w-3 text-amber-500 shrink-0" />
-                        <span className="font-medium text-foreground font-mono truncate text-[11px]">{tz.timezone}</span>
-                      </div>
-                      <div className="font-mono text-right shrink-0 text-muted-foreground text-[10px]">
-                        <span className="font-bold text-foreground text-xs">{tz.count}</span> ({tz.percentage}%)
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div className="p-3 rounded-lg border border-border bg-muted/20 space-y-1">
+              <span className="text-xs text-muted-foreground">Aktivitas Hari Ini</span>
+              <p className="text-xl font-bold font-mono text-foreground">
+                {analytics?.todayHits ?? 0}{" "}
+                <span className="text-xs font-normal text-muted-foreground">
+                  ({analytics?.todayUniq ?? 0} unik)
+                </span>
+              </p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Quick Status & Recent Projects Overview */}
+      {/* Row Bawah: Karya Terbaru & Status Profil */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Projects Table Preview */}
+        {/* Latest Projects */}
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <div>
               <CardTitle className="text-base font-semibold text-foreground">
-                Ringkasan Proyek Terbaru
+                Proyek &amp; Karya Portofolio
               </CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
-                Karya dan aplikasi yang sedang aktif ditampilkan di portofolio Anda.
+                Karya terbaru yang dikurasi di platform.
               </CardDescription>
             </div>
-            <Button asChild variant="outline" size="sm" className="h-8 text-xs gap-1">
-              <Link href="/admin/projects">
-                <span>Lihat Semua</span>
-                <ArrowUpRight className="h-3 w-3" />
-              </Link>
+            <Button asChild variant="outline" size="sm" className="text-xs h-8">
+              <Link href="/admin/projects">Lihat Semua</Link>
             </Button>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y divide-border">
+          <CardContent>
+            <div className="space-y-3">
               {projects.length === 0 ? (
-                <div className="p-6 text-center text-xs text-muted-foreground">
-                  Belum ada proyek yang dibuat. Tambahkan proyek di menu Kelola Proyek.
-                </div>
+                <p className="text-xs text-muted-foreground py-4 text-center">
+                  Belum ada proyek ditambahkan.
+                </p>
               ) : (
                 projects.slice(0, 4).map((project) => (
                   <div
                     key={project.id}
-                    className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-muted/30 transition-colors"
+                    className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/10 hover:bg-muted/20 transition-colors gap-3"
                   >
-                    <div className="space-y-1 min-w-0">
+                    <div className="min-w-0 flex-1 space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm text-foreground truncate">
+                        <span className="text-sm font-medium text-foreground truncate">
                           {project.title}
                         </span>
-                        {project.featured && (
-                          <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-normal">
-                            Unggulan
-                          </Badge>
-                        )}
                         <Badge
                           variant="outline"
                           className={
@@ -408,14 +469,12 @@ export default async function AdminDashboardPage() {
                         {project.summary}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Button asChild variant="ghost" size="sm" className="h-7 text-xs px-2 text-muted-foreground hover:text-foreground">
-                        <Link href={`/proyek/${project.slug}`} target="_blank">
-                          <Eye className="h-3.5 w-3.5 mr-1" />
-                          Pratinjau
-                        </Link>
-                      </Button>
-                    </div>
+                    <Button asChild variant="ghost" size="sm" className="h-7 text-xs px-2 text-muted-foreground hover:text-foreground shrink-0">
+                      <Link href={`/proyek/${project.slug}`} target="_blank">
+                        <Eye className="h-3.5 w-3.5 mr-1" />
+                        Pratinjau
+                      </Link>
+                    </Button>
                   </div>
                 ))
               )}
@@ -423,86 +482,62 @@ export default async function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* System & Profile Status Card */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold text-foreground">
-                Status Profil Publik
-              </CardTitle>
-              <CardDescription className="text-xs text-muted-foreground">
-                Informasi identitas yang terlihat oleh calon klien dan rekruter.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20">
-                {(profile.avatarUrl || user?.imageUrl) ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={profile.avatarUrl || user?.imageUrl}
-                    alt={displayName}
-                    className="h-10 w-10 rounded-full border border-border object-cover shrink-0"
-                  />
-                ) : (
-                  <div className="h-10 w-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0">
-                    {initial}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-foreground truncate">
-                    {displayName}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {profile.headline || "Web Developer & Content Creator"}
-                  </p>
+        {/* Profile Card */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold text-foreground">
+              Profil Pemilik
+            </CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              Informasi identitas publik Anda.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20">
+              {profile.avatarUrl || user?.imageUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={profile.avatarUrl || user?.imageUrl}
+                  alt={displayName}
+                  className="h-10 w-10 rounded-full border border-border object-cover shrink-0"
+                />
+              ) : (
+                <div className="h-10 w-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0">
+                  {initial}
                 </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-foreground truncate">
+                  {displayName}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {profile.headline || "AI & Cybersecurity Engineer"}
+                </p>
               </div>
+            </div>
 
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between gap-3 py-1 border-b border-border/60">
-                  <span className="text-muted-foreground shrink-0">Email Kontak</span>
-                  <span className="font-medium text-foreground text-right break-all min-w-0 max-w-[60%]">{profile.email || user?.primaryEmailAddress?.emailAddress}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3 py-1 border-b border-border/60">
-                  <span className="text-muted-foreground shrink-0">Lokasi</span>
-                  <span className="font-medium text-foreground text-right break-words min-w-0">{profile.location}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3 py-1">
-                  <span className="text-muted-foreground shrink-0">Status Ketersediaan</span>
-                  <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/40 text-right">
-                    {profile.availableForHire ? "Tersedia untuk Proyek Baru" : "Sedang Penuh"}
-                  </Badge>
-                </div>
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between gap-3 py-1 border-b border-border/60">
+                <span className="text-muted-foreground shrink-0">Email</span>
+                <span className="font-medium text-foreground text-right truncate">{profile.email || "-"}</span>
               </div>
-
-              <Button asChild variant="outline" size="sm" className="w-full text-xs h-8 justify-center">
-                <Link href="/admin/profile">
-                  Edit Profil Lengkap
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Quick Guidance Card */}
-          <Card className="border-dashed bg-muted/10">
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <Layers className="h-4 w-4 text-primary" />
-                <CardTitle className="text-sm font-semibold text-foreground">
-                  Panduan Kelola Konten
-                </CardTitle>
+              <div className="flex items-center justify-between gap-3 py-1 border-b border-border/60">
+                <span className="text-muted-foreground shrink-0">Lokasi</span>
+                <span className="font-medium text-foreground text-right truncate">{profile.location || "-"}</span>
               </div>
-            </CardHeader>
-            <CardContent className="text-xs text-muted-foreground space-y-2">
-              <p>
-                Pastikan karya dan produk unggulan diatur dengan status <span className="font-medium text-foreground">Unggulan</span> agar tampil langsung di halaman beranda.
-              </p>
-              <p>
-                Gunakan tab <span className="font-medium text-foreground">Kelola Produk</span> untuk mengarahkan pengunjung ke platform Gumroad, GitHub, atau tautan langsung lainnya.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+              <div className="flex items-center justify-between gap-3 py-1">
+                <span className="text-muted-foreground shrink-0">Ketersediaan</span>
+                <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/40">
+                  {profile.availableForHire ? "Tersedia untuk Proyek" : "Sedang Penuh"}
+                </Badge>
+              </div>
+            </div>
+
+            <Button asChild variant="outline" size="sm" className="w-full text-xs h-8 justify-center">
+              <Link href="/admin/profile">Edit Profil Lengkap</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

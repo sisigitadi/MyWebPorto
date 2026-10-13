@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -16,6 +16,9 @@ import {
   Plus,
   Minus,
   ShieldCheck,
+  Share2,
+  Copy,
+  Briefcase,
 } from "lucide-react";
 import type { ProductData, ProfileData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
@@ -23,7 +26,11 @@ import { useFeature } from "@/lib/features-context";
 import { Button } from "@/components/ui/button";
 import { OSWindow } from "@/components/public/os/os-window";
 import { useCart, buildSingleProductWhatsAppUrl } from "@/lib/cart-context";
+import { buildFreelanceOpsBriefWhatsAppUrl } from "@/lib/whatsapp-order";
 import { storeName, platformLabelFromUrl } from "@/lib/store";
+import { ProductShareModal } from "@/components/public/product-share-modal";
+import { getStoreConfig } from "@/lib/order-actions";
+import { toast } from "sonner";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 
@@ -36,9 +43,6 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
   const { language } = useTranslation();
   const { addItem, totalCount, setIsOpen } = useCart();
 
-  // Gate feature flag (settings.features): saat OFF, tombol "Cart" dan
-  // tombol "Tambah ke Keranjang" disembunyikan; addItem dan setIsOpen(true)
-  // tak pernah dipanggil.
   const enableStoreCart = useFeature("enable_store_cart");
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -52,6 +56,19 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
   const [activeImage, setActiveImage] = useState(allImages[0] || product.thumbnailUrl);
   const [quantity, setQuantity] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [copiedCoupon, setCopiedCoupon] = useState(false);
+  const [adminPhone, setAdminPhone] = useState(product.customWhatsapp || profile?.phone || "");
+
+  useEffect(() => {
+    getStoreConfig()
+      .then((cfg) => {
+        if (cfg?.adminWhatsapp) {
+          setAdminPhone(cfg.adminWhatsapp);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const isOutOfStock = product.stock === 0;
   const maxStock = product.stock ?? 99;
@@ -76,10 +93,21 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
     setTimeout(() => setJustAdded(false), 1800);
   };
 
+  const handleCopyCoupon = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCoupon(true);
+    setTimeout(() => setCopiedCoupon(false), 2000);
+    toast.success(isEn ? `Voucher code ${code} copied!` : `Kode kupon ${code} berhasil disalin!`);
+  };
+
+  const displayPrice = isEn
+    ? product.priceLabelEn || product.priceFormatted || "Custom Quote"
+    : product.priceFormatted || "Gratis / Diskusi";
+
   return (
     <div ref={containerRef} className="min-h-full py-6 sm:py-10 vt-crt-on">
       <div className="max-w-4xl mx-auto px-3 sm:px-6 space-y-5">
-        {/* Navigation Bar with Cart Access */}
+        {/* Navigation Bar with Cart & Share Access */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Button
@@ -107,20 +135,33 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
             </Button>
           </div>
 
-          {/* Cart Button — disembunyikan saat enable_store_cart OFF */}
-          {enableStoreCart && (
-            <button
+          <div className="flex items-center gap-2">
+            {/* Share & Promo Kit Button */}
+            <Button
               type="button"
-              onClick={() => setIsOpen(true)}
-              className="vt-btn vt-btn-pink h-8 px-3 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+              onClick={() => setShareModalOpen(true)}
+              size="sm"
+              className="vt-btn vt-btn-chrome h-8 px-3 font-mono text-xs font-bold gap-1.5 cursor-pointer"
             >
-              <ShoppingCart className="h-3.5 w-3.5" />
-              <span>{isEn ? "Cart" : "Keranjang"}</span>
-              <span className="px-1.5 py-0.2 rounded-xs bg-white text-black font-extrabold text-[10px]">
-                {totalCount}
-              </span>
-            </button>
-          )}
+              <Share2 className="h-3.5 w-3.5 text-primary" />
+              <span>{isEn ? "Share & Promo" : "Bagikan"}</span>
+            </Button>
+
+            {/* Cart Button */}
+            {enableStoreCart && (
+              <button
+                type="button"
+                onClick={() => setIsOpen(true)}
+                className="vt-btn vt-btn-pink h-8 px-3 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+              >
+                <ShoppingCart className="h-3.5 w-3.5" />
+                <span>{isEn ? "Cart" : "Keranjang"}</span>
+                <span className="px-1.5 py-0.2 rounded-xs bg-white text-black font-extrabold text-[10px]">
+                  {totalCount}
+                </span>
+              </button>
+            )}
+          </div>
         </div>
 
         <OSWindow
@@ -145,8 +186,7 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
                   </div>
                 )}
 
-                {/* Price Display — harga coret di badge chrome terpisah dari
-                    badge pink (lihat catatan di products-section, item #4). */}
+                {/* Price Display */}
                 <div className="absolute top-2 right-2 flex items-center gap-1.5">
                   {product.comparePriceLabel && (
                     <span className="vt-btn vt-btn-chrome px-2 py-1 text-[10px] font-pixel font-normal line-through shadow-sm">
@@ -154,12 +194,12 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
                     </span>
                   )}
                   <div className="vt-btn vt-btn-pink px-3 py-1 text-xs font-pixel font-bold shadow-md">
-                    <span>{product.priceFormatted}</span>
+                    <span>{displayPrice}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Gallery Thumbnails (if multiple images) */}
+              {/* Gallery Thumbnails */}
               {allImages.length > 1 && (
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 vt-scrollbar">
                   {allImages.map((img, idx) => (
@@ -218,11 +258,61 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
                 </p>
               </div>
 
+              {/* Referral Coupon Voucher Code (Jika ada) */}
+              {product.referralCode && (
+                <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xs flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold block">
+                      {isEn ? "PARTNER PROMO CODE:" : "KODE PROMO / REFERRAL MITRA:"}
+                    </span>
+                    <span className="font-mono font-extrabold text-xs text-foreground tracking-wider">
+                      {product.referralCode}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyCoupon(product.referralCode!)}
+                    className="vt-btn vt-btn-chrome px-2.5 py-1 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    {copiedCoupon ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                    <span>{copiedCoupon ? (isEn ? "Copied!" : "Tersalin!") : isEn ? "Copy Code" : "Salin Kode"}</span>
+                  </button>
+                </div>
+              )}
+
               {/* Purchase Actions (Dynamic based on purchaseType) */}
               <div className="space-y-2.5 pt-2">
-                {(!product.purchaseType || product.purchaseType === 'whatsapp') ? (
+                {/* 1. Tipe FreelanceOps (Jasa Proyek / Pembuatan Web & Aplikasi) */}
+                {product.purchaseType === "freelanceops" ? (
+                  <div className="space-y-2">
+                    <a
+                      href={product.ctaUrl || "https://freelanceops.sigitadi.id/"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="vt-btn vt-btn-pink w-full justify-center items-center gap-2 py-3 px-4 text-xs font-bold font-mono text-white hover:brightness-110 cursor-pointer shadow-md flex"
+                    >
+                      <Briefcase className="h-4 w-4" />
+                      <span>
+                        {product.customButtonLabel ||
+                          (isEn ? "START PROJECT ON FREELANCEOPS" : "MULAI PROYEK DI FREELANCEOPS")}
+                      </span>
+                      <ArrowUpRight className="h-4 w-4" />
+                    </a>
+
+                    <a
+                      href={buildFreelanceOpsBriefWhatsAppUrl(adminPhone, product, undefined, isEn ? "en" : "id")}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="vt-btn vt-btn-chrome w-full justify-center items-center gap-2 py-2 px-4 text-xs font-bold font-mono text-foreground hover:bg-muted cursor-pointer flex"
+                    >
+                      <MessageCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      <span>{isEn ? "DISCUSS VIA WHATSAPP" : "KONSULTASI VIA WHATSAPP"}</span>
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                ) : (!product.purchaseType || product.purchaseType === "whatsapp") ? (
+                  /* 2. Tipe WhatsApp / Toko Lokal Produk Digital */
                   <>
-                    {/* Quantity Controller */}
                     {!isOutOfStock && (
                       <div className="flex items-center justify-between p-2 bg-muted/40 rounded-xs border border-border">
                         <span className="text-xs font-bold">{isEn ? "Quantity:" : "Jumlah Beli:"}</span>
@@ -248,39 +338,37 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
                       </div>
                     )}
 
-                    {/* Add to Cart Button — disembunyikan saat enable_store_cart OFF */}
                     {enableStoreCart && (
-                    <button
-                      type="button"
-                      disabled={isOutOfStock}
-                      onClick={handleAddToCart}
-                      className={`vt-btn w-full justify-center items-center gap-2 py-2.5 px-4 text-xs font-bold font-mono transition-all cursor-pointer shadow-md ${
-                        justAdded
-                          ? "bg-emerald-600 text-white font-extrabold"
-                          : "vt-btn-pink text-white hover:brightness-110"
-                      }`}
-                    >
-                      {justAdded ? (
-                        <>
-                          <Check className="h-4 w-4" />
-                          <span>{isEn ? "ADDED TO CART!" : "BERHASIL DITAMBAHKAN!"}</span>
-                        </>
-                      ) : (
-                        <>
-                          <ShoppingCart className="h-4 w-4" />
-                          <span>{isEn ? "ADD TO CART" : "TAMBAH KE KERANJANG"}</span>
-                        </>
-                      )}
-                    </button>
+                      <button
+                        type="button"
+                        disabled={isOutOfStock}
+                        onClick={handleAddToCart}
+                        className={`vt-btn w-full justify-center items-center gap-2 py-2.5 px-4 text-xs font-bold font-mono transition-all cursor-pointer shadow-md ${
+                          justAdded
+                            ? "bg-emerald-600 text-white font-extrabold"
+                            : "vt-btn-pink text-white hover:brightness-110"
+                        }`}
+                      >
+                        {justAdded ? (
+                          <>
+                            <Check className="h-4 w-4" />
+                            <span>{isEn ? "ADDED TO CART!" : "BERHASIL DITAMBAHKAN!"}</span>
+                          </>
+                        ) : (
+                          <>
+                            <ShoppingCart className="h-4 w-4" />
+                            <span>{isEn ? "ADD TO CART" : "TAMBAH KE KERANJANG"}</span>
+                          </>
+                        )}
+                      </button>
                     )}
 
-                    {/* WhatsApp Direct Order Button */}
-                    {(product.customWhatsapp || profile?.phone) && (
+                    {adminPhone && (
                       <a
-                        href={buildSingleProductWhatsAppUrl(product.customWhatsapp || profile?.phone || '', product, isEn ? "en" : "id")}
+                        href={buildSingleProductWhatsAppUrl(adminPhone, product, isEn ? "en" : "id")}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="vt-btn vt-btn-chrome w-full justify-center items-center gap-2 py-2 px-4 text-xs font-bold font-mono text-foreground hover:bg-muted cursor-pointer"
+                        className="vt-btn vt-btn-chrome w-full justify-center items-center gap-2 py-2 px-4 text-xs font-bold font-mono text-foreground hover:bg-muted cursor-pointer flex"
                       >
                         <MessageCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                         <span>{product.customButtonLabel || (isEn ? "ORDER INSTANT VIA WHATSAPP" : "PESAN LANGSUNG VIA WHATSAPP")}</span>
@@ -289,21 +377,29 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
                     )}
                   </>
                 ) : (
+                  /* 3. Tipe Eksternal / Referral / Affiliate */
                   <>
-                    {/* External/Referral/Affiliate Button */}
                     {product.ctaUrl && (
                       <a
                         href={product.ctaUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="vt-btn vt-btn-pink w-full justify-center items-center gap-2 py-3 px-4 text-xs font-bold font-mono text-white hover:brightness-110 cursor-pointer shadow-md"
+                        className="vt-btn vt-btn-pink w-full justify-center items-center gap-2 py-3 px-4 text-xs font-bold font-mono text-white hover:brightness-110 cursor-pointer shadow-md flex"
                       >
                         <ExternalLink className="h-4 w-4" />
                         <span>
-                          {product.customButtonLabel || 
-                            (product.purchaseType === 'referral' ? (isEn ? "GET IT VIA REFERRAL" : "GUNAKAN KODE REFERRAL") :
-                             product.purchaseType === 'affiliate' ? (isEn ? "BUY VIA AFFILIATE" : "BELI VIA AFFILIATE") :
-                             (isEn ? "BUY ON " + (platformLabelFromUrl(product.ctaUrl) || "PARTNER STORE") : "BELI DI " + (platformLabelFromUrl(product.ctaUrl) || "TOKO ONLINE")))}
+                          {product.customButtonLabel ||
+                            (product.purchaseType === "referral"
+                              ? isEn
+                                ? "USE REFERRAL LINK"
+                                : "GUNAKAN KODE REFERRAL"
+                              : product.purchaseType === "affiliate"
+                              ? isEn
+                                ? "BUY VIA AFFILIATE"
+                                : "BELI VIA AFFILIATE"
+                              : isEn
+                              ? "BUY ON " + (platformLabelFromUrl(product.ctaUrl) || "PARTNER STORE")
+                              : "BELI DI " + (platformLabelFromUrl(product.ctaUrl) || "TOKO ONLINE"))}
                         </span>
                         <ArrowUpRight className="h-4 w-4" />
                       </a>
@@ -316,18 +412,30 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <span>
                   {isEn
-                    ? (product.purchaseType === 'whatsapp' || !product.purchaseType 
-                        ? "Safe checkout with QRIS & direct confirmation."
-                        : "Secured external checkout via partner platform.")
-                    : (product.purchaseType === 'whatsapp' || !product.purchaseType
-                        ? "Pemesanan aman dengan verifikasi QRIS / Transfer & WhatsApp resmi."
-                        : "Transaksi aman melalui platform partner resmi.")}
+                    ? product.purchaseType === "freelanceops"
+                      ? "Seamless workspace brief & project milestone tracking."
+                      : product.purchaseType === "whatsapp" || !product.purchaseType
+                      ? "Safe checkout with QRIS & verified confirmation."
+                      : "Secured transaction via official partner platform."
+                    : product.purchaseType === "freelanceops"
+                    ? "Diskusi brief, milestone, dan negosiasi aman melalui FreelanceOps."
+                    : product.purchaseType === "whatsapp" || !product.purchaseType
+                    ? "Pemesanan aman dengan verifikasi QRIS / Transfer & WhatsApp resmi."
+                    : "Transaksi aman melalui platform partner resmi."}
                 </span>
               </div>
             </div>
           </div>
         </OSWindow>
       </div>
+
+      {/* Share & Promo Kit Modal */}
+      <ProductShareModal
+        product={product}
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        isEn={isEn}
+      />
     </div>
   );
 }

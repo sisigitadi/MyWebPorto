@@ -29,17 +29,7 @@ fs.mkdirSync(targetDir, { recursive: true });
 
 // Helper to copy recursively
 function copyDir(src, dest) {
-  fs.mkdirSync(dest, { recursive: true });
-  const entries = fs.readdirSync(src, { withFileTypes: true });
-  for (const entry of entries) {
-    const srcPath = path.join(src, entry.name);
-    const destPath = path.join(dest, entry.name);
-    if (entry.isDirectory()) {
-      copyDir(srcPath, destPath);
-    } else {
-      fs.copyFileSync(srcPath, destPath);
-    }
-  }
+  fs.cpSync(src, dest, { recursive: true });
 }
 
 // 1. Copy .next/standalone content to deploy_package
