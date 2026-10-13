@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { absoluteImageUrl, buildLlmsTxt } from "@/lib/seo";
+import { absoluteImageUrl, buildLlmsTxt, formatSeoTitle } from "@/lib/seo";
 
 describe("buildLlmsTxt", () => {
   it("menyusun markdown profil + katalog dengan link kanonis", () => {
@@ -94,3 +94,39 @@ describe("absoluteImageUrl (og:image halaman detail)", () => {
     );
   });
 });
+
+describe("formatSeoTitle (optimasi batas panjang title SEO)", () => {
+  it("mempertahankan judul pendek dan menambahkan brand", () => {
+    const title = formatSeoTitle("Proyek Keren", "Sigit Adi");
+    expect(title).toBe("Proyek Keren | Sigit Adi");
+    expect(title.length).toBeLessThanOrEqual(60);
+  });
+
+  it("memotong subjudul panjang setelah titik dua agar tetap <= 60 karakter", () => {
+    const title = formatSeoTitle(
+      "ISP Management Portal: Operasional dan Billing Provider",
+      "Sigit Adi Irianto"
+    );
+    expect(title).toBe("ISP Management Portal | Sigit Adi Irianto");
+    expect(title.length).toBeLessThanOrEqual(60);
+  });
+
+  it("memotong judul sangat panjang pada batas kata", () => {
+    const title = formatSeoTitle(
+      "Panduan Lengkap Arsitektur Next.js 15: App Router, Server Actions & Optimasi Performa",
+      "Sigit Adi Irianto"
+    );
+    expect(title).toBe("Panduan Lengkap Arsitektur Next.js 15 | Sigit Adi Irianto");
+    expect(title.length).toBeLessThanOrEqual(60);
+  });
+
+  it("memotong teks tanpa titik dua jika melebihi batas 60 karakter", () => {
+    const title = formatSeoTitle(
+      "Analisis Mendalam Mengenai Rekayasa Perangkat Lunak Skala Enterprise dan Sistem Keamanan Tingkat Lanjut",
+      "Sigit Adi"
+    );
+    expect(title.length).toBeLessThanOrEqual(60);
+    expect(title).toContain("| Sigit Adi");
+  });
+});
+

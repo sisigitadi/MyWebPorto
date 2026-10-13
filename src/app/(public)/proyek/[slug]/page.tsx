@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getProjects, getProfile } from "@/lib/actions";
 import { safeJsonLd } from "@/lib/json-ld";
-import { localeAlternates, shareImage, extractFaqFromContent, buildFaqPageSchema } from "@/lib/seo";
+import { localeAlternates, shareImage, extractFaqFromContent, buildFaqPageSchema, formatSeoTitle } from "@/lib/seo";
 import { ProjectDetailContent } from "@/components/public/project-detail-content";
 
 interface ProjectDetailPageProps {
@@ -29,7 +29,8 @@ export async function generateMetadata({ params }: ProjectDetailPageProps) {
     };
   }
 
-  const title = `${project.title} - Portofolio & Studi Kasus`;
+  // Format judul SEO optimal (maks 60 karakter) agar tidak ditandai 'Title too long' oleh Bing/Google
+  const pageTitle = formatSeoTitle(project.title);
   const description = project.summary;
   const url = `${baseUrl}/proyek/${slug}`;
   // Gambar share: thumbnail proyek; bila kosong → kartu /opengraph-image (avatar).
@@ -37,11 +38,13 @@ export async function generateMetadata({ params }: ProjectDetailPageProps) {
   // layout, jadi tanpa `images` halaman ini kehilangan og:image total.
   const image = shareImage(project.thumbnailUrl, baseUrl, project.title);
   return {
-    title,
+    title: {
+      absolute: pageTitle,
+    },
     description,
     alternates: localeAlternates(url),
     openGraph: {
-      title,
+      title: pageTitle,
       description,
       url,
       type: "website",
@@ -49,7 +52,7 @@ export async function generateMetadata({ params }: ProjectDetailPageProps) {
     },
     twitter: {
       card: "summary_large_image",
-      title,
+      title: pageTitle,
       description,
       images: [image.url],
     },

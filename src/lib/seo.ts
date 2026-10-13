@@ -161,11 +161,51 @@ export function shareImage(
     : { url, alt };
 }
 
+/**
+ * Memastikan title tag berada dalam batas optimal search engine (Bing & Google: 50–60 karakter).
+ * Bing Webmaster Tools memicu peringatan 'Title too long' bila title melebihi 65 karakter.
+ * Helper ini memotong string secara cerdas pada batas kata atau pemisah tanda baca (:).
+ */
+export function formatSeoTitle(rawTitle: string, brand = "Sigit Adi Irianto", maxLen = 60): string {
+  const cleaned = (rawTitle || "").trim().replace(/\s+/g, " ");
+  if (!cleaned) return brand;
+
+  const brandSuffix = brand ? ` | ${brand}` : "";
+  const allowedContentLen = maxLen - brandSuffix.length;
+
+  // Jika judul + brand sudah pas di bawah batas
+  if (cleaned.length + brandSuffix.length <= maxLen) {
+    return `${cleaned}${brandSuffix}`;
+  }
+
+  // Jika judul mengandung titik dua ":", subjudul seringkali panjang
+  // Coba ambil bagian utama sebelum ":" jika cukup deskriptif (>= 6 karakter)
+  if (cleaned.includes(":")) {
+    const mainPart = cleaned.split(":")[0].trim();
+    if (mainPart.length >= 6 && mainPart.length + brandSuffix.length <= maxLen) {
+      return `${mainPart}${brandSuffix}`;
+    }
+  }
+
+  // Jika tetap melebihi, potong pada batas kata terdekat sebelum allowedContentLen
+  if (allowedContentLen > 10) {
+    const slice = cleaned.slice(0, allowedContentLen - 1);
+    const lastSpace = slice.lastIndexOf(" ");
+    const trimmed = (lastSpace > 10 ? slice.slice(0, lastSpace) : slice).trim();
+    return `${trimmed}…${brandSuffix}`;
+  }
+
+  // Fallback: jika judulnya sendiri dipotong langsung
+  if (cleaned.length <= maxLen) return cleaned;
+  return cleaned.slice(0, maxLen - 1).trim() + "…";
+}
+
 export async function generateDynamicMetadata(): Promise<Metadata> {
   const profile = await getProfile();
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
 
-  const title = `${profile.name} — ${profile.headline}`;
+  const rawTitle = `${profile.name} — ${profile.headline}`;
+  const title = rawTitle.length <= 60 ? rawTitle : `${profile.name} — Web Developer`;
   const description = profile.bio;
 
   // Open Graph & token verifikasi: override admin (settings "seo") → turunan

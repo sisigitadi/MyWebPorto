@@ -179,82 +179,131 @@ export async function startWABot(): Promise<{ success: boolean; message: string 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     sock.ev.on("messages.upsert", async (m: any) => {
       try {
-        if (!m.messages || m.messages.length === 0) return;
-        const msg = m.messages[0];
+        if (!m.messages || !Array.isArray(m.messages) || m.messages.length === 0) return;
 
-        // 1. Abaikan pesan dari diri sendiri
-        if (msg.key.fromMe) return;
+        const normalizeContent = baileys.normalizeMessageContent || ((msgObj: unknown) => msgObj);
+        const extractContent = baileys.extractMessageContent || ((msgObj: unknown) => msgObj);
 
-        const remoteJid = msg.key.remoteJid || "";
+        for (const msg of m.messages) {
+          if (!msg.message) continue;
 
-        // 2. Abaikan pesan dari Grup (hanya chat personal)
-        if (remoteJid.endsWith("@g.us") || remoteJid.includes("-")) return;
+          const remoteJid: string = msg.key?.remoteJid || "";
 
-        // 3. Abaikan pesan siaran status WhatsApp
-        if (remoteJid === "status@broadcast") return;
-
-        // Ambil isi teks pesan
-        const messageContent =
-          msg.message?.conversation ||
-          msg.message?.extendedTextMessage?.text ||
-          msg.message?.imageMessage?.caption ||
-          "";
-
-        if (!messageContent.trim()) return;
-
-        const botConfig = await getWABotConfig();
-        if (!botConfig.enabled || !botConfig.autoReply) return;
-
-        const senderPhone = remoteJid.replace("@s.whatsapp.net", "");
-        const senderName = msg.pushName || "Pelanggan";
-
-        // Cek pengecualian nomor admin
-        if (
-          botConfig.adminExclusions &&
-          botConfig.adminExclusions.some((exc) => senderPhone.includes(exc.trim()))
-        ) {
-          return;
-        }
-
-        updateState({
-          messagesCount: {
-            incoming: container.state.messagesCount.incoming + 1,
-            replied: container.state.messagesCount.replied,
-          },
-        });
-
-        // 4. Simulasi Typing (Human-like Typing Presence)
-        try {
-          await sock.sendPresenceUpdate("composing", remoteJid);
-        } catch {
-          // abaikan bila presence gagal
-        }
-
-        const delayMs = Math.max(1000, (botConfig.delaySeconds || 2) * 1000);
-        await new Promise((r) => setTimeout(r, delayMs));
-
-        // 5. Generate AI Reply berbasis knowledge
-        const aiResult = await generateWhatsAppReply(
-          messageContent,
-          senderPhone,
-          senderName
-        );
-
-        if (aiResult && aiResult.reply) {
-          await sock.sendMessage(remoteJid, { text: aiResult.reply });
-
-          try {
-            await sock.sendPresenceUpdate("paused", remoteJid);
-          } catch {
-            // abaikan
+          // 1. Abaikan pesan siaran status WhatsApp, broadcast, newsletter, dan grup
+          if (
+            remoteJid === "status@broadcast" ||
+            remoteJid.endsWith("@broadcast") ||
+            remoteJid.endsWith("@newsletter") ||
+            remoteJid.endsWith("@g.us")
+          ) {
+            continue;
           }
+
+          // 2. Abaikan pesan dari nomor bot itu sendiri (fromMe)
+          if (msg.key?.fromMe) {
+            console.log(
+              `[wa-service] Pesan diabaikan karena dikirim dari nomor bot itu sendiri (fromMe=true, jid=${remoteJid}). Catatan: Untuk mengetes bot, kirim pesan dari nomor WhatsApp lain.`
+            );
+            continue;
+          }
+
+          // 3. Bongkar pembungkus pesan (ephemeralMessage/pesan sementara, viewOnce, edit, dsb.)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const unwrapped: any = extractContent(normalizeContent(msg.message)) || msg.message;
+
+          const messageContent: string = (
+            unwrapped?.conversation ||
+            unwrapped?.extendedTextMessage?.text ||
+            unwrapped?.imageMessage?.caption ||
+            unwrapped?.videoMessage?.caption ||
+            unwrapped?.documentMessage?.caption ||
+            msg.message?.conversation ||
+            msg.message?.extendedTextMessage?.text ||
+            msg.message?.imageMessage?.caption ||
+            ""
+          ).trim();
+
+          if (!messageContent) {
+            console.log(
+              `[wa-service] Pesan dari ${remoteJid} diabaikan: Tidak mengandung teks pesan yang dapat diproses.`
+            );
+            continue;
+          }
+
+          // 4. Periksa konfigurasi bot
+          const botConfig = await getWABotConfig();
+          if (!botConfig.enabled) {
+            console.log("[wa-service] Pesan diabaikan: Bot WhatsApp sedang dinonaktifkan di pengaturan admin (enabled=false).");
+            continue;
+          }
+          if (!botConfig.autoReply) {
+            console.log("[wa-service] Pesan diabaikan: Fitur Auto-Reply sedang dinonaktifkan di pengaturan admin (autoReply=false).");
+            continue;
+          }
+
+          const senderPhone = remoteJid.replace("@s.whatsapp.net", "").replace("@lid", "");
+          const senderName = msg.pushName || "Pelanggan";
+
+          // Cek pengecualian nomor admin
+          if (
+            botConfig.adminExclusions &&
+            botConfig.adminExclusions.some((exc) => exc.trim() && senderPhone.includes(exc.trim()))
+          ) {
+            console.log(
+              `[wa-service] Pesan dari ${senderPhone} diabaikan: Nomor terdaftar dalam pengecualian admin (adminExclusions).`
+            );
+            continue;
+          }
+
+          console.log(
+            `[wa-service] Menerima pesan dari ${senderName} (${senderPhone}): "${messageContent}"`
+          );
 
           updateState({
             messagesCount: {
-              incoming: container.state.messagesCount.incoming,
-              replied: container.state.messagesCount.replied + 1,
+              incoming: container.state.messagesCount.incoming + 1,
+              replied: container.state.messagesCount.replied,
             },
           });
+
+          // 5. Simulasi Mengetik (Typing indicator)
+          try {
+            await sock.sendPresenceUpdate("composing", remoteJid);
+          } catch {
+            // abaikan bila presence gagal
+          }
+
+          const delayMs = Math.max(1000, (botConfig.delaySeconds || 2) * 1000);
+          await new Promise((r) => setTimeout(r, delayMs));
+
+          // 6. Generate Balasan AI berbasis Knowledge & Data
+          const aiResult = await generateWhatsAppReply(
+            messageContent,
+            senderPhone,
+            senderName
+          );
+
+          if (aiResult && aiResult.reply) {
+            await sock.sendMessage(remoteJid, { text: aiResult.reply });
+            console.log(
+              `[wa-service] Sukses mengirim balasan ke ${senderPhone} [Sumber: ${aiResult.source}, Model: ${aiResult.modelUsed}]`
+            );
+
+            try {
+              await sock.sendPresenceUpdate("paused", remoteJid);
+            } catch {
+              // abaikan
+            }
+
+            updateState({
+              messagesCount: {
+                incoming: container.state.messagesCount.incoming,
+                replied: container.state.messagesCount.replied + 1,
+              },
+            });
+          } else {
+            console.warn(`[wa-service] Engine AI tidak menghasilkan balasan untuk ${senderPhone}`);
+          }
         }
       } catch (msgErr) {
         console.error("[wa-service] Error handling message:", msgErr);

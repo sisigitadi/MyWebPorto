@@ -481,7 +481,7 @@ export default function WhatsAppBotAdminPage() {
               </CardHeader>
               <CardContent className="flex flex-col items-center justify-center p-6 text-center space-y-4">
                 {state.status === "CONNECTED" ? (
-                  <div className="py-8 space-y-3">
+                  <div className="py-6 space-y-4 max-w-lg mx-auto">
                     <div className="h-16 w-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 flex items-center justify-center mx-auto">
                       <CheckCircle2 className="h-8 w-8" />
                     </div>
@@ -492,6 +492,24 @@ export default function WhatsAppBotAdminPage() {
                       <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
                         Nomor *{state.connectedPhone}* siap menjawab pertanyaan pelanggan tentang katalog produk, harga, nomor rekening, dan status pesanan.
                       </p>
+                    </div>
+
+                    <div className="p-3.5 rounded-lg bg-blue-500/10 border border-blue-500/25 text-left text-xs space-y-2">
+                      <div className="flex items-center gap-2 font-bold text-blue-600 dark:text-blue-400">
+                        <Sparkles className="h-4 w-4" />
+                        <span>Panduan Pengujian Chat Bot:</span>
+                      </div>
+                      <ul className="list-disc list-inside space-y-1 text-muted-foreground text-[11px] leading-relaxed">
+                        <li>
+                          <strong className="text-[var(--vt-ink)]">Gunakan nomor WA lain:</strong> Jangan mengetes dengan mengirim pesan ke nomor sendiri dari HP bot (WhatsApp menandai pesan dari nomor sendiri sebagai <code className="bg-muted px-1 rounded">fromMe</code> sehingga sengaja diabaikan agar tidak looping).
+                        </li>
+                        <li>
+                          <strong className="text-[var(--vt-ink)]">Coba Simulator Chat AI:</strong> Anda dapat menguji respon bot secara instan di tab <strong className="text-[var(--vt-ink)]">&ldquo;Simulator Chat AI&rdquo;</strong> di atas tanpa memerlukan HP kedua.
+                        </li>
+                        <li>
+                          <strong className="text-[var(--vt-ink)]">Server Wajib Tetap Berjalan:</strong> Pastikan terminal development (<code className="bg-muted px-1 rounded">npm run dev</code>) atau server Node.js tetap aktif di latar belakang untuk mempertahankan koneksi socket WhatsApp.
+                        </li>
+                      </ul>
                     </div>
                   </div>
                 ) : state.status === "QR_READY" && state.qrCodeDataUrl ? (

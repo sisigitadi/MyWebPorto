@@ -9,7 +9,7 @@ import { ArticlesCatalogContent } from "@/components/public/articles-catalog-con
 const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
 
 export const metadata: Metadata = {
-  title: "Artikel & Wawasan Teknologi — Sigit Adi Irianto",
+  title: "Artikel & Wawasan Teknologi",
   description: "Kumpulan artikel mendalam, panduan arsitektur software engineering, tips Next.js, integrasi sistem AI, dan wawasan teknologi.",
   alternates: localeAlternates(`${baseUrl}/artikel`),
   openGraph: {

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getArticles, getProfile } from "@/lib/actions";
 import { resolveFeatures } from "@/lib/features-config";
 import { safeJsonLd } from "@/lib/json-ld";
-import { localeAlternates, shareImage, extractFaqFromContent, buildFaqPageSchema } from "@/lib/seo";
+import { localeAlternates, shareImage, extractFaqFromContent, buildFaqPageSchema, formatSeoTitle } from "@/lib/seo";
 import { ArticleDetailContent } from "@/components/public/article-detail-content";
 
 interface ArticleDetailPageProps {
@@ -37,7 +37,8 @@ export async function generateMetadata({ params }: ArticleDetailPageProps) {
     };
   }
 
-  const title = `${article.title} - Artikel & Wawasan Teknologi`;
+  // Format judul SEO optimal (maks 60 karakter) agar tidak ditandai 'Title too long' oleh Bing/Google
+  const pageTitle = formatSeoTitle(article.title);
   const description = article.summary || article.content.slice(0, 160);
   const url = `${baseUrl}/artikel/${slug}`;
   // Gambar share: cover artikel; bila kosong → kartu /opengraph-image (avatar).
@@ -45,11 +46,13 @@ export async function generateMetadata({ params }: ArticleDetailPageProps) {
   // layout, jadi tanpa `images` halaman ini kehilangan og:image total.
   const image = shareImage(article.imageUrl, baseUrl, article.title);
   return {
-    title,
+    title: {
+      absolute: pageTitle,
+    },
     description,
     alternates: localeAlternates(url),
     openGraph: {
-      title,
+      title: pageTitle,
       description,
       url,
       type: "article",
@@ -61,7 +64,7 @@ export async function generateMetadata({ params }: ArticleDetailPageProps) {
     },
     twitter: {
       card: "summary_large_image",
-      title,
+      title: pageTitle,
       description,
       images: [image.url],
     },
