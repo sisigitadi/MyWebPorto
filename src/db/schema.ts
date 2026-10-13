@@ -342,6 +342,50 @@ export const media = pgTable(
 export type Media = typeof media.$inferSelect;
 export type NewMedia = typeof media.$inferInsert;
 
+/**
+ * Visitor analytics / hits log — analitik kunjungan internal di Postgres Neon.
+ *
+ * Privasi (UU PDP & Anti-Slop):
+ * - IP mentah TIDAK PERNAH disimpan. Hanya salted SHA-256 hash.
+ * - Tanpa cookie pelacak pihak ketiga (credentials: "omit").
+ * - Geolocation diambil dari edge headers (Vercel / Cloudflare).
+ * - User-Agent diurai untuk bot/crawler, OS, browser, device.
+ */
+export const visitorHits = pgTable(
+  "visitor_hits",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    ipHash: text("ip_hash").notNull(),
+    path: text("path").notNull(),
+    referrer: text("referrer"),
+    userAgent: text("user_agent"),
+    browser: text("browser"),
+    os: text("os"),
+    device: text("device"),
+    country: text("country"),
+    city: text("city"),
+    region: text("region"),
+    timezone: text("timezone"),
+    asn: text("asn"),
+    network: text("network"),
+    isBot: boolean("is_bot").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("visitor_hits_created_at_idx").on(table.createdAt),
+    index("visitor_hits_ip_hash_idx").on(table.ipHash),
+    index("visitor_hits_path_idx").on(table.path),
+    index("visitor_hits_is_bot_idx").on(table.isBot),
+  ]
+);
+
+export type VisitorHit = typeof visitorHits.$inferSelect;
+export type NewVisitorHit = typeof visitorHits.$inferInsert;
+
 export type Setting = typeof settings.$inferSelect;
 export type NewSetting = typeof settings.$inferInsert;
 
@@ -365,3 +409,4 @@ export type NewArticle = typeof articles.$inferInsert;
 
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type NewAuditLog = typeof auditLogs.$inferInsert;
+

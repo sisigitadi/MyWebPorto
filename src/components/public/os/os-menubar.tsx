@@ -45,7 +45,7 @@ export function OSMenubar({ profile }: OSMenubarProps) {
                 sessionStorage.setItem("sigitos_clicks", currentClicks.toString());
                 if (currentClicks >= 9) {
                   sessionStorage.setItem("sigitos_clicks", "0");
-                  window.open("https://portofolio-visitor-tracker.si-sigitadi.workers.dev/dashboard", "_blank");
+                  window.open("/admin/analytics", "_blank");
                 }
               }
             }}

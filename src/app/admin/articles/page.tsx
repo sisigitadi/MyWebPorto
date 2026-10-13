@@ -54,6 +54,7 @@ import { ContentEditor } from "@/components/admin/content-editor";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { isScheduled, localInputToUtcIso, utcIsoToLocalInput } from "@/lib/publish";
 import { toast } from "sonner";
+import { isTranslationErrorPayload } from "@/lib/content-edit";
 import {
   getArticles,
   saveArticle,
@@ -158,9 +159,9 @@ export default function AdminArticlesPage() {
     setFormSlug(article.slug || "");
     setFormSummary(article.summary || "");
     setFormContent(article.content || "");
-    setFormTitleEn(article.titleEn || "");
-    setFormSummaryEn(article.summaryEn || "");
-    setFormContentEn(article.contentEn || "");
+    setFormTitleEn(article.titleEn && !isTranslationErrorPayload(article.titleEn) ? article.titleEn : "");
+    setFormSummaryEn(article.summaryEn && !isTranslationErrorPayload(article.summaryEn) ? article.summaryEn : "");
+    setFormContentEn(article.contentEn && !isTranslationErrorPayload(article.contentEn) ? article.contentEn : "");
     setFormImageUrl(article.imageUrl || "");
     setFormTags(article.tags || []);
     setTagInput("");
@@ -180,21 +181,51 @@ export default function AdminArticlesPage() {
   const handleAutoTranslateToEn = async () => {
     if (!formTitle && !formSummary && !formContent) return;
     setIsTranslating(true);
+    if (isTranslationErrorPayload(formTitleEn)) setFormTitleEn("");
+    if (isTranslationErrorPayload(formSummaryEn)) setFormSummaryEn("");
+    if (isTranslationErrorPayload(formContentEn)) setFormContentEn("");
+    let anySuccess = false;
+    let errorMessage = "";
+
     try {
       if (formTitle) {
         const resTitle = await translateFieldAction(formTitle, "id", "en");
-        if (resTitle.success && resTitle.text) setFormTitleEn(resTitle.text);
+        if (resTitle.success && resTitle.text && !isTranslationErrorPayload(resTitle.text)) {
+          setFormTitleEn(resTitle.text);
+          anySuccess = true;
+        } else if (resTitle.error) {
+          errorMessage = resTitle.error;
+        }
       }
       if (formSummary) {
         const resSum = await translateFieldAction(formSummary, "id", "en");
-        if (resSum.success && resSum.text) setFormSummaryEn(resSum.text);
+        if (resSum.success && resSum.text && !isTranslationErrorPayload(resSum.text)) {
+          setFormSummaryEn(resSum.text);
+          anySuccess = true;
+        } else if (resSum.error) {
+          errorMessage = resSum.error;
+        }
       }
       if (formContent) {
         const resContent = await translateFieldAction(formContent, "id", "en");
-        if (resContent.success && resContent.text) setFormContentEn(resContent.text);
+        if (resContent.success && resContent.text && !isTranslationErrorPayload(resContent.text)) {
+          setFormContentEn(resContent.text);
+          anySuccess = true;
+        } else if (resContent.error) {
+          errorMessage = resContent.error;
+        }
       }
-    } catch (e) {
+
+      if (anySuccess) {
+        toast.success("Berhasil menerjemahkan ke bahasa Inggris!");
+      } else if (errorMessage) {
+        toast.error("Gagal menerjemahkan", { description: errorMessage });
+      }
+    } catch (e: unknown) {
       console.error("Auto-translate error:", e);
+      toast.error("Gagal menerjemahkan teks", {
+        description: e instanceof Error ? e.message : "Terjadi kesalahan koneksi",
+      });
     } finally {
       setIsTranslating(false);
     }

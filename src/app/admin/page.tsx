@@ -12,6 +12,10 @@ import {
   Layers,
   FileText,
   Activity,
+  Globe2,
+  Wifi,
+  Clock,
+  MapPin,
 } from "lucide-react";
 import {
   Card,
@@ -31,12 +35,13 @@ import {
   getArticles,
 } from "@/lib/actions";
 import { isLivePublished } from "@/lib/publish";
+import { getVisitorAnalytics } from "@/lib/visitor-analytics";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminDashboardPage() {
-  const [user, profile, projects, services, products, testimonials, articles] =
+  const [user, profile, projects, services, products, testimonials, articles, analytics] =
     await Promise.all([
       currentUser(),
       getProfile(),
@@ -45,6 +50,7 @@ export default async function AdminDashboardPage() {
       getProducts(),
       getTestimonials(),
       getArticles({ includeScheduled: true }),
+      getVisitorAnalytics("30d", false).catch(() => null),
     ]);
 
   const displayName =
@@ -143,19 +149,6 @@ export default async function AdminDashboardPage() {
               <span>Kunjungi Website Publik</span>
             </Link>
           </Button>
-          <Button asChild variant="outline" size="sm" className="gap-1.5 text-xs h-9 text-muted-foreground hover:text-foreground">
-            <a
-              href={
-                process.env.NEXT_PUBLIC_ANALYTICS_DASHBOARD_URL ||
-                "https://portofolio-visitor-tracker.si-sigitadi.workers.dev/dashboard"
-              }
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Activity className="h-3.5 w-3.5" />
-              <span>Visitor Analytics</span>
-            </a>
-          </Button>
         </div>
       </div>
 
@@ -199,6 +192,164 @@ export default async function AdminDashboardPage() {
           );
         })}
       </div>
+
+      {/* Sebaran Geografi & Trafik Pengunjung (Internal Neon) */}
+      <Card className="border border-border">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <Globe2 className="h-4 w-4 text-primary" />
+              <CardTitle className="text-base font-semibold text-foreground">
+                Sebaran Geografi & Trafik Pengunjung
+              </CardTitle>
+            </div>
+            <CardDescription className="text-xs text-muted-foreground mt-0.5">
+              Data kunjungan internal PostgreSQL Neon · 30 hari terakhir · UU PDP Friendly (Salted SHA-256)
+            </CardDescription>
+          </div>
+          <Button asChild variant="outline" size="sm" className="h-8 text-xs gap-1.5 self-start sm:self-auto">
+            <Link href="/admin/analytics">
+              <Activity className="h-3.5 w-3.5 text-primary" />
+              <span>Buka Analytics Lengkap</span>
+              <ArrowUpRight className="h-3 w-3" />
+            </Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div className="p-3 rounded-lg border border-border bg-muted/20">
+              <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider block">
+                Total Tayangan (30h)
+              </span>
+              <span className="text-xl font-bold font-mono text-foreground mt-0.5 block">
+                {analytics?.totalHits.toLocaleString("id-ID") ?? 0}
+              </span>
+            </div>
+            <div className="p-3 rounded-lg border border-border bg-muted/20">
+              <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider block">
+                Pengunjung Unik
+              </span>
+              <span className="text-xl font-bold font-mono text-[var(--vt-blue)] mt-0.5 block">
+                {analytics?.uniqueVisitors.toLocaleString("id-ID") ?? 0}
+              </span>
+            </div>
+            <div className="p-3 rounded-lg border border-border bg-muted/20">
+              <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider block">
+                Tayangan Hari Ini
+              </span>
+              <span className="text-xl font-bold font-mono text-emerald-600 mt-0.5 block">
+                {analytics?.todayHits.toLocaleString("id-ID") ?? 0}
+              </span>
+            </div>
+            <div className="p-3 rounded-lg border border-border bg-muted/20">
+              <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider block">
+                Unik Hari Ini
+              </span>
+              <span className="text-xl font-bold font-mono text-purple-600 mt-0.5 block">
+                {analytics?.todayUniq.toLocaleString("id-ID") ?? 0}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-3 border-t border-border/60">
+            {/* Negara Teratas */}
+            <div className="space-y-2">
+              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Globe2 className="h-3.5 w-3.5 text-indigo-600" /> Asal Negara
+              </span>
+              {!analytics || analytics.countryBreakdown.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2 italic">Belum ada data.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {analytics.countryBreakdown.slice(0, 4).map((c) => (
+                    <div key={c.code} className="flex items-center justify-between text-xs p-1.5 rounded-md hover:bg-muted/40 transition-colors">
+                      <div className="flex items-center gap-2 truncate pr-1">
+                        <span className="text-sm shrink-0">{c.flag}</span>
+                        <span className="font-medium text-foreground truncate">{c.name}</span>
+                      </div>
+                      <div className="font-mono text-right shrink-0 text-muted-foreground text-[10px]">
+                        <span className="font-bold text-foreground text-xs">{c.count}</span> ({c.percentage}%)
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Lokasi Lengkap (Location) */}
+            <div className="space-y-2">
+              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 text-emerald-600" /> Lokasi (Location)
+              </span>
+              {!analytics || analytics.locationBreakdown.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2 italic">Belum ada data.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {analytics.locationBreakdown.slice(0, 4).map((loc, idx) => (
+                    <div key={`${loc.fullLocation}-${idx}`} className="flex items-center justify-between text-xs p-1.5 rounded-md hover:bg-muted/40 transition-colors">
+                      <div className="flex items-center gap-1.5 truncate pr-1">
+                        <span className="text-xs shrink-0">{loc.flag}</span>
+                        <span className="font-medium text-foreground truncate">{loc.fullLocation}</span>
+                      </div>
+                      <div className="font-mono text-right shrink-0 text-muted-foreground text-[10px]">
+                        <span className="font-bold text-foreground text-xs">{loc.count}</span> ({loc.percentage}%)
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Jaringan & ISP (Network) */}
+            <div className="space-y-2">
+              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Wifi className="h-3.5 w-3.5 text-cyan-600" /> Jaringan (Network)
+              </span>
+              {!analytics || analytics.networkBreakdown.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2 italic">Belum ada data.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {analytics.networkBreakdown.slice(0, 4).map((net) => (
+                    <div key={net.network} className="flex items-center justify-between text-xs p-1.5 rounded-md hover:bg-muted/40 transition-colors">
+                      <div className="flex items-center gap-1.5 truncate pr-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 shrink-0" />
+                        <span className="font-medium text-foreground font-mono truncate text-[11px]">{net.network}</span>
+                      </div>
+                      <div className="font-mono text-right shrink-0 text-muted-foreground text-[10px]">
+                        <span className="font-bold text-foreground text-xs">{net.count}</span> ({net.percentage}%)
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Zona Waktu (Timezone) */}
+            <div className="space-y-2">
+              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-amber-600" /> Zona Waktu
+              </span>
+              {!analytics || analytics.timezoneBreakdown.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2 italic">Belum ada data.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {analytics.timezoneBreakdown.slice(0, 4).map((tz) => (
+                    <div key={tz.timezone} className="flex items-center justify-between text-xs p-1.5 rounded-md hover:bg-muted/40 transition-colors">
+                      <div className="flex items-center gap-1.5 truncate pr-1">
+                        <Clock className="h-3 w-3 text-amber-500 shrink-0" />
+                        <span className="font-medium text-foreground font-mono truncate text-[11px]">{tz.timezone}</span>
+                      </div>
+                      <div className="font-mono text-right shrink-0 text-muted-foreground text-[10px]">
+                        <span className="font-bold text-foreground text-xs">{tz.count}</span> ({tz.percentage}%)
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Quick Status & Recent Projects Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { TestimonialData } from "@/lib/dummy-data";
 import { toast } from "sonner";
 import { getTestimonials, saveTestimonial, deleteTestimonial, translateFieldAction } from "@/lib/actions";
+import { isTranslationErrorPayload } from "@/lib/content-edit";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -216,10 +217,10 @@ export default function AdminTestimonialsPage() {
     setErrorMessage("");
     setClientName(item.clientName);
     setClientRole(item.clientRole);
-    setClientRoleEn(item.clientRoleEn || "");
+    setClientRoleEn(item.clientRoleEn && !isTranslationErrorPayload(item.clientRoleEn) ? item.clientRoleEn : "");
     setAvatarUrl(item.avatarUrl || "");
     setContent(item.content);
-    setContentEn(item.contentEn || "");
+    setContentEn(item.contentEn && !isTranslationErrorPayload(item.contentEn) ? item.contentEn : "");
     setRating(item.rating);
     setPublished(item.published);
     setDialogOpen(true);
@@ -233,21 +234,40 @@ export default function AdminTestimonialsPage() {
   const handleAutoTranslateToEn = async () => {
     if (!clientRole.trim() && !content.trim()) return;
     setIsTranslating(true);
+    if (isTranslationErrorPayload(clientRoleEn)) setClientRoleEn("");
+    if (isTranslationErrorPayload(contentEn)) setContentEn("");
+    let anySuccess = false;
+    let errorMessage = "";
+
     try {
       if (clientRole.trim()) {
         const resRole = await translateFieldAction(clientRole, "id", "en");
-        if (resRole.success && resRole.text) {
+        if (resRole.success && resRole.text && !isTranslationErrorPayload(resRole.text)) {
           setClientRoleEn(resRole.text);
+          anySuccess = true;
+        } else if (resRole.error) {
+          errorMessage = resRole.error;
         }
       }
       if (content.trim()) {
         const resContent = await translateFieldAction(content, "id", "en");
-        if (resContent.success && resContent.text) {
+        if (resContent.success && resContent.text && !isTranslationErrorPayload(resContent.text)) {
           setContentEn(resContent.text);
+          anySuccess = true;
+        } else if (resContent.error) {
+          errorMessage = resContent.error;
         }
       }
-    } catch {
-      // ignore
+
+      if (anySuccess) {
+        toast.success("Berhasil menerjemahkan ke bahasa Inggris!");
+      } else if (errorMessage) {
+        toast.error("Gagal menerjemahkan", { description: errorMessage });
+      }
+    } catch (err: unknown) {
+      toast.error("Gagal menerjemahkan teks", {
+        description: err instanceof Error ? err.message : "Terjadi kesalahan koneksi",
+      });
     } finally {
       setIsTranslating(false);
     }

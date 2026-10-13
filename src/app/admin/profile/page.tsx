@@ -31,7 +31,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUpload } from "@/components/admin/image-upload";
 import { DUMMY_PROFILE, ProfileData } from "@/lib/dummy-data";
 import { getProfile, updateProfile, translateFieldAction } from "@/lib/actions";
+import { isTranslationErrorPayload } from "@/lib/content-edit";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
+import { toast } from "sonner";
 
 const SOCIAL_LINK_FIELDS: Array<{
   key: keyof ProfileData["socialLinks"];
@@ -103,20 +105,45 @@ export default function AdminProfilePage() {
   };
 
   const handleAutoTranslateToEn = async () => {
+    if (!profile.headline && !profile.bio) return;
     setTranslating(true);
+    setProfile((prev) => ({
+      ...prev,
+      headlineEn: isTranslationErrorPayload(prev.headlineEn) ? "" : prev.headlineEn,
+      bioEn: isTranslationErrorPayload(prev.bioEn) ? "" : prev.bioEn,
+    }));
+    let anySuccess = false;
+    let errorMessage = "";
+
     try {
       if (profile.headline) {
         const resHeadline = await translateFieldAction(profile.headline, "id", "en");
-        if (resHeadline.success && resHeadline.text) {
+        if (resHeadline.success && resHeadline.text && !isTranslationErrorPayload(resHeadline.text)) {
           setProfile((prev) => ({ ...prev, headlineEn: resHeadline.text }));
+          anySuccess = true;
+        } else if (resHeadline.error) {
+          errorMessage = resHeadline.error;
         }
       }
       if (profile.bio) {
         const resBio = await translateFieldAction(profile.bio, "id", "en");
-        if (resBio.success && resBio.text) {
+        if (resBio.success && resBio.text && !isTranslationErrorPayload(resBio.text)) {
           setProfile((prev) => ({ ...prev, bioEn: resBio.text }));
+          anySuccess = true;
+        } else if (resBio.error) {
+          errorMessage = resBio.error;
         }
       }
+
+      if (anySuccess) {
+        toast.success("Berhasil menerjemahkan ke bahasa Inggris!");
+      } else if (errorMessage) {
+        toast.error("Gagal menerjemahkan", { description: errorMessage });
+      }
+    } catch (err: unknown) {
+      toast.error("Gagal menerjemahkan teks", {
+        description: err instanceof Error ? err.message : "Terjadi kesalahan koneksi",
+      });
     } finally {
       setTranslating(false);
     }

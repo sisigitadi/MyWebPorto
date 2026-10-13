@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { saveUIStringsAction, translateFieldAction, saveGodModeDraftAction, publishGodModeAction } from "@/lib/actions";
+import { isTranslationErrorPayload } from "@/lib/content-edit";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { GodModeVersionBar } from "@/components/admin/godmode-version-bar";
 import {
@@ -109,11 +110,11 @@ export function UIStringsForm({ initial }: UIStringsFormProps) {
       return;
     }
     const res = await translateFieldAction(idText, "id", "en");
-    if (res.success) {
+    if (res.success && res.text && !isTranslationErrorPayload(res.text)) {
       handleChange(key, "en", res.text);
       toast.success("Terjemahan English diisi.", { description: res.text.slice(0, 80) });
     } else {
-      toast.error("Gagal menerjemahkan.", { description: res.error });
+      toast.error("Gagal menerjemahkan.", { description: res.error || "Layanan penerjemah tidak valid." });
     }
   };
 

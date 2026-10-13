@@ -51,6 +51,7 @@ import { ProductData } from "@/lib/dummy-data";
 import { getProducts, saveProduct, deleteProduct, translateFieldAction } from "@/lib/actions";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { getProductSlug, slugifyProduct } from "@/lib/product-link";
+import { isTranslationErrorPayload } from "@/lib/content-edit";
 import { toast } from "sonner";
 
 export default function AdminProductsPage() {
@@ -171,9 +172,9 @@ export default function AdminProductsPage() {
     setErrorMessage("");
     setFormTitle(product.title);
     setFormSlug(product.slug || getProductSlug(product));
-    setFormTitleEn(product.titleEn || "");
+    setFormTitleEn(product.titleEn && !isTranslationErrorPayload(product.titleEn) ? product.titleEn : "");
     setFormDescription(product.description);
-    setFormDescriptionEn(product.descriptionEn || "");
+    setFormDescriptionEn(product.descriptionEn && !isTranslationErrorPayload(product.descriptionEn) ? product.descriptionEn : "");
     setFormPriceFormatted(product.priceFormatted);
     setFormComparePrice(product.comparePriceLabel || "");
     setFormPriceAmount(product.priceAmount !== null && product.priceAmount !== undefined ? String(product.priceAmount) : "");
@@ -196,20 +197,43 @@ export default function AdminProductsPage() {
   };
 
   const handleAutoTranslateToEn = async () => {
+    if (!formTitle && !formDescription) return;
     setTranslating(true);
+    if (isTranslationErrorPayload(formTitleEn)) setFormTitleEn("");
+    if (isTranslationErrorPayload(formDescriptionEn)) setFormDescriptionEn("");
+    let titleSuccess = false;
+    let descSuccess = false;
+    let errorMessage = "";
+
     try {
       if (formTitle) {
         const resTitle = await translateFieldAction(formTitle, "id", "en");
-        if (resTitle.success && resTitle.text) {
+        if (resTitle.success && resTitle.text && !isTranslationErrorPayload(resTitle.text)) {
           setFormTitleEn(resTitle.text);
+          titleSuccess = true;
+        } else if (resTitle.error) {
+          errorMessage = resTitle.error;
         }
       }
       if (formDescription) {
         const resDesc = await translateFieldAction(formDescription, "id", "en");
-        if (resDesc.success && resDesc.text) {
+        if (resDesc.success && resDesc.text && !isTranslationErrorPayload(resDesc.text)) {
           setFormDescriptionEn(resDesc.text);
+          descSuccess = true;
+        } else if (resDesc.error) {
+          errorMessage = resDesc.error;
         }
       }
+
+      if (titleSuccess || descSuccess) {
+        toast.success("Berhasil menerjemahkan ke bahasa Inggris!");
+      } else if (errorMessage) {
+        toast.error("Gagal menerjemahkan", { description: errorMessage });
+      }
+    } catch (err: unknown) {
+      toast.error("Gagal menerjemahkan teks", {
+        description: err instanceof Error ? err.message : "Terjadi kesalahan koneksi",
+      });
     } finally {
       setTranslating(false);
     }
@@ -494,13 +518,18 @@ export default function AdminProductsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="desc" className="text-xs font-medium text-[var(--vt-ink)]">
-                    Deskripsi Singkat & Fitur Utama (ID) *
-                  </Label>
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="desc" className="text-xs font-medium text-[var(--vt-ink)]">
+                      Deskripsi Singkat & Fitur Utama (ID) *
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      {formDescription.length.toLocaleString("id-ID")} / 50.000
+                    </span>
+                  </div>
                   <Textarea
                     id="desc"
                     required
-                    rows={3}
+                    rows={4}
                     placeholder="Template production-ready dengan otentikasi, database, dan payment gateway..."
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
@@ -546,12 +575,17 @@ export default function AdminProductsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="descEn" className="text-xs font-medium">
-                    Deskripsi Singkat & Fitur Utama (EN)
-                  </Label>
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="descEn" className="text-xs font-medium">
+                      Deskripsi Singkat & Fitur Utama (EN)
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      {formDescriptionEn.length.toLocaleString("id-ID")} / 50.000
+                    </span>
+                  </div>
                   <Textarea
                     id="descEn"
-                    rows={3}
+                    rows={4}
                     placeholder="Production-ready template with auth, database, and payments..."
                     value={formDescriptionEn}
                     onChange={(e) => setFormDescriptionEn(e.target.value)}

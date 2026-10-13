@@ -47,3 +47,18 @@ export function wrapCodeFence(text: string, selStart: number, selEnd: number): E
   const next = text.slice(0, start) + wrapped + text.slice(end);
   return { text: next, selStart: start, selEnd: start + wrapped.length };
 }
+
+/** Memeriksa apakah sebuah string adalah teks error dari layanan terjemahan pihak ketiga (mis. MyMemory) */
+export function isTranslationErrorPayload(text: string | null | undefined): boolean {
+  if (!text) return false;
+  const upper = text.toUpperCase();
+  return (
+    upper.includes("QUERY LENGTH LIMIT EXCEEDED") ||
+    upper.includes("MAX ALLOWED QUERY") ||
+    upper.includes("MYMEMORY WARNING") ||
+    upper.includes("INVALID TARGET LANGUAGE") ||
+    upper.includes("YOU HAVE USED ALL AVAILABLE") ||
+    upper.includes("DAILY LIMIT EXCEEDED") ||
+    upper.includes("IS NOT A VALID LANGPAIR")
+  );
+}
