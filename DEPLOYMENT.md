@@ -236,6 +236,21 @@ Lihat detail lengkap di [SECURITY.md](./SECURITY.md).
 
 Simpan paket deployment sebelumnya dengan nomor versi atau commit SHA. Jika release bermasalah, pulihkan paket sebelumnya, restart PM2, dan jangan menghapus `data/local-store.json` sebelum backup. Perubahan schema harus di-rollback atau disesuaikan secara terpisah dari rollback aplikasi.
 
+---
+
+## Catatan Operasional: WhatsApp Bot (Baileys Long-Running Socket)
+
+Fitur Bot WhatsApp (`/admin/whatsapp-bot`) menggunakan engine **Baileys** yang mempertahankan koneksi soket TCP/WebSocket persisten ke server WhatsApp secara 24/7:
+
+1. **VPS / Hosting Mandiri (PM2 / Docker) — Rekomendasi Penuh**:
+   - Menjalankan aplikasi via PM2 (`pm2 start ecosystem.config.cjs`) atau Docker container memastikan proses Node.js terus hidup di latar belakang, sehingga WhatsApp bot dapat membalas pesan masuk secara real-time kapan pun.
+   - Folder sesi WhatsApp berada di `data/wa-session`. Pastikan folder `data/` memiliki hak akses tulis (*write permission*) untuk user node.
+2. **Serverless (Vercel)**:
+   - Platform serverless seperti Vercel membatasi waktu eksekusi fungsi (10–15 detik) dan membekukan (*freeze/spin down*) container saat idle.
+   - Oleh karena itu, soket WebSocket latar belakang tidak dapat bertahan hidup 24/7 di lingkungan serverless. Untuk mengaktifkan auto-reply WhatsApp 24/7 tanpa putus, deploy mandiri di VPS menggunakan PM2/Docker adalah opsi terbaik.
+
+---
+
 ## Reverse Proxy Nginx (Opsional jika menggunakan VPS)
 
 ```nginx

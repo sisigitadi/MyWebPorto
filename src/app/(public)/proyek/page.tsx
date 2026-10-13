@@ -7,7 +7,7 @@ import { ProjectsCatalogContent } from "@/components/public/projects-catalog-con
 const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
 
 export const metadata: Metadata = {
-  title: "Daftar Proyek & Portofolio Karya Digital",
+  title: "Katalog Proyek & Portofolio",
   description: "Jelajahi seluruh karya, studi kasus aplikasi web full-stack, sistem berbasis AI, dan solusi digital yang dikembangkan oleh Sigit Adi Irianto.",
   alternates: localeAlternates(`${baseUrl}/proyek`),
   openGraph: {

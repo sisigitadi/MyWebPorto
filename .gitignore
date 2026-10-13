@@ -68,6 +68,8 @@ migrate.log
 .freebuff/
 data/local-store.json
 data/local-settings.json
+data/local-settings-history.json
+data/wa-session/
 
 # scratch & probe sekali pakai (screenshot debug, pencarian stack, dll)
 scripts/_shot*.png

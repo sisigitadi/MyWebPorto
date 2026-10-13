@@ -4,6 +4,23 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Fixed & Improved: Ekstraksi Pesan WhatsApp Bot Baileys & Optimasi Panjang Title SEO (Bing/Google)
+
+Peningkatan keandalan penerimaan pesan masuk WhatsApp Bot dan kepatuhan audit SEO mesin pencari:
+
+- **Perbaikan Ekstraksi Pesan WhatsApp Bot (`src/lib/whatsapp-bot/wa-service.ts`)**:
+  - Penambahan unwrap otomatis pesan masuk via `normalizeMessageContent` dan `extractMessageContent` dari Baileys untuk mendukung pesan sementara (*ephemeral / disappearing messages*), pesan yang diedit (*edited messages*), view-once, pesan berformat kutipan/reply, serta keterangan media (caption gambar/video/dokumen).
+  - Iterasi seluruh pesan dalam satu batch (`for (const msg of m.messages)`) untuk mencegah pesan terlewat saat lonjakan chat masuk.
+  - Penajaman filter JID: pengabaian pesan dari nomor bot sendiri (`fromMe`), status broadcast, newsletter, dan grup secara spesifik tanpa filter regex hyphens yang berisiko memblokir nomor valid.
+  - Diagnostic logging terminal komprehensif (`[wa-service] ...`) untuk memudahkan pelacakan status pesan masuk, alasan pengabaian, dan keberhasilan balasan AI secara transparan.
+  - Petunjuk pengujian responsif pada antarmuka admin `/admin/whatsapp-bot`: panduan pengujian menggunakan nomor WA terpisah, pemanfaatan tab Simulator Chat AI, dan kebutuhan server process yang terus aktif.
+
+- **Optimasi Panjang Title SEO Bing Webmaster Tools & Google (`src/lib/seo.ts`)**:
+  - Helper `formatSeoTitle(rawTitle, brand, maxLen)` untuk membatasi panjang tag judul SEO maksimal 60 karakter agar tidak terkena peringatan *Title too long* pada audit Bing Webmaster Tools (batas ketat 65 karakter) dan Google Search.
+  - Algoritma pemotongan cerdas berbasis tanda baca titik dua (`:`) atau batas kata terdekat tanpa memotong kata di tengah jalan.
+  - Penerapan `formatSeoTitle` pada halaman detail artikel (`/artikel/[slug]`), detail proyek (`/proyek/[slug]`), serta penyesuaian judul katalog `/artikel` dan `/proyek`.
+  - Penambahan 4 unit test Vitest baru di `tests/seo.test.ts`.
+
 ### Added, Changed & Fixed: Sistem Order WhatsApp, Universal Bot Engine & Audit Redaksi Anti-Slop
 
 Pembaruan besar sistem transaksi toko, unifikasi kecerdasan buatan antar-bot, sanitasi audio TTS, dan pembersihan menyeluruh konten redaksi:
