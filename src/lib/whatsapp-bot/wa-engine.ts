@@ -87,7 +87,7 @@ export async function generateWhatsAppReply(
 
       const style = getApiStyle(cloudConfig.provider);
       let cloudText = "";
-      let modelUsed = `${cloudConfig.provider} (${cloudConfig.model})`;
+      const modelUsed = `${cloudConfig.provider} (${cloudConfig.model})`;
 
       if (style === "gemini") {
         const fallbacks = getGeminiFallbackModels(cloudConfig.model);

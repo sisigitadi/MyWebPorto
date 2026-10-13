@@ -186,7 +186,10 @@ export default function AdminOrdersPage() {
   };
 
   useEffect(() => {
-    loadData();
+    const timer = setTimeout(() => {
+      loadData();
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Filtered Orders

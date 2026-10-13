@@ -7,7 +7,7 @@
 import path from "path";
 import fs from "fs";
 import QRCode from "qrcode";
-import type { WABotState, WABotStatus } from "./wa-types";
+import type { WABotState } from "./wa-types";
 import { getWABotConfig } from "./wa-storage";
 import { generateWhatsAppReply } from "./wa-engine";
 
@@ -75,13 +75,14 @@ export async function startWABot(): Promise<{ success: boolean; message: string 
     // Dynamic import Baileys untuk kompatibilitas Next.js server runtime
     const baileys = await import("@whiskeysockets/baileys");
     const makeWASocket = baileys.default || baileys.makeWASocket;
-    const { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = baileys;
+    const { DisconnectReason, fetchLatestBaileysVersion } = baileys;
+    const initMultiFileAuth = baileys.useMultiFileAuthState;
 
     if (!fs.existsSync(SESSIONS_DIR)) {
       fs.mkdirSync(SESSIONS_DIR, { recursive: true });
     }
 
-    const { state: authState, saveCreds } = await useMultiFileAuthState(SESSIONS_DIR);
+    const { state: authState, saveCreds } = await initMultiFileAuth(SESSIONS_DIR);
     const { version } = await fetchLatestBaileysVersion().catch(() => ({
       version: [2, 3000, 1015901307] as [number, number, number],
     }));

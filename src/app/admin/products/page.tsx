@@ -154,8 +154,11 @@ export default function AdminProductsPage() {
   };
 
   useEffect(() => {
-    fetchProducts();
-    loadStoreConfig();
+    const timer = setTimeout(() => {
+      fetchProducts();
+      loadStoreConfig();
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   useUnsavedChanges(

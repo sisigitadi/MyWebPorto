@@ -26,7 +26,7 @@ export interface CompiledKnowledgeContext {
  * Menggabungkan live database porto (produk, jasa, bank) + custom admin input.
  */
 export async function buildWhatsAppBotKnowledge(): Promise<CompiledKnowledgeContext> {
-  const [profile, services, products, projects, articles, storeConfig, botConfig] =
+  const [profile, services, products, projects, _articles, storeConfig, botConfig] =
     await Promise.all([
       getProfile().catch(() => ({
         name: "Sigit Adi Irianto",

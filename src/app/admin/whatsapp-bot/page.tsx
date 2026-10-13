@@ -17,12 +17,8 @@ import {
   Plus,
   Trash2,
   Edit2,
-  Phone,
   Save,
-  Check,
   Zap,
-  Info,
-  ShieldAlert,
   Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -117,10 +113,15 @@ export default function WhatsAppBotAdminPage() {
   };
 
   useEffect(() => {
-    fetchStatus();
+    const timer = setTimeout(() => {
+      fetchStatus();
+    }, 0);
     // Auto-refresh interval (polling for QR update & status)
     const interval = setInterval(fetchStatus, 5000);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
   }, []);
 
   // Handle Control Action

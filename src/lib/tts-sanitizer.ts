@@ -20,7 +20,7 @@ const TECHNICAL_BADGES_REGEX = /\[(lokal|cloud|pro|ready|offline|online|verified
 export function cleanTextForTTS(text: string): string {
   if (!text || typeof text !== "string") return "";
 
-  let cleaned = text
+  const cleaned = text
     // 1. Buang blok kode fenced
     .replace(/```[\s\S]*?```/g, " ")
     // 2. Buang URL web

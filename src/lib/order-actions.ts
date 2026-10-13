@@ -2,8 +2,7 @@
 
 import { db, isDbConnected } from "@/db";
 import * as schema from "@/db/schema";
-import { eq, desc, asc, sql, and, or, ilike } from "drizzle-orm";
-import { z } from "zod";
+import { eq, desc, sql, and, or, ilike } from "drizzle-orm";
 import { verifyAdmin } from "@/lib/admin-auth";
 import { sanitizeError } from "@/lib/error-utils";
 import { logAudit } from "@/lib/audit";
@@ -108,7 +107,7 @@ export async function getStoreConfig(): Promise<StoreConfig> {
  */
 export async function saveStoreConfig(data: Partial<StoreConfig>) {
   try {
-    const admin = await verifyAdmin();
+    await verifyAdmin();
     if (!isDbConnected) {
       return { success: false, error: "Database tidak terhubung" };
     }
@@ -357,7 +356,7 @@ export async function updateOrderStatus(
   projectUrl?: string
 ) {
   try {
-    const admin = await verifyAdmin();
+    await verifyAdmin();
     if (!isDbConnected) {
       return { success: false, error: "Database tidak terhubung" };
     }
@@ -448,7 +447,7 @@ export async function getCustomers(searchQuery?: string) {
  */
 export async function deleteOrder(orderId: string) {
   try {
-    const admin = await verifyAdmin();
+    await verifyAdmin();
     if (!isDbConnected) {
       return { success: false, error: "Database tidak terhubung" };
     }

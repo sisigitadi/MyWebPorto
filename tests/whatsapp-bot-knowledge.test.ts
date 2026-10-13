@@ -1,11 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   buildWhatsAppBotKnowledge,
   detectAndLookupInvoice,
   findDirectFAQMatch,
 } from "@/lib/whatsapp-bot/wa-knowledge";
 import { generateWhatsAppReply } from "@/lib/whatsapp-bot/wa-engine";
-import { DEFAULT_FAQS } from "@/lib/whatsapp-bot/wa-storage";
 
 // Mock database and action calls for deterministic unit testing
 vi.mock("@/lib/actions", () => ({

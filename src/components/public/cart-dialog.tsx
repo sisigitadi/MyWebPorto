@@ -36,7 +36,7 @@ import { useFeature } from "@/lib/features-context";
 import { OSWindow } from "@/components/public/os/os-window";
 import { playOS } from "@/lib/os-sound";
 import { toast } from "sonner";
-import { getStoreConfig, createOrder, StoreConfig, BankAccountItem } from "@/lib/order-actions";
+import { getStoreConfig, createOrder, StoreConfig } from "@/lib/order-actions";
 
 interface CartDialogProps {
   profile?: ProfileData;
@@ -79,7 +79,7 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
       return normalizeBankAccounts(storeConfig.bankAccounts);
     }
     return parsedProfileBankAccounts;
-  }, [storeConfig?.bankAccounts, parsedProfileBankAccounts]);
+  }, [storeConfig, parsedProfileBankAccounts]);
 
   // Ambil store config terpusat (No WA admin khusus, rekening, QRIS, pembayaran global)
   useEffect(() => {
@@ -96,22 +96,25 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
 
   // Muat data pelanggan dari localStorage browser (Auto-Fill / Zero Friction)
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(CUSTOMER_STORAGE_KEY);
-      if (raw) {
-        const saved = JSON.parse(raw);
-        if (saved && typeof saved === "object") {
-          setCustomer((prev) => ({
-            ...prev,
-            name: saved.name || prev.name,
-            phone: saved.phone || prev.phone,
-            emailOrAddress: saved.emailOrAddress || prev.emailOrAddress,
-          }));
+    const timer = setTimeout(() => {
+      try {
+        const raw = localStorage.getItem(CUSTOMER_STORAGE_KEY);
+        if (raw) {
+          const saved = JSON.parse(raw);
+          if (saved && typeof saved === "object") {
+            setCustomer((prev) => ({
+              ...prev,
+              name: saved.name || prev.name,
+              phone: saved.phone || prev.phone,
+              emailOrAddress: saved.emailOrAddress || prev.emailOrAddress,
+            }));
+          }
         }
+      } catch {
+        // Abaikan jika localStorage tidak dapat diakses
       }
-    } catch {
-      // Abaikan jika localStorage tidak dapat diakses
-    }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleClose = useCallback(() => {
