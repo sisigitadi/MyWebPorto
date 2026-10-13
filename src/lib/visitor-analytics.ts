@@ -83,6 +83,138 @@ export function hashIp(ip: string, salt: string = process.env.VISITOR_SALT || "m
   return crypto.createHash("sha256").update(`${salt}:${ip.trim()}`).digest("hex");
 }
 
+/**
+ * Peta kamus ASN ke Nama Operator / ISP yang ramah dan mudah dipahami.
+ * Menghindari tampilan kode teknis mentah semata (misal AS17974 -> Telkomsel).
+ */
+export const ASN_REGISTRY: Record<string, string> = {
+  // Provider / ISP Indonesia
+  AS7713: "Telkom Indonesia (IndiHome)",
+  AS17974: "Telkomsel (PT Telekomunikasi Selular)",
+  AS24203: "Indosat Ooredoo Hutchison (IM3)",
+  AS4761: "Indosat Ooredoo Hutchison",
+  AS23693: "Biznet Networks (PT Supra Primatama Nusantara)",
+  AS23947: "MNC Play (PT MNC Kabel Mediacom)",
+  AS24521: "MyRepublic (PT Eka Mas Republik)",
+  AS136052: "First Media (PT Link Net Tbk)",
+  AS24213: "XL Axiata (PT XL Axiata Tbk)",
+  AS9341: "Smartfren (PT Smartfren Telecom Tbk)",
+  AS55688: "CBN (PT Cyberindo Adhitama)",
+  AS45727: "Moratelindo (Oxygen.id)",
+  AS58395: "Fiberstar (PT Mega Akses Persada)",
+  AS131759: "Balifiber (PT Bali Towerindo Sentra)",
+  AS55685: "Citranet (PT Citra Jelajah Informatika)",
+  AS132061: "Nusanet (PT Media Antar Nusa)",
+  AS55699: "Lintasarta (PT Aplikanusa Lintasarta)",
+  AS45729: "PGNCOM (PT PGAS Telekomunikasi Nusantara)",
+  AS134704: "PLN Icon Plus (Icon+)",
+  AS133036: "PT Mora Telematika Indonesia",
+  AS136034: "Transvision (PT Indonusa Telemedia)",
+  AS138977: "XLSmart Telecom",
+  AS24155: "APJII / IDNIC",
+  AS45778: "CBN Internet Service",
+  AS17642: "Matrix (PT NAP Info Lintas Nusantara)",
+  AS18004: "Artha Telekomindo",
+
+  // Cloud Providers, Global CDNs & Tech Networks
+  AS13335: "Cloudflare, Inc.",
+  AS209242: "Cloudflare Warp",
+  AS15169: "Google LLC",
+  AS396982: "Google Cloud",
+  AS19527: "Google Fiber",
+  AS16509: "Amazon Web Services (AWS)",
+  AS14618: "Amazon.com, Inc.",
+  AS8075: "Microsoft Corporation",
+  AS32934: "Meta Platforms (Facebook/Instagram)",
+  AS14061: "DigitalOcean, LLC",
+  AS63949: "Linode / Akamai Cloud",
+  AS20473: "Vultr (The Constant Company)",
+  AS54113: "Fastly CDN",
+  AS20940: "Akamai Technologies",
+  AS16276: "OVHcloud",
+  AS24940: "Hetzner Online GmbH",
+  AS46484: "Hetzner Online GmbH",
+  AS714: "Apple Inc.",
+  AS132203: "Tencent Cloud",
+  AS37963: "Alibaba Cloud",
+  AS45102: "Alibaba Cloud",
+  AS7018: "AT&T Services",
+  AS7922: "Comcast Cable",
+  AS3356: "Lumen Technologies",
+  AS1299: "Arelion (Telia)",
+  AS6453: "TATA Communications",
+  AS7473: "Singtel (Singapore)",
+  AS4657: "StarHub Ltd",
+  AS4837: "China Unicom",
+  AS4134: "China Telecom",
+  AS9808: "China Mobile",
+  AS2516: "KDDI Corporation",
+  AS4713: "NTT Communications",
+  AS45899: "VNPT Telecom",
+  AS7552: "Viettel Group",
+};
+
+/**
+ * Format string jaringan dan ASN menjadi nama operator/ISP yang jelas dan ramah manusia.
+ * Jika hanya berupa kode ASN (misal "AS17974"), otomatis dikonversi ke nama ISP resminya.
+ */
+export function formatReadableNetwork(
+  network: string | null | undefined,
+  asn?: string | null | undefined
+): string {
+  const candidateAsn = (
+    asn ||
+    (typeof network === "string" && /^AS\d+/i.test(network.trim())
+      ? network.trim().match(/^AS\d+/i)?.[0]
+      : null) ||
+    ""
+  ).toUpperCase().trim();
+
+  // 1. Jika cocok dengan kamus ASN yang terdaftar
+  if (candidateAsn && ASN_REGISTRY[candidateAsn]) {
+    return ASN_REGISTRY[candidateAsn];
+  }
+
+  if (!network || network === "Unknown" || network === "undefined" || network === "null") {
+    if (candidateAsn) {
+      return `Jaringan ${candidateAsn} (ISP Publik)`;
+    }
+    return "Jaringan Publik / Terbuka";
+  }
+
+  const trimmed = network.trim();
+
+  // 2. Jika nilai hanya kode ASN semata seperti "AS17974" atau "AS7713"
+  const asnOnly = trimmed.match(/^AS(\d+)$/i);
+  if (asnOnly) {
+    const key = `AS${asnOnly[1]}`.toUpperCase();
+    if (ASN_REGISTRY[key]) return ASN_REGISTRY[key];
+    return `Jaringan ${key} (ISP Publik)`;
+  }
+
+  // 3. Jika nilai berupa gabungan "ASxxxx <Nama Org>"
+  const asnPrefixMatch = trimmed.match(/^AS\d+[\s\-:]+(.+)$/i);
+  if (asnPrefixMatch) {
+    const orgName = asnPrefixMatch[1].trim();
+    if (candidateAsn && ASN_REGISTRY[candidateAsn]) {
+      return ASN_REGISTRY[candidateAsn];
+    }
+    return orgName;
+  }
+
+  // 4. Jika nilai berupa tipe koneksi seluler seperti "Cellular / 4G"
+  if (/^Cellular\s*\/\s*(.+)$/i.test(trimmed)) {
+    const type = trimmed.replace(/^Cellular\s*\/\s*/i, "").trim().toLowerCase();
+    if (type === "4g") return "Koneksi Seluler (4G / LTE)";
+    if (type === "5g") return "Koneksi Seluler (5G Superfast)";
+    if (type === "3g") return "Koneksi Seluler (3G / HSPA)";
+    if (type === "2g" || type === "slow-2g") return "Koneksi Seluler (2G / Edge)";
+    return `Koneksi Seluler (${type.toUpperCase()})`;
+  }
+
+  return trimmed;
+}
+
 // Global in-memory cache untuk debouncing hit burst dari ip+path yang sama (< 2.5s)
 const recentHitsCache = new Map<string, number>();
 
@@ -206,18 +338,20 @@ export async function recordVisitorHit(
       headers.get("cf-asn-name") ||
       null;
 
-    let network: string | null = null;
+    let rawNetwork: string | null = null;
     if (rawOrg) {
       try {
-        network = decodeURIComponent(rawOrg.trim());
+        rawNetwork = decodeURIComponent(rawOrg.trim());
       } catch {
-        network = rawOrg.trim();
+        rawNetwork = rawOrg.trim();
       }
     } else if (asn) {
-      network = asn;
+      rawNetwork = asn;
     } else if (typeof payload?.connection === "string" && payload.connection.trim()) {
-      network = `Cellular / ${payload.connection.trim()}`;
+      rawNetwork = `Cellular / ${payload.connection.trim()}`;
     }
+
+    const readableNetwork = formatReadableNetwork(rawNetwork, asn);
 
     if (isDbConnected) {
       await db.insert(visitorHits).values({
@@ -233,7 +367,7 @@ export async function recordVisitorHit(
         region: region ? region.slice(0, 100) : null,
         timezone: timezone ? timezone.slice(0, 100) : null,
         asn: asn ? asn.slice(0, 50) : null,
-        network: network ? network.slice(0, 150) : null,
+        network: readableNetwork ? readableNetwork.slice(0, 150) : null,
         isBot: parsed.isBot,
       });
     }
@@ -445,11 +579,19 @@ export async function getVisitorAnalytics(
 
   try {
     const now = new Date();
-    const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    // Tentukan awal hari dalam zona waktu Asia/Jakarta (WIB, UTC+7)
+    const jakartaDateStr = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Jakarta",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(now);
+
+    const startOfTodayJakarta = new Date(`${jakartaDateStr}T00:00:00+07:00`);
 
     let since: Date | null = null;
     if (range === "today") {
-      since = startOfToday;
+      since = startOfTodayJakarta;
     } else if (range === "7d") {
       since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     } else if (range === "30d") {
@@ -480,7 +622,7 @@ export async function getVisitorAnalytics(
         COUNT(*)::int AS today_hits,
         COUNT(DISTINCT ip_hash)::int AS today_uniq
       FROM visitor_hits
-      WHERE ${botCondition} AND created_at >= ${startOfToday}
+      WHERE ${botCondition} AND created_at >= ${startOfTodayJakarta}
     `);
 
     const totalHits = Number(totalQuery.rows[0]?.total_hits || 0);
@@ -598,15 +740,16 @@ export async function getVisitorAnalytics(
         ORDER BY count DESC
         LIMIT 10
       `),
-      db.execute<{ network: string | null; count: number }>(sql`
+      db.execute<{ network: string | null; asn: string | null; count: number }>(sql`
         SELECT
-          COALESCE(network, asn, 'Unknown') AS network,
+          network,
+          asn,
           COUNT(*)::int AS count
         FROM visitor_hits
         WHERE ${botCondition} AND ${rangeCondition} AND (network IS NOT NULL OR asn IS NOT NULL)
-        GROUP BY COALESCE(network, asn, 'Unknown')
+        GROUP BY network, asn
         ORDER BY count DESC
-        LIMIT 10
+        LIMIT 30
       `),
       db.execute<{ country: string | null; city: string | null; region: string | null; count: number }>(sql`
         SELECT
@@ -629,7 +772,7 @@ export async function getVisitorAnalytics(
         name: info.name,
         flag: info.flag,
         count: c.count,
-        percentage: c.percentage,
+        percentage: totalHits > 0 ? Math.round((c.count / totalHits) * 100) : 0,
       };
     });
 
@@ -645,11 +788,20 @@ export async function getVisitorAnalytics(
       percentage: totalHits > 0 ? Math.round((Number(r.count) / totalHits) * 100) : 0,
     }));
 
-    const networkBreakdown: NetworkStat[] = networksQuery.rows.map((r) => ({
-      network: String(r.network || "Unknown"),
-      count: Number(r.count),
-      percentage: totalHits > 0 ? Math.round((Number(r.count) / totalHits) * 100) : 0,
-    }));
+    // Agregasi nama jaringan manusiawi yang rapi dan terstandardisasi
+    const networkMap = new Map<string, number>();
+    for (const r of networksQuery.rows) {
+      const cleanName = formatReadableNetwork(r.network, r.asn);
+      networkMap.set(cleanName, (networkMap.get(cleanName) || 0) + Number(r.count));
+    }
+    const networkBreakdown: NetworkStat[] = Array.from(networkMap.entries())
+      .map(([network, count]) => ({
+        network,
+        count,
+        percentage: totalHits > 0 ? Math.round((count / totalHits) * 100) : 0,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
 
     const locationBreakdown: LocationStat[] = locationsQuery.rows.map((r) => {
       const countryInfo = getCountryInfo(r.country);
@@ -678,7 +830,7 @@ export async function getVisitorAnalytics(
       unique: number;
     }>(sql`
       SELECT
-        TO_CHAR(created_at, 'YYYY-MM-DD') AS day,
+        TO_CHAR(created_at AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD') AS day,
         COUNT(*)::int AS hits,
         COUNT(DISTINCT ip_hash)::int AS unique
       FROM visitor_hits
@@ -725,7 +877,7 @@ export async function getVisitorAnalytics(
         fullLocation,
         timezone: r.timezone,
         asn: r.asn,
-        network: r.network || r.asn || null,
+        network: formatReadableNetwork(r.network, r.asn),
         isBot: r.isBot,
         createdAt: r.createdAt,
         ipHashShort: r.ipHash.slice(0, 8),

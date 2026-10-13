@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Monitor, Shield, Calendar, Globe } from "lucide-react";
+import { Calendar, Shield, Globe } from "lucide-react";
 import { useUser, UserButton } from "@clerk/nextjs";
 import { useOSTheme, OSTheme } from "./theme-context";
 import { useTranslation } from "@/lib/i18n";
@@ -52,7 +52,12 @@ export function OSMenubar({ profile }: OSMenubarProps) {
             title="Klik 9 kali untuk membuka Visitor Dashboard"
             className="group flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-[var(--vt-card)] vt-card-inset cursor-pointer hover:opacity-90 active:scale-95 transition-all duration-200"
           >
-            <Monitor className="h-4 w-4 sm:h-5 sm:w-5 text-primary group-hover:scale-110 group-hover:text-amber-400 transition-all" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/icons/icon-192.png"
+              alt="SA"
+              className="h-4 w-4 sm:h-5 sm:w-5 rounded-xs object-cover group-hover:scale-110 group-hover:shadow-[0_0_8px_rgba(56,189,248,0.5)] transition-all"
+            />
             <span className="font-pixel text-[11px] sm:text-[13px] md:text-sm font-bold tracking-wider text-[var(--vt-ink)] group-hover:text-[var(--vt-ink)]">
               SIGIT-OS
             </span>

@@ -161,9 +161,13 @@ export function OSBootLoader() {
               Copyright (C) 1998-2026, Sigit Technologies System Architecture
             </p>
           </div>
-          <div className="text-right hidden sm:block text-white/90 text-xs">
-            <p className="font-pixel text-amber-400">SIGIT_OS</p>
-            <p className="text-[10px] text-muted-foreground">BUILD 1998-PRO</p>
+          <div className="text-right hidden sm:flex items-center gap-2.5 text-white/90 text-xs">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icons/icon-192.png" alt="SA" className="h-7 w-7 rounded-xs border border-[#37ff9b]/40 object-cover" />
+            <div>
+              <p className="font-pixel text-amber-400">SIGIT_OS</p>
+              <p className="text-[10px] text-muted-foreground">BUILD 1998-PRO</p>
+            </div>
           </div>
         </div>
 

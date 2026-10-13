@@ -159,7 +159,7 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
         <Card className="hover:border-foreground/30 transition-all">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Tayangan Hari Ini
+              Tayangan Hari Ini (WIB)
             </CardTitle>
             <Calendar className="h-4 w-4 text-emerald-600" />
           </CardHeader>
@@ -168,7 +168,7 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
               {data.todayHits.toLocaleString("id-ID")}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Sejak 00:00 UTC hari ini
+              Sejak 00:00 WIB (Asia/Jakarta) hari ini
             </p>
           </CardContent>
         </Card>
@@ -176,7 +176,7 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
         <Card className="hover:border-foreground/30 transition-all">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Unik Hari Ini
+              Unik Hari Ini (WIB)
             </CardTitle>
             <ShieldCheck className="h-4 w-4 text-purple-600" />
           </CardHeader>
@@ -185,7 +185,7 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
               {data.todayUniq.toLocaleString("id-ID")}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Pengunjung unik terverifikasi hari ini
+              Pengunjung unik sejak 00:00 WIB hari ini
             </p>
           </CardContent>
         </Card>
@@ -567,10 +567,10 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Activity className="h-4 w-4 text-primary" /> Log Kunjungan Terbaru
+            <Activity className="h-4 w-4 text-primary" /> Log Kunjungan Terbaru (Waktu Asia/Jakarta)
           </CardTitle>
           <CardDescription>
-            30 entri hit terbaru yang masuk ke PostgreSQL Neon secara real-time.
+            30 entri hit terbaru tercatat dalam zona waktu WIB (UTC+7) di PostgreSQL Neon secara real-time.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -583,11 +583,11 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
               <table className="w-full text-xs text-left">
                 <thead className="border-b border-border/60 text-muted-foreground font-mono">
                   <tr>
-                    <th className="py-2 pr-3">Waktu</th>
+                    <th className="py-2 pr-3">Waktu (WIB / Jakarta)</th>
                     <th className="py-2 px-3">Halaman</th>
                     <th className="py-2 px-3">Lokasi (Location)</th>
                     <th className="py-2 px-3">Jaringan (Network)</th>
-                    <th className="py-2 px-3">Zona Waktu</th>
+                    <th className="py-2 px-3">Zona Waktu Klien</th>
                     <th className="py-2 px-3">Perangkat / OS</th>
                     <th className="py-2 px-3">Referrer</th>
                     <th className="py-2 pl-3 text-right">Visitor ID</th>
@@ -597,13 +597,22 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
                   {data.recentVisits.map((visit) => (
                     <tr key={visit.id} className="hover:bg-muted/40 transition-colors">
                       <td className="py-2.5 pr-3 text-muted-foreground whitespace-nowrap">
-                        {new Date(visit.createdAt).toLocaleTimeString("id-ID", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          second: "2-digit",
-                        })}{" "}
-                        <span className="text-[10px]">
-                          ({new Date(visit.createdAt).toLocaleDateString("id-ID")})
+                        <span className="text-foreground font-semibold">
+                          {new Intl.DateTimeFormat("id-ID", {
+                            timeZone: "Asia/Jakarta",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            second: "2-digit",
+                          }).format(new Date(visit.createdAt))}{" "}
+                          WIB
+                        </span>{" "}
+                        <span className="text-[10px] text-muted-foreground">
+                          ({new Intl.DateTimeFormat("id-ID", {
+                            timeZone: "Asia/Jakarta",
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          }).format(new Date(visit.createdAt))})
                         </span>
                       </td>
                       <td className="py-2.5 px-3 font-semibold text-foreground max-w-[180px] truncate" title={visit.path}>
