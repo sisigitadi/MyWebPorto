@@ -1,17 +1,14 @@
 "use client";
 
-import React, { useEffect, useSyncExternalStore, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
   Calendar,
   Clock,
-  Share2,
-  Check,
   Tag,
   Mail,
   FileText,
-  HardDrive,
   Globe,
   Monitor,
   User,
@@ -25,8 +22,6 @@ import { FormattedText } from "@/components/public/formatted-text";
 import { ArticleData, ProfileData } from "@/lib/dummy-data";
 import { prefillContact, CONTACT_SECTION_HREF } from "@/lib/contact-link";
 import { ShareButton } from "@/components/public/share-button";
-import { toast } from "sonner";
-
 interface ArticleDetailContentProps {
   article: ArticleData;
   profile: ProfileData;
@@ -40,20 +35,7 @@ export function ArticleDetailContent({
 }: ArticleDetailContentProps) {
   const { t, language } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [copied, setCopied] = useState(false);
   const [readProgress, setReadProgress] = useState(0);
-
-  // URL halaman dibaca dari external store (window.location). Server snapshot ""
-  // menjaga SSR & hydration konsisten (server tidak tahu URL klien) — cakupan
-  // sama dengan effect lama, tanpa setState di body effect.
-  const pageUrl = useSyncExternalStore(
-    (onChange) => {
-      window.addEventListener("popstate", onChange);
-      return () => window.removeEventListener("popstate", onChange);
-    },
-    () => window.location.href,
-    () => "",
-  );
 
   // Progress baca: dengar scroll pada ancestor scrollable (jendela OS) + fallback window.
   useEffect(() => {
@@ -109,20 +91,6 @@ export function ArticleDetailContent({
     { scope: containerRef }
   );
 
-  const handleShare = async () => {
-    if (typeof window !== "undefined") {
-      try {
-        if (navigator.clipboard) {
-          await navigator.clipboard.writeText(window.location.href);
-          setCopied(true);
-          toast.success(t.article_detail_copied || "Tautan berhasil disalin!");
-          setTimeout(() => setCopied(false), 2500);
-        }
-      } catch (err) {
-        console.error("Failed to copy url:", err);
-      }
-    }
-  };
 
   const discussionSubject = isEn ? `Article Discussion: ${title}` : `Diskusi Artikel: ${title}`;
   const discussionBody = isEn

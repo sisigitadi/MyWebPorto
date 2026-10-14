@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import {
   Share2,
@@ -12,7 +12,6 @@ import {
   MessageCircle,
   Send,
   ExternalLink,
-  Smartphone,
 } from "lucide-react";
 import { toast } from "sonner";
 import { InstagramIcon } from "@/components/public/social-icons";
@@ -21,6 +20,8 @@ import {
   buildLinkedInShareUrl,
   buildFacebookShareUrl,
 } from "@/lib/whatsapp-order";
+
+const emptySubscribe = () => () => {};
 
 export interface ContentShareModalProps {
   isOpen: boolean;
@@ -43,15 +44,11 @@ export function ContentShareModal({
   badge,
   isEn = false,
 }: ContentShareModalProps) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
-  const [customRef, setCustomRef] = useState("");
+  const [customRef] = useState("");
   const [showQr, setShowQr] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Body scroll lock
   useEffect(() => {
@@ -132,7 +129,7 @@ export function ContentShareModal({
           url: finalUrl,
         });
         toast.success(isEn ? "Shared successfully!" : "Berhasil dibagikan!");
-      } catch (err) {
+      } catch (_err) {
         // User cancelled or share failed
       }
     } else {

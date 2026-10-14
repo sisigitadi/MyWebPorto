@@ -2,7 +2,7 @@
 
 import React, { useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, Calendar, Mail, Terminal, HardDrive, Globe, Monitor } from "lucide-react";
+import { ArrowLeft, ExternalLink, Calendar, Mail, Terminal, Globe, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useTranslation } from "@/lib/i18n";

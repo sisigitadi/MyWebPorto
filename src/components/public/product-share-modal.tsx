@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import {
   Share2,
@@ -26,6 +26,8 @@ import {
 import { InstagramIcon } from "@/components/public/social-icons";
 import { toast } from "sonner";
 
+const emptySubscribe = () => () => {};
+
 interface ProductShareModalProps {
   product: ProductData;
   isOpen: boolean;
@@ -34,16 +36,16 @@ interface ProductShareModalProps {
 }
 
 export function ProductShareModal({ product, isOpen, onClose, isEn = false }: ProductShareModalProps) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
+  const hasNativeShare = useSyncExternalStore(
+    emptySubscribe,
+    () => typeof navigator !== "undefined" && typeof navigator.share === "function",
+    () => false
+  );
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedBroadcast, setCopiedBroadcast] = useState(false);
   const [customRef, setCustomRef] = useState("");
   const [showQr, setShowQr] = useState(false);
-  const [hasNativeShare, setHasNativeShare] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Body scroll lock
   useEffect(() => {
@@ -54,12 +56,6 @@ export function ProductShareModal({ product, isOpen, onClose, isEn = false }: Pr
       document.body.style.overflow = prevOverflow;
     };
   }, [isOpen]);
-
-  useEffect(() => {
-    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
-      setHasNativeShare(true);
-    }
-  }, []);
 
   useEffect(() => {
     if (!isOpen) return;

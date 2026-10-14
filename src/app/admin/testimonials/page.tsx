@@ -162,7 +162,6 @@ export default function AdminTestimonialsPage() {
   const [isTranslating, setIsTranslating] = useState(false);
 
   const fetchTestimonials = async () => {
-    setIsLoading(true);
     try {
       const data = await getTestimonials();
       if (data) {
