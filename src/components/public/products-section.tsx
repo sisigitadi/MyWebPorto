@@ -151,7 +151,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
         if (sortBy === "price_desc") {
           return (b.priceAmount || 0) - (a.priceAmount || 0);
         }
-        return 0;
+        return (a.order ?? 0) - (b.order ?? 0);
       });
   }, [allProducts, selectedCategory, searchQuery, sortBy]);
 
@@ -524,13 +524,15 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                       </div>
 
                       {/* Detail Link */}
-                      <Link
-                        href={productUrl}
-                        className="vt-btn vt-btn-chrome w-full py-1.5 px-3 text-[11px] font-bold text-muted-foreground hover:text-foreground justify-between items-center group"
-                      >
-                        <span>{language === "en" ? "View Full Details" : "Lihat Spesifikasi & Detail"}</span>
-                        <ArrowUpRight className="h-3 w-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                      </Link>
+                      <div className="flex items-center">
+                        <Link
+                          href={productUrl}
+                          className="w-full vt-btn vt-btn-chrome py-1.5 px-3 text-[11px] font-bold text-muted-foreground hover:text-foreground justify-between items-center group flex"
+                        >
+                          <span>{language === "en" ? "View Full Details" : "Lihat Spesifikasi & Detail"}</span>
+                          <ArrowUpRight className="h-3 w-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                        </Link>
+                      </div>
                     </div>
                   </OSWindow>
                 </div>

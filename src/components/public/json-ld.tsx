@@ -85,7 +85,7 @@ export function JsonLdSchema({ profile }: { profile: ProfileData }) {
       "@id": personId,
     },
     description: profile.bio,
-    inLanguage: "id-ID",
+    inLanguage: "en-US",
     dateCreated: "2024-01-01T00:00:00Z",
     dateModified: new Date().toISOString(),
   };
@@ -101,7 +101,7 @@ export function JsonLdSchema({ profile }: { profile: ProfileData }) {
     publisher: {
       "@id": personId,
     },
-    inLanguage: ["id-ID", "en-US"],
+    inLanguage: ["en-US", "id-ID"],
   };
 
   // 4. Professional Services Schema (SEM & Local / Commercial Intent)

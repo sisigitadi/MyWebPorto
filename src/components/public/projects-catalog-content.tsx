@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Calendar, Folder, HardDrive, Terminal, Monitor } from "lucide-react";
+import { ArrowRight, Calendar, Folder, Globe, Copy, Check, Terminal, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n";
+import { toast } from "sonner";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -36,6 +37,18 @@ interface ProjectsCatalogContentProps {
 export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps) {
   const { t, language } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
+  const [copied, setCopied] = useState(false);
+  const isEn = language === "en";
+  const pageAddress = "https://sigitadi.id/proyek";
+
+  const handleCopyAddress = () => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(pageAddress);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast.success(isEn ? "URL address copied to clipboard!" : "Alamat URL berhasil disalin!");
+    }
+  };
 
   useGSAP(
     () => {
@@ -58,7 +71,7 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
         {/* Main Explorer Window */}
         <OSWindow
           id="projects-catalog"
-          title="SigitOS_File_Manager :: C:\Sigit\Projects\All_Items"
+          title="SigitOS_Explorer :: https://sigitadi.id/proyek"
           icon={<Folder className="h-4 w-4 text-amber-300" />}
           statusText={`Total records: ${projects.length} files found | Directory status: READ_ONLY`}
         >
@@ -70,14 +83,32 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
                 className="vt-btn vt-btn-chrome px-3 py-1 text-xs font-bold text-foreground inline-flex items-center gap-1.5 shrink-0"
               >
                 <Monitor className="h-3.5 w-3.5 text-primary" />
-                <span className="hidden sm:inline">{language === "en" ? "Back to Desktop OS" : "Kembali ke Menu Desktop"}</span>
+                <span className="hidden sm:inline">{isEn ? "Back to Desktop OS" : "Kembali ke Menu Desktop"}</span>
                 <span className="sm:hidden">Desktop</span>
               </Link>
               <div className="hidden sm:flex items-center gap-2">
                 <span className="text-[var(--vt-ink)] font-bold">Address:</span>
-                <div className="px-2 py-1 bg-background border border-border/80 rounded flex items-center gap-1 text-primary font-bold">
-                  <HardDrive className="h-3.5 w-3.5" />
-                  <span className="truncate">C:\Sigit\Portfolio\Projects\Catalog.exe</span>
+                <div
+                  onClick={handleCopyAddress}
+                  title={isEn ? "Click to copy address URL" : "Klik untuk menyalin alamat URL"}
+                  className="px-2 py-1 bg-background border border-border/80 rounded flex items-center gap-1.5 text-primary font-bold cursor-pointer hover:border-primary/50 transition-colors group select-all"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleCopyAddress();
+                    }
+                  }}
+                  aria-label={isEn ? "Copy address URL https://sigitadi.id/proyek" : "Salin alamat URL https://sigitadi.id/proyek"}
+                >
+                  <Globe className="h-3.5 w-3.5 shrink-0 text-primary" />
+                  <span className="truncate">{pageAddress}</span>
+                  {copied ? (
+                    <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0 ml-1" />
+                  ) : (
+                    <Copy className="h-3 w-3 text-muted-foreground group-hover:text-primary shrink-0 ml-1 transition-colors" />
+                  )}
                 </div>
               </div>
             </div>
@@ -177,16 +208,18 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
                           })}
                         </span>
 
-                        <Button
-                          asChild
-                          size="sm"
-                          className="vt-btn-pink h-7 px-2.5 text-[11px] font-mono uppercase font-bold"
-                        >
-                          <Link href={`/proyek/${project.slug}`}>
-                            <span style={{ color: "#1a1512" }}>Open</span>
-                            <ArrowRight className="h-3 w-3 ml-1" />
-                          </Link>
-                        </Button>
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            asChild
+                            size="sm"
+                            className="vt-btn-pink h-7 px-2.5 text-[11px] font-mono uppercase font-bold"
+                          >
+                            <Link href={`/proyek/${project.slug}`}>
+                              <span style={{ color: "#1a1512" }}>Open</span>
+                              <ArrowRight className="h-3 w-3 ml-1" />
+                            </Link>
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>

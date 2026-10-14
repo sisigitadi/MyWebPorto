@@ -65,11 +65,12 @@ const bingVerification = process.env.NEXT_PUBLIC_BING_VERIFICATION || "";
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
   title: {
-    default: "Sigit Adi Irianto — Senior Web Developer & Tech Creator",
-    template: "%s | Sigit Web Porto",
+    default: "Sigit Adi Portfolio",
+    template: "%s | Sigit Adi Portfolio",
   },
   description: "Portofolio profesional Sigit Adi Irianto menampilkan karya pengembangan web modern, sistem berbasis AI, arsitektur cloud, dan solusi full-stack.",
   keywords: [
+    "Sigit Adi Portfolio",
     "Sigit Adi Irianto",
     "Web Developer Indonesia",
     "Full Stack Engineer",
@@ -90,23 +91,23 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    locale: "id_ID",
+    locale: "en_US",
     url: appUrl,
-    title: "Sigit Adi Irianto — Senior Web Developer & Tech Creator",
+    title: "Sigit Adi Portfolio",
     description: "Jelajahi portofolio interaktif SigitOS dengan sistem modern, karya unggulan, dan integrasi kecerdasan buatan.",
-    siteName: "Sigit Web Porto",
+    siteName: "Sigit Adi Portfolio",
     images: [
       {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "Sigit Adi Irianto - Portofolio & Workstation",
+        alt: "Sigit Adi Portfolio",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Sigit Adi Irianto — Senior Web Developer & Tech Creator",
+    title: "Sigit Adi Portfolio",
     description: "Portofolio digital interaktif Sigit Adi Irianto berbasis Next.js dan SigitOS.",
     images: ["/opengraph-image"],
   },
@@ -152,7 +153,7 @@ export default async function RootLayout({
   return (
     <ClerkGate>
       <html
-        lang="id"
+        lang="en"
         suppressHydrationWarning
         className={`${inter.variable} ${firaCode.variable} ${silkscreen.variable} ${azeretMono.variable} ${spaceGrotesk.variable} ${unbounded.variable}`}
       >

@@ -9,6 +9,9 @@ import {
   AlertCircle,
   Sparkles,
   Globe,
+  GripVertical,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import {
   Table,
@@ -44,7 +47,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ServiceData } from "@/lib/dummy-data";
-import { getServices, saveService, deleteService, translateFieldAction } from "@/lib/actions";
+import { getServices, saveService, deleteService, reorderServices, translateFieldAction } from "@/lib/actions";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { isTranslationErrorPayload } from "@/lib/content-edit";
 import { toast } from "sonner";
@@ -58,6 +61,10 @@ export default function AdminServicesPage() {
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState("");
   const [translating, setTranslating] = useState(false);
+
+  // Drag and drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   // Form State
   const [formTitle, setFormTitle] = useState("");
@@ -81,6 +88,74 @@ export default function AdminServicesPage() {
   useEffect(() => {
     fetchServices();
   }, []);
+
+  const handleReorder = (newItems: ServiceData[]) => {
+    const reordered = newItems.map((item, idx) => ({
+      ...item,
+      order: idx + 1,
+    }));
+    setServices(reordered);
+
+    startTransition(async () => {
+      try {
+        const payload = reordered.map((item) => ({ id: item.id, order: item.order }));
+        const res = await reorderServices(payload);
+        if (res.success) {
+          toast.success(res.message || "Urutan layanan berhasil diperbarui!");
+        } else {
+          toast.error(res.error || "Gagal memperbarui urutan.");
+          await fetchServices();
+        }
+      } catch (err) {
+        console.error("Reorder services failed:", err);
+        toast.error("Gagal menyimpan perubahan urutan.");
+        await fetchServices();
+      }
+    });
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", `${index}`);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    const newItems = [...services];
+    const [movedItem] = newItems.splice(draggedIndex, 1);
+    newItems.splice(targetIndex, 0, movedItem);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    handleReorder(newItems);
+  };
+
+  const handleMove = (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= services.length) return;
+    const newItems = [...services];
+    const [movedItem] = newItems.splice(index, 1);
+    newItems.splice(targetIndex, 0, movedItem);
+    handleReorder(newItems);
+  };
 
   // Guard "belum disimpan": baseline direset saat sessionKey berubah — yaitu
   // saat dialog tambah/edit dibuka atau item lain dipilih. Mengetik di form
@@ -251,7 +326,7 @@ export default function AdminServicesPage() {
           <Table className="admin-table">
             <TableHeader>
               <TableRow className="bg-muted/40 hover:bg-muted/40">
-                <TableHead className="w-16 text-center text-xs font-semibold">Urutan</TableHead>
+                <TableHead className="w-28 text-center text-xs font-semibold">Urutan</TableHead>
                 <TableHead className="w-64 text-xs font-semibold">Nama Layanan</TableHead>
                 <TableHead className="text-xs font-semibold">Deskripsi Layanan</TableHead>
                 <TableHead className="text-xs font-semibold">Status</TableHead>
@@ -273,55 +348,99 @@ export default function AdminServicesPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                services.map((service) => (
-                  <TableRow key={service.id} className="hover:bg-muted/30">
-                    <TableCell className="text-center font-mono text-xs text-muted-foreground">
-                      {service.order}
-                    </TableCell>
-                    <TableCell className="py-3 font-medium text-xs text-foreground">
-                      <div>{service.title}</div>
-                      {service.titleEn && (
-                        <div className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                          <span className="text-[9px] bg-muted px-1 py-0.2 rounded border text-muted-foreground font-mono">EN</span>
-                          <span>{service.titleEn}</span>
+                services.map((service, index) => {
+                  const isDragging = draggedIndex === index;
+                  const isOver = dragOverIndex === index;
+                  return (
+                    <TableRow
+                      key={service.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragEnd={handleDragEnd}
+                      onDrop={(e) => handleDrop(e, index)}
+                      className={`transition-colors ${
+                        isDragging ? "opacity-30 bg-muted/60" : "hover:bg-muted/30"
+                      } ${isOver && !isDragging ? "border-t-2 border-primary bg-primary/5" : ""}`}
+                    >
+                      <TableCell className="py-2.5">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <span
+                            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1 rounded hover:bg-muted"
+                            title="Tahan dan geser untuk memindahkan urutan"
+                          >
+                            <GripVertical className="h-4 w-4" />
+                          </span>
+                          <span className="font-mono text-xs text-muted-foreground font-semibold min-w-4 text-center">
+                            {index + 1}
+                          </span>
+                          <div className="flex flex-col ml-0.5">
+                            <button
+                              type="button"
+                              onClick={() => handleMove(index, "up")}
+                              disabled={index === 0}
+                              className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5 transition-opacity"
+                              title="Pindahkan ke atas"
+                            >
+                              <ChevronUp className="h-3 w-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMove(index, "down")}
+                              disabled={index === services.length - 1}
+                              className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5 transition-opacity"
+                              title="Pindahkan ke bawah"
+                            >
+                              <ChevronDown className="h-3 w-3" />
+                            </button>
+                          </div>
                         </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="py-3 text-xs text-muted-foreground max-w-md line-clamp-2">
-                      {service.description}
-                    </TableCell>
-                    <TableCell className="py-3 admin-cell-meta">
-                      <Badge
-                        variant={service.published ? "secondary" : "outline"}
-                        className="text-[10px] py-0 px-2 font-normal"
-                      >
-                        {service.published ? "Aktif" : "Draf"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="py-3 text-right admin-cell-actions">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditDialog(service)}
-                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                          title="Sunting Layanan"
+                      </TableCell>
+                      <TableCell className="py-3 font-medium text-xs text-foreground">
+                        <div>{service.title}</div>
+                        {service.titleEn && (
+                          <div className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <span className="text-[9px] bg-muted px-1 py-0.2 rounded border text-muted-foreground font-mono">EN</span>
+                            <span>{service.titleEn}</span>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-3 text-xs text-muted-foreground max-w-md line-clamp-2">
+                        {service.description}
+                      </TableCell>
+                      <TableCell className="py-3 admin-cell-meta">
+                        <Badge
+                          variant={service.published ? "secondary" : "outline"}
+                          className="text-[10px] py-0 px-2 font-normal"
                         >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openDeleteDialog(service)}
-                          className="h-8 w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                          title="Hapus Layanan"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                          {service.published ? "Aktif" : "Draf"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="py-3 text-right admin-cell-actions">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(service)}
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            title="Sunting Layanan"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openDeleteDialog(service)}
+                            className="h-8 w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                            title="Hapus Layanan"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>

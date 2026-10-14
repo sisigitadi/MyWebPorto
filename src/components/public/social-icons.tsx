@@ -30,7 +30,7 @@ function LinkedinIcon({ className = "h-3.5 w-3.5" }: IconProps) {
   );
 }
 
-function InstagramIcon({ className = "h-3.5 w-3.5" }: IconProps) {
+export function InstagramIcon({ className = "h-3.5 w-3.5" }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />

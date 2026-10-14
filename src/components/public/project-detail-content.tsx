@@ -2,7 +2,7 @@
 
 import React, { useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, Calendar, Mail, Terminal, HardDrive, Monitor } from "lucide-react";
+import { ArrowLeft, ExternalLink, Calendar, Mail, Terminal, Globe, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useTranslation } from "@/lib/i18n";
@@ -11,6 +11,7 @@ import { useGSAP } from "@gsap/react";
 import { OSWindow } from "@/components/public/os/os-window";
 import { FormattedText } from "@/components/public/formatted-text";
 import { prefillContact, CONTACT_SECTION_HREF } from "@/lib/contact-link";
+import { ShareButton } from "@/components/public/share-button";
 
 function GithubIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -120,9 +121,19 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
           </div>
 
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-[var(--vt-ink)] min-w-0">
-            <HardDrive className="h-3.5 w-3.5 text-primary shrink-0" />
-            <span className="hidden sm:inline mobile-safe-path max-w-[220px] sm:max-w-none">C:\Sigit\Projects\{project.slug}\</span>
+            <Globe className="h-3.5 w-3.5 text-primary shrink-0" />
+            <span className="hidden sm:inline mobile-safe-path max-w-[260px] sm:max-w-none truncate select-all">https://sigitadi.id/proyek/{project.slug}</span>
             <span className="text-emerald-700 dark:text-emerald-400 font-bold shrink-0">[OK]</span>
+            <ShareButton
+              title={title}
+              url={`/proyek/${project.slug}`}
+              summary={summary}
+              thumbnailUrl={project.thumbnailUrl}
+              badge="Proyek"
+              buttonText={language === "en" ? "Share" : "Bagikan"}
+              size="sm"
+              className="h-8 ml-1"
+            />
           </div>
         </div>
 
@@ -218,6 +229,17 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
                     </a>
                   </Button>
                 )}
+
+                <ShareButton
+                  title={title}
+                  url={`/proyek/${project.slug}`}
+                  summary={summary}
+                  thumbnailUrl={project.thumbnailUrl}
+                  badge="Proyek"
+                  buttonText={language === "en" ? "Share" : "Bagikan"}
+                  size="default"
+                  className="h-9 px-3.5 text-xs font-mono font-bold uppercase gap-1.5 vt-btn-chrome"
+                />
               </div>
             </div>
 

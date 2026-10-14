@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "check:media": "vitest run tests/media-url-audit.test.ts",
+    "media:optimize": "node scripts/optimize-media.mjs",
     "check:prod": "node scripts/prod-health.mjs",
     "docs:sync": "node scripts/sync-readme-stats.mjs",
     "docs:check": "node scripts/sync-readme-stats.mjs --check",

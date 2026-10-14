@@ -18,6 +18,7 @@ import {
   ChevronUp,
   Tag,
   Check,
+  GripVertical,
 } from "lucide-react";
 import {
   Table,
@@ -54,7 +55,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUpload } from "@/components/admin/image-upload";
 import { ProductData } from "@/lib/dummy-data";
-import { getProducts, saveProduct, deleteProduct, translateFieldAction } from "@/lib/actions";
+import { getProducts, saveProduct, deleteProduct, translateFieldAction, reorderProducts } from "@/lib/actions";
 import {
   getStoreConfig,
   getPendingOrdersCount,
@@ -84,6 +85,10 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<ProductData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const isReorderActive = searchQuery.trim() === "";
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ProductData | null>(null);
@@ -147,6 +152,78 @@ export default function AdminProductsPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleReorder = (newItems: ProductData[]) => {
+    const reordered = newItems.map((item, idx) => ({
+      ...item,
+      order: idx + 1,
+    }));
+    setProducts(reordered);
+
+    startTransition(async () => {
+      try {
+        const payload = reordered.map((item) => ({ id: item.id, order: item.order ?? 0 }));
+        const res = await reorderProducts(payload);
+        if (res.success) {
+          toast.success(res.message || "Urutan produk berhasil diperbarui!");
+        } else {
+          toast.error(res.error || "Gagal memperbarui urutan.");
+          await fetchProducts();
+        }
+      } catch (err) {
+        console.error("Reorder products failed:", err);
+        toast.error("Gagal menyimpan perubahan urutan.");
+        await fetchProducts();
+      }
+    });
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    if (!isReorderActive) return;
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", `${index}`);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    if (!isReorderActive) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    if (!isReorderActive) return;
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    const newItems = [...products];
+    const [movedItem] = newItems.splice(draggedIndex, 1);
+    newItems.splice(targetIndex, 0, movedItem);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    handleReorder(newItems);
+  };
+
+  const handleMove = (index: number, direction: "up" | "down") => {
+    if (!isReorderActive) return;
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= products.length) return;
+    const newItems = [...products];
+    const [movedItem] = newItems.splice(index, 1);
+    newItems.splice(targetIndex, 0, movedItem);
+    handleReorder(newItems);
   };
 
   const loadStoreConfig = async () => {
@@ -484,9 +561,36 @@ export default function AdminProductsPage() {
               Tidak ada produk digital yang ditemukan.
             </div>
           ) : (
-            filteredProducts.map((product) => (
+            filteredProducts.map((product, index) => (
               <div key={`m-prod-${product.id}`} className="p-3.5 space-y-3 font-mono text-xs">
                 <div className="flex items-start gap-3">
+                  {isReorderActive && (
+                    <div className="flex flex-col items-center justify-center pt-1 shrink-0">
+                      <span className="font-mono text-[11px] font-bold text-muted-foreground mb-1">
+                        #{index + 1}
+                      </span>
+                      <div className="flex flex-col gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleMove(index, "up")}
+                          disabled={index === 0}
+                          className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-1 rounded hover:bg-muted"
+                          title="Pindahkan ke atas"
+                        >
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMove(index, "down")}
+                          disabled={index === products.length - 1}
+                          className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-1 rounded hover:bg-muted"
+                          title="Pindahkan ke bawah"
+                        >
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   <div className="h-12 w-12 rounded overflow-hidden bg-muted shrink-0 border border-[var(--vt-edge-lo-2)]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -561,6 +665,7 @@ export default function AdminProductsPage() {
           <Table className="admin-table">
             <TableHeader>
               <TableRow className="bg-[var(--vt-card)] hover:bg-[var(--vt-edge-hi-2)]">
+                <TableHead className="w-20 text-xs font-semibold">Urutan</TableHead>
                 <TableHead className="w-[320px] text-xs font-semibold">Produk / Layanan</TableHead>
                 <TableHead className="text-xs font-semibold">Harga (ID / EN)</TableHead>
                 <TableHead className="text-xs font-semibold">Tipe Penjualan</TableHead>
@@ -571,20 +676,78 @@ export default function AdminProductsPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center text-muted-foreground text-xs">
+                  <TableCell colSpan={6} className="h-32 text-center text-muted-foreground text-xs">
                     <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
                     Memuat produk...
                   </TableCell>
                 </TableRow>
               ) : filteredProducts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center text-muted-foreground text-xs">
+                  <TableCell colSpan={6} className="h-32 text-center text-muted-foreground text-xs">
                     Tidak ada produk digital yang ditemukan.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredProducts.map((product) => (
-                  <TableRow key={product.id} className="hover:bg-[var(--vt-edge-hi-2)]">
+                filteredProducts.map((product, index) => (
+                  <TableRow
+                    key={product.id}
+                    draggable={isReorderActive}
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragEnd={handleDragEnd}
+                    onDrop={(e) => handleDrop(e, index)}
+                    className={`transition-colors hover:bg-[var(--vt-edge-hi-2)] ${
+                      draggedIndex === index ? "opacity-40 bg-muted/60" : ""
+                    } ${
+                      dragOverIndex === index && draggedIndex !== index
+                        ? "border-t-2 border-primary"
+                        : ""
+                    }`}
+                  >
+                    <TableCell className="py-3">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`inline-flex items-center justify-center text-muted-foreground ${
+                            isReorderActive
+                              ? "cursor-grab active:cursor-grabbing hover:text-foreground"
+                              : "opacity-40 cursor-not-allowed"
+                          }`}
+                          title={
+                            isReorderActive
+                              ? "Tahan dan geser untuk mengubah urutan"
+                              : "Hapus filter pencarian untuk mengatur urutan"
+                          }
+                        >
+                          <GripVertical className="h-4 w-4" />
+                        </span>
+                        <span className="font-mono text-xs text-muted-foreground font-semibold min-w-4 text-center">
+                          {isReorderActive ? index + 1 : (product.order || "-")}
+                        </span>
+                        {isReorderActive && (
+                          <div className="flex flex-col ml-0.5">
+                            <button
+                              type="button"
+                              onClick={() => handleMove(index, "up")}
+                              disabled={index === 0}
+                              className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5 transition-opacity"
+                              title="Pindahkan ke atas"
+                            >
+                              <ChevronUp className="h-3 w-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMove(index, "down")}
+                              disabled={index === products.length - 1}
+                              className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5 transition-opacity"
+                              title="Pindahkan ke bawah"
+                            >
+                              <ChevronDown className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded overflow-hidden bg-muted shrink-0 border border-[var(--vt-edge-lo-2)]">

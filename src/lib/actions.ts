@@ -515,7 +515,10 @@ export async function getProjects(
   const visible = (list: ProjectData[]) =>
     opts.includeScheduled ? list : list.filter((p) => isLivePublished(p));
 
-  if (!isDbConnected) return visible(baseProjects);
+  const sortedBase = [...baseProjects]
+    .map((p, idx) => ({ ...p, order: p.order ?? idx + 1 }))
+    .sort((a, b) => a.order - b.order);
+  if (!isDbConnected) return visible(sortedBase);
   try {
     const list = await db.query.projects.findMany({
       orderBy: [asc(schema.projects.order), desc(schema.projects.createdAt)],
@@ -548,7 +551,7 @@ export async function getProjects(
       } catch (seedErr) {
         console.warn("Auto-seed projects dilewati:", seedErr);
       }
-      return visible(baseProjects);
+      return visible(sortedBase);
     }
     return visible(
       list.map((p) => {
@@ -578,14 +581,17 @@ export async function getProjects(
         featured: p.featured,
         published: p.published ?? true,
         publishAt: p.publishAt ? p.publishAt.toISOString() : null,
+        order: p.order ?? 0,
         createdAt: p.createdAt ? p.createdAt.toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
       }
       })
     );
   } catch (error) {
     console.warn("Database query getProjects gagal, menggunakan data lokal:", error);
-    return visible(baseProjects.map((p) => ({
+    const sorted = [...baseProjects].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    return visible(sorted.map((p, idx) => ({
       ...p,
+      order: p.order ?? idx + 1,
       titleEn: p.titleEn && !isTranslationErrorPayload(p.titleEn) ? p.titleEn : null,
       summaryEn: p.summaryEn && !isTranslationErrorPayload(p.summaryEn) ? p.summaryEn : null,
       descriptionEn: p.descriptionEn && !isTranslationErrorPayload(p.descriptionEn) ? p.descriptionEn : null,
@@ -801,8 +807,70 @@ export async function deleteProject(id: string) {
   revalidatePath("/", "layout");
   revalidatePath("/proyek", "layout");
   revalidatePath("/proyek/[slug]", "page");
-  revalidatePath("/admin/projects");
   return { success: true, message: "Proyek berhasil dihapus!" };
+}
+
+export async function reorderProjects(items: { id: string; order: number }[]) {
+  try {
+    await verifyAdmin();
+  } catch (authErr: unknown) {
+    return {
+      success: false,
+      error: sanitizeError(authErr),
+    };
+  }
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return { success: false, error: "Daftar urutan proyek tidak valid" };
+  }
+
+  if (isDbConnected) {
+    try {
+      for (const item of items) {
+        await db
+          .update(schema.projects)
+          .set({ order: item.order, updatedAt: new Date() })
+          .where(eq(schema.projects.id, item.id));
+      }
+    } catch (error) {
+      console.error("Gagal memperbarui urutan proyek di DB:", error);
+      return { success: false, error: "Gagal memperbarui urutan proyek di database." };
+    }
+  }
+
+  const store = getLocalStore();
+  const currentList = (store?.projects as ProjectData[]) || [...DUMMY_PROJECTS];
+  const orderMap = new Map(items.map((i) => [i.id, i.order]));
+  const updatedList = currentList.map((p, idx) => {
+    if (orderMap.has(p.id)) {
+      return { ...p, order: orderMap.get(p.id)! };
+    }
+    return { ...p, order: p.order ?? idx + 1 };
+  });
+  updatedList.sort((a, b) => a.order - b.order);
+  updateLocalStore("projects", updatedList);
+
+  for (let idx = 0; idx < DUMMY_PROJECTS.length; idx++) {
+    const p = DUMMY_PROJECTS[idx];
+    if (orderMap.has(p.id)) {
+      p.order = orderMap.get(p.id)!;
+    } else if (p.order === undefined) {
+      p.order = idx + 1;
+    }
+  }
+  DUMMY_PROJECTS.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+  void logAudit({
+    action: "save",
+    entity: "projects",
+    entityId: "reorder",
+    detail: `Mengatur ulang urutan ${items.length} proyek`,
+  });
+
+  revalidatePath("/", "layout");
+  revalidatePath("/proyek", "layout");
+  revalidatePath("/admin/projects");
+  return { success: true, message: "Urutan proyek berhasil diperbarui!" };
 }
 
 // ==========================================
@@ -812,7 +880,8 @@ export async function getServices(): Promise<ServiceData[]> {
   const store = getLocalStore();
   const baseServices = (store?.services as ServiceData[]) || DUMMY_SERVICES;
 
-  if (!isDbConnected) return baseServices;
+  const sortedBase = [...baseServices].sort((a, b) => a.order - b.order);
+  if (!isDbConnected) return sortedBase;
   try {
     const list = await db.query.services.findMany({
       orderBy: [asc(schema.services.order)],
@@ -836,7 +905,7 @@ export async function getServices(): Promise<ServiceData[]> {
       } catch (seedErr) {
         console.warn("Auto-seed services dilewati:", seedErr);
       }
-      return baseServices;
+      return sortedBase;
     }
     return list.map((s) => ({
       id: s.id,
@@ -849,8 +918,10 @@ export async function getServices(): Promise<ServiceData[]> {
     }));
   } catch (error) {
     console.warn("Database query getServices gagal, menggunakan data lokal:", error);
-    return baseServices.map((s) => ({
+    const sorted = [...baseServices].sort((a, b) => a.order - b.order);
+    return sorted.map((s, idx) => ({
       ...s,
+      order: s.order ?? idx + 1,
       titleEn: s.titleEn && !isTranslationErrorPayload(s.titleEn) ? s.titleEn : null,
       descriptionEn: s.descriptionEn && !isTranslationErrorPayload(s.descriptionEn) ? s.descriptionEn : null,
     }));
@@ -1014,6 +1085,65 @@ export async function deleteService(id: string) {
   return { success: true, message: "Layanan berhasil dihapus!" };
 }
 
+export async function reorderServices(items: { id: string; order: number }[]) {
+  try {
+    await verifyAdmin();
+  } catch (authErr: unknown) {
+    return {
+      success: false,
+      error: sanitizeError(authErr),
+    };
+  }
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return { success: false, error: "Daftar urutan layanan tidak valid" };
+  }
+
+  if (isDbConnected) {
+    try {
+      for (const item of items) {
+        await db
+          .update(schema.services)
+          .set({ order: item.order, updatedAt: new Date() })
+          .where(eq(schema.services.id, item.id));
+      }
+    } catch (error) {
+      console.error("Gagal memperbarui urutan layanan di DB:", error);
+      return { success: false, error: "Gagal memperbarui urutan layanan di database." };
+    }
+  }
+
+  const store = getLocalStore();
+  const currentList = (store?.services as ServiceData[]) || [...DUMMY_SERVICES];
+  const orderMap = new Map(items.map((i) => [i.id, i.order]));
+  const updatedList = currentList.map((s) => {
+    if (orderMap.has(s.id)) {
+      return { ...s, order: orderMap.get(s.id)! };
+    }
+    return s;
+  });
+  updatedList.sort((a, b) => a.order - b.order);
+  updateLocalStore("services", updatedList);
+
+  for (const s of DUMMY_SERVICES) {
+    if (orderMap.has(s.id)) {
+      s.order = orderMap.get(s.id)!;
+    }
+  }
+  DUMMY_SERVICES.sort((a, b) => a.order - b.order);
+
+  void logAudit({
+    action: "save",
+    entity: "services",
+    entityId: "reorder",
+    detail: `Mengatur ulang urutan ${items.length} layanan`,
+  });
+
+  revalidatePath("/", "layout");
+  revalidatePath("/admin/services");
+  return { success: true, message: "Urutan layanan berhasil diperbarui!" };
+}
+
 // ==========================================
 // PRODUK SERVER ACTIONS
 // ==========================================
@@ -1021,15 +1151,19 @@ export async function getProducts(): Promise<ProductData[]> {
   const store = getLocalStore();
   const baseProducts = (store?.products as ProductData[]) || DUMMY_PRODUCTS;
 
-  if (!isDbConnected) return baseProducts;
+  const sanitizeProduct = (p: ProductData): ProductData => ({
+    ...p,
+    titleEn: p.titleEn && !isTranslationErrorPayload(p.titleEn) ? p.titleEn : null,
+    descriptionEn: p.descriptionEn && !isTranslationErrorPayload(p.descriptionEn) ? p.descriptionEn : null,
+  });
+
+  const sortedBase = [...baseProducts]
+    .map((p, idx) => ({ ...p, order: p.order ?? idx + 1 }))
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  if (!isDbConnected) return sortedBase.map(sanitizeProduct);
   try {
     const list = await db.query.products.findMany({
       orderBy: [asc(schema.products.order)],
-    });
-    const sanitizeProduct = (p: ProductData): ProductData => ({
-      ...p,
-      titleEn: p.titleEn && !isTranslationErrorPayload(p.titleEn) ? p.titleEn : null,
-      descriptionEn: p.descriptionEn && !isTranslationErrorPayload(p.descriptionEn) ? p.descriptionEn : null,
     });
 
     if (!list || list.length === 0) {
@@ -1059,7 +1193,7 @@ export async function getProducts(): Promise<ProductData[]> {
       } catch (seedErr) {
         console.warn("Auto-seed products dilewati:", seedErr);
       }
-      return baseProducts.map(sanitizeProduct);
+      return sortedBase.map(sanitizeProduct);
     }
     return list.map((p) => ({
       id: p.id,
@@ -1083,14 +1217,11 @@ export async function getProducts(): Promise<ProductData[]> {
       customButtonLabel: p.customButtonLabel?.trim() || null,
       referralCode: p.referralCode?.trim() || null,
       published: p.published ?? true,
+      order: p.order ?? 0,
     }));
   } catch (error) {
     console.warn("Database query getProducts gagal, menggunakan data lokal:", error);
-    return baseProducts.map((p) => ({
-      ...p,
-      titleEn: p.titleEn && !isTranslationErrorPayload(p.titleEn) ? p.titleEn : null,
-      descriptionEn: p.descriptionEn && !isTranslationErrorPayload(p.descriptionEn) ? p.descriptionEn : null,
-    }));
+    return sortedBase.map(sanitizeProduct);
   }
 }
 
@@ -1302,6 +1433,69 @@ export async function deleteProduct(id: string) {
   return { success: true, message: "Produk berhasil dihapus!" };
 }
 
+export async function reorderProducts(items: { id: string; order: number }[]) {
+  try {
+    await verifyAdmin();
+  } catch (authErr: unknown) {
+    return {
+      success: false,
+      error: sanitizeError(authErr),
+    };
+  }
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return { success: false, error: "Daftar urutan produk tidak valid" };
+  }
+
+  if (isDbConnected) {
+    try {
+      for (const item of items) {
+        await db
+          .update(schema.products)
+          .set({ order: item.order, updatedAt: new Date() })
+          .where(eq(schema.products.id, item.id));
+      }
+    } catch (error) {
+      console.error("Gagal memperbarui urutan produk di DB:", error);
+      return { success: false, error: "Gagal memperbarui urutan produk di database." };
+    }
+  }
+
+  const store = getLocalStore();
+  const currentList = (store?.products as ProductData[]) || [...DUMMY_PRODUCTS];
+  const orderMap = new Map(items.map((i) => [i.id, i.order]));
+  const updatedList = currentList.map((p, idx) => {
+    if (orderMap.has(p.id)) {
+      return { ...p, order: orderMap.get(p.id)! };
+    }
+    return { ...p, order: p.order ?? idx + 1 };
+  });
+  updatedList.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  updateLocalStore("products", updatedList);
+
+  for (let idx = 0; idx < DUMMY_PRODUCTS.length; idx++) {
+    const p = DUMMY_PRODUCTS[idx];
+    if (orderMap.has(p.id)) {
+      p.order = orderMap.get(p.id)!;
+    } else if (p.order === undefined) {
+      p.order = idx + 1;
+    }
+  }
+  DUMMY_PRODUCTS.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+  void logAudit({
+    action: "save",
+    entity: "products",
+    entityId: "reorder",
+    detail: `Mengatur ulang urutan ${items.length} produk`,
+  });
+
+  revalidatePath("/", "layout");
+  revalidatePath("/toko", "layout");
+  revalidatePath("/admin/products");
+  return { success: true, message: "Urutan produk berhasil diperbarui!" };
+}
+
 // ==========================================
 // TESTIMONI SERVER ACTIONS
 // ==========================================
@@ -1309,7 +1503,10 @@ export async function getTestimonials(): Promise<TestimonialData[]> {
   const store = getLocalStore();
   const baseTestimonials = (store?.testimonials as TestimonialData[]) || DUMMY_TESTIMONIALS;
 
-  if (!isDbConnected) return baseTestimonials;
+  const sortedBase = [...baseTestimonials]
+    .map((t, idx) => ({ ...t, order: t.order ?? idx + 1 }))
+    .sort((a, b) => a.order - b.order);
+  if (!isDbConnected) return sortedBase;
   try {
     const list = await db.query.testimonials.findMany({
       orderBy: [asc(schema.testimonials.order)],
@@ -1337,7 +1534,7 @@ export async function getTestimonials(): Promise<TestimonialData[]> {
       } catch (seedErr) {
         console.warn("Auto-seed testimonials dilewati:", seedErr);
       }
-      return baseTestimonials;
+      return sortedBase;
     }
     return list.map((t) => ({
       id: t.id,
@@ -1349,11 +1546,14 @@ export async function getTestimonials(): Promise<TestimonialData[]> {
       avatarUrl: t.avatarUrl?.trim() || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop",
       rating: t.rating ?? 5,
       published: t.published ?? true,
+      order: t.order ?? 0,
     }));
   } catch (error) {
     console.warn("Database query getTestimonials gagal, menggunakan data lokal:", error);
-    return baseTestimonials.map((t) => ({
+    const sorted = [...baseTestimonials].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    return sorted.map((t, idx) => ({
       ...t,
+      order: t.order ?? idx + 1,
       clientRoleEn: t.clientRoleEn && !isTranslationErrorPayload(t.clientRoleEn) ? t.clientRoleEn : null,
       contentEn: t.contentEn && !isTranslationErrorPayload(t.contentEn) ? t.contentEn : null,
     }));
@@ -1517,6 +1717,68 @@ export async function deleteTestimonial(id: string) {
   return { success: true, message: "Testimoni berhasil dihapus!" };
 }
 
+export async function reorderTestimonials(items: { id: string; order: number }[]) {
+  try {
+    await verifyAdmin();
+  } catch (authErr: unknown) {
+    return {
+      success: false,
+      error: sanitizeError(authErr),
+    };
+  }
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return { success: false, error: "Daftar urutan testimoni tidak valid" };
+  }
+
+  if (isDbConnected) {
+    try {
+      for (const item of items) {
+        await db
+          .update(schema.testimonials)
+          .set({ order: item.order, updatedAt: new Date() })
+          .where(eq(schema.testimonials.id, item.id));
+      }
+    } catch (error) {
+      console.error("Gagal memperbarui urutan testimoni di DB:", error);
+      return { success: false, error: "Gagal memperbarui urutan testimoni di database." };
+    }
+  }
+
+  const store = getLocalStore();
+  const currentList = (store?.testimonials as TestimonialData[]) || [...DUMMY_TESTIMONIALS];
+  const orderMap = new Map(items.map((i) => [i.id, i.order]));
+  const updatedList = currentList.map((t, idx) => {
+    if (orderMap.has(t.id)) {
+      return { ...t, order: orderMap.get(t.id)! };
+    }
+    return { ...t, order: t.order ?? idx + 1 };
+  });
+  updatedList.sort((a, b) => a.order - b.order);
+  updateLocalStore("testimonials", updatedList);
+
+  for (let idx = 0; idx < DUMMY_TESTIMONIALS.length; idx++) {
+    const t = DUMMY_TESTIMONIALS[idx];
+    if (orderMap.has(t.id)) {
+      t.order = orderMap.get(t.id)!;
+    } else if (t.order === undefined) {
+      t.order = idx + 1;
+    }
+  }
+  DUMMY_TESTIMONIALS.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+  void logAudit({
+    action: "save",
+    entity: "testimonials",
+    entityId: "reorder",
+    detail: `Mengatur ulang urutan ${items.length} testimoni`,
+  });
+
+  revalidatePath("/", "layout");
+  revalidatePath("/admin/testimonials");
+  return { success: true, message: "Urutan testimoni berhasil diperbarui!" };
+}
+
 // ==========================================
 // ARTIKEL SERVER ACTIONS
 // ==========================================
@@ -1528,7 +1790,10 @@ export async function getArticles(
   const visible = (list: ArticleData[]) =>
     opts.includeScheduled ? list : list.filter((a) => isLivePublished(a));
 
-  if (!isDbConnected) return visible(baseArticles);
+  const sortedBase = [...baseArticles]
+    .map((a, idx) => ({ ...a, order: a.order ?? idx + 1 }))
+    .sort((a, b) => a.order - b.order);
+  if (!isDbConnected) return visible(sortedBase);
   try {
     const list = await db.query.articles.findMany({
       orderBy: [asc(schema.articles.order), desc(schema.articles.createdAt)],
@@ -1570,7 +1835,7 @@ export async function getArticles(
       }
     }
 
-    if (!list || list.length === 0) return visible(baseArticles);
+    if (!list || list.length === 0) return visible(sortedBase);
 
     return visible(
       list.map((a) => ({
@@ -1594,8 +1859,10 @@ export async function getArticles(
     );
   } catch (error) {
     console.warn("Neon DB query getArticles gagal, beralih ke local-store/dummy:", error);
-    return visible(baseArticles.map((a) => ({
+    const sorted = [...baseArticles].sort((a, b) => a.order - b.order);
+    return visible(sorted.map((a, idx) => ({
       ...a,
+      order: a.order ?? idx + 1,
       titleEn: a.titleEn && !isTranslationErrorPayload(a.titleEn) ? a.titleEn : null,
       summaryEn: a.summaryEn && !isTranslationErrorPayload(a.summaryEn) ? a.summaryEn : null,
       contentEn: a.contentEn && !isTranslationErrorPayload(a.contentEn) ? a.contentEn : null,
@@ -1817,6 +2084,69 @@ export async function deleteArticle(id: string) {
   revalidatePath("/artikel", "layout");
   revalidatePath("/artikel/[slug]", "page");
   return { success: true, message: "Artikel berhasil dihapus!" };
+}
+
+export async function reorderArticles(items: { id: string; order: number }[]) {
+  try {
+    await verifyAdmin();
+  } catch (authErr: unknown) {
+    return {
+      success: false,
+      error: sanitizeError(authErr),
+    };
+  }
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return { success: false, error: "Daftar urutan artikel tidak valid" };
+  }
+
+  if (isDbConnected) {
+    try {
+      for (const item of items) {
+        await db
+          .update(schema.articles)
+          .set({ order: item.order, updatedAt: new Date() })
+          .where(eq(schema.articles.id, item.id));
+      }
+    } catch (error) {
+      console.error("Gagal memperbarui urutan artikel di DB:", error);
+      return { success: false, error: "Gagal memperbarui urutan artikel di database." };
+    }
+  }
+
+  const store = getLocalStore();
+  const currentList = (store?.articles as ArticleData[]) || [...DUMMY_ARTICLES];
+  const orderMap = new Map(items.map((i) => [i.id, i.order]));
+  const updatedList = currentList.map((a, idx) => {
+    if (orderMap.has(a.id)) {
+      return { ...a, order: orderMap.get(a.id)! };
+    }
+    return { ...a, order: a.order ?? idx + 1 };
+  });
+  updatedList.sort((a, b) => a.order - b.order);
+  updateLocalStore("articles", updatedList);
+
+  for (let idx = 0; idx < DUMMY_ARTICLES.length; idx++) {
+    const a = DUMMY_ARTICLES[idx];
+    if (orderMap.has(a.id)) {
+      a.order = orderMap.get(a.id)!;
+    } else if (a.order === undefined) {
+      a.order = idx + 1;
+    }
+  }
+  DUMMY_ARTICLES.sort((a, b) => a.order - b.order);
+
+  void logAudit({
+    action: "save",
+    entity: "articles",
+    entityId: "reorder",
+    detail: `Mengatur ulang urutan ${items.length} artikel`,
+  });
+
+  revalidatePath("/", "layout");
+  revalidatePath("/artikel", "layout");
+  revalidatePath("/admin/articles");
+  return { success: true, message: "Urutan artikel berhasil diperbarui!" };
 }
 
 // ==========================================

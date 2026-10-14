@@ -302,18 +302,18 @@ export function buildProductPromoShareText(
 
   if (isEn) {
     return [
-      `🚀 *${title}*`,
+      `🚀 **${title}**`,
       desc ? `${desc}...` : "",
       `💰 Price: ${price}`,
-      `🔗 Get it here: ${productUrl}`,
+      productUrl,
     ].filter(Boolean).join("\n\n");
   }
 
   return [
-    `🔥 *${title}*`,
+    `🔥 **${title}**`,
     desc ? `${desc}...` : "",
     `💰 Harga: ${price}`,
-    `🛒 Dapatkan sekarang di: ${productUrl}`,
+    productUrl,
   ].filter(Boolean).join("\n\n");
 }
 

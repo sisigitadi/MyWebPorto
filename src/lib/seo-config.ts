@@ -31,7 +31,7 @@ import { getSetting, setSetting } from "@/lib/settings";
  * kebenaran untuk schema WebSite/ProfilePage dan kartu produk. BUKAN
  * `STORE_NAME` ("Toko"), yang hanya label UI yang dilokalkan.
  */
-export const SITE_BRAND = "Sigit Web Porto";
+export const SITE_BRAND = "Sigit Adi Portfolio";
 
 export interface StoredSeoConfig {
   googleVerification?: string;

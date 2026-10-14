@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { Calendar, Clock, ArrowRight, Folder, Monitor, HardDrive, FileText } from "lucide-react";
+import { Calendar, Clock, ArrowRight, Folder, Monitor, Globe, Copy, Check, FileText } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { ArticleData } from "@/lib/dummy-data";
 import { OSWindow } from "@/components/public/os/os-window";
+import { toast } from "sonner";
 
 interface ArticlesCatalogContentProps {
   articles: ArticleData[];
@@ -12,14 +14,25 @@ interface ArticlesCatalogContentProps {
 
 export function ArticlesCatalogContent({ articles }: ArticlesCatalogContentProps) {
   const { t, language } = useTranslation();
+  const [copied, setCopied] = useState(false);
   const isEn = language === "en";
+  const pageAddress = "https://sigitadi.id/artikel";
+
+  const handleCopyAddress = () => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(pageAddress);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast.success(isEn ? "URL address copied to clipboard!" : "Alamat URL berhasil disalin!");
+    }
+  };
 
   return (
     <div className="py-8 md:py-14 relative overflow-hidden h-full w-full overflow-y-auto vt-scrollbar vt-crt-on">
       <div className="max-w-6xl mx-auto px-3 sm:px-6 space-y-6">
         <OSWindow
           id="articles-catalog"
-          title="SigitOS_File_Manager :: C:\Sigit\Articles\All_Posts.doc"
+          title="SigitOS_Explorer :: https://sigitadi.id/artikel"
           icon={<Folder className="h-4 w-4 text-amber-300" />}
           statusText={`Total records: ${articles.length} documents found | Directory status: READ_ONLY`}
         >
@@ -36,9 +49,27 @@ export function ArticlesCatalogContent({ articles }: ArticlesCatalogContentProps
               </Link>
               <div className="hidden sm:flex items-center gap-2">
                 <span className="text-[var(--vt-ink)] font-bold">Address:</span>
-                <div className="px-2 py-1 bg-background border border-border/80 rounded flex items-center gap-1 text-primary font-bold">
-                  <HardDrive className="h-3.5 w-3.5" />
-                  <span className="truncate">C:\Sigit\Articles\Directory.exe</span>
+                <div
+                  onClick={handleCopyAddress}
+                  title={isEn ? "Click to copy address URL" : "Klik untuk menyalin alamat URL"}
+                  className="px-2 py-1 bg-background border border-border/80 rounded flex items-center gap-1.5 text-primary font-bold cursor-pointer hover:border-primary/50 transition-colors group select-all"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleCopyAddress();
+                    }
+                  }}
+                  aria-label={isEn ? "Copy address URL https://sigitadi.id/artikel" : "Salin alamat URL https://sigitadi.id/artikel"}
+                >
+                  <Globe className="h-3.5 w-3.5 shrink-0 text-primary" />
+                  <span className="truncate">{pageAddress}</span>
+                  {copied ? (
+                    <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0 ml-1" />
+                  ) : (
+                    <Copy className="h-3 w-3 text-muted-foreground group-hover:text-primary shrink-0 ml-1 transition-colors" />
+                  )}
                 </div>
               </div>
             </div>

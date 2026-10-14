@@ -19,6 +19,9 @@ export const revalidate = 60;
 // Google menandainya "Crawled - currently not indexed"). Lihat
 // localeAlternates() di src/lib/seo.ts.
 export const metadata = {
+  title: {
+    absolute: "Sigit Adi Portfolio",
+  },
   alternates: {
     canonical: (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, ""),
   },

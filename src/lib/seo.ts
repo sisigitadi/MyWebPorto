@@ -204,8 +204,7 @@ export async function generateDynamicMetadata(): Promise<Metadata> {
   const profile = await getProfile();
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
 
-  const rawTitle = `${profile.name} — ${profile.headline}`;
-  const title = rawTitle.length <= 60 ? rawTitle : `${profile.name} — Web Developer`;
+  const defaultTitle = "Sigit Adi Portfolio";
   const description = profile.bio;
 
   // Open Graph & token verifikasi: override admin (settings "seo") → turunan
@@ -221,11 +220,12 @@ export async function generateDynamicMetadata(): Promise<Metadata> {
   return {
     metadataBase: new URL(appUrl),
     title: {
-      default: title,
-      template: `%s | ${profile.name}`,
+      default: defaultTitle,
+      template: `%s | ${defaultTitle}`,
     },
     description,
     keywords: [
+      defaultTitle,
       profile.name,
       profile.headline,
       "Full Stack Developer",
@@ -254,15 +254,15 @@ export async function generateDynamicMetadata(): Promise<Metadata> {
     alternates: localeAlternates(appUrl),
     openGraph: {
       type: "website",
-      // Locale default situs ini id-ID. Varian "?lang=en" TIDAK dideklarasikan
+      // Locale default situs ini en-US. Varian "?lang=id" TIDAK dideklarasikan
       // sebagai hreflang: i18n 100% client-side → HTML-nya identik dengan
       // kanonik, dan GSC melaporkan varian itu sebagai "Alternate page with
       // proper canonical tag". Lihat catatan di localeAlternates().
-      locale: "id_ID",
+      locale: "en_US",
       url: appUrl,
-      title: og.title,
+      title: og.title || defaultTitle,
       description: og.description,
-      siteName: `${profile.name} Portfolio`,
+      siteName: defaultTitle,
       images:
         og.imageUrl === "/opengraph-image"
           ? [

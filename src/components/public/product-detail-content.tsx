@@ -455,6 +455,15 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
                     )}
                   </>
                 )}
+
+                <button
+                  type="button"
+                  onClick={() => setShareModalOpen(true)}
+                  className="vt-btn vt-btn-chrome w-full justify-center items-center gap-2 py-2 px-3 text-xs font-bold font-mono text-muted-foreground hover:text-foreground cursor-pointer flex"
+                >
+                  <Share2 className="h-3.5 w-3.5 text-primary" />
+                  <span>{isEn ? "Share Product Link & Kit" : "Bagikan Link & Promo Kit"}</span>
+                </button>
               </div>
 
               <div className="border-t border-border/80 pt-3 flex items-center gap-2 text-[11px] text-muted-foreground">

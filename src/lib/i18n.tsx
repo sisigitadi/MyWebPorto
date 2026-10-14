@@ -384,9 +384,9 @@ interface LanguageContextType {
 }
 
 const LanguageContext = createContext<LanguageContextType>({
-  language: "id",
+  language: "en",
   setLanguage: () => {},
-  t: translations.id,
+  t: translations.en,
 });
 
 /**
@@ -416,12 +416,10 @@ export function LanguageProvider({
   children: React.ReactNode;
   overrides?: UIStringsOverlay;
 }) {
-  const [language, setLanguageState] = useState<Language>("id");
+  const [language, setLanguageState] = useState<Language>("en");
 
-  // Deteksi bahasa pasca-mount (URL ?lang= > localStorage > browser): initializer
-  // di useState → hydration mismatch. setState pasca-baca ditegur rule; solusi
-  // idiomatik = external store + custom event (setLanguage menulis localStorage
-  // di tab yang sama), dan tulisan document.lang tetap di effect — utang terpisah.
+  // Deteksi bahasa pasca-mount (URL ?lang= > localStorage > default EN): initializer
+  // di useState → hydration mismatch.
   useEffect(() => {
     try {
       const urlLang = readUrlLang();
@@ -447,22 +445,9 @@ export function LanguageProvider({
         return;
       }
 
-      // Auto-detect from browser preferences
-      if (typeof window !== "undefined" && navigator) {
-        const browserLangs = navigator.languages || [navigator.language || "id"];
-        for (const lang of browserLangs) {
-          const lower = lang.toLowerCase();
-          if (lower.startsWith("id") || lower.startsWith("in")) {
-            setLanguageState("id");
-            document.documentElement.lang = "id";
-            return;
-          }
-          if (lower.startsWith("en")) {
-            setLanguageState("en");
-            document.documentElement.lang = "en";
-            return;
-          }
-        }
+      // Default adalah EN. Pastikan atribut lang pada document diset ke "en".
+      if (typeof document !== "undefined") {
+        document.documentElement.lang = "en";
       }
     } catch {
       // Ignore storage errors in restricted contexts

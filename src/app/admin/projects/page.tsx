@@ -12,6 +12,9 @@ import {
   Loader2,
   AlertCircle,
   Sparkles,
+  GripVertical,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import {
   Table,
@@ -56,6 +59,7 @@ import {
   getProjects,
   saveProject,
   deleteProject,
+  reorderProjects,
   translateFieldAction,
 } from "@/lib/actions";
 
@@ -70,6 +74,12 @@ export default function AdminProjectsPage() {
   const [isPending, startTransition] = useTransition();
   const [isTranslating, setIsTranslating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  // Drag and drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const isReorderActive = searchQuery.trim() === "";
 
   // Form State (Indonesian)
   const [formTitle, setFormTitle] = useState("");
@@ -106,6 +116,78 @@ export default function AdminProjectsPage() {
   useEffect(() => {
     fetchProjects();
   }, []);
+
+  const handleReorder = (newItems: ProjectData[]) => {
+    const reordered = newItems.map((item, idx) => ({
+      ...item,
+      order: idx + 1,
+    }));
+    setProjects(reordered);
+
+    startTransition(async () => {
+      try {
+        const payload = reordered.map((item) => ({ id: item.id, order: item.order ?? 0 }));
+        const res = await reorderProjects(payload);
+        if (res.success) {
+          toast.success(res.message || "Urutan proyek berhasil diperbarui!");
+        } else {
+          toast.error(res.error || "Gagal memperbarui urutan.");
+          await fetchProjects();
+        }
+      } catch (err) {
+        console.error("Reorder projects failed:", err);
+        toast.error("Gagal menyimpan perubahan urutan.");
+        await fetchProjects();
+      }
+    });
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    if (!isReorderActive) return;
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", `${index}`);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    if (!isReorderActive) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    if (!isReorderActive) return;
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    const newItems = [...projects];
+    const [movedItem] = newItems.splice(draggedIndex, 1);
+    newItems.splice(targetIndex, 0, movedItem);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    handleReorder(newItems);
+  };
+
+  const handleMove = (index: number, direction: "up" | "down") => {
+    if (!isReorderActive) return;
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= projects.length) return;
+    const newItems = [...projects];
+    const [movedItem] = newItems.splice(index, 1);
+    newItems.splice(targetIndex, 0, movedItem);
+    handleReorder(newItems);
+  };
 
   // Guard "belum disimpan": baseline direset saat sessionKey berubah — yaitu
   // saat dialog tambah/edit dibuka atau item lain dipilih. Mengetik di form
@@ -363,6 +445,7 @@ export default function AdminProjectsPage() {
           <Table className="admin-table">
             <TableHeader>
               <TableRow className="bg-muted/40 hover:bg-muted/40">
+                <TableHead className="w-24 text-center text-xs font-semibold">Urutan</TableHead>
                 <TableHead className="w-16 text-xs font-semibold">Cover</TableHead>
                 <TableHead className="text-xs font-semibold">Judul & Ringkasan</TableHead>
                 <TableHead className="text-xs font-semibold">Teknologi</TableHead>
@@ -374,20 +457,76 @@ export default function AdminProjectsPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center text-xs text-muted-foreground">
+                  <TableCell colSpan={7} className="h-32 text-center text-xs text-muted-foreground">
                     <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2 text-primary" />
                     <span>Memuat data proyek...</span>
                   </TableCell>
                 </TableRow>
               ) : filteredProjects.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center text-xs text-muted-foreground">
+                  <TableCell colSpan={7} className="h-32 text-center text-xs text-muted-foreground">
                     Tidak ada proyek yang cocok dengan kata kunci pencarian.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredProjects.map((project) => (
-                  <TableRow key={project.id} className="hover:bg-muted/20 transition-colors">
+                filteredProjects.map((project, index) => {
+                  const isDragging = draggedIndex === index;
+                  const isOver = dragOverIndex === index;
+                  return (
+                  <TableRow
+                    key={project.id}
+                    draggable={isReorderActive}
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragEnd={handleDragEnd}
+                    onDrop={(e) => handleDrop(e, index)}
+                    className={`transition-colors ${
+                      isDragging ? "opacity-30 bg-muted/60" : "hover:bg-muted/20"
+                    } ${isOver && !isDragging ? "border-t-2 border-primary bg-primary/5" : ""}`}
+                  >
+                    <TableCell className="py-2.5">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <span
+                          className={`p-1 rounded ${
+                            isReorderActive
+                              ? "cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground hover:bg-muted"
+                              : "cursor-not-allowed text-muted-foreground/30"
+                          }`}
+                          title={
+                            isReorderActive
+                              ? "Tahan dan geser untuk memindahkan urutan"
+                              : "Hapus pencarian untuk menggeser posisi"
+                          }
+                        >
+                          <GripVertical className="h-4 w-4" />
+                        </span>
+                        <span className="font-mono text-xs text-muted-foreground font-semibold min-w-4 text-center">
+                          {isReorderActive ? index + 1 : (project.order || "-")}
+                        </span>
+                        {isReorderActive && (
+                          <div className="flex flex-col ml-0.5">
+                            <button
+                              type="button"
+                              onClick={() => handleMove(index, "up")}
+                              disabled={index === 0}
+                              className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5 transition-opacity"
+                              title="Pindahkan ke atas"
+                            >
+                              <ChevronUp className="h-3 w-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMove(index, "down")}
+                              disabled={index === projects.length - 1}
+                              className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5 transition-opacity"
+                              title="Pindahkan ke bawah"
+                            >
+                              <ChevronDown className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="py-3">
                       <div className="relative h-10 w-16 rounded overflow-hidden bg-muted border border-border shrink-0">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -492,8 +631,9 @@ export default function AdminProjectsPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                );
+              })
+            )}
             </TableBody>
           </Table>
         </div>

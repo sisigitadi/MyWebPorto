@@ -27,6 +27,8 @@ export const SECTION_PATH_REDIRECTS: Readonly<Record<string, string>> = {
   "/toko": "#produk",
   "/terminal": "#terminal",
   "/testimoni": "#testimoni",
+  "/kontak": "#kontak",
+  "/contact": "#kontak",
 };
 
 /**
