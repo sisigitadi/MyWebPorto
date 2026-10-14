@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useMemo } from "react";
 import Link from "next/link";
 import {
   Plus,
@@ -16,6 +16,8 @@ import {
   Settings,
   ChevronDown,
   ChevronUp,
+  Tag,
+  Check,
 } from "lucide-react";
 import {
   Table,
@@ -66,6 +68,18 @@ import { getProductSlug, slugifyProduct } from "@/lib/product-link";
 import { isTranslationErrorPayload } from "@/lib/content-edit";
 import { toast } from "sonner";
 
+const DEFAULT_PRODUCT_CATEGORIES = [
+  "Template",
+  "E-Book",
+  "Source Code",
+  "Akun Berlangganan",
+  "Jasa & Layanan",
+  "Aplikasi & Tools",
+  "Kelas & Kursus",
+  "Desain & Aset",
+  "Affiliate & Mitra",
+];
+
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<ProductData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -99,6 +113,18 @@ export default function AdminProductsPage() {
   const [formPriceAmount, setFormPriceAmount] = useState("");
   const [formBadge, setFormBadge] = useState("");
   const [formCategory, setFormCategory] = useState("");
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+
+  // Kumpulan kategori produk unik dari produk terdaftar + preset standar
+  const availableCategories = useMemo(() => {
+    const set = new Set<string>(DEFAULT_PRODUCT_CATEGORIES);
+    products.forEach((p) => {
+      if (p.category && p.category.trim()) {
+        set.add(p.category.trim());
+      }
+    });
+    return Array.from(set);
+  }, [products]);
   const [formStock, setFormStock] = useState("");
   const [formGallery, setFormGallery] = useState<string[]>([]);
   const [formThumbnail, setFormThumbnail] = useState("");
@@ -192,6 +218,7 @@ export default function AdminProductsPage() {
     setFormPriceAmount("");
     setFormBadge("");
     setFormCategory("");
+    setIsCustomCategory(false);
     setFormStock("");
     setFormGallery([]);
     setFormThumbnail("https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop");
@@ -218,7 +245,9 @@ export default function AdminProductsPage() {
     setFormComparePrice(product.comparePriceLabel || "");
     setFormPriceAmount(product.priceAmount !== null && product.priceAmount !== undefined ? String(product.priceAmount) : "");
     setFormBadge(product.badge || "");
-    setFormCategory(product.category || "");
+    const initialCategory = product.category || "";
+    setFormCategory(initialCategory);
+    setIsCustomCategory(Boolean(initialCategory && !availableCategories.includes(initialCategory)));
     setFormStock(product.stock !== null && product.stock !== undefined ? String(product.stock) : "");
     setFormGallery(product.gallery || []);
     setFormThumbnail(product.thumbnailUrl);
@@ -903,17 +932,128 @@ export default function AdminProductsPage() {
                 />
               </div>
 
+              {/* Kategori Produk (Pilihan Dropdown, Kustom, & Quick-Pick Chips) */}
               <div className="space-y-2">
-                <Label htmlFor="category" className="text-xs font-medium text-[var(--vt-ink)]">
-                  Kategori
-                </Label>
-                <Input
-                  id="category"
-                  placeholder="Template, E-Book, Jasa Website"
-                  value={formCategory}
-                  onChange={(e) => setFormCategory(e.target.value)}
-                  className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
-                />
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="categorySelect" className="text-xs font-medium text-[var(--vt-ink)] flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5 text-[var(--vt-accent)]" />
+                    <span>Kategori Produk</span>
+                  </Label>
+                  {formCategory && (
+                    <span className="text-[11px] text-[var(--vt-ink-mute)]">
+                      Terpilih: <strong className="text-[var(--vt-ink)]">{formCategory}</strong>
+                    </span>
+                  )}
+                </div>
+
+                {/* Dropdown Pilihan Kategori */}
+                <select
+                  id="categorySelect"
+                  value={
+                    isCustomCategory
+                      ? "__custom__"
+                      : availableCategories.includes(formCategory)
+                      ? formCategory
+                      : formCategory
+                      ? "__custom__"
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "__custom__") {
+                      setIsCustomCategory(true);
+                    } else {
+                      setIsCustomCategory(false);
+                      setFormCategory(val);
+                    }
+                  }}
+                  className="flex h-9 w-full rounded-md border border-[var(--vt-edge-lo-2)] bg-[var(--vt-paper)] px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="">-- Pilih Kategori Produk --</option>
+                  {availableCategories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                  <option value="__custom__">✏️ + Tambah Kategori Baru (Kustom)...</option>
+                </select>
+
+                {/* Input teks kustom bila memilih opsi kustom atau kategori belum terdaftar */}
+                {(isCustomCategory || (formCategory && !availableCategories.includes(formCategory))) && (
+                  <div className="p-2.5 rounded-md border border-dashed border-[var(--vt-edge-lo-2)] bg-[var(--vt-paper-lo)] space-y-1.5 animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="customCategoryInput" className="text-[11px] font-medium text-[var(--vt-ink-mute)]">
+                        Nama Kategori Baru / Kustom:
+                      </Label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCustomCategory(false);
+                          setFormCategory("");
+                        }}
+                        className="text-[11px] text-[var(--vt-accent)] hover:underline"
+                      >
+                        Batal / Pilih dari daftar
+                      </button>
+                    </div>
+                    <Input
+                      id="customCategoryInput"
+                      placeholder="Contoh: UI Kit, Video Tutorial, Plugin"
+                      value={formCategory}
+                      onChange={(e) => setFormCategory(e.target.value)}
+                      className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
+                      autoFocus
+                    />
+                  </div>
+                )}
+
+                {/* Quick-Pick Chips (Badges) */}
+                <div className="pt-0.5">
+                  <div className="text-[10px] font-semibold text-[var(--vt-ink-mute)] uppercase tracking-wider mb-1.5">
+                    Pilihan Cepat (Klik untuk memilih):
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {availableCategories.map((cat) => {
+                      const isSelected = formCategory === cat && !isCustomCategory;
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setFormCategory("");
+                              setIsCustomCategory(false);
+                            } else {
+                              setFormCategory(cat);
+                              setIsCustomCategory(false);
+                            }
+                          }}
+                          className={`px-2.5 py-1 rounded-md text-[11px] transition-all border inline-flex items-center gap-1 cursor-pointer ${
+                            isSelected
+                              ? "bg-[var(--vt-accent)] text-white border-[var(--vt-accent)] font-semibold shadow-xs"
+                              : "bg-[var(--vt-paper)] text-[var(--vt-ink)] border-[var(--vt-edge-lo-2)] hover:border-[var(--vt-accent)] hover:bg-[var(--vt-paper-hi)]"
+                          }`}
+                        >
+                          {isSelected && <Check className="w-3 h-3 text-white" />}
+                          <span>{cat}</span>
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCustomCategory(true);
+                      }}
+                      className={`px-2.5 py-1 rounded-md text-[11px] transition-all border border-dashed inline-flex items-center gap-1 cursor-pointer ${
+                        isCustomCategory
+                          ? "bg-[var(--vt-accent-lo)] text-[var(--vt-accent)] border-[var(--vt-accent)] font-semibold"
+                          : "bg-transparent text-[var(--vt-ink-mute)] border-[var(--vt-edge-lo-2)] hover:border-[var(--vt-accent)] hover:text-[var(--vt-ink)]"
+                      }`}
+                    >
+                      <span>+ Lainnya...</span>
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Tipe Penjualan */}
