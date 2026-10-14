@@ -298,21 +298,22 @@ export function buildProductPromoShareText(
   const price = isEn
     ? product.priceLabelEn || product.priceFormatted || "Special Offer"
     : product.priceFormatted || "Penawaran Spesial";
-  const desc = (isEn && product.descriptionEn ? product.descriptionEn : product.description).slice(0, 140);
+  const rawDesc = isEn && product.descriptionEn ? product.descriptionEn : product.description;
+  const desc = rawDesc ? rawDesc.trim() : "";
 
   if (isEn) {
     return [
-      `🚀 **${title}**`,
-      desc ? `${desc}...` : "",
-      `💰 Price: ${price}`,
+      `**${title}**`,
+      desc,
+      `Price: ${price}`,
       productUrl,
     ].filter(Boolean).join("\n\n");
   }
 
   return [
-    `🔥 **${title}**`,
-    desc ? `${desc}...` : "",
-    `💰 Harga: ${price}`,
+    `**${title}**`,
+    desc,
+    `Harga: ${price}`,
     productUrl,
   ].filter(Boolean).join("\n\n");
 }

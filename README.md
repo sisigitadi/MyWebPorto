@@ -50,9 +50,10 @@ Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager int
 - **Editor chip** untuk tag artikel & tech stack proyek (tambah/hapus per item, bukan hardcode).
 - **Content editor** dengan toolbar sintaks (H2/H3/quote/kode) + pratinjau WYSIWYG via renderer publik bersama.
 - **Draft & schedule**: kolom `publishAt` proyek/artikel: masa depan tersembunyi dari publik, badge Terjadwal di admin.
-- **Terminal AI** dengan perintah: `help`, `whoami`, `skills`, `projects`, `services`, `articles`, `contact`, `open <app>`, `theme`, `lang`, `neofetch`, `history`, `clear`, `reboot`, `cv`, `github`, `email` + navigasi riwayat panah atas/bawah, natural-language chat ke Sigit_Bot, input suara + TTS.
+- **Terminal AI** dengan perintah: `help`, `whoami`, `skills`, `projects`, `services`, `articles`, `contact`, `open <app>`, `theme`, `lang`, `neofetch`, `history`, `clear`, `reboot`, `cv`, `github`, `email`, `share` + navigasi riwayat panah atas/bawah, natural-language chat ke Sigit_Bot, input suara + TTS.
+- **Fitur Bagikan Tautan & Konten**: Panel bagikan instan pada setiap aplikasi OS (layanan, proyek, toko, artikel, terminal, testimoni, kontak) dengan deskripsi ringkas utuh tanpa terpotong, format copas siap kirim, tombol sosial (WhatsApp, Telegram, Instagram, LinkedIn, Facebook), dan kode QR.
 - Input konten Indonesia dan Inggris untuk beberapa field.
-- Terjemahan ID → EN **opt-in per field** lewat tombol Terjemahkan di form admin (tidak ada terjemahan otomatis saat menyimpan); kolom English yang dikosongkan memakai teks Indonesia sebagai fallback di mode EN.
+- Terjemahan ID -> EN **opt-in per field** lewat tombol Terjemahkan di form admin (tidak ada terjemahan otomatis saat menyimpan); kolom English yang dikosongkan memakai teks Indonesia sebagai fallback di mode EN.
 - Upload gambar disimpan **langsung di Postgres** (tabel `media`, kolom `data` bytea): persisten di semua environment termasuk serverless, tanpa CDN/object storage eksternal. Disajikan via `GET /api/media/<id>` dengan cache immutable.
 - Slug produk dapat dikelola dari admin dan masuk ke sitemap.
 - Artikel studi kasus project dan topical authority AI, cybersecurity, Linux, Windows, dan macOS.
@@ -202,7 +203,7 @@ src/
 
 # Di luar src/:
 drizzle/                   # Migrasi SQL 0000–0012 + meta snapshot
-tests/                     # Unit test Vitest (46 file, 593 test)
+tests/                     # Unit test Vitest (47 file, 597 test)
 e2e/                       # E2E Playwright area publik
 scripts/                   # seed.mjs, package-deploy.mjs, dll
 data/                      # Local store: local-store.json, local-settings.json
@@ -346,7 +347,7 @@ npm run lint            # ESLint (flat config)
 npm run docs:check      # cek dokumentasi vs kode (angka README & daftar env var)
 ```
 
-Unit test Vitest mencakup **46 file / 593 test** (`npx vitest run`): AI engine (TF-IDF), provider & config Cloud AI, daftar model & quota Gemini, validasi env, IndexNow, helper slug & host produk, logika publish/schedule, validasi storage & audit URL media, stok keranjang, builder pesan WhatsApp, unsaved-changes guard, analyzer & remediator SEO/GEO, redaksi-draft & otomasi Redaksi, serta config God Mode (`settings.os_apps`, `ui_strings`, `features`, `settings_history`). Test yang butuh `DATABASE_URL` (audit URL media) otomatis di-skip tanpa DB, jadi CI tanpa DB tetap hijau; test metadata OG sengaja hermetik (fetch di-stub) sehingga tidak menyentuh jaringan. E2E `test:e2e:godmode` memverifikasi utas penuh config → props → DOM. CI (`.github/workflows/ci.yml`) menjalankan **lint + typecheck + unit test + build** otomatis di setiap PR ke `main` — jadikan *required status check* sebelum merge.
+Unit test Vitest mencakup **47 file / 597 test** (`npx vitest run`): AI engine (TF-IDF), provider & config Cloud AI, daftar model & quota Gemini, validasi env, IndexNow, helper slug & host produk, logika publish/schedule, validasi storage & audit URL media, stok keranjang, builder pesan WhatsApp, unsaved-changes guard, analyzer & remediator SEO/GEO, redaksi-draft & otomasi Redaksi, serta config God Mode (`settings.os_apps`, `ui_strings`, `features`, `settings_history`). Test yang butuh `DATABASE_URL` (audit URL media) otomatis di-skip tanpa DB, jadi CI tanpa DB tetap hijau; test metadata OG sengaja hermetik (fetch di-stub) sehingga tidak menyentuh jaringan. E2E `test:e2e:godmode` memverifikasi utas penuh config → props → DOM. CI (`.github/workflows/ci.yml`) menjalankan **lint + typecheck + unit test + build** otomatis di setiap PR ke `main` — jadikan *required status check* sebelum merge.
 
 ### Penjaga drift dokumentasi
 

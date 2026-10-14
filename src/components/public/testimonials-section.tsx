@@ -5,6 +5,7 @@ import { Star, MessageSquareQuote } from "lucide-react";
 import { TestimonialData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
 import { OSWindow } from "@/components/public/os/os-window";
+import { ShareButton } from "@/components/public/share-button";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -52,17 +53,34 @@ export function TestimonialsSection({ testimonials: propTestimonials }: Testimon
     >
       <div className="max-w-7xl mx-auto px-2 sm:px-4">
         {/* Section Heading */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-blue)]">
-            <span className="h-2 w-2 rounded-full bg-[var(--vt-blue)] animate-pulse" />
-            <span>{t.testi_badge}</span>
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-blue)]">
+              <span className="h-2 w-2 rounded-full bg-[var(--vt-blue)] animate-pulse" />
+              <span>{t.testi_badge}</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
+              {t.testi_title}
+            </h2>
+            <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] font-medium mt-1 max-w-2xl">
+              {t.testi_subtitle}
+            </p>
           </div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
-            {t.testi_title}
-          </h2>
-          <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] font-medium mt-1 max-w-2xl">
-            {t.testi_subtitle}
-          </p>
+
+          <div className="shrink-0">
+            <ShareButton
+              title={language === "en" ? "Client Testimonials & Reviews - Sigit Adi Irianto" : "Testimoni & Ulasan Klien - Sigit Adi Irianto"}
+              url="/#testimoni"
+              summary={
+                language === "en"
+                  ? "Authentic reviews and testimonials from clients and collaborators regarding satisfaction with web development, code quality, and professional communication."
+                  : "Ulasan autentik dan umpan balik dari klien serta kolaborator mengenai kepuasan kerja sama pengembangan sistem web, kualitas kode, dan komunikasi profesional."
+              }
+              badge={language === "en" ? "REVIEWS" : "TESTIMONI"}
+              buttonText={language === "en" ? "Share Reviews" : "Bagikan Testimoni"}
+              className="vt-btn vt-btn-chrome text-xs font-mono font-bold"
+            />
+          </div>
         </div>
 
         {/* Testimonials Grid */}

@@ -10,6 +10,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { OSWindow } from "@/components/public/os/os-window";
+import { ShareButton } from "@/components/public/share-button";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -113,8 +114,22 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
               </div>
             </div>
             <div className="flex items-center gap-2 text-[var(--vt-ink)] font-bold text-xs min-w-0">
-              <Terminal className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-              <span className="mobile-safe-inline">SIGIT_KERNEL_OK</span>
+              <ShareButton
+                title={isEn ? "Project Portfolio & Case Studies - Sigit Adi Irianto" : "Katalog Proyek & Portofolio - Sigit Adi Irianto"}
+                url="/proyek"
+                summary={
+                  isEn
+                    ? "Explore full-stack web applications, AI system integrations, and modern software engineering case studies developed by Sigit Adi Irianto."
+                    : "Jelajahi kumpulan karya, studi kasus aplikasi web full-stack, integrasi model AI, dan solusi rekayasa perangkat lunak modern karya Sigit Adi Irianto."
+                }
+                badge={isEn ? "PROJECTS" : "PROYEK"}
+                buttonText={isEn ? "Share Page" : "Bagikan Halaman"}
+                className="vt-btn vt-btn-chrome text-xs font-mono font-bold"
+              />
+              <span className="hidden md:inline-flex items-center gap-1.5">
+                <Terminal className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                <span className="mobile-safe-inline">SIGIT_KERNEL_OK</span>
+              </span>
             </div>
           </div>
 

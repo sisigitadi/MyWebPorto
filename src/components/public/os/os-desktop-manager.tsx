@@ -25,10 +25,12 @@ import {
   RotateCcw,
   Globe,
   FileText,
+  Share2,
 } from "lucide-react";
 import { ProfileData, ServiceData, ProjectData, ProductData, TestimonialData, ArticleData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
-import { appFilename, appHumanLabel, type AppId, type OSAppConfig } from "@/lib/os-apps-meta";
+import { appFilename, appHumanLabel, getAppShareMeta, type AppId, type OSAppConfig } from "@/lib/os-apps-meta";
+import { ContentShareModal } from "@/components/public/content-share-modal";
 import { useOSTheme, OSTheme } from "./theme-context";
 import { useFeature } from "@/lib/features-context";
 import { playOS } from "@/lib/os-sound";
@@ -154,6 +156,7 @@ export function OSDesktopManager({
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [menuQuery, setMenuQuery] = useState("");
   const [soundOn, setSoundOn] = useState(true);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   // Mode tampilan: "mobile" = single-page scroll (<768px), "desktop" =
   // window manager tab (>=768px). Sengaja memakai breakpoint md Tailwind
   // (768px) agar sinkron dengan utility hidden/md:flex di JSX.
@@ -841,6 +844,15 @@ export function OSDesktopManager({
               <div className="flex items-center gap-1 shrink-0 ml-2">
                 <button
                   type="button"
+                  onClick={() => setIsShareModalOpen(true)}
+                  className="vt-titlebar-btn hover:bg-primary/30 text-white"
+                  title={language === "en" ? `Share ${appHumanLabel(currentApp.id, language)}` : `Bagikan ${appHumanLabel(currentApp.id, language)}`}
+                  aria-label={language === "en" ? "Share content & link" : "Bagikan tautan & konten"}
+                >
+                  <Share2 className="h-2.5 w-2.5 text-[#38bdf8]" />
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     playOS(isMinimized ? "maximize" : "minimize");
                     setIsMinimized(!isMinimized);
@@ -1159,6 +1171,19 @@ export function OSDesktopManager({
           <span className="hidden sm:inline text-[#065f46] dark:text-[#6ee7b7]">{t.os_status_online}</span>
         </div>
       </div>
+
+      {/* OS Active Window Content Share Modal */}
+      {isShareModalOpen && (
+        <ContentShareModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          title={getAppShareMeta(activeApp, language, profile.name).title}
+          url={getAppShareMeta(activeApp, language, profile.name).url}
+          summary={getAppShareMeta(activeApp, language, profile.name).summary}
+          badge={getAppShareMeta(activeApp, language, profile.name).badge}
+          isEn={language === "en"}
+        />
+      )}
     </div>
   );
 }

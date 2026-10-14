@@ -14,6 +14,7 @@ import {
 import { ArticleData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
 import { OSWindow } from "@/components/public/os/os-window";
+import { ShareButton } from "@/components/public/share-button";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -88,17 +89,34 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
     >
       <div className="max-w-7xl mx-auto px-2 sm:px-4 mobile-safe-copy">
         {/* Section Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-amber)]">
-            <span className="h-2 w-2 rounded-full bg-[var(--vt-amber)] animate-pulse" />
-            <span>{t.articles_badge}</span>
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-amber)]">
+              <span className="h-2 w-2 rounded-full bg-[var(--vt-amber)] animate-pulse" />
+              <span>{t.articles_badge}</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
+              {t.articles_title}
+            </h2>
+            <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] font-medium mt-1 max-w-2xl">
+              {t.articles_subtitle}
+            </p>
           </div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
-            {t.articles_title}
-          </h2>
-          <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] font-medium mt-1 max-w-2xl">
-            {t.articles_subtitle}
-          </p>
+
+          <div className="shrink-0">
+            <ShareButton
+              title={language === "en" ? "Tech Articles & Architecture Insights - Sigit Adi Irianto" : "Artikel & Wawasan Teknologi - Sigit Adi Irianto"}
+              url="/artikel"
+              summary={
+                language === "en"
+                  ? "In-depth technical articles, software architecture guides, Next.js tips, AI systems integration, and modern engineering insights by Sigit Adi Irianto."
+                  : "Kumpulan artikel mendalam, panduan arsitektur software engineering, tips Next.js, integrasi sistem AI, dan wawasan rekayasa teknologi modern."
+              }
+              badge={language === "en" ? "ARTICLES" : "ARTIKEL"}
+              buttonText={language === "en" ? "Share Articles" : "Bagikan Artikel"}
+              className="vt-btn vt-btn-chrome text-xs font-mono font-bold"
+            />
+          </div>
         </div>
 
         {/* Retro Filter Bar */}
