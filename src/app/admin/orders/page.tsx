@@ -1400,16 +1400,31 @@ export default function AdminOrdersPage() {
               {selectedOrder.paymentProofUrl && (
                 <div className="p-3 bg-[var(--vt-edge-lo-1)] border border-[var(--vt-edge-lo-2)] rounded-xs space-y-2">
                   <div className="flex items-center justify-between text-xs font-bold">
-                    <span>Bukti Pembayaran dari Pembeli</span>
-                    <a
-                      href={selectedOrder.paymentProofUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline flex items-center gap-1 text-[11px]"
-                    >
-                      <span>Buka Gambar Penuh</span>
-                      <ArrowUpRight className="h-3 w-3" />
-                    </a>
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-3.5 w-3.5 text-primary" />
+                      <span>Bukti Pembayaran dari Pembeli</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {editStatus === "pending" && (
+                        <button
+                          type="button"
+                          onClick={() => setEditStatus("paid")}
+                          className="vt-btn px-2 py-0.5 text-[10px] font-bold bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-1 cursor-pointer rounded-xs"
+                        >
+                          <Check className="h-3 w-3" />
+                          <span>Verifikasi & Tandai Lunas</span>
+                        </button>
+                      )}
+                      <a
+                        href={selectedOrder.paymentProofUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline flex items-center gap-1 text-[11px]"
+                      >
+                        <span>Buka Gambar Penuh</span>
+                        <ArrowUpRight className="h-3 w-3" />
+                      </a>
+                    </div>
                   </div>
                   <div className="max-h-48 overflow-hidden rounded-xs border border-[var(--vt-edge-lo-2)] bg-black/20 flex items-center justify-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1451,12 +1466,12 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
 
-              {/* FreelanceOps Project Workspace Integration */}
+              {/* Tautan Pengiriman / Akses Unduhan / Workspace */}
               <div className="p-3 bg-blue-500/5 border border-blue-500/20 rounded-xs space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 font-bold text-xs text-blue-700 dark:text-blue-400">
                     <Briefcase className="h-3.5 w-3.5" />
-                    <span>Ruang Kerja Proyek (FreelanceOps)</span>
+                    <span>Tautan Pengiriman / Akses Unduhan / Workspace</span>
                   </div>
                   {editProjectUrl && (
                     <a
@@ -1465,17 +1480,17 @@ export default function AdminOrdersPage() {
                       rel="noopener noreferrer"
                       className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
                     >
-                      <span>Buka Workspace</span>
+                      <span>Buka Tautan</span>
                       <ArrowUpRight className="h-3 w-3" />
                     </a>
                   )}
                 </div>
                 <p className="text-[11px] text-[var(--vt-ink-mute)]">
-                  Masukkan tautan proyek di FreelanceOps untuk kolaborasi, milestone, dan diskusi bersama klien:
+                  Masukkan tautan Google Drive, Notion, GitHub repo, file download, atau ruang kerja FreelanceOps:
                 </p>
                 <Input
                   type="url"
-                  placeholder="https://freelanceops.sigitadi.id/projects/..."
+                  placeholder="https://drive.google.com/... atau https://freelanceops.sigitadi.id/..."
                   value={editProjectUrl}
                   onChange={(e) => setEditProjectUrl(e.target.value)}
                   className="h-8 text-xs font-mono bg-background"

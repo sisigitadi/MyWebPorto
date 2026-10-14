@@ -15,6 +15,7 @@ import {
   CreditCard,
   Check,
   Copy,
+  HardDrive,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -77,6 +78,8 @@ export function PaymentMethodsManager({
       instructionsEn: "Please send payment via PayPal or Wise to our account, then confirm via WhatsApp chat.",
     },
     storeNotice: "",
+    whatsappOnlyMode: false,
+    allowPaymentProofUpload: true,
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -84,11 +87,11 @@ export function PaymentMethodsManager({
   const [hasChanges, setHasChanges] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const loadData = async () => {
-    setIsLoading(true);
-    try {
-      const cfg = await getStoreConfig();
-      if (cfg) {
+  useEffect(() => {
+    let mounted = true;
+    getStoreConfig()
+      .then((cfg) => {
+        if (!mounted || !cfg) return;
         setConfig({
           adminWhatsapp: cfg.adminWhatsapp || "",
           bankAccounts: cfg.bankAccounts || [],
@@ -107,18 +110,21 @@ export function PaymentMethodsManager({
             instructionsEn: cfg.internationalPayment?.instructionsEn || "",
           },
           storeNotice: cfg.storeNotice || "",
+          whatsappOnlyMode: cfg.whatsappOnlyMode === true,
+          allowPaymentProofUpload: cfg.allowPaymentProofUpload !== false,
         });
-      }
-    } catch (err) {
-      console.error("[payment-methods-manager] loadData failed:", err);
-      toast.error("Gagal memuat pengaturan metode pembayaran.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      })
+      .catch((err) => {
+        console.error("[payment-methods-manager] load failed:", err);
+        toast.error("Gagal memuat pengaturan metode pembayaran.");
+      })
+      .finally(() => {
+        if (mounted) setIsLoading(false);
+      });
 
-  useEffect(() => {
-    loadData();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Handler update rekening
@@ -744,6 +750,112 @@ export function PaymentMethodsManager({
               className="h-8 text-xs bg-[var(--vt-paper)]"
             />
           </div>
+        </div>
+      </div>
+
+      {/* 5. SEKSI MODE TRANSAKSI TOKO: GLOBAL DIRECT WHATSAPP */}
+      <div className={`p-4 rounded-md border transition-colors ${config.whatsappOnlyMode ? "border-emerald-500/50 bg-emerald-500/5" : "border-border bg-[var(--vt-card)]"} space-y-3`}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className={`h-8 w-8 rounded-full flex items-center justify-center ${config.whatsappOnlyMode ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground"}`}>
+              <MessageCircle className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <span>5. Mode Semua Transaksi Langsung WhatsApp (Bypass Checkout Web)</span>
+                <Badge variant={config.whatsappOnlyMode ? "default" : "outline"} className={`text-[10px] ${config.whatsappOnlyMode ? "bg-emerald-600 text-white" : ""}`}>
+                  {config.whatsappOnlyMode ? "MODE WHATSAPP AKTIF" : "MODE WEB STANDAR"}
+                </Badge>
+              </h3>
+              <p className="text-[11px] text-muted-foreground">
+                Aktifkan jika Anda ingin semua transaksi produk internal langsung diarahkan ke chat WhatsApp admin untuk cek stok, negosiasi harga, dan instruksi bayar pribadi.
+              </p>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant={config.whatsappOnlyMode ? "default" : "outline"}
+            size="sm"
+            onClick={() => {
+              setConfig((prev) => ({ ...prev, whatsappOnlyMode: !prev.whatsappOnlyMode }));
+              setHasChanges(true);
+            }}
+            className={`h-8 text-xs gap-1.5 cursor-pointer shrink-0 ${config.whatsappOnlyMode ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`}
+          >
+            <Power className="h-3.5 w-3.5" />
+            <span>
+              {config.whatsappOnlyMode ? "Kembali ke Checkout Web" : "Aktifkan Mode WhatsApp Penuh"}
+            </span>
+          </Button>
+        </div>
+      </div>
+
+      {/* 6. SEKSI KONTROL UPLOAD BUKTI TRANSFER MANDIRI (PENGHEMATAN STORAGE & DB) */}
+      <div
+        className={`p-4 rounded-md border transition-colors ${
+          config.allowPaymentProofUpload === false
+            ? "border-sky-500/50 bg-sky-500/5"
+            : "border-border bg-[var(--vt-card)]"
+        } space-y-3`}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div
+              className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                config.allowPaymentProofUpload === false
+                  ? "bg-sky-500/20 text-sky-600 dark:text-sky-400"
+                  : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+              }`}
+            >
+              <HardDrive className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <span>6. Upload Bukti Transfer Mandiri di Web</span>
+                <Badge
+                  variant={config.allowPaymentProofUpload !== false ? "default" : "outline"}
+                  className={`text-[10px] ${
+                    config.allowPaymentProofUpload !== false
+                      ? "bg-emerald-600 text-white"
+                      : "border-sky-500 text-sky-600 dark:text-sky-400 font-bold"
+                  }`}
+                >
+                  {config.allowPaymentProofUpload !== false
+                    ? "UPLOAD WEB AKTIF (SIMPAN KE DB)"
+                    : "HEMAT STORAGE (KONFIRMASI VIA WA)"}
+                </Badge>
+              </h3>
+              <p className="text-[11px] text-muted-foreground">
+                {config.allowPaymentProofUpload !== false
+                  ? "Pembeli dapat mengunggah struk/screenshot transfer langsung di halaman faktur (/order/[inv]) yang disimpan ke basis data Postgres media. Matikan opsi ini bila ingin menghemat kuota storage & database."
+                  : "Formulir unggah file struk di halaman faktur dinonaktifkan untuk menghemat kapasitas backend & database. Pembeli diarahkan langsung mengirim bukti pembayaran via WhatsApp admin."}
+              </p>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant={config.allowPaymentProofUpload !== false ? "outline" : "default"}
+            size="sm"
+            onClick={() => {
+              setConfig((prev) => ({
+                ...prev,
+                allowPaymentProofUpload: prev.allowPaymentProofUpload === false ? true : false,
+              }));
+              setHasChanges(true);
+            }}
+            className={`h-8 text-xs gap-1.5 cursor-pointer shrink-0 ${
+              config.allowPaymentProofUpload === false ? "bg-sky-600 hover:bg-sky-700 text-white" : ""
+            }`}
+          >
+            <Power className="h-3.5 w-3.5" />
+            <span>
+              {config.allowPaymentProofUpload !== false
+                ? "Nonaktifkan Upload Web (Hemat Storage)"
+                : "Aktifkan Upload Web Mandiri"}
+            </span>
+          </Button>
         </div>
       </div>
 

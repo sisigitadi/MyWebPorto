@@ -26,7 +26,6 @@ import {
 import { useCart, formatIdr, CustomerOrderInfo } from "@/lib/cart-context";
 import {
   formatUsd,
-  buildWhatsAppOrderUrl,
   parseLegacyBankInfo,
   normalizeBankAccounts,
 } from "@/lib/whatsapp-order";
@@ -48,7 +47,7 @@ const CUSTOMER_STORAGE_KEY = "sigitos_customer_data_v1";
 
 export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
   const router = useRouter();
-  const { items, isOpen, setIsOpen, removeItem, updateQuantity, clearCart, totalCount, totalAmount } = useCart();
+  const { items, isOpen, setIsOpen, removeItem, updateQuantity, clearCart, totalCount, totalAmount, initialStep } = useCart();
   const { language } = useTranslation();
   const isEn = language === "en";
 
@@ -64,7 +63,8 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
   const [customer, setCustomer] = useState<CustomerOrderInfo>({
     name: "",
     phone: "",
-    emailOrAddress: "",
+    email: "",
+    address: "",
     notes: "",
     paymentMethod: "qris",
   });
@@ -108,28 +108,34 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
 
   // Auto-switch jika metode pembayaran yang terpilih saat ini dinonaktifkan oleh admin
   useEffect(() => {
-    if (customer.paymentMethod === "qris" && !isQrisEnabled) {
-      if (isBankEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "bank" }));
-      else if (isWaDirectEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "wa_direct" }));
-      else if (isPaypalEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "paypal" }));
-    } else if (customer.paymentMethod === "bank" && !isBankEnabled) {
-      if (isQrisEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "qris" }));
-      else if (isWaDirectEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "wa_direct" }));
-      else if (isPaypalEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "paypal" }));
-    } else if (customer.paymentMethod === "paypal" && !isPaypalEnabled) {
-      if (isQrisEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "qris" }));
-      else if (isBankEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "bank" }));
-      else if (isWaDirectEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "wa_direct" }));
-    } else if (customer.paymentMethod === "wa_direct" && !isWaDirectEnabled) {
-      if (isQrisEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "qris" }));
-      else if (isBankEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "bank" }));
-      else if (isPaypalEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "paypal" }));
-    }
-  }, [isQrisEnabled, isBankEnabled, isPaypalEnabled, isWaDirectEnabled, customer.paymentMethod]);
+    const timer = setTimeout(() => {
+      setCustomer((prev) => {
+        if (prev.paymentMethod === "qris" && !isQrisEnabled) {
+          if (isBankEnabled) return { ...prev, paymentMethod: "bank" };
+          if (isWaDirectEnabled) return { ...prev, paymentMethod: "wa_direct" };
+          if (isPaypalEnabled) return { ...prev, paymentMethod: "paypal" };
+        } else if (prev.paymentMethod === "bank" && !isBankEnabled) {
+          if (isQrisEnabled) return { ...prev, paymentMethod: "qris" };
+          if (isWaDirectEnabled) return { ...prev, paymentMethod: "wa_direct" };
+          if (isPaypalEnabled) return { ...prev, paymentMethod: "paypal" };
+        } else if (prev.paymentMethod === "paypal" && !isPaypalEnabled) {
+          if (isQrisEnabled) return { ...prev, paymentMethod: "qris" };
+          if (isBankEnabled) return { ...prev, paymentMethod: "bank" };
+          if (isWaDirectEnabled) return { ...prev, paymentMethod: "wa_direct" };
+        } else if (prev.paymentMethod === "wa_direct" && !isWaDirectEnabled) {
+          if (isQrisEnabled) return { ...prev, paymentMethod: "qris" };
+          if (isBankEnabled) return { ...prev, paymentMethod: "bank" };
+          if (isPaypalEnabled) return { ...prev, paymentMethod: "paypal" };
+        }
+        return prev;
+      });
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [isQrisEnabled, isBankEnabled, isPaypalEnabled, isWaDirectEnabled]);
 
   // Ambil store config terpusat saat modal dibuka agar selalu instan sinkron dengan admin
   useEffect(() => {
-    if (!open) return;
+    if (!isOpen) return;
     let mounted = true;
     getStoreConfig()
       .then((cfg) => {
@@ -139,7 +145,7 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
     return () => {
       mounted = false;
     };
-  }, [open]);
+  }, [isOpen]);
 
   // Muat data pelanggan dari localStorage browser (Auto-Fill / Zero Friction)
   useEffect(() => {
@@ -153,7 +159,8 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
               ...prev,
               name: saved.name || prev.name,
               phone: saved.phone || prev.phone,
-              emailOrAddress: saved.emailOrAddress || prev.emailOrAddress,
+              email: saved.email || (saved.emailOrAddress?.includes("@") ? saved.emailOrAddress : prev.email),
+              address: saved.address || (!saved.emailOrAddress?.includes("@") ? saved.emailOrAddress : prev.address),
             }));
           }
         }
@@ -163,6 +170,16 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
     }, 0);
     return () => clearTimeout(timer);
   }, []);
+
+  // Sinkronkan step awal saat modal dibuka (cart vs checkout instan)
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => {
+        setStep(initialStep || "cart");
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, initialStep]);
 
   const handleClose = useCallback(() => {
     setIsOpen(false);
@@ -262,7 +279,8 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
           JSON.stringify({
             name: customer.name,
             phone: customer.phone,
-            emailOrAddress: customer.emailOrAddress,
+            email: customer.email,
+            address: customer.address,
           })
         );
       } catch {}
@@ -277,9 +295,9 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
       const orderRes = await createOrder({
         customerName: customer.name,
         customerPhone: customer.phone,
-        customerEmail: customer.emailOrAddress.includes("@") ? customer.emailOrAddress : undefined,
-        customerAddress: !customer.emailOrAddress.includes("@") ? customer.emailOrAddress : undefined,
-        customerNotes: customer.notes,
+        customerEmail: customer.email?.trim() || undefined,
+        customerAddress: customer.address?.trim() || undefined,
+        customerNotes: customer.notes?.trim() || undefined,
         items: items.map((it) => ({
           productId: it.product.id,
           title: it.product.title,
@@ -298,25 +316,15 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
       const inv = orderRes.invoiceNumber || `INV-${Date.now().toString().slice(-6)}`;
       setLastInvoice(inv);
 
-      // 2. Generate link WhatsApp dengan nomor admin terpusat
-      const waUrl = buildWhatsAppOrderUrl(
-        adminPhone,
-        customer,
-        items,
-        totalAmount,
-        inv,
-        isEn ? "en" : "id",
-        isEn ? "USD" : "IDR",
-        referralCode
-      );
-
-      if (waUrl) {
-        window.open(waUrl, "_blank", "noopener,noreferrer");
-      }
-
       playOS("success");
-      setStep("done");
       clearCart();
+      handleClose();
+      toast.success(
+        isEn
+          ? `Order ${inv} recorded! Opening invoice page...`
+          : `Pesanan ${inv} berhasil dibuat! Membuka halaman faktur...`
+      );
+      router.push(`/order/${inv}`);
     } catch (err) {
       console.error("[cart-dialog] submit error:", err);
       toast.error(isEn ? "Failed to record order. Please try again." : "Gagal mencatat pesanan. Silakan coba lagi.");
@@ -687,15 +695,17 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div>
-                          <label className="block text-[11px] font-bold mb-1">
-                            {isEn ? "Email / Shipping Address *" : "Email / Alamat Pengiriman *"}
+                          <label className="block text-[11px] font-bold mb-1 flex items-center justify-between">
+                            <span>{isEn ? "Email Address" : "Alamat Email"}</span>
+                            <span className="text-[10px] text-muted-foreground font-normal">
+                              {isEn ? "Recommended" : "Rekomendasi"}
+                            </span>
                           </label>
                           <input
-                            type="text"
-                            required
-                            value={customer.emailOrAddress}
-                            onChange={(e) => setCustomer({ ...customer, emailOrAddress: e.target.value })}
-                            placeholder={isEn ? "email@domain.com / City" : "email@domain.com / Kota"}
+                            type="email"
+                            value={customer.email || ""}
+                            onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
+                            placeholder="nama@domain.com"
                             className="w-full p-2 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)] rounded-xs text-xs outline-none"
                           />
                         </div>
@@ -1042,15 +1052,15 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
                       disabled={isSubmitting}
                       className="vt-btn vt-btn-pink flex-1 py-2.5 px-4 text-xs font-bold font-mono text-white flex items-center justify-center gap-2 cursor-pointer shadow-md hover:brightness-110 disabled:opacity-50"
                     >
-                      <MessageCircle className="h-4 w-4" />
+                      <Receipt className="h-4 w-4" />
                       <span>
                         {isSubmitting
                           ? isEn
-                            ? "RECORDING ORDER..."
-                            : "MENYIMPAN PESANAN..."
+                            ? "CREATING ORDER..."
+                            : "MEMBUAT PESANAN..."
                           : isEn
-                          ? "CONFIRM & SEND TO WHATSAPP"
-                          : "KONFIRMASI & KIRIM KE WHATSAPP"}
+                          ? "CONFIRM & GO TO INVOICE"
+                          : "KONFIRMASI & LANJUT KE INVOICE"}
                       </span>
                     </button>
                   ) : (

@@ -150,7 +150,7 @@ export const ProductSchema = z.object({
   ctaUrl: safeUrlSchema.optional().or(z.literal("")),
   published: z.boolean().default(true),
   order: z.number().int().min(0).max(9999).default(0),
-  purchaseType: z.enum(["whatsapp", "freelanceops", "external", "referral", "affiliate"]).optional(),
+  purchaseType: z.enum(["whatsapp", "whatsapp_custom", "freelanceops", "external", "referral", "affiliate"]).optional(),
   customWhatsapp: z.string().max(30).optional().or(z.literal("")),
   customButtonLabel: z.string().max(50).optional().or(z.literal("")),
   referralCode: z.string().max(50).optional().or(z.literal("")),

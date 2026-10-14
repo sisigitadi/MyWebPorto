@@ -27,6 +27,8 @@ describe("getProductSlug", () => {
 describe("normalizePurchaseType", () => {
   it("menerima nilai purchase_type yang valid apa adanya", () => {
     expect(normalizePurchaseType("whatsapp")).toBe("whatsapp");
+    expect(normalizePurchaseType("whatsapp_custom")).toBe("whatsapp_custom");
+    expect(normalizePurchaseType("freelanceops")).toBe("freelanceops");
     expect(normalizePurchaseType("external")).toBe("external");
     expect(normalizePurchaseType("referral")).toBe("referral");
     expect(normalizePurchaseType("affiliate")).toBe("affiliate");

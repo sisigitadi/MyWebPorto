@@ -4,6 +4,32 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Added & Improved: Perombakan Alur Toko, Express Checkout, Bypass Affiliate & Kontrol Storage Bukti Transfer
+
+Penyederhanaan alur belanja dari pemilihan produk, checkout, pembayaran, hingga pengiriman agar lebih cepat, simpel, dan hemat storage:
+
+- **Express Checkout 1-Klik**:
+  - Tombol utama "BELI LANGSUNG" pada katalog dan halaman detail produk yang langsung membuka formulir pembayaran tanpa langkah perantara keranjang belanja.
+  - Pemisahan input pembeli menjadi Nama Lengkap (wajib), No. WhatsApp (wajib), Email (disarankan), dan Catatan (opsional).
+  - Penghapusan popup ganda browser seluler dengan pengalihan langsung ke rute faktur `/order/[invoice]`.
+
+- **Isolasi Penuh Produk Affiliate & Referral**:
+  - Tombol pada kartu produk bertipe `affiliate` dan `referral` langsung membuka tautan mitra resmi (`ctaUrl`) di tab baru tanpa melewati keranjang atau pembuatan invoice lokal.
+
+- **Alur Pembelian Khusus / Nego (`whatsapp_custom`)**:
+  - Opsi tipe transaksi baru untuk produk/jasa yang membutuhkan konsultasi, kustomisasi spesifikasi, atau negosiasi harga langsung via chat WhatsApp admin.
+
+- **Mode Transaksi Global WhatsApp-Only (`whatsappOnlyMode`)**:
+  - Sakelar global di panel admin untuk mengalihkan seluruh transaksi katalog langsung ke chat WhatsApp admin (mengecek stok dan instruksi transfer manual) serta menyembunyikan widget keranjang web.
+
+- **Kontrol Hemat Storage Bukti Transfer Mandiri (`allowPaymentProofUpload`)**:
+  - Sakelar kontrol admin untuk mengaktifkan atau menonaktifkan fitur upload bukti transfer di web guna menghemat kapasitas penyimpanan backend dan basis data PostgreSQL (`media`).
+  - Fallback otomatis: saat dinonaktifkan, halaman faktur menampilkan tombol langsung untuk mengirimkan foto struk via chat WhatsApp admin lengkap dengan draft pesan terformat.
+
+- **Verifikasi Cepat & Tautan Pengiriman Kontekstual**:
+  - Tombol aksi instan "Verifikasi & Tandai Lunas" pada panel `/admin/orders` beserta pratinjau bukti transfer.
+  - Kartu pengiriman kontekstual pada halaman faktur pembeli yang membedakan produk unduhan digital (Drive, GitHub, Notion) dengan workspace proyek FreelanceOps.
+
 ### Fixed & Improved: Audit Arsitektur, Penyelarasan antislop & Pembersihan Warning Linter
 
 Pembersihan menyeluruh kualitas kode, eliminasi 54 warning linter, optimasi query dashboard admin, dan konfigurasi panduan desain antislop:

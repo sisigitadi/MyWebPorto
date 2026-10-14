@@ -82,6 +82,29 @@ describe("Order System & WhatsApp Builder", () => {
     expect(decoded).toContain("PESANAN BARU —");
   });
 
+  it("builds WhatsApp order URL with separate email and notes fields", () => {
+    const url = buildWhatsAppOrderUrl(
+      "081234567890",
+      {
+        name: "Siti Rahma",
+        phone: "08987654321",
+        email: "siti@example.com",
+        address: "Kirim link ke email dan nomor ini",
+        paymentMethod: "bank",
+      },
+      [{ product: sampleProduct, quantity: 1 }],
+      250000,
+      "INV-20261014-9999",
+      "id",
+      "IDR"
+    );
+
+    const decoded = decodeURIComponent(url);
+    expect(decoded).toContain("siti@example.com");
+    expect(decoded).toContain("Kirim link ke email dan nomor ini");
+    expect(decoded).toContain("Transfer Bank");
+  });
+
   it("builds WhatsApp order URL in English with USD currency", () => {
     const url = buildWhatsAppOrderUrl(
       "+6281234567890",

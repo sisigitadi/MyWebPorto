@@ -14,9 +14,12 @@ import {
   Download,
   X,
   FileText,
+  Upload,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import type { Order } from "@/db/schema";
-import type { StoreConfig } from "@/lib/order-actions";
+import { type StoreConfig, uploadPaymentProof } from "@/lib/order-actions";
 import { formatIdr, formatUsd } from "@/lib/whatsapp-order";
 import { OSWindow } from "@/components/public/os/os-window";
 import { PrintableInvoice } from "@/components/public/printable-invoice";
@@ -31,6 +34,37 @@ export function OrderTrackerClient({ order, storeConfig }: OrderTrackerClientPro
   const [copiedBankId, setCopiedBankId] = useState<string | null>(null);
   const [qrisZoomOpen, setQrisZoomOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"interactive" | "sheet">("interactive");
+  const [paymentProofUrl, setPaymentProofUrl] = useState<string | null>(order.paymentProofUrl || null);
+  const [isUploadingProof, setIsUploadingProof] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [showReupload, setShowReupload] = useState(false);
+
+  const handleUploadProof = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedFile) {
+      toast.error("Pilih file gambar bukti transfer terlebih dahulu.");
+      return;
+    }
+    setIsUploadingProof(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", selectedFile);
+      const res = await uploadPaymentProof(order.invoiceNumber, fd);
+      if (res.success && res.paymentProofUrl) {
+        setPaymentProofUrl(res.paymentProofUrl);
+        toast.success(res.message || "Bukti transfer berhasil diunggah!");
+        setSelectedFile(null);
+        setShowReupload(false);
+      } else {
+        toast.error(res.error || "Gagal mengunggah bukti transfer.");
+      }
+    } catch (err) {
+      console.error("Upload error:", err);
+      toast.error("Terjadi kesalahan saat mengunggah bukti pembayaran.");
+    } finally {
+      setIsUploadingProof(false);
+    }
+  };
 
   const formattedTotal =
     order.currency === "USD"
@@ -93,6 +127,11 @@ export function OrderTrackerClient({ order, storeConfig }: OrderTrackerClientPro
   const waChatUrl = cleanAdminPhone
     ? `https://wa.me/${cleanAdminPhone}?text=${encodeURIComponent(
         `Halo Admin, saya ingin menanyakan perkembangan pesanan saya [${order.invoiceNumber}] atas nama ${order.customerName}. Terima kasih!`
+      )}`
+    : "";
+  const waProofUrl = cleanAdminPhone
+    ? `https://wa.me/${cleanAdminPhone}?text=${encodeURIComponent(
+        `Halo Admin, saya ingin konfirmasi pembayaran untuk pesanan [${order.invoiceNumber}] atas nama ${order.customerName} (Total: ${order.currency === "USD" ? formatUsd(order.totalAmount) : formatIdr(order.totalAmount)}). Berikut saya lampirkan foto/screenshot bukti transfernya. Terima kasih!`
       )}`
     : "";
 
@@ -248,28 +287,57 @@ export function OrderTrackerClient({ order, storeConfig }: OrderTrackerClientPro
           </div>
         </div>
 
-        {/* Project Link if Jasa / FreelanceOps */}
+        {/* Project Link if Jasa / FreelanceOps vs Digital Download */}
         {order.projectUrl && (
-          <div className="p-3 bg-primary/10 border border-primary/30 rounded-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Briefcase className="h-5 w-5 text-primary shrink-0" />
-              <div>
-                <p className="font-bold text-xs text-foreground">Ruang Kerja Proyek FreelanceOps Aktif</p>
-                <p className="text-[11px] text-muted-foreground">
-                  Proyek Anda sedang dikelola di portal workspace FreelanceOps.
-                </p>
+          (() => {
+            const isFreelance = order.projectUrl.includes("freelanceops") || (order.items || []).some((it) => it.title.toLowerCase().includes("jasa") || it.title.toLowerCase().includes("proyek"));
+            if (isFreelance) {
+              return (
+                <div className="p-3 bg-primary/10 border border-primary/30 rounded-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    <Briefcase className="h-5 w-5 text-primary shrink-0" />
+                    <div>
+                      <p className="font-bold text-xs text-foreground">Ruang Kerja Proyek FreelanceOps Aktif</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Proyek Anda sedang dikelola di portal workspace FreelanceOps.
+                      </p>
+                    </div>
+                  </div>
+                  <a
+                    href={order.projectUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="vt-btn vt-btn-pink px-4 py-2 text-xs font-bold text-white flex items-center justify-center gap-1.5 shadow-sm hover:brightness-110 shrink-0 cursor-pointer"
+                  >
+                    <span>Buka Ruang Kerja Proyek</span>
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </div>
+              );
+            }
+            return (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <Download className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <div>
+                    <p className="font-bold text-xs text-foreground">Akses & Unduh Produk Digital Anda</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Produk digital Anda siap diakses melalui tautan resmi di bawah ini:
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href={order.projectUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="vt-btn bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-xs font-bold text-white flex items-center justify-center gap-1.5 shadow-sm hover:brightness-110 shrink-0 cursor-pointer"
+                >
+                  <span>Akses / Unduh Produk Digital</span>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
               </div>
-            </div>
-            <a
-              href={order.projectUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="vt-btn vt-btn-pink px-4 py-2 text-xs font-bold text-white flex items-center justify-center gap-1.5 shadow-sm hover:brightness-110 shrink-0"
-            >
-              <span>Buka Ruang Kerja Proyek</span>
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          </div>
+            );
+          })()
         )}
 
         {/* Customer & Payment Info Grid */}
@@ -418,6 +486,165 @@ export function OrderTrackerClient({ order, storeConfig }: OrderTrackerClientPro
                   </div>
                 );
               })()
+            )}
+          </div>
+        )}
+
+        {/* SEKSI KONFIRMASI & UPLOAD BUKTI TRANSFER */}
+        {order.status !== "cancelled" && (
+          <div className="p-4 bg-[var(--vt-card)] vt-card-inset border border-border rounded-xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-2.5">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                <span className="font-bold text-xs font-mono">KONFIRMASI BUKTI PEMBAYARAN</span>
+              </div>
+              {paymentProofUrl && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold">
+                  ✓ Bukti Terunggah
+                </span>
+              )}
+            </div>
+
+            {paymentProofUrl && !showReupload ? (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-muted/40 rounded-xs border border-border">
+                <div className="flex items-center gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={paymentProofUrl}
+                    alt="Bukti Transfer"
+                    className="h-16 w-16 object-cover rounded border border-border cursor-pointer hover:opacity-80"
+                    onClick={() => window.open(paymentProofUrl, "_blank")}
+                  />
+                  <div>
+                    <p className="text-xs font-bold text-foreground">Bukti transfer tersimpan di sistem</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Admin sedang memverifikasi pembayaran Anda.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <a
+                    href={paymentProofUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="vt-btn vt-btn-chrome px-3 py-1.5 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Lihat Bukti</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                  {order.status === "pending" && storeConfig.allowPaymentProofUpload !== false && (
+                    <button
+                      type="button"
+                      onClick={() => setShowReupload(true)}
+                      className="vt-btn vt-btn-chrome px-3 py-1.5 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                      <span>Ganti File</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : storeConfig.allowPaymentProofUpload === false ? (
+              <div className="p-3.5 bg-sky-500/10 border border-sky-500/30 rounded-xs space-y-2.5">
+                <div className="flex items-start gap-2.5">
+                  <MessageCircle className="h-4 w-4 text-sky-600 dark:text-sky-400 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-foreground">
+                      Konfirmasi Bukti Pembayaran via WhatsApp Admin
+                    </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Upload bukti transfer mandiri via web sedang dinonaktifkan. Silakan kirimkan foto struk atau screenshot bukti transfer Anda langsung ke WhatsApp Admin agar pesanan dapat segera diverifikasi.
+                    </p>
+                  </div>
+                </div>
+
+                {cleanAdminPhone && (
+                  <div className="pt-1 flex flex-wrap items-center gap-2">
+                    <a
+                      href={waProofUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="vt-btn bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 inline-flex items-center gap-1.5 shadow-sm hover:brightness-110 cursor-pointer"
+                    >
+                      <MessageCircle className="h-3.5 w-3.5" />
+                      <span>Kirim Bukti Pembayaran ke WhatsApp Admin</span>
+                    </a>
+                    {showReupload && (
+                      <button
+                        type="button"
+                        onClick={() => setShowReupload(false)}
+                        className="vt-btn vt-btn-chrome px-3 py-2 text-xs font-bold cursor-pointer"
+                      >
+                        Batal
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <form onSubmit={handleUploadProof} className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Sudah melakukan transfer? Unggah foto/screenshot bukti transfer di bawah ini agar pesanan dapat segera diverifikasi:
+                </p>
+
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                  <label className="flex-1 w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-[var(--vt-edge-lo-2)] hover:border-primary/60 rounded-xs cursor-pointer bg-[var(--vt-paper)] transition-colors">
+                    <Upload className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-xs font-mono font-medium truncate">
+                      {selectedFile ? selectedFile.name : "Pilih gambar struk / screenshot transfer (Maks 5MB)"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/jpg"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 5 * 1024 * 1024) {
+                            toast.error("Ukuran file maksimal 5MB!");
+                            return;
+                          }
+                          setSelectedFile(file);
+                        }
+                      }}
+                    />
+                  </label>
+
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <button
+                      type="submit"
+                      disabled={!selectedFile || isUploadingProof}
+                      className="vt-btn vt-btn-pink py-2.5 px-4 text-xs font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer shadow-sm hover:brightness-110 disabled:opacity-50 w-full sm:w-auto"
+                    >
+                      {isUploadingProof ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <span>Mengunggah...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check className="h-3.5 w-3.5" />
+                          <span>Kirim Bukti Transfer</span>
+                        </>
+                      )}
+                    </button>
+
+                    {showReupload && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowReupload(false);
+                          setSelectedFile(null);
+                        }}
+                        className="vt-btn vt-btn-chrome py-2.5 px-3 text-xs font-bold cursor-pointer"
+                      >
+                        Batal
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </form>
             )}
           </div>
         )}

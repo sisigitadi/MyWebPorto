@@ -56,8 +56,9 @@ import { getProducts, saveProduct, deleteProduct, translateFieldAction } from "@
 import {
   getStoreConfig,
   getPendingOrdersCount,
-  StoreConfig,
+  type StoreConfig,
 } from "@/lib/order-actions";
+import { DEFAULT_STORE_CONFIG } from "@/lib/store-config";
 import { PaymentMethodsManager } from "@/components/admin/payment-methods-manager";
 import { ProductShareModal } from "@/components/public/product-share-modal";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
@@ -83,18 +84,7 @@ export default function AdminProductsPage() {
 
   // Store Settings (No WA Admin, Rekening, QRIS, Internasional)
   const [storeConfigOpen, setStoreConfigOpen] = useState(false);
-  const [storeConfig, setStoreConfig] = useState<StoreConfig>({
-    adminWhatsapp: "",
-    bankAccounts: [],
-    qrisImageUrl: "",
-    internationalPayment: {
-      paypalUrl: "",
-      wiseInfo: "",
-      stripeUrl: "",
-      instructionsEn: "",
-    },
-    storeNotice: "",
-  });
+  const [storeConfig, setStoreConfig] = useState<StoreConfig>(DEFAULT_STORE_CONFIG);
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
 
   // Form State
@@ -115,7 +105,7 @@ export default function AdminProductsPage() {
   const [formCtaUrl, setFormCtaUrl] = useState("");
   const [formPublished, setFormPublished] = useState(true);
   const [formPurchaseType, setFormPurchaseType] = useState<
-    "whatsapp" | "freelanceops" | "external" | "referral" | "affiliate"
+    "whatsapp" | "whatsapp_custom" | "freelanceops" | "external" | "referral" | "affiliate"
   >("whatsapp");
   const [formCustomWhatsapp, setFormCustomWhatsapp] = useState("");
   const [formCustomButtonLabel, setFormCustomButtonLabel] = useState("");
@@ -235,7 +225,7 @@ export default function AdminProductsPage() {
     setFormCtaUrl(product.ctaUrl);
     setFormPublished(product.published);
     setFormPurchaseType(
-      (product.purchaseType as "whatsapp" | "freelanceops" | "external" | "referral" | "affiliate") || "whatsapp"
+      (product.purchaseType as "whatsapp" | "whatsapp_custom" | "freelanceops" | "external" | "referral" | "affiliate") || "whatsapp"
     );
     setFormCustomWhatsapp(product.customWhatsapp || "");
     setFormCustomButtonLabel(product.customButtonLabel || "");
@@ -595,6 +585,10 @@ export default function AdminProductsPage() {
                         <Badge className="bg-primary text-primary-foreground text-[10px]">
                           FreelanceOps
                         </Badge>
+                      ) : product.purchaseType === "whatsapp_custom" ? (
+                        <Badge variant="outline" className="text-emerald-600 border-emerald-500 text-[10px]">
+                          WA Khusus
+                        </Badge>
                       ) : product.purchaseType === "referral" ? (
                         <Badge variant="outline" className="text-amber-500 border-amber-500 text-[10px]">
                           Referral
@@ -609,7 +603,7 @@ export default function AdminProductsPage() {
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="text-[10px]">
-                          Toko WA
+                          Toko Web
                         </Badge>
                       )}
                     </TableCell>
@@ -931,7 +925,7 @@ export default function AdminProductsPage() {
                   id="purchaseType"
                   value={formPurchaseType}
                   onChange={(e) => {
-                    const nextVal = e.target.value as "whatsapp" | "freelanceops" | "external" | "referral" | "affiliate";
+                    const nextVal = e.target.value as "whatsapp" | "whatsapp_custom" | "freelanceops" | "external" | "referral" | "affiliate";
                     setFormPurchaseType(nextVal);
                     if (nextVal === "freelanceops" && !formCtaUrl) {
                       setFormCtaUrl("https://freelanceops.sigitadi.id/");
@@ -939,17 +933,18 @@ export default function AdminProductsPage() {
                   }}
                   className="flex h-9 w-full rounded-md border border-[var(--vt-edge-lo-2)] bg-[var(--vt-paper)] px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
-                  <option value="whatsapp">WhatsApp Langsung (Toko Digital)</option>
+                  <option value="whatsapp">Toko Digital (Keranjang & Express Checkout Web)</option>
+                  <option value="whatsapp_custom">Pesanan Khusus / Nego (Langsung Chat WhatsApp)</option>
                   <option value="freelanceops">Jasa / Proyek (Portal FreelanceOps)</option>
                   <option value="external">Toko Online / Platform Eksternal</option>
-                  <option value="referral">Link Referral</option>
-                  <option value="affiliate">Link Affiliate</option>
+                  <option value="referral">Link Referral (Direct Link)</option>
+                  <option value="affiliate">Link Affiliate (Direct Link)</option>
                 </select>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="ctaUrl" className="text-xs font-medium text-[var(--vt-ink)]">
-                  URL Tujuan (FreelanceOps / Eksternal / Affiliate)
+                  URL Tujuan (FreelanceOps / Eksternal / Affiliate / Referral)
                 </Label>
                 <Input
                   id="ctaUrl"
@@ -957,7 +952,7 @@ export default function AdminProductsPage() {
                   value={formCtaUrl || ""}
                   onChange={(e) => setFormCtaUrl(e.target.value)}
                   className="text-xs bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"
-                  disabled={formPurchaseType === "whatsapp"}
+                  disabled={formPurchaseType === "whatsapp" || formPurchaseType === "whatsapp_custom"}
                 />
               </div>
 

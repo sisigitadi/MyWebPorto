@@ -84,10 +84,11 @@ export interface ProductData {
   gallery?: string[];
   thumbnailUrl: string;
   ctaUrl: string;
-  // Etalase: cara pembelian. "whatsapp" (atau kosong) = keranjang + WA,
+  // Etalase: cara pembelian. "whatsapp" (atau kosong) = keranjang + express checkout,
+  // "whatsapp_custom" = konsultasi / pesanan khusus langsung WA,
   // "freelanceops" = portal jasa proyek,
   // sisanya mengarahkan tombol ke ctaUrl (toko eksternal / referral / affiliate).
-  purchaseType?: "whatsapp" | "freelanceops" | "external" | "referral" | "affiliate" | null;
+  purchaseType?: "whatsapp" | "whatsapp_custom" | "freelanceops" | "external" | "referral" | "affiliate" | null;
   customWhatsapp?: string | null;
   customButtonLabel?: string | null;
   referralCode?: string | null;

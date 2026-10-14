@@ -11,7 +11,9 @@ export type OrderLang = "id" | "en";
 export interface CustomerOrderInfo {
   name: string;
   phone: string;
-  emailOrAddress: string;
+  email?: string;
+  address?: string;
+  emailOrAddress?: string;
   notes?: string;
   paymentMethod: "qris" | "bank" | "wa_direct" | "paypal" | "wise" | "freelanceops";
 }
@@ -111,9 +113,12 @@ export function buildWhatsAppOrderUrl(
     customer.phone
       ? `${isEn ? "• Phone / WA" : "• No. WA / Telp"}: ${customer.phone}`
       : "",
-    customer.emailOrAddress
+    customer.email
+      ? `• Email: ${customer.email}`
+      : customer.emailOrAddress
       ? `${isEn ? "• Address / Email" : "• Alamat / Email"}: ${customer.emailOrAddress}`
       : "",
+    customer.address ? `${isEn ? "• Address" : "• Alamat"}: ${customer.address}` : "",
     customer.notes ? `${isEn ? "• Notes" : "• Catatan"}: ${customer.notes}` : "",
     "",
     isEn

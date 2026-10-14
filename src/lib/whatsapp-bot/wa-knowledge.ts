@@ -6,8 +6,10 @@ import {
   getArticles,
 } from "@/lib/actions";
 import { getStoreConfig, getOrderByInvoice } from "@/lib/order-actions";
+import { DEFAULT_STORE_CONFIG } from "@/lib/store-config";
 import { getWABotConfig } from "./wa-storage";
 import type { WABotConfig, WAKnowledgeFAQ } from "./wa-types";
+import type { ProductData, ServiceData, ProjectData, ArticleData } from "@/lib/dummy-data";
 
 export interface CompiledKnowledgeContext {
   systemPrompt: string;
@@ -37,17 +39,11 @@ export async function buildWhatsAppBotKnowledge(): Promise<CompiledKnowledgeCont
         location: "Indonesia",
         skills: ["AI Engineering", "Cybersecurity", "Fullstack Web", "Next.js"],
       })),
-      getServices().catch(() => []),
-      getProducts().catch(() => []),
-      getProjects().catch(() => []),
-      getArticles().catch(() => []),
-      getStoreConfig().catch(() => ({
-        adminWhatsapp: "",
-        bankAccounts: [],
-        qrisImageUrl: "",
-        internationalPayment: { paypalUrl: "", wiseInfo: "", stripeUrl: "", instructionsEn: "" },
-        storeNotice: "",
-      })),
+      getServices().catch((): ServiceData[] => []),
+      getProducts().catch((): ProductData[] => []),
+      getProjects().catch((): ProjectData[] => []),
+      getArticles().catch((): ArticleData[] => []),
+      getStoreConfig().catch(() => DEFAULT_STORE_CONFIG),
       getWABotConfig(),
     ]);
 
@@ -113,6 +109,10 @@ export async function buildWhatsAppBotKnowledge(): Promise<CompiledKnowledgeCont
         .join("\n\n")
     : "Belum ada FAQ kustom.";
 
+  const qrisStatusText = isQrisEnabled
+    ? "• Pembayaran instan QRIS aktif di halaman checkout website."
+    : "• Pembayaran QRIS saat ini sedang dinonaktifkan.";
+
   // Susun System Prompt Komprehensif
   const systemPrompt = `
 === IDENTITAS & PERSONA BOT ===
@@ -138,7 +138,7 @@ ${servicesText}
 === REKENING & METODE PEMBAYARAN RESMI ===
 ${banksText}
 ${intlPaymentText ? `\nPembayaran Internasional:\n${intlPaymentText}` : ""}
-• Pembayaran instan QRIS juga tersedia langsung saat checkout di website.
+${qrisStatusText}
 
 === DAFTAR TANYA JAWAB (FAQ KUSTOM ADMIN) ===
 ${faqsText}

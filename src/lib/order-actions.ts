@@ -9,55 +9,20 @@ import { logAudit } from "@/lib/audit";
 import { getProfile } from "@/lib/actions";
 import { parseLegacyBankInfo, normalizeBankAccounts, type BankAccountItem } from "@/lib/whatsapp-order";
 import { CreateOrderInputSchema, type CreateOrderInput } from "@/lib/validations";
+import { putMedia } from "@/lib/storage";
 
 export type { BankAccountItem, CreateOrderInput };
 
 
 import { revalidatePath } from "next/cache";
+import {
+  DEFAULT_STORE_CONFIG,
+  type InternationalPaymentConfig,
+  type PaymentMethodsConfig,
+  type StoreConfig,
+} from "./store-config";
 
-export interface InternationalPaymentConfig {
-  paypalUrl?: string;
-  wiseInfo?: string;
-  stripeUrl?: string;
-  instructionsEn?: string;
-}
-
-export interface PaymentMethodsConfig {
-  qris?: boolean;
-  bank?: boolean;
-  paypal?: boolean;
-  wa_direct?: boolean;
-}
-
-export interface StoreConfig {
-  adminWhatsapp: string;
-  bankAccounts: BankAccountItem[];
-  qrisImageUrl: string;
-  qrisMerchantName?: string;
-  internationalPayment: InternationalPaymentConfig;
-  paymentMethods: PaymentMethodsConfig;
-  storeNotice?: string;
-}
-
-const DEFAULT_STORE_CONFIG: StoreConfig = {
-  adminWhatsapp: "",
-  bankAccounts: [],
-  qrisImageUrl: "",
-  qrisMerchantName: "",
-  paymentMethods: {
-    qris: true,
-    bank: true,
-    paypal: true,
-    wa_direct: true,
-  },
-  internationalPayment: {
-    paypalUrl: "",
-    wiseInfo: "",
-    stripeUrl: "",
-    instructionsEn: "Please send payment via PayPal or Wise to our account, then confirm via WhatsApp chat.",
-  },
-  storeNotice: "",
-};
+export type { InternationalPaymentConfig, PaymentMethodsConfig, StoreConfig };
 
 
 /**
@@ -106,6 +71,8 @@ export async function getStoreConfig(): Promise<StoreConfig> {
           instructionsEn: cfg.internationalPayment?.instructionsEn || DEFAULT_STORE_CONFIG.internationalPayment.instructionsEn,
         },
         storeNotice: cfg.storeNotice || "",
+        whatsappOnlyMode: Boolean(cfg.whatsappOnlyMode),
+        allowPaymentProofUpload: cfg.allowPaymentProofUpload !== false,
       };
     }
 
@@ -115,6 +82,8 @@ export async function getStoreConfig(): Promise<StoreConfig> {
       adminWhatsapp: profile?.phone || "",
       qrisImageUrl: profile?.paymentQrUrl || "",
       bankAccounts: normalizeBankAccounts(parseLegacyBankInfo(profile?.paymentBankInfo)),
+      whatsappOnlyMode: false,
+      allowPaymentProofUpload: true,
     };
   } catch (err) {
     console.error("[order-actions] getStoreConfig gagal:", err);
@@ -123,6 +92,8 @@ export async function getStoreConfig(): Promise<StoreConfig> {
       adminWhatsapp: profile?.phone || "",
       qrisImageUrl: profile?.paymentQrUrl || "",
       bankAccounts: normalizeBankAccounts(parseLegacyBankInfo(profile?.paymentBankInfo)),
+      whatsappOnlyMode: false,
+      allowPaymentProofUpload: true,
     };
   }
 }
@@ -159,6 +130,8 @@ export async function saveStoreConfig(data: Partial<StoreConfig>) {
         ...(data.internationalPayment || {}),
       },
       storeNotice: data.storeNotice !== undefined ? data.storeNotice.trim() : current.storeNotice,
+      whatsappOnlyMode: data.whatsappOnlyMode !== undefined ? Boolean(data.whatsappOnlyMode) : Boolean(current.whatsappOnlyMode),
+      allowPaymentProofUpload: data.allowPaymentProofUpload !== undefined ? Boolean(data.allowPaymentProofUpload) : (current.allowPaymentProofUpload !== false),
     };
 
     await db
@@ -542,6 +515,95 @@ export async function deleteOrder(orderId: string) {
 
     return { success: true, message: `Pesanan ${existing.invoiceNumber} berhasil dihapus!` };
   } catch (err) {
+    return { success: false, error: sanitizeError(err) };
+  }
+}
+
+/**
+ * Mengunggah bukti pembayaran oleh pembeli mandiri pada halaman invoice /order/[invoice].
+ */
+export async function uploadPaymentProof(invoiceNumber: string, formData: FormData) {
+  try {
+    const file = formData.get("file") as File | null;
+    if (!file || file.size === 0) {
+      return { success: false, error: "File bukti pembayaran tidak ditemukan." };
+    }
+
+    // Maksimal 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      return { success: false, error: "Ukuran file bukti pembayaran maksimal 5MB." };
+    }
+
+    const allowedMimes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+    if (!allowedMimes.includes(file.type)) {
+      return { success: false, error: "Format file harus berupa gambar (JPG, PNG, atau WEBP)." };
+    }
+
+    if (!isDbConnected) {
+      return {
+        success: true,
+        paymentProofUrl: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop",
+        message: "Bukti transfer tercatat (mode offline lokal).",
+      };
+    }
+
+    const order = await db.query.orders.findFirst({
+      where: eq(schema.orders.invoiceNumber, invoiceNumber.trim()),
+    });
+
+    if (!order) {
+      return { success: false, error: "Pesanan dengan nomor invoice tersebut tidak ditemukan." };
+    }
+
+    if (order.status === "cancelled") {
+      return { success: false, error: "Pesanan ini sudah dibatalkan dan tidak dapat menerima bukti pembayaran." };
+    }
+
+    const storeConfig = await getStoreConfig();
+    if (storeConfig.allowPaymentProofUpload === false) {
+      return {
+        success: false,
+        error: "Upload bukti transfer mandiri via web sedang dinonaktifkan oleh admin. Silakan kirimkan bukti pembayaran Anda langsung via WhatsApp.",
+      };
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const fileName = file.name || `proof-${order.invoiceNumber}.jpg`;
+
+    const res = await putMedia(fileName, buffer, file.type);
+    if (!res.ok) {
+      return { success: false, error: res.error || "Gagal menyimpan file bukti pembayaran." };
+    }
+
+    const paymentProofUrl = `/api/media/${res.id}`;
+    const now = new Date();
+
+    await db
+      .update(schema.orders)
+      .set({
+        paymentProofUrl,
+        updatedAt: now,
+      })
+      .where(eq(schema.orders.id, order.id));
+
+    await logAudit({
+      action: "UPDATE",
+      entity: "ORDER",
+      entityId: order.invoiceNumber,
+      detail: `Pembeli mengunggah bukti pembayaran untuk invoice ${order.invoiceNumber} (${paymentProofUrl})`,
+    });
+
+    revalidatePath(`/order/${invoiceNumber}`);
+    revalidatePath("/admin/orders");
+
+    return {
+      success: true,
+      paymentProofUrl,
+      message: "Bukti transfer berhasil diunggah! Admin akan segera memverifikasi pesanan Anda.",
+    };
+  } catch (err) {
+    console.error("[order-actions] uploadPaymentProof gagal:", err);
     return { success: false, error: sanitizeError(err) };
   }
 }

@@ -19,6 +19,7 @@ import {
   Share2,
   Copy,
   Briefcase,
+  Zap,
 } from "lucide-react";
 import type { ProductData, ProfileData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
@@ -29,7 +30,7 @@ import { useCart, buildSingleProductWhatsAppUrl } from "@/lib/cart-context";
 import { buildFreelanceOpsBriefWhatsAppUrl } from "@/lib/whatsapp-order";
 import { storeName, platformLabelFromUrl } from "@/lib/store";
 import { ProductShareModal } from "@/components/public/product-share-modal";
-import { getStoreConfig } from "@/lib/order-actions";
+import { getStoreConfig, StoreConfig } from "@/lib/order-actions";
 import { toast } from "sonner";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -41,7 +42,7 @@ interface ProductDetailContentProps {
 
 export function ProductDetailContent({ product, profile }: ProductDetailContentProps) {
   const { language } = useTranslation();
-  const { addItem, totalCount, setIsOpen } = useCart();
+  const { addItem, buyNow, totalCount, setIsOpen } = useCart();
 
   const enableStoreCart = useFeature("enable_store_cart");
 
@@ -59,12 +60,16 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [copiedCoupon, setCopiedCoupon] = useState(false);
   const [adminPhone, setAdminPhone] = useState(product.customWhatsapp || profile?.phone || "");
+  const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
 
   useEffect(() => {
     getStoreConfig()
       .then((cfg) => {
-        if (cfg?.adminWhatsapp) {
-          setAdminPhone(cfg.adminWhatsapp);
+        if (cfg) {
+          setStoreConfig(cfg);
+          if (cfg.adminWhatsapp) {
+            setAdminPhone(cfg.adminWhatsapp);
+          }
         }
       })
       .catch(() => {});
@@ -280,10 +285,39 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
                 </div>
               )}
 
-              {/* Purchase Actions (Dynamic based on purchaseType) */}
+              {/* Purchase Actions (Dynamic based on purchaseType & storeConfig) */}
               <div className="space-y-2.5 pt-2">
-                {/* 1. Tipe FreelanceOps (Jasa Proyek / Pembuatan Web & Aplikasi) */}
-                {product.purchaseType === "freelanceops" ? (
+                {/* 1. Tipe Eksternal / Referral / Affiliate: Langsung ke link tujuan */}
+                {(product.purchaseType === "referral" || product.purchaseType === "affiliate" || product.purchaseType === "external") ? (
+                  <>
+                    {product.ctaUrl && (
+                      <a
+                        href={product.ctaUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="vt-btn vt-btn-pink w-full justify-center items-center gap-2 py-3 px-4 text-xs font-bold font-mono text-white hover:brightness-110 cursor-pointer shadow-md flex"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        <span>
+                          {product.customButtonLabel ||
+                            (product.purchaseType === "referral"
+                              ? isEn
+                                ? "USE REFERRAL LINK"
+                                : "GUNAKAN KODE REFERRAL"
+                              : product.purchaseType === "affiliate"
+                              ? isEn
+                                ? "BUY VIA AFFILIATE"
+                                : "BELI VIA AFFILIATE"
+                              : isEn
+                              ? "BUY ON " + (platformLabelFromUrl(product.ctaUrl) || "PARTNER STORE")
+                              : "BELI DI " + (platformLabelFromUrl(product.ctaUrl) || "TOKO ONLINE"))}
+                        </span>
+                        <ArrowUpRight className="h-4 w-4" />
+                      </a>
+                    )}
+                  </>
+                ) : product.purchaseType === "freelanceops" ? (
+                  /* 2. Tipe FreelanceOps (Jasa Proyek / Pembuatan Web & Aplikasi) */
                   <div className="space-y-2">
                     <a
                       href={product.ctaUrl || "https://freelanceops.sigitadi.id/"}
@@ -310,8 +344,40 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
                       <ArrowUpRight className="h-3.5 w-3.5" />
                     </a>
                   </div>
-                ) : (!product.purchaseType || product.purchaseType === "whatsapp") ? (
-                  /* 2. Tipe WhatsApp / Toko Lokal Produk Digital */
+                ) : product.purchaseType === "whatsapp_custom" ? (
+                  /* 3. Pesanan Khusus / Nego / Konsultasi WhatsApp */
+                  <div className="space-y-2">
+                    {adminPhone && (
+                      <a
+                        href={buildSingleProductWhatsAppUrl(adminPhone, product, isEn ? "en" : "id")}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="vt-btn vt-btn-pink w-full justify-center items-center gap-2 py-3 px-4 text-xs font-bold font-mono text-white hover:brightness-110 cursor-pointer shadow-md flex"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        <span>{product.customButtonLabel || (isEn ? "CUSTOM INQUIRY VIA WHATSAPP" : "KONSULTASI / PESAN KHUSUS")}</span>
+                        <ArrowUpRight className="h-3.5 w-3.5" />
+                      </a>
+                    )}
+                  </div>
+                ) : storeConfig?.whatsappOnlyMode ? (
+                  /* 4. Global WhatsApp Only Mode */
+                  <div className="space-y-2">
+                    {adminPhone && (
+                      <a
+                        href={buildSingleProductWhatsAppUrl(adminPhone, product, isEn ? "en" : "id")}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="vt-btn vt-btn-pink w-full justify-center items-center gap-2 py-3 px-4 text-xs font-bold font-mono text-white hover:brightness-110 cursor-pointer shadow-md flex"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        <span>{isEn ? "ORDER VIA WHATSAPP (CHECK STOCK)" : "PESAN VIA WHATSAPP (CEK STOK & NEGO)"}</span>
+                        <ArrowUpRight className="h-3.5 w-3.5" />
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  /* 5. Alur Standar Web Toko: Beli Sekarang (Express) + Tambah Keranjang */
                   <>
                     {!isOutOfStock && (
                       <div className="flex items-center justify-between p-2 bg-muted/40 rounded-xs border border-border">
@@ -338,21 +404,33 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
                       </div>
                     )}
 
+                    {/* Tombol Utama: Beli Langsung (Express Checkout) */}
+                    <button
+                      type="button"
+                      disabled={isOutOfStock}
+                      onClick={() => buyNow(product)}
+                      className="vt-btn vt-btn-pink w-full justify-center items-center gap-2 py-3 px-4 text-xs font-bold font-mono text-white hover:brightness-110 cursor-pointer shadow-md flex disabled:opacity-50"
+                    >
+                      <Zap className="h-4 w-4" />
+                      <span>{isEn ? "BUY NOW (EXPRESS CHECKOUT)" : "BELI SEKARANG (CHECKOUT CEPAT)"}</span>
+                    </button>
+
+                    {/* Tombol Sekunder: Tambah ke Keranjang */}
                     {enableStoreCart && (
                       <button
                         type="button"
                         disabled={isOutOfStock}
                         onClick={handleAddToCart}
-                        className={`vt-btn w-full justify-center items-center gap-2 py-2.5 px-4 text-xs font-bold font-mono transition-all cursor-pointer shadow-md ${
+                        className={`vt-btn vt-btn-chrome w-full justify-center items-center gap-2 py-2 px-4 text-xs font-bold font-mono transition-all cursor-pointer shadow-xs ${
                           justAdded
                             ? "bg-emerald-600 text-white font-extrabold"
-                            : "vt-btn-pink text-white hover:brightness-110"
+                            : "text-foreground hover:bg-muted"
                         }`}
                       >
                         {justAdded ? (
                           <>
-                            <Check className="h-4 w-4" />
-                            <span>{isEn ? "ADDED TO CART!" : "BERHASIL DITAMBAHKAN!"}</span>
+                            <Check className="h-4 w-4 text-white" />
+                            <span className="text-white">{isEn ? "ADDED TO CART!" : "BERHASIL DITAMBAHKAN!"}</span>
                           </>
                         ) : (
                           <>
@@ -368,40 +446,11 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
                         href={buildSingleProductWhatsAppUrl(adminPhone, product, isEn ? "en" : "id")}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="vt-btn vt-btn-chrome w-full justify-center items-center gap-2 py-2 px-4 text-xs font-bold font-mono text-foreground hover:bg-muted cursor-pointer flex"
+                        className="vt-btn vt-btn-chrome w-full justify-center items-center gap-2 py-1.5 px-3 text-[11px] font-bold font-mono text-muted-foreground hover:text-foreground cursor-pointer flex"
                       >
-                        <MessageCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                        <span>{product.customButtonLabel || (isEn ? "ORDER INSTANT VIA WHATSAPP" : "PESAN LANGSUNG VIA WHATSAPP")}</span>
-                        <ArrowUpRight className="h-3.5 w-3.5" />
-                      </a>
-                    )}
-                  </>
-                ) : (
-                  /* 3. Tipe Eksternal / Referral / Affiliate */
-                  <>
-                    {product.ctaUrl && (
-                      <a
-                        href={product.ctaUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="vt-btn vt-btn-pink w-full justify-center items-center gap-2 py-3 px-4 text-xs font-bold font-mono text-white hover:brightness-110 cursor-pointer shadow-md flex"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        <span>
-                          {product.customButtonLabel ||
-                            (product.purchaseType === "referral"
-                              ? isEn
-                                ? "USE REFERRAL LINK"
-                                : "GUNAKAN KODE REFERRAL"
-                              : product.purchaseType === "affiliate"
-                              ? isEn
-                                ? "BUY VIA AFFILIATE"
-                                : "BELI VIA AFFILIATE"
-                              : isEn
-                              ? "BUY ON " + (platformLabelFromUrl(product.ctaUrl) || "PARTNER STORE")
-                              : "BELI DI " + (platformLabelFromUrl(product.ctaUrl) || "TOKO ONLINE"))}
-                        </span>
-                        <ArrowUpRight className="h-4 w-4" />
+                        <MessageCircle className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span>{isEn ? "Ask Questions via WhatsApp" : "Tanya via WhatsApp"}</span>
+                        <ArrowUpRight className="h-3 w-3" />
                       </a>
                     )}
                   </>

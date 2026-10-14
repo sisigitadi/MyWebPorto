@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { normalizeBankAccounts, parseLegacyBankInfo, type BankAccountItem } from "@/lib/whatsapp-order";
+import { DEFAULT_STORE_CONFIG } from "@/lib/store-config";
 
 describe("Payment Methods & Multi-Rekening System", () => {
   it("harus menormalkan rekening bank dan mempertahankan properti isActive serta notes", () => {
@@ -90,5 +91,9 @@ describe("Payment Methods & Multi-Rekening System", () => {
     expect(parsed[1].bankName).toBe("MANDIRI");
     expect(parsed[1].accountNumber).toBe("9876543210");
     expect(parsed[1].isActive).toBe(true);
+  });
+
+  it("memiliki allowPaymentProofUpload aktif secara default di StoreConfig", () => {
+    expect(DEFAULT_STORE_CONFIG.allowPaymentProofUpload).toBe(true);
   });
 });

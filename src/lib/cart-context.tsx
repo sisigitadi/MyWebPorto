@@ -21,9 +21,12 @@ interface CartContextValue {
   items: CartItem[];
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
+  initialStep: "cart" | "checkout";
+  setInitialStep: (step: "cart" | "checkout") => void;
   // true bila item benar-benar masuk/ter-update; false bila produk habis —
   // pemanggil boleh menahan feedback "DITAMBAHKAN!" agar tidak menyesatkan.
   addItem: (product: ProductData, qty?: number) => boolean;
+  buyNow: (product: ProductData) => boolean;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -41,6 +44,7 @@ const STORAGE_KEY = "sigitos_cart_v1";
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [initialStep, setInitialStep] = useState<"cart" | "checkout">("cart");
   const [mounted, setMounted] = useState(false);
 
   // Cart dibaca SETELAH mount (initializer di useState → render pertama server
@@ -105,6 +109,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
       return [...prev, { product, quantity: Math.min(qty, maxStock) }];
     });
+    setInitialStep("cart");
+    setIsOpen(true);
+    return true;
+  }, []);
+
+  const buyNow = useCallback((product: ProductData) => {
+    if (isOutOfStock(product)) return false;
+    const maxStock = maxStockFor(product);
+    if (maxStock <= 0) return false;
+    setItems([{ product, quantity: 1 }]);
+    setInitialStep("checkout");
     setIsOpen(true);
     return true;
   }, []);
@@ -149,14 +164,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       items,
       isOpen,
       setIsOpen,
+      initialStep,
+      setInitialStep,
       addItem,
+      buyNow,
       removeItem,
       updateQuantity,
       clearCart,
       totalCount,
       totalAmount,
     }),
-    [items, isOpen, addItem, removeItem, updateQuantity, clearCart, totalCount, totalAmount]
+    [items, isOpen, initialStep, addItem, buyNow, removeItem, updateQuantity, clearCart, totalCount, totalAmount]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

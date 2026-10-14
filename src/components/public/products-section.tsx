@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useMemo } from "react";
+import React, { useRef, useState, useMemo, useEffect } from "react";
 import {
   ArrowUpRight,
   Package,
@@ -14,6 +14,7 @@ import {
   Check,
   ExternalLink,
   ArrowRight,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -24,7 +25,7 @@ import { useTranslation } from "@/lib/i18n";
 import { useFeature } from "@/lib/features-context";
 import { OSWindow } from "@/components/public/os/os-window";
 import { useCart, buildSingleProductWhatsAppUrl } from "@/lib/cart-context";
-import { getOrderByInvoice } from "@/lib/order-actions";
+import { getOrderByInvoice, getStoreConfig, type StoreConfig } from "@/lib/order-actions";
 import type { Order } from "@/db/schema";
 import { formatIdr, formatUsd } from "@/lib/whatsapp-order";
 import gsap from "gsap";
@@ -43,7 +44,20 @@ interface ProductsSectionProps {
 export function ProductsSection({ products: propProducts, profile }: ProductsSectionProps) {
   const router = useRouter();
   const { t, language } = useTranslation();
-  const { addItem, totalCount, setIsOpen } = useCart();
+  const { addItem, buyNow, totalCount, setIsOpen } = useCart();
+  const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    getStoreConfig()
+      .then((cfg) => {
+        if (mounted && cfg) setStoreConfig(cfg);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // Gate feature flag (settings.features): saat OFF, tombol keranjang dan
   // tombol "Tambah ke Keranjang" per produk disembunyikan; addItem dan
@@ -201,7 +215,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
               <span>{language === "en" ? "Track Order" : "Lacak Pesanan"}</span>
             </button>
 
-            {enableStoreCart && (
+            {enableStoreCart && !storeConfig?.whatsappOnlyMode && (
               <button
                 type="button"
                 onClick={() => setIsOpen(true)}
@@ -404,65 +418,105 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                     {/* Shop Action Buttons */}
                     <div className="pt-3 border-t border-border/80 space-y-2 font-mono text-xs">
                       <div className="flex gap-2">
-                        {(!product.purchaseType || product.purchaseType === 'whatsapp') ? (
-                          <>
-                            {/* Add to Cart Button — disembunyikan saat enable_store_cart OFF */}
-                            {enableStoreCart && (
-                            <button
-                              type="button"
-                              disabled={isOutOfStock}
-                              onClick={() => handleAddToCart(product)}
-                              className={`vt-btn flex-1 py-2 px-2.5 font-bold justify-center items-center gap-1.5 cursor-pointer transition-colors ${
-                                isAdded
-                                  ? "bg-emerald-600 text-white font-extrabold"
-                                  : "vt-btn-pink text-white"
-                              }`}
-                              title="Tambah ke Keranjang Belanja"
-                            >
-                              {isAdded ? (
-                                <>
-                                  <Check className="h-3.5 w-3.5" />
-                                  <span>{language === "en" ? "ADDED!" : "DITAMBAHKAN!"}</span>
-                                </>
-                              ) : (
-                                <>
-                                  <ShoppingCart className="h-3.5 w-3.5" />
-                                  <span>{language === "en" ? "ADD TO CART" : "KERANJANG"}</span>
-                                </>
-                              )}
-                            </button>
-                            )}
-
-                            {/* Instant WhatsApp Order Button */}
-                            {(product.customWhatsapp || profile?.phone) && (
-                              <a
-                                href={buildSingleProductWhatsAppUrl(product.customWhatsapp || profile?.phone || '', product, language === "en" ? "en" : "id")}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="vt-btn vt-btn-chrome px-3 py-2 text-xs font-bold text-foreground justify-center items-center gap-1.5 group cursor-pointer"
-                                title={language === "en" ? "Instant Order via WhatsApp" : "Pesan Langsung via WhatsApp"}
-                              >
-                                <MessageCircle className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
-                                <span className="hidden sm:inline">WA</span>
-                              </a>
-                            )}
-                          </>
-                        ) : (
+                        {/* 1. Tipe Eksternal / Referral / Affiliate: Langsung ke link tujuan tanpa keranjang/checkout web */}
+                        {(product.purchaseType === 'referral' || product.purchaseType === 'affiliate' || product.purchaseType === 'external') ? (
                           <>
                             {product.ctaUrl && (
                               <a
                                 href={product.ctaUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="vt-btn vt-btn-pink flex-1 py-2 px-2.5 font-bold justify-center items-center gap-1.5 cursor-pointer text-white"
+                                className="vt-btn vt-btn-pink flex-1 py-2 px-2.5 font-bold justify-center items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110"
                               >
                                 <ExternalLink className="h-3.5 w-3.5" />
-                                <span className="truncate max-w-[130px]">
+                                <span className="truncate max-w-[170px]">
                                   {product.customButtonLabel || 
-                                    (product.purchaseType === 'referral' ? (language === "en" ? "VIA REFERRAL" : "KODE REFERRAL") :
-                                     product.purchaseType === 'affiliate' ? (language === "en" ? "VIA AFFILIATE" : "LINK AFFILIATE") :
-                                     (language === "en" ? "BUY ONLINE" : "BELI SEKARANG"))}
+                                    (product.purchaseType === 'referral' ? (language === "en" ? "OPEN REFERRAL" : "KODE REFERRAL") :
+                                     product.purchaseType === 'affiliate' ? (language === "en" ? "BUY VIA AFFILIATE" : "LINK AFFILIATE") :
+                                     (language === "en" ? "BUY AT PARTNER" : "BELI DI TOKO RESMI"))}
                                 </span>
+                              </a>
+                            )}
+                          </>
+                        ) : product.purchaseType === 'freelanceops' ? (
+                          /* 2. Jasa Proyek FreelanceOps */
+                          <a
+                            href={product.ctaUrl || 'https://freelanceops.sigitadi.id/'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="vt-btn vt-btn-pink flex-1 py-2 px-2.5 font-bold justify-center items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            <span>{product.customButtonLabel || (language === "en" ? "START PROJECT" : "MULAI PROYEK")}</span>
+                          </a>
+                        ) : product.purchaseType === 'whatsapp_custom' ? (
+                          /* 3. Pesanan Khusus / Nego / Konsultasi WhatsApp */
+                          <a
+                            href={buildSingleProductWhatsAppUrl(product.customWhatsapp || profile?.phone || '', product, language === "en" ? "en" : "id")}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="vt-btn vt-btn-pink flex-1 py-2 px-2.5 font-bold justify-center items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110"
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" />
+                            <span>{product.customButtonLabel || (language === "en" ? "CUSTOM INQUIRY" : "KONSULTASI KHUSUS")}</span>
+                          </a>
+                        ) : storeConfig?.whatsappOnlyMode ? (
+                          /* 4. Global WhatsApp Only Mode: Seluruh produk langsung diarahkan ke WA */
+                          <a
+                            href={buildSingleProductWhatsAppUrl(product.customWhatsapp || profile?.phone || '', product, language === "en" ? "en" : "id")}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="vt-btn vt-btn-pink flex-1 py-2 px-2.5 font-bold justify-center items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110"
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" />
+                            <span>{language === "en" ? "ORDER VIA WA" : "PESAN VIA WA (CEK STOK)"}</span>
+                          </a>
+                        ) : (
+                          /* 5. Alur Standar Web Toko: Beli Langsung (Express) + Ikon Keranjang + Ikon WA */
+                          <>
+                            {/* Tombol Utama: Beli Langsung (Express Checkout) */}
+                            <button
+                              type="button"
+                              disabled={isOutOfStock}
+                              onClick={() => buyNow(product)}
+                              className="vt-btn vt-btn-pink flex-1 py-2 px-2 font-bold justify-center items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110 disabled:opacity-50"
+                              title={language === "en" ? "Express Checkout (Instant Buy)" : "Beli Langsung (Checkout Cepat)"}
+                            >
+                              <Zap className="h-3.5 w-3.5" />
+                              <span>{language === "en" ? "BUY NOW" : "BELI LANGSUNG"}</span>
+                            </button>
+
+                            {/* Tombol Tambah ke Keranjang */}
+                            {enableStoreCart && (
+                              <button
+                                type="button"
+                                disabled={isOutOfStock}
+                                onClick={() => handleAddToCart(product)}
+                                className={`vt-btn px-2.5 py-2 font-bold justify-center items-center gap-1 cursor-pointer transition-colors ${
+                                  isAdded
+                                    ? "bg-emerald-600 text-white font-extrabold"
+                                    : "vt-btn-chrome text-foreground hover:bg-muted"
+                                }`}
+                                title={language === "en" ? "Add to Shopping Cart" : "Tambah ke Keranjang Belanja"}
+                              >
+                                {isAdded ? (
+                                  <Check className="h-3.5 w-3.5" />
+                                ) : (
+                                  <ShoppingCart className="h-3.5 w-3.5" />
+                                )}
+                              </button>
+                            )}
+
+                            {/* Ikon Tanya WA Cepat */}
+                            {(product.customWhatsapp || profile?.phone) && (
+                              <a
+                                href={buildSingleProductWhatsAppUrl(product.customWhatsapp || profile?.phone || '', product, language === "en" ? "en" : "id")}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="vt-btn vt-btn-chrome px-2.5 py-2 text-xs font-bold text-foreground justify-center items-center gap-1 group cursor-pointer"
+                                title={language === "en" ? "Ask questions on WhatsApp" : "Tanya via WhatsApp"}
+                              >
+                                <MessageCircle className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
                               </a>
                             )}
                           </>
