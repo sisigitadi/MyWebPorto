@@ -4,6 +4,12 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Fixed & Cleaned: Pembersihan Elemen Bagikan Redundan pada Detail Artikel
+
+- **Pembersihan Navigasi Detail Artikel (`/artikel/[slug]`)**:
+  - Menghapus teks URL dan tombol bagikan redundan di bawah tombol "Kembali ke Desktop OS" yang memiliki warna teks serupa dengan latar belakang wallpaper desktop retro CRT sehingga sulit terbaca.
+  - Mempertahankan tombol "Bagikan Artikel" utama di dalam kartu jendela yang sudah sejajar dengan tanggal publikasi dan durasi baca, menyajikan kontras warna yang optimal serta tata letak navigasi yang lebih bersih.
+
 ### Added & Improved: Fitur Bagikan Tautan & Konten Lengkap pada Seluruh Halaman OS & Deskripsi Utuh Tanpa Terpotong
 
 - **Deskripsi Singkat Komplit Tanpa Terpotong**:
