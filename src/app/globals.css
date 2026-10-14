@@ -1248,3 +1248,68 @@ body {
     scroll-behavior: auto;
   }
 }
+
+/* ========================================================
+   STANDAR CETAK & EKSPOR PDF RESMI (A4 PRINT & INVOICE)
+   ======================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hilangkan constraint 100vh dari layout retro desktop saat mencetak */
+  .desktop-viewport,
+  .desktop-wallpaper,
+  main {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Sembunyikan elemen layar, chrome OS, retro bot, dan kontrol interaktif */
+  header,
+  nav,
+  .vt-titlebar,
+  .vt-titlebar-btn,
+  .vt-crt-on::before,
+  .vt-crt-on::after,
+  .rb-container,
+  .rb-panel-in,
+  .screen-only-tracker,
+  .print-hidden,
+  button,
+  .vt-btn,
+  [role="dialog"] {
+    display: none !important;
+  }
+
+  /* Pastikan kontainer invoice resmi cetak tampil penuh dan bersih */
+  .printable-invoice-sheet {
+    display: block !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}

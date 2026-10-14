@@ -69,6 +69,24 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
     paymentMethod: "qris",
   });
   const [lastInvoice, setLastInvoice] = useState("");
+  const [showTrackInput, setShowTrackInput] = useState(false);
+  const [trackInvoiceInput, setTrackInvoiceInput] = useState("");
+
+  const handleTrackSubmit = () => {
+    if (!trackInvoiceInput.trim()) return;
+    const trimmed = trackInvoiceInput.trim().toUpperCase();
+    const match = trimmed.match(/INV-\d{8}-[A-Za-z0-9]{4}/);
+    if (match) {
+      handleClose();
+      router.push(`/order/${match[0]}`);
+    } else {
+      toast.error(
+        isEn
+          ? "Invalid format! Example: INV-13102026-0001"
+          : "Format salah! Contoh: INV-13102026-0001"
+      );
+    }
+  };
 
   const currentQris = storeConfig?.qrisImageUrl || profile?.paymentQrUrl;
 
@@ -344,34 +362,47 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
                       <p className="text-[11px] text-muted-foreground mb-1">
                         {isEn ? "Already placed an order?" : "Sudah pernah memesan?"}
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleClose();
-                          const input = window.prompt(
-                            isEn
-                              ? "Enter invoice number (INV-DDMMYYYY-XXXX):"
-                              : "Masukkan nomor invoice (INV-DDMMYYYY-XXXX):"
-                          );
-                          if (input && input.trim()) {
-                            const trimmed = input.trim().toUpperCase();
-                            const match = trimmed.match(/INV-\d{8}-[A-Za-z0-9]{4}/);
-                            if (match) {
-                              router.push(`/order/${match[0]}`);
-                            } else {
-                              toast.error(
-                                isEn
-                                  ? "Invalid format! Example: INV-13102026-0001"
-                                  : "Format salah! Contoh: INV-13102026-0001"
-                              );
-                            }
-                          }
-                        }}
-                        className="text-[11px] font-bold text-[var(--vt-cyan)] hover:underline inline-flex items-center gap-1 cursor-pointer"
-                      >
-                        <Receipt className="h-3 w-3" />
-                        <span>{isEn ? "Track existing invoice here" : "Lacak status invoice Anda di sini"}</span>
-                      </button>
+                      {showTrackInput ? (
+                        <div className="flex items-center justify-center gap-1.5 pt-1">
+                          <input
+                            type="text"
+                            placeholder="INV-DDMMYYYY-XXXX"
+                            value={trackInvoiceInput}
+                            onChange={(e) => setTrackInvoiceInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleTrackSubmit();
+                              }
+                            }}
+                            autoFocus
+                            className="px-2.5 py-1.5 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)] rounded-xs font-mono font-bold text-xs uppercase w-44 focus:outline-none focus:border-[var(--vt-cyan)]"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleTrackSubmit}
+                            className="vt-btn vt-btn-pink px-3 py-1.5 text-xs font-bold font-mono text-white cursor-pointer shadow-xs"
+                          >
+                            {isEn ? "Track" : "Lacak"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowTrackInput(false)}
+                            className="vt-btn vt-btn-chrome px-2 py-1.5 text-xs font-bold cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setShowTrackInput(true)}
+                          className="text-[11px] font-bold text-[var(--vt-cyan)] hover:underline inline-flex items-center gap-1 cursor-pointer"
+                        >
+                          <Receipt className="h-3 w-3" />
+                          <span>{isEn ? "Track existing invoice here" : "Lacak status invoice Anda di sini"}</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -478,34 +509,47 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
                       </div>
 
                       <div className="pt-1 text-center">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            handleClose();
-                            const input = window.prompt(
-                              isEn
-                                ? "Enter invoice number (INV-DDMMYYYY-XXXX):"
-                                : "Masukkan nomor invoice (INV-DDMMYYYY-XXXX):"
-                            );
-                            if (input && input.trim()) {
-                              const trimmed = input.trim().toUpperCase();
-                              const match = trimmed.match(/INV-\d{8}-[A-Za-z0-9]{4}/);
-                              if (match) {
-                                router.push(`/order/${match[0]}`);
-                              } else {
-                                toast.error(
-                                  isEn
-                                    ? "Invalid format! Example: INV-13102026-0001"
-                                    : "Format salah! Contoh: INV-13102026-0001"
-                                );
-                              }
-                            }
-                          }}
-                          className="text-[11px] text-muted-foreground hover:text-[var(--vt-cyan)] transition-colors inline-flex items-center gap-1 cursor-pointer"
-                        >
-                          <Receipt className="h-3 w-3" />
-                          <span>{isEn ? "Have an existing invoice? Track status" : "Punya invoice sebelumnya? Lacak status"}</span>
-                        </button>
+                        {showTrackInput ? (
+                          <div className="flex items-center justify-center gap-1.5 pt-1">
+                            <input
+                              type="text"
+                              placeholder="INV-DDMMYYYY-XXXX"
+                              value={trackInvoiceInput}
+                              onChange={(e) => setTrackInvoiceInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleTrackSubmit();
+                                }
+                              }}
+                              autoFocus
+                              className="px-2.5 py-1.5 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)] rounded-xs font-mono font-bold text-xs uppercase w-44 focus:outline-none focus:border-[var(--vt-cyan)]"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleTrackSubmit}
+                              className="vt-btn vt-btn-pink px-3 py-1.5 text-xs font-bold font-mono text-white cursor-pointer shadow-xs"
+                            >
+                              {isEn ? "Track" : "Lacak"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setShowTrackInput(false)}
+                              className="vt-btn vt-btn-chrome px-2 py-1.5 text-xs font-bold cursor-pointer"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setShowTrackInput(true)}
+                            className="text-[11px] text-muted-foreground hover:text-[var(--vt-cyan)] transition-colors inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <Receipt className="h-3 w-3" />
+                            <span>{isEn ? "Have an existing invoice? Track status" : "Punya invoice sebelumnya? Lacak status"}</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </>

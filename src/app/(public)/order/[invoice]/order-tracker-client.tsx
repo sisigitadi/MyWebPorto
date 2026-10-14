@@ -13,11 +13,13 @@ import {
   Maximize2,
   Download,
   X,
+  FileText,
 } from "lucide-react";
 import type { Order } from "@/db/schema";
 import type { StoreConfig } from "@/lib/order-actions";
 import { formatIdr, formatUsd } from "@/lib/whatsapp-order";
 import { OSWindow } from "@/components/public/os/os-window";
+import { PrintableInvoice } from "@/components/public/printable-invoice";
 import { toast } from "sonner";
 
 interface OrderTrackerClientProps {
@@ -28,6 +30,7 @@ interface OrderTrackerClientProps {
 export function OrderTrackerClient({ order, storeConfig }: OrderTrackerClientProps) {
   const [copiedBankId, setCopiedBankId] = useState<string | null>(null);
   const [qrisZoomOpen, setQrisZoomOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"interactive" | "sheet">("interactive");
 
   const formattedTotal =
     order.currency === "USD"
@@ -95,41 +98,98 @@ export function OrderTrackerClient({ order, storeConfig }: OrderTrackerClientPro
 
   return (
     <>
-      <OSWindow
-        title={`Invoice_${order.invoiceNumber}.pdf`}
-        icon={<Package className="h-3.5 w-3.5 text-[#ffd400]" />}
-        statusText={`Order_Status // ${currentStatus.toUpperCase()} // Live`}
-        className="print:border-none print:shadow-none"
-        bodyClassName="p-4 sm:p-6 space-y-6 font-mono text-xs"
-      >
-        {/* Header Invoice */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
-          <div>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">
-              STATUS PESANAN RESMI
-            </span>
-            <h1 className="text-xl sm:text-2xl font-bold font-pixel tracking-wide text-[var(--vt-ink)]">
-              {order.invoiceNumber}
-            </h1>
-            <p className="text-[11px] text-muted-foreground">{dateFormatted}</p>
+      {/* 1. LEMBAR INVOICE RESMI (SELALU DICETAK SECARA OTENTIK STANDAR A4) */}
+      <div className="hidden print:block printable-invoice-sheet">
+        <PrintableInvoice order={order} storeConfig={storeConfig} isPrintOnly />
+      </div>
+
+      {/* 2. MODE PRATINJAU LEMBAR RESMI A4 (DI LAYAR) */}
+      {viewMode === "sheet" && (
+        <div className="screen-only-tracker space-y-4">
+          {/* Action Toolbar Pratinjau */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[var(--vt-card)] vt-card-inset rounded-xs border border-[var(--vt-edge-lo-2)] text-xs font-mono">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-[var(--vt-ink)]">Tampilan Pratinjau:</span>
+              <span className="text-muted-foreground text-[11px]">Format Faktur Cetak A4</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setViewMode("interactive")}
+                className="vt-btn vt-btn-chrome px-3 py-1.5 font-bold text-xs inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <Package className="h-3.5 w-3.5" />
+                <span>Mode Interaktif</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="vt-btn vt-btn-pink px-4 py-1.5 font-bold text-xs text-white inline-flex items-center gap-1.5 cursor-pointer shadow-md hover:brightness-110"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                <span>Cetak / Simpan PDF</span>
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span
-              className={`px-3 py-1 rounded-xs text-xs font-pixel font-bold border ${statusColors[currentStatus] || "bg-muted"}`}
-            >
-              {statusLabels[currentStatus] || currentStatus}
-            </span>
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="vt-btn vt-btn-chrome h-8 px-3 font-mono text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer print:hidden"
-            >
-              <Printer className="h-3.5 w-3.5" />
-              <span>Cetak Invoice</span>
-            </button>
+          {/* Lembar Invoice Asli di Layar */}
+          <div className="p-1 sm:p-4 bg-muted/40 rounded-xs border border-border">
+            <PrintableInvoice order={order} storeConfig={storeConfig} />
           </div>
         </div>
+      )}
+
+      {/* 3. MODE INTERAKTIF RETRO OS WINDOW */}
+      {viewMode === "interactive" && (
+        <OSWindow
+          title={`Invoice_${order.invoiceNumber}.pdf`}
+          icon={<Package className="h-3.5 w-3.5 text-[#ffd400]" />}
+          statusText={`Order_Status // ${currentStatus.toUpperCase()} // Live`}
+          className="screen-only-tracker"
+          bodyClassName="p-4 sm:p-6 space-y-6 font-mono text-xs"
+        >
+          {/* Header Invoice */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
+            <div>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">
+                STATUS PESANAN RESMI
+              </span>
+              <h1 className="text-xl sm:text-2xl font-bold font-pixel tracking-wide text-[var(--vt-ink)]">
+                {order.invoiceNumber}
+              </h1>
+              <p className="text-[11px] text-muted-foreground">{dateFormatted}</p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={`px-3 py-1 rounded-xs text-xs font-pixel font-bold border ${statusColors[currentStatus] || "bg-muted"}`}
+              >
+                {statusLabels[currentStatus] || currentStatus}
+              </span>
+
+              {/* Toggle Mode Lembar A4 */}
+              <button
+                type="button"
+                onClick={() => setViewMode("sheet")}
+                className="vt-btn vt-btn-chrome h-8 px-2.5 font-mono text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                title="Buka pratinjau lembar faktur formal A4"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Format A4</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="vt-btn vt-btn-pink h-8 px-3 font-mono text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110"
+                title="Cetak faktur resmi asli standar A4 / PDF"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                <span>Cetak Invoice</span>
+              </button>
+            </div>
+          </div>
 
         {/* Status Timeline Stepper */}
         <div className="p-4 bg-[var(--vt-card)] vt-card-inset rounded-xs border border-[var(--vt-edge-lo-2)]">
@@ -372,6 +432,7 @@ export function OrderTrackerClient({ order, storeConfig }: OrderTrackerClientPro
           )}
         </div>
       </OSWindow>
+      )}
 
       {/* Lightbox QRIS */}
       {qrisZoomOpen && storeConfig.qrisImageUrl && (

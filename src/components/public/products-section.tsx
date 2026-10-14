@@ -13,6 +13,7 @@ import {
   Tag,
   Check,
   ExternalLink,
+  ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -23,6 +24,9 @@ import { useTranslation } from "@/lib/i18n";
 import { useFeature } from "@/lib/features-context";
 import { OSWindow } from "@/components/public/os/os-window";
 import { useCart, buildSingleProductWhatsAppUrl } from "@/lib/cart-context";
+import { getOrderByInvoice } from "@/lib/order-actions";
+import type { Order } from "@/db/schema";
+import { formatIdr, formatUsd } from "@/lib/whatsapp-order";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -57,8 +61,10 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
   const [showTrackerModal, setShowTrackerModal] = useState(false);
   const [trackerInvoiceInput, setTrackerInvoiceInput] = useState("");
   const [trackerError, setTrackerError] = useState("");
+  const [isSearchingTracker, setIsSearchingTracker] = useState(false);
+  const [trackedOrder, setTrackedOrder] = useState<Order | null>(null);
 
-  const handleTrackOrder = (e: React.FormEvent) => {
+  const handleTrackOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     const raw = trackerInvoiceInput.trim().toUpperCase();
     if (!raw) {
@@ -75,8 +81,22 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
       return;
     }
     setTrackerError("");
-    setShowTrackerModal(false);
-    router.push(`/order/${match[0]}`);
+    setIsSearchingTracker(true);
+    try {
+      const order = await getOrderByInvoice(match[0]);
+      if (order) {
+        setTrackedOrder(order);
+      } else {
+        // Jika tidak langsung ditemukan di server cache, buka halaman status
+        setShowTrackerModal(false);
+        router.push(`/order/${match[0]}`);
+      }
+    } catch {
+      setShowTrackerModal(false);
+      router.push(`/order/${match[0]}`);
+    } finally {
+      setIsSearchingTracker(false);
+    }
   };
 
   // Tanpa fallback dummy: katalog kosong ditampilkan jujur sebagai empty state
@@ -468,71 +488,190 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
 
       {/* Order Tracker Modal */}
       {showTrackerModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-xs">
-          <div className="w-full max-w-md">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs overflow-y-auto vt-scrollbar"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => {
+            setShowTrackerModal(false);
+            setTrackedOrder(null);
+            setTrackerError("");
+          }}
+        >
+          <div
+            className="w-full max-w-md sm:max-w-lg my-auto max-h-[90dvh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
             <OSWindow
-              title="Lacak_Pesanan.exe"
+              title={trackedOrder ? `Lacak_${trackedOrder.invoiceNumber}.exe` : "Lacak_Pesanan.exe"}
               icon={<Search className="h-4 w-4 text-[var(--vt-cyan)]" />}
-              statusText="INVOICE_TRACKER_V1.0"
+              statusText={
+                trackedOrder
+                  ? `STATUS: ${trackedOrder.status.toUpperCase()} // LIVE`
+                  : "INVOICE_TRACKER_V1.0"
+              }
               onClose={() => {
                 setShowTrackerModal(false);
+                setTrackedOrder(null);
                 setTrackerError("");
               }}
-              className="w-full shadow-2xl vt-window-pop"
-              bodyClassName="p-4 sm:p-5 bg-[var(--vt-paper)] text-[var(--vt-ink)] font-mono text-xs space-y-4"
+              className="w-full flex-1 flex flex-col max-h-full overflow-hidden shadow-2xl vt-window-pop"
+              bodyClassName="p-4 sm:p-5 bg-[var(--vt-paper)] text-[var(--vt-ink)] font-mono text-xs space-y-4 flex-1 min-h-0 overflow-y-auto vt-scrollbar"
             >
-              <div>
-                <p className="font-bold text-sm mb-1 text-[var(--vt-ink)]">
-                  {language === "en" ? "Track Your Digital Order" : "Lacak Status Pesanan Digital"}
-                </p>
-                <p className="text-[11px] text-muted-foreground">
-                  {language === "en"
-                    ? "Enter your invoice number received after checkout (e.g. INV-13102026-4821)."
-                    : "Masukkan nomor invoice yang Anda peroleh saat checkout (contoh: INV-13102026-4821)."}
-                </p>
-              </div>
+              {/* TAMPILAN 1: FORM INPUT INVOICE */}
+              {!trackedOrder && (
+                <>
+                  <div>
+                    <p className="font-bold text-sm mb-1 text-[var(--vt-ink)]">
+                      {language === "en" ? "Track Your Digital Order" : "Lacak Status Pesanan Digital"}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {language === "en"
+                        ? "Enter your invoice number received after checkout (e.g. INV-13102026-4821)."
+                        : "Masukkan nomor invoice yang Anda peroleh saat checkout (contoh: INV-13102026-4821)."}
+                    </p>
+                  </div>
 
-              <form onSubmit={handleTrackOrder} className="space-y-3">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-bold block text-muted-foreground uppercase">
-                    {language === "en" ? "Invoice Number" : "Nomor Invoice"}
-                  </label>
-                  <input
-                    type="text"
-                    value={trackerInvoiceInput}
-                    onChange={(e) => {
-                      setTrackerInvoiceInput(e.target.value);
-                      if (trackerError) setTrackerError("");
-                    }}
-                    placeholder="INV-DDMMYYYY-XXXX"
-                    autoFocus
-                    className="w-full px-3 py-2 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)] rounded-xs font-mono font-bold text-xs uppercase focus:outline-none focus:border-[var(--vt-cyan)] placeholder:text-muted-foreground/60"
-                  />
-                  {trackerError && (
-                    <p className="text-red-500 font-bold text-[11px] mt-1">{trackerError}</p>
-                  )}
-                </div>
+                  <form onSubmit={handleTrackOrder} className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold block text-muted-foreground uppercase">
+                        {language === "en" ? "Invoice Number" : "Nomor Invoice"}
+                      </label>
+                      <input
+                        type="text"
+                        value={trackerInvoiceInput}
+                        onChange={(e) => {
+                          setTrackerInvoiceInput(e.target.value);
+                          if (trackerError) setTrackerError("");
+                        }}
+                        placeholder="INV-DDMMYYYY-XXXX"
+                        autoFocus
+                        disabled={isSearchingTracker}
+                        className="w-full px-3 py-2 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)] rounded-xs font-mono font-bold text-xs uppercase focus:outline-none focus:border-[var(--vt-cyan)] placeholder:text-muted-foreground/60 disabled:opacity-60"
+                      />
+                      {trackerError && (
+                        <p className="text-red-500 font-bold text-[11px] mt-1">{trackerError}</p>
+                      )}
+                    </div>
 
-                <div className="flex gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowTrackerModal(false);
-                      setTrackerError("");
-                    }}
-                    className="vt-btn vt-btn-chrome px-3 py-2 font-bold cursor-pointer"
-                  >
-                    {language === "en" ? "Cancel" : "Batal"}
-                  </button>
-                  <button
-                    type="submit"
-                    className="vt-btn vt-btn-pink flex-1 py-2 px-4 font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
-                  >
-                    <Search className="h-3.5 w-3.5" />
-                    <span>{language === "en" ? "Check Order Status" : "Cek Status Pesanan"}</span>
-                  </button>
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowTrackerModal(false);
+                          setTrackerError("");
+                        }}
+                        disabled={isSearchingTracker}
+                        className="vt-btn vt-btn-chrome px-3 py-2 font-bold cursor-pointer"
+                      >
+                        {language === "en" ? "Cancel" : "Batal"}
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSearchingTracker}
+                        className="vt-btn vt-btn-pink flex-1 py-2 px-4 font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50"
+                      >
+                        <Search className="h-3.5 w-3.5" />
+                        <span>
+                          {isSearchingTracker
+                            ? language === "en"
+                              ? "Searching..."
+                              : "Mencari..."
+                            : language === "en"
+                            ? "Check Order Status"
+                            : "Cek Status Pesanan"}
+                        </span>
+                      </button>
+                    </div>
+                  </form>
+                </>
+              )}
+
+              {/* TAMPILAN 2: HASIL PELACAKAN LIVE LANGSUNG DI MODAL */}
+              {trackedOrder && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-border pb-3">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">
+                        NOMOR INVOICE
+                      </span>
+                      <p className="text-base font-bold font-pixel text-[var(--vt-ink)]">
+                        {trackedOrder.invoiceNumber}
+                      </p>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-xs text-[11px] font-bold border border-emerald-500/40 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-pixel uppercase">
+                      {trackedOrder.status}
+                    </span>
+                  </div>
+
+                  {/* Rincian Pemesan & Waktu */}
+                  <div className="p-3 bg-[var(--vt-card)] vt-card-inset rounded-xs border border-[var(--vt-edge-lo-2)] space-y-1">
+                    <p className="font-bold text-xs">Pemesan: {trackedOrder.customerName}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Telepon / WA: {trackedOrder.customerPhone}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Metode Pembayaran: <strong className="uppercase">{trackedOrder.paymentMethod}</strong>
+                    </p>
+                  </div>
+
+                  {/* Daftar Item */}
+                  <div className="space-y-1.5">
+                    <span className="font-bold text-[11px] text-primary block uppercase">
+                      Daftar Pesanan:
+                    </span>
+                    <div className="border border-border rounded-xs divide-y divide-border/60 overflow-hidden">
+                      {(trackedOrder.items || []).map((it, idx) => (
+                        <div key={idx} className="p-2.5 flex items-center justify-between text-xs">
+                          <div>
+                            <p className="font-bold">{it.title}</p>
+                            <p className="text-[10px] text-muted-foreground">Qty: {it.quantity}</p>
+                          </div>
+                          <span className="font-bold font-mono">
+                            {trackedOrder.currency === "USD" ? formatUsd(it.subtotal) : formatIdr(it.subtotal)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Total Tagihan */}
+                  <div className="flex justify-between items-center p-2.5 bg-muted/60 rounded-xs border border-border">
+                    <span className="font-bold">Total Pembayaran:</span>
+                    <span className="font-extrabold text-sm text-emerald-600 dark:text-emerald-400 font-pixel">
+                      {trackedOrder.currency === "USD"
+                        ? formatUsd(trackedOrder.totalAmount)
+                        : formatIdr(trackedOrder.totalAmount)}
+                    </span>
+                  </div>
+
+                  {/* Tombol Aksi Modal */}
+                  <div className="pt-2 border-t border-border flex flex-col sm:flex-row gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTrackedOrder(null);
+                        setTrackerError("");
+                      }}
+                      className="vt-btn vt-btn-chrome px-3 py-2 text-xs font-bold cursor-pointer"
+                    >
+                      Lacak Lain
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowTrackerModal(false);
+                        router.push(`/order/${trackedOrder.invoiceNumber}`);
+                      }}
+                      className="vt-btn vt-btn-pink flex-1 py-2 px-3 text-xs font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer shadow-md hover:brightness-110"
+                    >
+                      <span>Buka Halaman Lengkap & Cetak (A4)</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
-              </form>
+              )}
             </OSWindow>
           </div>
         </div>

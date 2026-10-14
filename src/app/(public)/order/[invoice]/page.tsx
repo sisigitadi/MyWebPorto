@@ -46,10 +46,10 @@ export default async function OrderDetailPage({ params }: PageProps) {
   }
 
   return (
-    <div className="min-h-full py-6 sm:py-10 vt-crt-on">
+    <div className="flex-1 min-h-0 w-full overflow-y-auto vt-scrollbar py-6 sm:py-10 vt-crt-on">
       <div className="max-w-3xl mx-auto px-3 sm:px-6 space-y-6">
         {/* Nav header */}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 print-hidden">
           <Link
             href="/#produk"
             className="vt-btn vt-btn-chrome h-8 px-3 font-mono text-xs font-bold inline-flex items-center gap-1.5"
