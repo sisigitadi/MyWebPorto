@@ -17,7 +17,9 @@ Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager int
 - Pelacakan pesanan publik di `/order` dan modal Lacak Pesanan pada header toko & cart dialog untuk verifikasi status pengiriman dan transaksi.
 - Detail produk shareable di `/toko/[slug]`.
 - Katalog artikel di `/artikel`.
-- Detail artikel di `/artikel/[slug]` dengan reading progress, share X/LinkedIn/WhatsApp, dan related articles berperingkat tag.
+- Default antarmuka multi-bahasa **EN (Bahasa Inggris)** dengan toggle instan EN/ID di taskbar dan header publik.
+- **Fitur Bagikan Konten & Media Sosial (Share Kit)**: tombol Bagikan pada setiap proyek, artikel, dan produk yang membuka modal share portal terpusat (bebas clipping). Mendukung 1-klik bagikan langsung ke WhatsApp, Telegram, Instagram (dengan salin tautan instan), LinkedIn, Facebook, format copas siap kirim Markdown tebal (**bold**), serta generator kode QR instan.
+- Detail artikel di `/artikel/[slug]` dengan reading progress, share modal, dan related articles berperingkat tag.
 - **RetroBot & Terminal CRT (Universal Bot Engine)**: asisten AI melayang yang sadar halaman (tahu app SigitOS mana yang sedang dibuka), memandu lewat nav chip di dalam percakapan, efek visual (scan ring, radar ping, burst partikel), natural language chat, serta **sanitasi audio TTS** (membersihkan simbol format, emoji, dan URL sebelum diucapkan agar suara alami).
 - Metadata SEO, Open Graph, Twitter Card, sitemap, robots.txt, JSON-LD, **`llms.txt`** dinamis untuk AI crawler, dan **OG preview dinamis** per route/slug.
 - **PWA**: manifest, ikon avatar (192/512/maskable/Apple), halaman offline + service worker fallback, theme-color.
@@ -29,28 +31,29 @@ Tampilan publik memakai konsep retro desktop "SigitOS" dengan window manager int
 - Login admin melalui Clerk di `/sign-in`.
 - Proteksi rute `/admin/*` memakai Clerk middleware dan `ADMIN_CLERK_ID` (single-owner; non-admin mendapat 404, fail-closed di produksi).
 - Dashboard ringkasan konten, metrik performa, dan pengelolaan entitas portofolio.
+- **Pengurutan Posisi Konten Realtime (Drag & Drop Reordering)**: posisi urutan pada proyek, layanan, artikel, testimoni, dan produk di admin dapat digeser posisinya secara langsung dan seketika berubah di tampilan publik.
 - **Visitor Analytics Internal** di `/admin/analytics`: analitik kunjungan mandiri ramah privasi UU PDP (salted SHA-256, nol cookie pelacak), identifikasi operator jaringan/ISP ramah manusia berbasis kamus ASN (seperti Telkomsel, IndiHome, Biznet, First Media, Cloudflare, Google), zona waktu **WIB (Asia/Jakarta / UTC+7)** untuk batas harian & log kunjungan, sebaran lokasi edge (negara, kota, provinsi), dan breakdown teknologi pengunjung.
 - **Identitas Branding Baru (Cyber-Shield SA Monogram)**: favicon multi-resolusi (16/32/48 ICO & PNG), app icon (192/512/maskable/Apple Touch Icon), Next.js icon route dinamis, menubar retro SigitOS, dan header sidebar admin terintegrasi dengan lambang perisai futuristik SA.
 - CRUD profil, proyek, layanan, produk, testimoni, dan artikel.
 - **Manajemen Pesanan Toko** di `/admin/orders`: pantau pesanan masuk, filter status transaksi (menunggu, dibayar, diproses, selesai, dibatalkan), quick action "Verifikasi & Tandai Lunas" 1-klik, perbarui tautan pengiriman/workspace, catatan admin, pratinjau bukti transfer, toggle kontrol storage upload bukti transfer mandiri, dan integrasi WhatsApp follow-up.
 - **WhatsApp Bot & Integrasi Toko** di `/admin/whatsapp-bot`: koneksi sesi Baileys WhatsApp via QR code, kustomisasi nomor toko tujuan order, auto-reply chat, serta sinkronisasi knowledge base katalog produk.
 - **Sistem & Logs** di `/admin/system`: kelayakan deploy (validasi env terpusat), tracing `x-request-id`, dan audit log mutasi.
-- **Redaksi** di `/admin/redaksi`: composer draf untuk 6 tipe konten (artikel, proyek, layanan, produk, testimoni, profil) dengan tombol **"Bantuan AI"** (Cloud AI) dan **"Analisis SEO"**. Draf AI selalu melewati sinkronisasi otomatis terhadap aturan yang sama persis dengan analyzer — judul/slug/deskripsi dirapikan, lead GEO dan internal link disisipkan dari halaman terbit — lalu laporan menampilkan skor, apa yang diperbaiki, dan sisa masalah yang hanya bisa ditulis manusia. Kelengkapan kontrak ini (satu sumber ambang, skop per tipe, satu pemetaan field) dijelaskan di **`SEO_GEO_SYNC.md`**.
-- **Media Library** di `/admin/media`: daftar gambar di database (tabel `media`, bytea Postgres) dengan hapus.
-- **SEO & SEM** di `/admin/seo`: token verifikasi **Google Search Console** & **Bing Webmaster**, key **IndexNow** + ping manual semua URL, dan override **Open Graph** (judul/deskripsi/gambar) dengan pratinjau kartu sosial. Disimpan di tabel `settings` (key `"seo"`) — ganti token/key/OG tanpa redeploy.
-- **Konfigurasi Cloud AI** di `/admin/cloud-ai`: pilih 1 dari 10 provider (OFF 100% lokal TF-IDF, Gemini, OpenAI-compatible custom, Anthropic Claude, DeepSeek, Groq, OpenRouter, Together, Mistral, xAI Grok), isi API key (+ base URL untuk gaya OpenAI-compatible/Anthropic), **ambil daftar model otomatis & realtime** dari endpoint provider, serta atur **prompt & cara menjawab** (concise / detailed / friendly). Disimpan di tabel `settings` (key `cloud_ai`), menimpa env per-field — ganti provider/model tanpa redeploy.
-- **God Mode — Tampilan & App OS** di `/admin/appearance`: atur aplikasi SigitOS yang ditampilkan ke pengunjung (centang aktif) dan urutannya (tombol panah), tanpa kode/redeploy. Mengendalikan taskbar, sidebar ikon desktop, Start Menu, command palette, jalan pintas angka, dan urutan section mobile. Disimpan di tabel `settings` (key `os_apps`); minimal satu app harus aktif, config rusak kembali ke default. Fase 1 roadmap God Mode.
-- **God Mode — Teks UI** di `/admin/strings`: ubah 22 teks marketing (badge, judul, subjudul, dan tombol CTA per section) tanpa kode/redeploy. Disimpan sebagai overlay di tabel `settings` (key `ui_strings`) di atas default i18n — DB kosong/korup tetap jatuh ke default kode. Fase 2.
-- **God Mode — Feature Flags** di `/admin/features`: nyalakan/matikan empat fitur besar (`enable_terminal`, `enable_store_cart`, `enable_articles`, `maintenance_mode`) tanpa kode/redeploy (key `features`). Fase 3.
-- **God Mode — Draft, Pratinjau & Riwayat** (Fase 4): bar versi di tiga halaman God Mode menyediakan Simpan Draf, Pratinjau Live (`/?preview=1`), Publikasikan Live, dan Riwayat & Rollback 1-klik (tabel `settings_history`).
-- **Manajemen tautan sosial**: isi Telegram, Instagram, TikTok, YouTube, Facebook, Discord, Slack, Reddit, Medium, GitHub, LinkedIn, X, Portofolio — tampil otomatis di Kontak.exe, footer & menubar hanya jika terisi.
+- **Redaksi** di `/admin/redaksi`: composer draf untuk 6 tipe konten (artikel, proyek, layanan, produk, testimoni, profil) dengan tombol **"Bantuan AI"** (Cloud AI) dan **"Analisis SEO"**. Draf AI selalu melewati sinkronisasi otomatis terhadap aturan yang sama persis dengan analyzer: judul/slug/deskripsi dirapikan, lead GEO dan internal link disisipkan dari halaman terbit, lalu laporan menampilkan skor, apa yang diperbaiki, dan sisa masalah yang hanya bisa ditulis manusia. Kelengkapan kontrak ini dijelaskan di **`SEO_GEO_SYNC.md`**.
+- **Media Library & Optimasi Gambar** di `/admin/media`: daftar gambar di database (tabel `media`, bytea Postgres) dengan konversi otomatis ke format efisien (WebP, AVIF, SVG) untuk menghemat kapasitas storage tanpa mengurangi kualitas tampilan.
+- **SEO & SEM** di `/admin/seo`: token verifikasi **Google Search Console** & **Bing Webmaster**, key **IndexNow** + ping manual semua URL, dan override **Open Graph** (judul/deskripsi/gambar) dengan pratinjau kartu sosial. Disimpan di tabel `settings` (key `"seo"`): ganti token/key/OG tanpa redeploy.
+- **Konfigurasi Cloud AI** di `/admin/cloud-ai`: pilih 1 dari 10 provider (OFF 100% lokal TF-IDF, Gemini, OpenAI-compatible custom, Anthropic Claude, DeepSeek, Groq, OpenRouter, Together, Mistral, xAI Grok), isi API key (+ base URL untuk gaya OpenAI-compatible/Anthropic), **ambil daftar model otomatis & realtime** dari endpoint provider, serta atur **prompt & cara menjawab** (concise / detailed / friendly). Disimpan di tabel `settings` (key `cloud_ai`), menimpa env per-field: ganti provider/model tanpa redeploy.
+- **God Mode - Tampilan & App OS** di `/admin/appearance`: atur aplikasi SigitOS yang ditampilkan ke pengunjung (centang aktif) dan urutannya (tombol panah), tanpa kode/redeploy. Mengendalikan taskbar, sidebar ikon desktop, Start Menu, command palette, jalan pintas angka, dan urutan section mobile. Disimpan di tabel `settings` (key `os_apps`); minimal satu app harus aktif, config rusak kembali ke default. Fase 1 roadmap God Mode.
+- **God Mode - Teks UI** di `/admin/strings`: ubah 22 teks marketing (badge, judul, subjudul, dan tombol CTA per section) tanpa kode/redeploy. Disimpan sebagai overlay di tabel `settings` (key `ui_strings`) di atas default i18n: DB kosong/korup tetap jatuh ke default kode. Fase 2.
+- **God Mode - Feature Flags** di `/admin/features`: nyalakan/matikan empat fitur besar (`enable_terminal`, `enable_store_cart`, `enable_articles`, `maintenance_mode`) tanpa kode/redeploy (key `features`). Fase 3.
+- **God Mode - Draft, Pratinjau & Riwayat** (Fase 4): bar versi di tiga halaman God Mode menyediakan Simpan Draf, Pratinjau Live (`/?preview=1`), Publikasikan Live, dan Riwayat & Rollback 1-klik (tabel `settings_history`).
+- **Manajemen tautan sosial**: isi Telegram, Instagram, TikTok, YouTube, Facebook, Discord, Slack, Reddit, Medium, GitHub, LinkedIn, X, Portofolio: tampil otomatis di Kontak.exe, footer & menubar hanya jika terisi.
 - **Editor chip** untuk tag artikel & tech stack proyek (tambah/hapus per item, bukan hardcode).
 - **Content editor** dengan toolbar sintaks (H2/H3/quote/kode) + pratinjau WYSIWYG via renderer publik bersama.
-- **Draft & schedule**: kolom `publishAt` proyek/artikel — masa depan tersembunyi dari publik, badge Terjadwal di admin.
+- **Draft & schedule**: kolom `publishAt` proyek/artikel: masa depan tersembunyi dari publik, badge Terjadwal di admin.
 - **Terminal AI** dengan perintah: `help`, `whoami`, `skills`, `projects`, `services`, `articles`, `contact`, `open <app>`, `theme`, `lang`, `neofetch`, `history`, `clear`, `reboot`, `cv`, `github`, `email` + navigasi riwayat panah atas/bawah, natural-language chat ke Sigit_Bot, input suara + TTS.
 - Input konten Indonesia dan Inggris untuk beberapa field.
 - Terjemahan ID → EN **opt-in per field** lewat tombol Terjemahkan di form admin (tidak ada terjemahan otomatis saat menyimpan); kolom English yang dikosongkan memakai teks Indonesia sebagai fallback di mode EN.
-- Upload gambar disimpan **langsung di Postgres** (tabel `media`, kolom `data` bytea) — persisten di semua environment termasuk serverless, tanpa CDN/object storage eksternal. Disajikan via `GET /api/media/<id>` dengan cache immutable.
+- Upload gambar disimpan **langsung di Postgres** (tabel `media`, kolom `data` bytea): persisten di semua environment termasuk serverless, tanpa CDN/object storage eksternal. Disajikan via `GET /api/media/<id>` dengan cache immutable.
 - Slug produk dapat dikelola dari admin dan masuk ke sitemap.
 - Artikel studi kasus project dan topical authority AI, cybersecurity, Linux, Windows, dan macOS.
 
@@ -199,7 +202,7 @@ src/
 
 # Di luar src/:
 drizzle/                   # Migrasi SQL 0000–0012 + meta snapshot
-tests/                     # Unit test Vitest (45 file, 587 test)
+tests/                     # Unit test Vitest (46 file, 593 test)
 e2e/                       # E2E Playwright area publik
 scripts/                   # seed.mjs, package-deploy.mjs, dll
 data/                      # Local store: local-store.json, local-settings.json
@@ -343,7 +346,7 @@ npm run lint            # ESLint (flat config)
 npm run docs:check      # cek dokumentasi vs kode (angka README & daftar env var)
 ```
 
-Unit test Vitest mencakup **45 file / 587 test** (`npx vitest run`): AI engine (TF-IDF), provider & config Cloud AI, daftar model & quota Gemini, validasi env, IndexNow, helper slug & host produk, logika publish/schedule, validasi storage & audit URL media, stok keranjang, builder pesan WhatsApp, unsaved-changes guard, analyzer & remediator SEO/GEO, redaksi-draft & otomasi Redaksi, serta config God Mode (`settings.os_apps`, `ui_strings`, `features`, `settings_history`). Test yang butuh `DATABASE_URL` (audit URL media) otomatis di-skip tanpa DB, jadi CI tanpa DB tetap hijau; test metadata OG sengaja hermetik (fetch di-stub) sehingga tidak menyentuh jaringan. E2E `test:e2e:godmode` memverifikasi utas penuh config → props → DOM. CI (`.github/workflows/ci.yml`) menjalankan **lint + typecheck + unit test + build** otomatis di setiap PR ke `main` — jadikan *required status check* sebelum merge.
+Unit test Vitest mencakup **46 file / 593 test** (`npx vitest run`): AI engine (TF-IDF), provider & config Cloud AI, daftar model & quota Gemini, validasi env, IndexNow, helper slug & host produk, logika publish/schedule, validasi storage & audit URL media, stok keranjang, builder pesan WhatsApp, unsaved-changes guard, analyzer & remediator SEO/GEO, redaksi-draft & otomasi Redaksi, serta config God Mode (`settings.os_apps`, `ui_strings`, `features`, `settings_history`). Test yang butuh `DATABASE_URL` (audit URL media) otomatis di-skip tanpa DB, jadi CI tanpa DB tetap hijau; test metadata OG sengaja hermetik (fetch di-stub) sehingga tidak menyentuh jaringan. E2E `test:e2e:godmode` memverifikasi utas penuh config → props → DOM. CI (`.github/workflows/ci.yml`) menjalankan **lint + typecheck + unit test + build** otomatis di setiap PR ke `main` — jadikan *required status check* sebelum merge.
 
 ### Penjaga drift dokumentasi
 

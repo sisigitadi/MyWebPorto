@@ -54,6 +54,7 @@ export interface ProjectData {
   featured: boolean;
   published: boolean;
   publishAt?: string | null;
+  order?: number;
   createdAt: string;
 }
 
@@ -93,6 +94,7 @@ export interface ProductData {
   customButtonLabel?: string | null;
   referralCode?: string | null;
   published: boolean;
+  order?: number;
 }
 
 export interface TestimonialData {
@@ -105,6 +107,7 @@ export interface TestimonialData {
   contentEn?: string | null;
   rating: number;
   published: boolean;
+  order?: number;
 }
 
 export interface ArticleData {
@@ -332,6 +335,7 @@ export const DUMMY_PROJECTS: ProjectData[] = [
 export const DUMMY_PRODUCTS: ProductData[] = [
   {
     id: "prod-1",
+    order: 1,
     slug: "template-portfolio-notion",
     title: "Template Portfolio Notion",
     titleEn: "Notion Portfolio Template",
@@ -350,6 +354,7 @@ export const DUMMY_PRODUCTS: ProductData[] = [
   },
   {
     id: "prod-2",
+    order: 2,
     slug: "e-book-belajar-freelance",
     title: "E-book Belajar Freelance",
     titleEn: "Freelance Mastery E-book",

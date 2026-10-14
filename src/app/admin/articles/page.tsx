@@ -14,6 +14,9 @@ import {
   Sparkles,
   FileText,
   Calendar,
+  GripVertical,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import {
   Table,
@@ -59,6 +62,7 @@ import {
   getArticles,
   saveArticle,
   deleteArticle,
+  reorderArticles,
   translateFieldAction,
 } from "@/lib/actions";
 
@@ -73,6 +77,12 @@ export default function AdminArticlesPage() {
   const [isPending, startTransition] = useTransition();
   const [isTranslating, setIsTranslating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  // Drag and drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const isReorderActive = searchQuery.trim() === "";
 
   // Form State (Indonesian)
   const [formTitle, setFormTitle] = useState("");
@@ -108,6 +118,78 @@ export default function AdminArticlesPage() {
   useEffect(() => {
     fetchArticles();
   }, []);
+
+  const handleReorder = (newItems: ArticleData[]) => {
+    const reordered = newItems.map((item, idx) => ({
+      ...item,
+      order: idx + 1,
+    }));
+    setArticles(reordered);
+
+    startTransition(async () => {
+      try {
+        const payload = reordered.map((item) => ({ id: item.id, order: item.order }));
+        const res = await reorderArticles(payload);
+        if (res.success) {
+          toast.success(res.message || "Urutan artikel berhasil diperbarui!");
+        } else {
+          toast.error(res.error || "Gagal memperbarui urutan.");
+          await fetchArticles();
+        }
+      } catch (err) {
+        console.error("Reorder articles failed:", err);
+        toast.error("Gagal menyimpan perubahan urutan.");
+        await fetchArticles();
+      }
+    });
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    if (!isReorderActive) return;
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", `${index}`);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    if (!isReorderActive) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    if (!isReorderActive) return;
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    const newItems = [...articles];
+    const [movedItem] = newItems.splice(draggedIndex, 1);
+    newItems.splice(targetIndex, 0, movedItem);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    handleReorder(newItems);
+  };
+
+  const handleMove = (index: number, direction: "up" | "down") => {
+    if (!isReorderActive) return;
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= articles.length) return;
+    const newItems = [...articles];
+    const [movedItem] = newItems.splice(index, 1);
+    newItems.splice(targetIndex, 0, movedItem);
+    handleReorder(newItems);
+  };
 
   // Guard "belum disimpan": baseline direset saat sessionKey berubah — yaitu
   // saat dialog tambah/edit dibuka atau item lain dipilih. Mengetik di form
@@ -357,6 +439,7 @@ export default function AdminArticlesPage() {
           <Table className="admin-table">
             <TableHeader>
               <TableRow>
+                <TableHead className="w-24 text-center text-xs font-semibold">Urutan</TableHead>
                 <TableHead className="w-[80px]">Cover</TableHead>
                 <TableHead>Judul & Slug</TableHead>
                 <TableHead>Tags</TableHead>
@@ -368,20 +451,76 @@ export default function AdminArticlesPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center">
+                  <TableCell colSpan={7} className="h-32 text-center">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground mb-2" />
                     <span className="text-xs text-muted-foreground">Memuat data artikel...</span>
                   </TableCell>
                 </TableRow>
               ) : filteredArticles.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
                     Belum ada artikel yang sesuai kriteria pencarian.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredArticles.map((article) => (
-                  <TableRow key={article.id}>
+                filteredArticles.map((article, index) => {
+                  const isDragging = draggedIndex === index;
+                  const isOver = dragOverIndex === index;
+                  return (
+                  <TableRow
+                    key={article.id}
+                    draggable={isReorderActive}
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragEnd={handleDragEnd}
+                    onDrop={(e) => handleDrop(e, index)}
+                    className={`transition-colors ${
+                      isDragging ? "opacity-30 bg-muted/60" : "hover:bg-muted/20"
+                    } ${isOver && !isDragging ? "border-t-2 border-primary bg-primary/5" : ""}`}
+                  >
+                    <TableCell className="py-2.5">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <span
+                          className={`p-1 rounded ${
+                            isReorderActive
+                              ? "cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground hover:bg-muted"
+                              : "cursor-not-allowed text-muted-foreground/30"
+                          }`}
+                          title={
+                            isReorderActive
+                              ? "Tahan dan geser untuk memindahkan urutan"
+                              : "Hapus pencarian untuk menggeser posisi"
+                          }
+                        >
+                          <GripVertical className="h-4 w-4" />
+                        </span>
+                        <span className="font-mono text-xs text-muted-foreground font-semibold min-w-4 text-center">
+                          {isReorderActive ? index + 1 : (article.order || "-")}
+                        </span>
+                        {isReorderActive && (
+                          <div className="flex flex-col ml-0.5">
+                            <button
+                              type="button"
+                              onClick={() => handleMove(index, "up")}
+                              disabled={index === 0}
+                              className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5 transition-opacity"
+                              title="Pindahkan ke atas"
+                            >
+                              <ChevronUp className="h-3 w-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMove(index, "down")}
+                              disabled={index === articles.length - 1}
+                              className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5 transition-opacity"
+                              title="Pindahkan ke bawah"
+                            >
+                              <ChevronDown className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       {article.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -476,8 +615,9 @@ export default function AdminArticlesPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                );
+              })
+            )}
             </TableBody>
           </Table>
         </div>

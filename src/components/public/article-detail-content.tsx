@@ -12,6 +12,7 @@ import {
   Mail,
   FileText,
   HardDrive,
+  Globe,
   Monitor,
   User,
 } from "lucide-react";
@@ -23,6 +24,7 @@ import { OSWindow } from "@/components/public/os/os-window";
 import { FormattedText } from "@/components/public/formatted-text";
 import { ArticleData, ProfileData } from "@/lib/dummy-data";
 import { prefillContact, CONTACT_SECTION_HREF } from "@/lib/contact-link";
+import { ShareButton } from "@/components/public/share-button";
 import { toast } from "sonner";
 
 interface ArticleDetailContentProps {
@@ -158,9 +160,19 @@ export function ArticleDetailContent({
           </div>
 
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-[var(--vt-ink)] min-w-0">
-            <HardDrive className="h-3.5 w-3.5 text-primary shrink-0" />
-            <span className="hidden sm:inline mobile-safe-path max-w-[220px] sm:max-w-none">C:\Sigit\Articles\{article.slug}.doc</span>
+            <Globe className="h-3.5 w-3.5 text-primary shrink-0" />
+            <span className="hidden sm:inline mobile-safe-path max-w-[260px] sm:max-w-none truncate select-all">https://sigitadi.id/artikel/{article.slug}</span>
             <span className="text-emerald-700 dark:text-emerald-400 font-bold shrink-0">[READY]</span>
+            <ShareButton
+              title={title}
+              url={`/artikel/${article.slug}`}
+              summary={summary || undefined}
+              thumbnailUrl={article.imageUrl || undefined}
+              badge="Artikel"
+              buttonText={isEn ? "Share" : "Bagikan"}
+              size="sm"
+              className="h-8 ml-1"
+            />
           </div>
         </div>
 
@@ -210,60 +222,16 @@ export function ArticleDetailContent({
                   </span>
                 </div>
 
-                <Button
-                  onClick={handleShare}
-                  size="sm"
-                  variant="outline"
-                  className="h-7 px-2.5 text-xs font-mono font-bold gap-1.5 cursor-pointer bg-background hover:bg-muted"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="h-3.5 w-3.5 text-emerald-500" />
-                      <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                        {isEn ? "Copied!" : "Tersalin!"}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <Share2 className="h-3.5 w-3.5 text-primary" />
-                      <span>{t.article_detail_share}</span>
-                    </>
-                  )}
-                </Button>
-                {pageUrl && (
-                  <>
-                    <a
-                      href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(pageUrl)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label="Share ke X"
-                      title="Share ke X"
-                      className="h-7 px-2.5 inline-flex items-center text-xs font-mono font-bold gap-1.5 rounded-md border border-input bg-background hover:bg-muted"
-                    >
-                      <span aria-hidden="true">𝕏</span>
-                    </a>
-                    <a
-                      href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(pageUrl)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label="Share ke LinkedIn"
-                      title="Share ke LinkedIn"
-                      className="h-7 px-2.5 inline-flex items-center text-xs font-mono font-bold gap-1.5 rounded-md border border-input bg-background hover:bg-muted"
-                    >
-                      <span aria-hidden="true">in</span>
-                    </a>
-                    <a
-                      href={`https://wa.me/?text=${encodeURIComponent(`${title} ${pageUrl}`)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label="Share ke WhatsApp"
-                      title="Share ke WhatsApp"
-                      className="h-7 px-2.5 inline-flex items-center text-xs font-mono font-bold gap-1.5 rounded-md border border-input bg-background hover:bg-muted"
-                    >
-                      <span aria-hidden="true">WA</span>
-                    </a>
-                  </>
-                )}
+                <ShareButton
+                  title={title}
+                  url={`/artikel/${article.slug}`}
+                  summary={summary || undefined}
+                  thumbnailUrl={article.imageUrl || undefined}
+                  badge="Artikel"
+                  buttonText={isEn ? "Share Article" : "Bagikan Artikel"}
+                  size="default"
+                  className="h-8 px-3 text-xs font-mono font-bold"
+                />
               </div>
 
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold font-pixel tracking-tight text-foreground leading-tight">

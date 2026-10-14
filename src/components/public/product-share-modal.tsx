@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   Share2,
   Copy,
@@ -11,6 +12,7 @@ import {
   MessageCircle,
   Send,
   ExternalLink,
+  Smartphone,
 } from "lucide-react";
 import type { ProductData } from "@/lib/dummy-data";
 import { getProductSlug } from "@/lib/product-link";
@@ -18,10 +20,10 @@ import {
   buildProductPromoShareText,
   buildWhatsAppPromoShareUrl,
   buildTelegramShareUrl,
-  buildTwitterShareUrl,
   buildLinkedInShareUrl,
   buildFacebookShareUrl,
 } from "@/lib/whatsapp-order";
+import { InstagramIcon } from "@/components/public/social-icons";
 import { toast } from "sonner";
 
 interface ProductShareModalProps {
@@ -32,12 +34,43 @@ interface ProductShareModalProps {
 }
 
 export function ProductShareModal({ product, isOpen, onClose, isEn = false }: ProductShareModalProps) {
+  const [mounted, setMounted] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedBroadcast, setCopiedBroadcast] = useState(false);
   const [customRef, setCustomRef] = useState("");
   const [showQr, setShowQr] = useState(false);
+  const [hasNativeShare, setHasNativeShare] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Body scroll lock
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      setHasNativeShare(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen || !mounted) return null;
 
   const slug = getProductSlug(product);
   const origin = typeof window !== "undefined" ? window.location.origin : "https://sigitadi.id";
@@ -82,19 +115,36 @@ export function ProductShareModal({ product, isOpen, onClose, isEn = false }: Pr
     }
   };
 
-  return (
+  const handleNativeShare = async () => {
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: isEn && product.titleEn ? product.titleEn : product.title,
+          text: broadcastText,
+          url: shareUrl,
+        });
+        toast.success(isEn ? "Shared successfully!" : "Berhasil dibagikan!");
+      } catch {
+        // User cancelled
+      }
+    } else {
+      handleCopyLink();
+    }
+  };
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
       onClick={onClose}
     >
       <div
-        className="relative max-w-lg w-full bg-[var(--vt-paper)] text-[var(--vt-ink)] border-2 border-[var(--vt-edge-lo-2)] rounded-sm p-4 sm:p-6 shadow-2xl space-y-4 font-mono text-xs max-h-[90vh] overflow-y-auto vt-scrollbar"
+        className="relative max-w-lg w-full bg-[var(--vt-paper)] text-[var(--vt-ink)] border-2 border-[var(--vt-edge-lo-2)] rounded-sm p-4 sm:p-6 shadow-2xl space-y-4 font-mono text-xs max-h-[90vh] overflow-y-auto vt-scrollbar my-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-border pb-3">
+        {/* Header - sticky so close button never scrolls out of view */}
+        <div className="sticky top-0 bg-[var(--vt-paper)] z-10 flex items-center justify-between border-b border-border pb-3 -mt-1 pt-1">
           <div className="flex items-center gap-2">
             <Share2 className="h-4 w-4 text-primary" />
             <span className="font-bold text-sm font-pixel">
@@ -104,7 +154,7 @@ export function ProductShareModal({ product, isOpen, onClose, isEn = false }: Pr
           <button
             type="button"
             onClick={onClose}
-            className="h-7 w-7 rounded-xs bg-muted/60 flex items-center justify-center hover:bg-muted cursor-pointer"
+            className="h-7 w-7 min-h-[32px] min-w-[32px] rounded-xs bg-muted/60 flex items-center justify-center hover:bg-muted cursor-pointer"
             aria-label="Tutup"
           >
             <X className="h-4 w-4" />
@@ -168,9 +218,21 @@ export function ProductShareModal({ product, isOpen, onClose, isEn = false }: Pr
 
         {/* 1-Click Multi-Platform Share Buttons */}
         <div className="space-y-2 pt-2 border-t border-border">
-          <label className="block text-[11px] font-bold">
-            {isEn ? "Share Directly to Platforms:" : "Bagikan Langsung ke Media Sosial:"}
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="text-[11px] font-bold">
+              {isEn ? "Share Directly to Platforms:" : "Bagikan Langsung ke Media Sosial:"}
+            </label>
+            {hasNativeShare && (
+              <button
+                type="button"
+                onClick={handleNativeShare}
+                className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <Smartphone className="h-3 w-3" />
+                <span>{isEn ? "Device Share" : "Menu Share HP"}</span>
+              </button>
+            )}
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             <a
               href={buildWhatsAppPromoShareUrl(product, shareUrl, isEn)}
@@ -191,13 +253,17 @@ export function ProductShareModal({ product, isOpen, onClose, isEn = false }: Pr
               <span>Telegram</span>
             </a>
             <a
-              href={buildTwitterShareUrl(shareUrl, broadcastText)}
+              href="https://www.instagram.com/"
               target="_blank"
               rel="noopener noreferrer"
-              className="vt-btn vt-btn-chrome p-2 text-center flex flex-col items-center justify-center gap-1 hover:text-foreground cursor-pointer text-[10px] font-bold"
+              onClick={() => {
+                navigator.clipboard.writeText(shareUrl);
+                toast.success(isEn ? "Link copied! Opening Instagram..." : "Link disalin! Membuka Instagram...");
+              }}
+              className="vt-btn vt-btn-chrome p-2 text-center flex flex-col items-center justify-center gap-1 hover:text-pink-600 cursor-pointer text-[10px] font-bold"
             >
-              <span className="font-extrabold text-xs">𝕏</span>
-              <span>Twitter</span>
+              <InstagramIcon className="h-4 w-4 text-pink-600" />
+              <span>Instagram</span>
             </a>
             <a
               href={buildLinkedInShareUrl(shareUrl)}
@@ -273,6 +339,7 @@ export function ProductShareModal({ product, isOpen, onClose, isEn = false }: Pr
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -7,6 +7,7 @@ import {
   listMediaItems,
   putMedia,
   validateImageFile,
+  optimizeAllStoredMedia,
   type MediaItem,
 } from "@/lib/storage";
 
@@ -94,4 +95,45 @@ export async function deleteMedia(id: string): Promise<{ success: boolean; error
 
   revalidatePath("/admin", "layout");
   return { success: true };
+}
+
+/** Optimasi seluruh media gambar yang sudah tersimpan di database. Admin only. */
+export async function optimizeMediaStorage(): Promise<{
+  success: boolean;
+  message?: string;
+  error?: string;
+  stats?: {
+    total: number;
+    optimized: number;
+    skipped: number;
+    failed: number;
+    savedKb: number;
+  };
+}> {
+  const denied = await requireAdmin();
+  if (denied) return { success: false, error: denied };
+
+  try {
+    const res = await optimizeAllStoredMedia();
+    const savedKb = Math.round(res.bytesSaved / 1024);
+    revalidatePath("/", "layout");
+    revalidatePath("/admin", "layout");
+    return {
+      success: true,
+      message: `Berhasil mengoptimalkan ${res.optimized} gambar (hemat ${savedKb} KB).`,
+      stats: {
+        total: res.total,
+        optimized: res.optimized,
+        skipped: res.skipped,
+        failed: res.failed,
+        savedKb,
+      },
+    };
+  } catch (err) {
+    console.error("optimizeMediaStorage gagal:", err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Gagal mengoptimasi media storage.",
+    };
+  }
 }

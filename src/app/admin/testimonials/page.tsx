@@ -2,10 +2,16 @@
 
 import { useState, useEffect, useTransition } from "react";
 import Image from "next/image";
-import { Loader2 } from "lucide-react";
+import { Loader2, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 import { TestimonialData } from "@/lib/dummy-data";
 import { toast } from "sonner";
-import { getTestimonials, saveTestimonial, deleteTestimonial, translateFieldAction } from "@/lib/actions";
+import {
+  getTestimonials,
+  saveTestimonial,
+  deleteTestimonial,
+  reorderTestimonials,
+  translateFieldAction,
+} from "@/lib/actions";
 import { isTranslationErrorPayload } from "@/lib/content-edit";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { Card } from "@/components/ui/card";
@@ -138,6 +144,12 @@ export default function AdminTestimonialsPage() {
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState("");
 
+  // Drag and drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const isReorderActive = searchQuery.trim() === "";
+
   // Form State
   const [clientName, setClientName] = useState("");
   const [clientRole, setClientRole] = useState("");
@@ -161,14 +173,81 @@ export default function AdminTestimonialsPage() {
     }
   };
 
-  // Fetch-on-mount di client component (halaman admin memuat list dari server
-  // action saat dibuka). Refactor yang benar: fetch di Server Component & kirim
-  // data awal sebagai prop (fetchTestimonials tetap dipakai untuk refresh setelah
-  // mutasi via server action — itu event handler, bukan effect). Utang terpisah.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTestimonials();
   }, []);
+
+  const handleReorder = (newItems: TestimonialData[]) => {
+    const reordered = newItems.map((item, idx) => ({
+      ...item,
+      order: idx + 1,
+    }));
+    setTestimonials(reordered);
+
+    startTransition(async () => {
+      try {
+        const payload = reordered.map((item) => ({ id: item.id, order: item.order ?? 0 }));
+        const res = await reorderTestimonials(payload);
+        if (res.success) {
+          toast.success(res.message || "Urutan testimoni berhasil diperbarui!");
+        } else {
+          toast.error(res.error || "Gagal memperbarui urutan.");
+          await fetchTestimonials();
+        }
+      } catch (err) {
+        console.error("Reorder testimonials failed:", err);
+        toast.error("Gagal menyimpan perubahan urutan.");
+        await fetchTestimonials();
+      }
+    });
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    if (!isReorderActive) return;
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", `${index}`);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    if (!isReorderActive) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    if (!isReorderActive) return;
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    const newItems = [...testimonials];
+    const [movedItem] = newItems.splice(draggedIndex, 1);
+    newItems.splice(targetIndex, 0, movedItem);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    handleReorder(newItems);
+  };
+
+  const handleMove = (index: number, direction: "up" | "down") => {
+    if (!isReorderActive) return;
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= testimonials.length) return;
+    const newItems = [...testimonials];
+    const [movedItem] = newItems.splice(index, 1);
+    newItems.splice(targetIndex, 0, movedItem);
+    handleReorder(newItems);
+  };
 
   // Guard "belum disimpan": baseline direset saat sessionKey berubah — yaitu
   // saat dialog tambah/edit dibuka atau item lain dipilih. Mengetik di form
@@ -367,6 +446,7 @@ export default function AdminTestimonialsPage() {
           <Table className="admin-table">
             <TableHeader>
               <TableRow className="bg-muted/40 hover:bg-muted/40">
+                <TableHead className="w-24 text-center text-xs font-semibold">Urutan</TableHead>
                 <TableHead className="text-xs font-semibold">Klien</TableHead>
                 <TableHead className="text-xs font-semibold">Rating</TableHead>
                 <TableHead className="text-xs font-semibold">Isi Ulasan</TableHead>
@@ -377,20 +457,76 @@ export default function AdminTestimonialsPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-xs text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-xs text-muted-foreground">
                     <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
                     Memuat testimoni...
                   </TableCell>
                 </TableRow>
               ) : filteredTestimonials.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-xs text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-xs text-muted-foreground">
                     Tidak ada testimoni yang sesuai kriteria pencarian.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredTestimonials.map((item) => (
-                  <TableRow key={item.id} className="hover:bg-muted/30">
+                filteredTestimonials.map((item, index) => {
+                  const isDragging = draggedIndex === index;
+                  const isOver = dragOverIndex === index;
+                  return (
+                  <TableRow
+                    key={item.id}
+                    draggable={isReorderActive}
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragEnd={handleDragEnd}
+                    onDrop={(e) => handleDrop(e, index)}
+                    className={`transition-colors ${
+                      isDragging ? "opacity-30 bg-muted/60" : "hover:bg-muted/30"
+                    } ${isOver && !isDragging ? "border-t-2 border-primary bg-primary/5" : ""}`}
+                  >
+                    <TableCell className="py-2.5">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <span
+                          className={`p-1 rounded ${
+                            isReorderActive
+                              ? "cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground hover:bg-muted"
+                              : "cursor-not-allowed text-muted-foreground/30"
+                          }`}
+                          title={
+                            isReorderActive
+                              ? "Tahan dan geser untuk memindahkan urutan"
+                              : "Hapus pencarian untuk menggeser posisi"
+                          }
+                        >
+                          <GripVertical className="h-4 w-4" />
+                        </span>
+                        <span className="font-mono text-xs text-muted-foreground font-semibold min-w-4 text-center">
+                          {isReorderActive ? index + 1 : (item.order || "-")}
+                        </span>
+                        {isReorderActive && (
+                          <div className="flex flex-col ml-0.5">
+                            <button
+                              type="button"
+                              onClick={() => handleMove(index, "up")}
+                              disabled={index === 0}
+                              className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5 transition-opacity"
+                              title="Pindahkan ke atas"
+                            >
+                              <ChevronUp className="h-3 w-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMove(index, "down")}
+                              disabled={index === testimonials.length - 1}
+                              className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5 transition-opacity"
+                              title="Pindahkan ke bawah"
+                            >
+                              <ChevronDown className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="py-3">
                       <div className="flex items-center gap-3">
                         <div className="relative h-10 w-10 rounded-full overflow-hidden bg-muted shrink-0 border border-border">
@@ -469,8 +605,9 @@ export default function AdminTestimonialsPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                );
+              })
+            )}
             </TableBody>
           </Table>
         </div>

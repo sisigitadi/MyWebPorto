@@ -2,7 +2,7 @@
 
 import React, { useRef } from "react";
 import Link from "next/link";
-import { ArrowRight, FolderGit2, ExternalLink } from "lucide-react";
+import { ArrowRight, FolderGit2, ExternalLink, Globe } from "lucide-react";
 import { ProjectData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
 import { OSWindow } from "@/components/public/os/os-window";
@@ -56,9 +56,10 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
         {/* Explorer Address Bar Banner */}
         <div className="vt-raised p-2.5 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
           <div className="flex items-center gap-2 flex-1">
-            <span className="text-xs font-bold text-[var(--vt-ink)] font-pixel">{language === "en" ? "DIRECTORY:" : "DIREKTORI:"}</span>
-            <div className="vt-card-inset flex-1 px-2.5 py-1 bg-background text-[var(--vt-ink)] font-mono text-xs font-bold truncate">
-              C:\Sigit\Portfolio\Projects\Featured\
+            <span className="text-xs font-bold text-[var(--vt-ink)] font-pixel">{language === "en" ? "ADDRESS:" : "ALAMAT:"}</span>
+            <div className="vt-card-inset flex-1 px-2.5 py-1 bg-background text-[var(--vt-ink)] font-mono text-xs font-bold truncate select-all flex items-center gap-1.5">
+              <Globe className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span>https://sigitadi.id/#proyek</span>
             </div>
             <span className="hidden sm:inline-flex px-2.5 py-1 vt-btn vt-btn-chrome text-xs font-bold">
               [{featuredProjects.length} {language === "en" ? "ITEMS" : "ITEM"}]

@@ -237,16 +237,18 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
                         </div>
 
                         {/* Read Full Article Button */}
-                        <Link
-                          href={`/artikel/${article.slug}`}
-                          className="w-full flex items-center justify-between px-3 py-1.5 bg-[var(--vt-card)] border-2 border-t-[var(--vt-edge-hi)] border-l-[var(--vt-edge-hi)] border-r-[var(--vt-edge-lo)] border-b-[var(--vt-edge-lo)] hover:bg-[var(--vt-edge-hi-2)] active:border-t-[var(--vt-edge-lo)] active:border-l-[var(--vt-edge-lo)] active:border-r-[var(--vt-edge-hi-2)] active:border-b-[var(--vt-edge-hi-2)] font-mono text-xs font-bold text-[var(--vt-ink)] group transition-all"
-                        >
-                          <span className="flex items-center gap-1.5">
-                            <FileText className="h-3.5 w-3.5 text-[var(--vt-amber)]" />
-                            {t.articles_read_more}
-                          </span>
-                          <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform text-[var(--vt-ink)]" />
-                        </Link>
+                        <div className="flex items-center">
+                          <Link
+                            href={`/artikel/${article.slug}`}
+                            className="w-full flex items-center justify-between px-3 py-1.5 bg-[var(--vt-card)] border-2 border-t-[var(--vt-edge-hi)] border-l-[var(--vt-edge-hi)] border-r-[var(--vt-edge-lo)] border-b-[var(--vt-edge-lo)] hover:bg-[var(--vt-edge-hi-2)] active:border-t-[var(--vt-edge-lo)] active:border-l-[var(--vt-edge-lo)] active:border-r-[var(--vt-edge-hi-2)] active:border-b-[var(--vt-edge-hi-2)] font-mono text-xs font-bold text-[var(--vt-ink)] group transition-all"
+                          >
+                            <span className="flex items-center gap-1.5">
+                              <FileText className="h-3.5 w-3.5 text-[var(--vt-amber)]" />
+                              <span>{t.articles_read_more}</span>
+                            </span>
+                            <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform text-[var(--vt-ink)]" />
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   </OSWindow>

@@ -6,6 +6,8 @@ describe("resolveSectionRedirect", () => {
     expect(resolveSectionRedirect("/layanan")).toBe("#layanan");
     expect(resolveSectionRedirect("/terminal")).toBe("#terminal");
     expect(resolveSectionRedirect("/testimoni")).toBe("#testimoni");
+    expect(resolveSectionRedirect("/kontak")).toBe("#kontak");
+    expect(resolveSectionRedirect("/contact")).toBe("#kontak");
   });
 
   it("mengarahkan /toko ke #produk — id section di DOM 'produk', bukan 'toko'", () => {
@@ -20,6 +22,8 @@ describe("resolveSectionRedirect", () => {
     expect(resolveSectionRedirect("/layanan//")).toBe("#layanan");
     expect(resolveSectionRedirect("/Layanan")).toBe("#layanan");
     expect(resolveSectionRedirect("/TOKO")).toBe("#produk");
+    expect(resolveSectionRedirect("/Kontak")).toBe("#kontak");
+    expect(resolveSectionRedirect("/contact/")).toBe("#kontak");
   });
 
   it("tidak menyentuh rute nyata — homepage, katalog, detail, admin, api", () => {
@@ -36,9 +40,9 @@ describe("resolveSectionRedirect", () => {
     expect(resolveSectionRedirect("/sitemap.xml")).toBeNull();
   });
 
-  it("hanya memetakan empat path section virtual yang disengaja", () => {
+  it("hanya memetakan enam path section virtual yang disengaja", () => {
     expect(Object.keys(SECTION_PATH_REDIRECTS).sort()).toEqual(
-      ["/layanan", "/terminal", "/testimoni", "/toko"].sort(),
+      ["/contact", "/kontak", "/layanan", "/terminal", "/testimoni", "/toko"].sort(),
     );
   });
 });
