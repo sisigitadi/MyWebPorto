@@ -479,6 +479,24 @@ export async function updateProfile(data: unknown) {
     }
   }
 
+  // Sinkronkan ke store_config jika ada info pembayaran yang diubah di profile
+  if (payload.paymentBankInfo !== undefined || payload.paymentQrUrl !== undefined) {
+    try {
+      const { getStoreConfig, saveStoreConfig } = await import("@/lib/order-actions");
+      const { parseLegacyBankInfo } = await import("@/lib/whatsapp-order");
+      const currentCfg = await getStoreConfig();
+      const parsed = payload.paymentBankInfo !== undefined
+        ? parseLegacyBankInfo(payload.paymentBankInfo)
+        : currentCfg.bankAccounts;
+      await saveStoreConfig({
+        bankAccounts: parsed,
+        qrisImageUrl: payload.paymentQrUrl !== undefined ? (payload.paymentQrUrl || "") : currentCfg.qrisImageUrl,
+      });
+    } catch (syncCfgErr) {
+      console.warn("Sinkronisasi store_config dari profile warning:", syncCfgErr);
+    }
+  }
+
   void logAudit({ action: "save", entity: "profile", entityId: "owner", detail: payload.name });
   revalidatePath("/", "layout");
   revalidatePath("/admin", "layout");
@@ -2023,7 +2041,7 @@ export async function askSigitBot(
           priceUsd: undefined,
           slug: p.slug || undefined,
         })),
-      bankAccounts: storeConfig?.bankAccounts || [],
+      bankAccounts: (storeConfig?.bankAccounts || []).filter((b) => b.isActive !== false),
     };
   } catch (err) {
     console.error("askSigitBot: gagal memuat konteks live:", err instanceof Error ? err.message.slice(0, 200) : err);

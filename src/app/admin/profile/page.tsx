@@ -34,6 +34,7 @@ import { getProfile, updateProfile, translateFieldAction } from "@/lib/actions";
 import { isTranslationErrorPayload } from "@/lib/content-edit";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { toast } from "sonner";
+import { PaymentMethodsManager } from "@/components/admin/payment-methods-manager";
 
 const SOCIAL_LINK_FIELDS: Array<{
   key: keyof ProfileData["socialLinks"];
@@ -440,39 +441,13 @@ export default function AdminProfilePage() {
               </div>
 
               <div className="pt-4 border-t border-[var(--vt-edge-lo-2)] space-y-3">
-                <div>
-                  <p className="text-xs font-semibold text-foreground">
-                    Pengaturan Pembayaran Toko (QRIS &amp; Transfer Bank)
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    Digunakan pada modal checkout Toko untuk pembayaran manual pelanggan.
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Gambar Barcode / QRIS</Label>
-                    <ImageUpload
-                      value={profile.paymentQrUrl || ""}
-                      onChange={(url) => setProfile({ ...profile, paymentQrUrl: url })}
-                      label="Unggah QRIS"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="paymentBankInfo" className="text-xs font-medium">
-                      Informasi Rekening / Bank Transfer
-                    </Label>
-                    <Textarea
-                      id="paymentBankInfo"
-                      rows={3}
-                      placeholder="Contoh: BCA 1234567890 a.n. Sigit Adi&#10;Mandiri 9876543210 a.n. Sigit Adi"
-                      value={profile.paymentBankInfo || ""}
-                      onChange={(e) =>
-                        setProfile({ ...profile, paymentBankInfo: e.target.value })
-                      }
-                      className="text-xs font-mono"
-                    />
-                  </div>
-                </div>
+                <PaymentMethodsManager
+                  showCardWrapper={false}
+                  onSaved={async () => {
+                    const updated = await getProfile();
+                    if (updated) setProfile(updated);
+                  }}
+                />
               </div>
 
               <div className="pt-3 border-t border-border flex flex-col gap-3">

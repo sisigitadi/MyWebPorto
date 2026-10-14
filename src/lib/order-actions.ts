@@ -13,6 +13,8 @@ import { CreateOrderInputSchema, type CreateOrderInput } from "@/lib/validations
 export type { BankAccountItem, CreateOrderInput };
 
 
+import { revalidatePath } from "next/cache";
+
 export interface InternationalPaymentConfig {
   paypalUrl?: string;
   wiseInfo?: string;
@@ -20,11 +22,20 @@ export interface InternationalPaymentConfig {
   instructionsEn?: string;
 }
 
+export interface PaymentMethodsConfig {
+  qris?: boolean;
+  bank?: boolean;
+  paypal?: boolean;
+  wa_direct?: boolean;
+}
+
 export interface StoreConfig {
   adminWhatsapp: string;
   bankAccounts: BankAccountItem[];
   qrisImageUrl: string;
+  qrisMerchantName?: string;
   internationalPayment: InternationalPaymentConfig;
+  paymentMethods: PaymentMethodsConfig;
   storeNotice?: string;
 }
 
@@ -32,6 +43,13 @@ const DEFAULT_STORE_CONFIG: StoreConfig = {
   adminWhatsapp: "",
   bankAccounts: [],
   qrisImageUrl: "",
+  qrisMerchantName: "",
+  paymentMethods: {
+    qris: true,
+    bank: true,
+    paypal: true,
+    wa_direct: true,
+  },
   internationalPayment: {
     paypalUrl: "",
     wiseInfo: "",
@@ -74,6 +92,13 @@ export async function getStoreConfig(): Promise<StoreConfig> {
         adminWhatsapp: cfg.adminWhatsapp || profile?.phone || "",
         bankAccounts,
         qrisImageUrl: cfg.qrisImageUrl || profile?.paymentQrUrl || "",
+        qrisMerchantName: cfg.qrisMerchantName || "",
+        paymentMethods: {
+          qris: cfg.paymentMethods?.qris !== false,
+          bank: cfg.paymentMethods?.bank !== false,
+          paypal: cfg.paymentMethods?.paypal !== false,
+          wa_direct: cfg.paymentMethods?.wa_direct !== false,
+        },
         internationalPayment: {
           paypalUrl: cfg.internationalPayment?.paypalUrl || "",
           wiseInfo: cfg.internationalPayment?.wiseInfo || "",
@@ -104,6 +129,7 @@ export async function getStoreConfig(): Promise<StoreConfig> {
 
 /**
  * Menyimpan konfigurasi toko oleh admin terotentikasi.
+ * Otomatis menyinkronkan data rekening ke profil pemilik dan merevalidasi halaman publik.
  */
 export async function saveStoreConfig(data: Partial<StoreConfig>) {
   try {
@@ -113,10 +139,21 @@ export async function saveStoreConfig(data: Partial<StoreConfig>) {
     }
 
     const current = await getStoreConfig();
+    const updatedBankAccounts = Array.isArray(data.bankAccounts)
+      ? normalizeBankAccounts(data.bankAccounts)
+      : current.bankAccounts;
+
     const updated: StoreConfig = {
       adminWhatsapp: data.adminWhatsapp !== undefined ? data.adminWhatsapp.trim() : current.adminWhatsapp,
-      bankAccounts: Array.isArray(data.bankAccounts) ? normalizeBankAccounts(data.bankAccounts) : current.bankAccounts,
+      bankAccounts: updatedBankAccounts,
       qrisImageUrl: data.qrisImageUrl !== undefined ? data.qrisImageUrl.trim() : current.qrisImageUrl,
+      qrisMerchantName: data.qrisMerchantName !== undefined ? data.qrisMerchantName.trim() : (current.qrisMerchantName || ""),
+      paymentMethods: {
+        qris: data.paymentMethods?.qris !== undefined ? Boolean(data.paymentMethods.qris) : (current.paymentMethods?.qris !== false),
+        bank: data.paymentMethods?.bank !== undefined ? Boolean(data.paymentMethods.bank) : (current.paymentMethods?.bank !== false),
+        paypal: data.paymentMethods?.paypal !== undefined ? Boolean(data.paymentMethods.paypal) : (current.paymentMethods?.paypal !== false),
+        wa_direct: data.paymentMethods?.wa_direct !== undefined ? Boolean(data.paymentMethods.wa_direct) : (current.paymentMethods?.wa_direct !== false),
+      },
       internationalPayment: {
         ...current.internationalPayment,
         ...(data.internationalPayment || {}),
@@ -139,14 +176,48 @@ export async function saveStoreConfig(data: Partial<StoreConfig>) {
         },
       });
 
+    // Sinkronisasi nomor rekening aktif ke profil pemilik
+    const activeBanks = updatedBankAccounts.filter((b) => b.isActive !== false);
+    const legacyBankInfoText = activeBanks.length > 0
+      ? activeBanks
+          .map((b) => `${b.bankName} ${b.accountNumber}${b.accountHolder ? ` a.n. ${b.accountHolder}` : ""}${b.notes ? ` (${b.notes})` : ""}`)
+          .join("\n")
+      : "";
+
+    try {
+      await db
+        .update(schema.profiles)
+        .set({
+          paymentBankInfo: legacyBankInfoText,
+          paymentQrUrl: updated.qrisImageUrl || null,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.profiles.id, "owner"));
+    } catch (syncErr) {
+      console.warn("[order-actions] Gagal sinkronisasi data rekening ke profile:", syncErr);
+    }
+
     await logAudit({
       action: "UPDATE",
       entity: "SETTINGS",
       entityId: "store_config",
-      detail: `Memperbarui konfigurasi toko (WA Admin: ${updated.adminWhatsapp || "-"})`,
+      detail: `Memperbarui konfigurasi metode pembayaran & rekening (WA: ${updated.adminWhatsapp || "-"}, ${updatedBankAccounts.length} rekening)`,
     });
 
-    return { success: true, message: "Pengaturan toko berhasil disimpan!" };
+    // Revalidasi seluruh rute publik & admin agar langsung berubah realtime tanpa jeda
+    revalidatePath("/", "layout");
+    revalidatePath("/(public)", "layout");
+    revalidatePath("/proyek");
+    revalidatePath("/proyek/[slug]", "page");
+    revalidatePath("/order/[invoice]", "page");
+    revalidatePath("/admin/products");
+    revalidatePath("/admin/profile");
+    revalidatePath("/admin/orders");
+
+    return {
+      success: true,
+      message: "Pengaturan metode pembayaran & rekening berhasil disimpan dan langsung aktif di publik!",
+    };
   } catch (err) {
     return { success: false, error: sanitizeError(err) };
   }

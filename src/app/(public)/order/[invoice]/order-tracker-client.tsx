@@ -381,34 +381,43 @@ export function OrderTrackerClient({ order, storeConfig }: OrderTrackerClientPro
             )}
 
             {/* Rekening jika Transfer Bank */}
-            {order.paymentMethod === "bank" && (storeConfig.bankAccounts || []).length > 0 && (
-              <div className="space-y-2">
-                <p className="text-[11px] font-bold">Kirim transfer ke salah satu rekening berikut:</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {storeConfig.bankAccounts.map((acc) => (
-                    <div
-                      key={acc.id}
-                      className="p-2.5 bg-muted/60 rounded border border-border flex items-center justify-between gap-2"
-                    >
-                      <div className="min-w-0">
-                        <span className="font-bold text-xs text-primary">{acc.bankName}</span>
-                        <p className="font-mono font-extrabold text-sm">{acc.accountNumber}</p>
-                        {acc.accountHolder && (
-                          <span className="text-[10px] text-muted-foreground">a.n. {acc.accountHolder}</span>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyBank(acc.accountNumber, acc.bankName, acc.id)}
-                        className="vt-btn vt-btn-chrome px-2.5 py-1 text-[11px] font-bold flex items-center gap-1 cursor-pointer shrink-0"
-                      >
-                        {copiedBankId === acc.id ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
-                        <span>{copiedBankId === acc.id ? "Tersalin!" : "Salin"}</span>
-                      </button>
+            {order.paymentMethod === "bank" && (
+              (() => {
+                const activeBanks = (storeConfig.bankAccounts || []).filter((b) => b.isActive !== false);
+                if (activeBanks.length === 0) return null;
+                return (
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-bold">Kirim transfer ke salah satu rekening berikut:</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {activeBanks.map((acc) => (
+                        <div
+                          key={acc.id}
+                          className="p-2.5 bg-muted/60 rounded border border-border flex items-center justify-between gap-2"
+                        >
+                          <div className="min-w-0">
+                            <span className="font-bold text-xs text-primary">{acc.bankName}</span>
+                            <p className="font-mono font-extrabold text-sm">{acc.accountNumber}</p>
+                            {acc.accountHolder && (
+                              <span className="text-[10px] text-muted-foreground">a.n. {acc.accountHolder}</span>
+                            )}
+                            {acc.notes && (
+                              <span className="text-[9px] text-muted-foreground block">{acc.notes}</span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyBank(acc.accountNumber, acc.bankName, acc.id)}
+                            className="vt-btn vt-btn-chrome px-2.5 py-1 text-[11px] font-bold flex items-center gap-1 cursor-pointer shrink-0"
+                          >
+                            {copiedBankId === acc.id ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                            <span>{copiedBankId === acc.id ? "Tersalin!" : "Salin"}</span>
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
+                );
+              })()
             )}
           </div>
         )}

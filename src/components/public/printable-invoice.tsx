@@ -336,23 +336,29 @@ export function PrintableInvoice({
             rekening resmi berikut:
           </p>
 
-          {order.paymentMethod === "bank" && (storeConfig?.bankAccounts || []).length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-mono">
-              {storeConfig?.bankAccounts.map((acc) => (
-                <div
-                  key={acc.id}
-                  className="p-2.5 bg-white rounded border border-amber-200/80 shadow-xs"
-                >
-                  <div className="font-bold text-slate-900 text-xs">{acc.bankName}</div>
-                  <div className="font-extrabold text-sm text-blue-900 select-all">
-                    {acc.accountNumber}
-                  </div>
-                  {acc.accountHolder && (
-                    <div className="text-[10px] text-slate-500">a.n. {acc.accountHolder}</div>
-                  )}
+          {order.paymentMethod === "bank" && (
+            (() => {
+              const activeBanks = (storeConfig?.bankAccounts || []).filter((b) => b.isActive !== false);
+              if (activeBanks.length === 0) return null;
+              return (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-mono">
+                  {activeBanks.map((acc) => (
+                    <div
+                      key={acc.id}
+                      className="p-2.5 bg-white rounded border border-amber-200/80 shadow-xs"
+                    >
+                      <div className="font-bold text-slate-900 text-xs">{acc.bankName}</div>
+                      <div className="font-extrabold text-sm text-blue-900 select-all">
+                        {acc.accountNumber}
+                      </div>
+                      {acc.accountHolder && (
+                        <div className="text-[10px] text-slate-500">a.n. {acc.accountHolder}</div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              );
+            })()
           )}
 
           <p className="text-[11px] text-slate-600">

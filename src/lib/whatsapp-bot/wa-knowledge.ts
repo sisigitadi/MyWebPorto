@@ -73,27 +73,37 @@ export async function buildWhatsAppBotKnowledge(): Promise<CompiledKnowledgeCont
         .join("\n")
     : "Layanan utama: Jasa Pembuatan Website, Pengembangan Sistem AI, Audit Keamanan Siber, Konsultasi IT.";
 
-  // Format Rekening & Pembayaran
-  const bankAccounts = storeConfig.bankAccounts || [];
+  // Format Rekening & Pembayaran (Hanya yang berstatus AKTIF)
+  const isBankEnabled = storeConfig.paymentMethods?.bank !== false;
+  const isQrisEnabled = storeConfig.paymentMethods?.qris !== false && Boolean(storeConfig.qrisImageUrl);
+  const isPaypalEnabled = storeConfig.paymentMethods?.paypal !== false;
+
+  const bankAccounts = isBankEnabled
+    ? (storeConfig.bankAccounts || []).filter((b) => b.isActive !== false)
+    : [];
   const banksText = bankAccounts.length
     ? bankAccounts
-        .map((b) => `• Bank ${b.bankName}: *${b.accountNumber}* a.n ${b.accountHolder}`)
+        .map((b) => `• Bank ${b.bankName}: *${b.accountNumber}* a.n ${b.accountHolder}${b.notes ? ` (${b.notes})` : ""}`)
         .join("\n")
-    : "• Transfer Bank: Mandiri, BNI, BSI (Nomor rekening tertera di invoice/saat konfirmasi)";
+    : isBankEnabled
+      ? "• Transfer Bank: Mandiri, BNI, BSI (Nomor rekening tertera di invoice/saat konfirmasi)"
+      : "• Transfer Bank: Sedang dinonaktifkan sementara.";
 
-  const intlPaymentText = [
-    storeConfig.internationalPayment?.paypalUrl
-      ? `• PayPal: ${storeConfig.internationalPayment.paypalUrl}`
-      : null,
-    storeConfig.internationalPayment?.wiseInfo
-      ? `• Wise/Transfer Internasional: ${storeConfig.internationalPayment.wiseInfo}`
-      : null,
-    storeConfig.internationalPayment?.instructionsEn
-      ? `• Petunjuk: ${storeConfig.internationalPayment.instructionsEn}`
-      : null,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  const intlPaymentText = isPaypalEnabled
+    ? [
+        storeConfig.internationalPayment?.paypalUrl
+          ? `• PayPal: ${storeConfig.internationalPayment.paypalUrl}`
+          : null,
+        storeConfig.internationalPayment?.wiseInfo
+          ? `• Wise/Transfer Internasional: ${storeConfig.internationalPayment.wiseInfo}`
+          : null,
+        storeConfig.internationalPayment?.instructionsEn
+          ? `• Petunjuk: ${storeConfig.internationalPayment.instructionsEn}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join("\n")
+    : "";
 
   // Format FAQ Kustom Admin
   const activeFaqs = botConfig.faqs.filter((f) => f.enabled);

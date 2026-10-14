@@ -255,7 +255,7 @@ export async function POST(req: NextRequest) {
           priceUsd: undefined,
           slug: p.slug || undefined,
         })),
-      bankAccounts: storeConfig?.bankAccounts || [],
+      bankAccounts: (storeConfig?.bankAccounts || []).filter((b) => b.isActive !== false),
     };
   } catch {
     return NextResponse.json({ error: "context_error" }, { status: 500 });

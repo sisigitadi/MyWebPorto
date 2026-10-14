@@ -357,11 +357,14 @@ export interface BankAccountItem {
   bankName: string;
   accountNumber: string;
   accountHolder: string;
+  notes?: string;
+  isActive?: boolean;
 }
 
 /**
  * Normalisasi item rekening bank agar nama bank kapital,
  * dan nomor rekening bersih dari prefix teks atau format bising.
+ * Secara default isActive bernilai true jika belum ditentukan.
  */
 export function normalizeBankAccounts(items: BankAccountItem[]): BankAccountItem[] {
   if (!Array.isArray(items)) return [];
@@ -369,6 +372,7 @@ export function normalizeBankAccounts(items: BankAccountItem[]): BankAccountItem
     let bankName = (acc.bankName || "BANK").trim();
     let accountNumber = (acc.accountNumber || "").trim();
     const accountHolder = (acc.accountHolder || "").trim();
+    const notes = (acc.notes || "").trim();
 
     // Jika accountNumber mengandung prefix bank dan titik dua (misal: "Mandiri: 1550013789089")
     if (accountNumber.includes(":")) {
@@ -386,6 +390,8 @@ export function normalizeBankAccounts(items: BankAccountItem[]): BankAccountItem
       bankName: bankName.toUpperCase(),
       accountNumber: cleanNumber || accountNumber,
       accountHolder,
+      notes: notes || undefined,
+      isActive: acc.isActive !== false,
     };
   });
 }
@@ -419,6 +425,7 @@ export function parseLegacyBankInfo(text: string | null | undefined): BankAccoun
         bankName: colonMatch[1]?.trim().toUpperCase() || "BANK",
         accountNumber: colonMatch[2]?.replace(/[^\d\-]/g, "").trim() || "",
         accountHolder: (colonMatch[3] || globalHolder).trim(),
+        isActive: true,
       };
     }
 
@@ -430,6 +437,7 @@ export function parseLegacyBankInfo(text: string | null | undefined): BankAccoun
         bankName: spaceMatch[1]?.trim().toUpperCase() || "BANK",
         accountNumber: spaceMatch[2]?.replace(/[^\d\-]/g, "").trim() || "",
         accountHolder: (spaceMatch[3] || globalHolder).trim(),
+        isActive: true,
       };
     }
 
@@ -441,6 +449,7 @@ export function parseLegacyBankInfo(text: string | null | undefined): BankAccoun
       bankName: bankWordMatch ? bankWordMatch[1].toUpperCase() : "BANK TRANSFER",
       accountNumber: numberMatch ? numberMatch[1].replace(/[^\d\-]/g, "") : line,
       accountHolder: globalHolder || "",
+      isActive: true,
     };
   });
 

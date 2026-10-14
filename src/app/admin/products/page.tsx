@@ -55,11 +55,10 @@ import { ProductData } from "@/lib/dummy-data";
 import { getProducts, saveProduct, deleteProduct, translateFieldAction } from "@/lib/actions";
 import {
   getStoreConfig,
-  saveStoreConfig,
   getPendingOrdersCount,
   StoreConfig,
-  BankAccountItem,
 } from "@/lib/order-actions";
+import { PaymentMethodsManager } from "@/components/admin/payment-methods-manager";
 import { ProductShareModal } from "@/components/public/product-share-modal";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { getProductSlug, slugifyProduct } from "@/lib/product-link";
@@ -96,7 +95,6 @@ export default function AdminProductsPage() {
     },
     storeNotice: "",
   });
-  const [savingStoreConfig, setSavingStoreConfig] = useState(false);
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
 
   // Form State
@@ -361,53 +359,7 @@ export default function AdminProductsPage() {
     });
   };
 
-  // Simpan Pengaturan Toko Terpusat
-  const handleSaveStoreConfig = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSavingStoreConfig(true);
-    try {
-      const res = await saveStoreConfig(storeConfig);
-      if (res.success) {
-        toast.success(res.message || "Pengaturan toko terpusat berhasil disimpan!");
-        await loadStoreConfig();
-      } else {
-        toast.error(res.error || "Gagal menyimpan pengaturan toko.");
-      }
-    } catch {
-      toast.error("Gagal menghubungi server saat menyimpan pengaturan toko.");
-    } finally {
-      setSavingStoreConfig(false);
-    }
-  };
 
-  const addBankAccount = () => {
-    setStoreConfig((prev) => ({
-      ...prev,
-      bankAccounts: [
-        ...prev.bankAccounts,
-        {
-          id: `bank-${Date.now()}`,
-          bankName: "BCA",
-          accountNumber: "",
-          accountHolder: "",
-        },
-      ],
-    }));
-  };
-
-  const removeBankAccount = (id: string) => {
-    setStoreConfig((prev) => ({
-      ...prev,
-      bankAccounts: prev.bankAccounts.filter((b) => b.id !== id),
-    }));
-  };
-
-  const updateBankAccount = (id: string, field: keyof BankAccountItem, value: string) => {
-    setStoreConfig((prev) => ({
-      ...prev,
-      bankAccounts: prev.bankAccounts.map((b) => (b.id === id ? { ...b, [field]: value } : b)),
-    }));
-  };
 
   return (
     <div className="space-y-6">
@@ -441,7 +393,7 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* BANNER PENGATURAN TOKO & NO WA ADMIN TERPUSAT */}
+      {/* BANNER PENGATURAN TOKO & METODE PEMBAYARAN TERPUSAT */}
       <Card className="bg-[var(--vt-card)] border-[var(--vt-edge-lo-2)] overflow-hidden">
         <div
           className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/40 transition-colors"
@@ -453,15 +405,15 @@ export default function AdminProductsPage() {
             </div>
             <div>
               <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <span>Pengaturan Toko &amp; No. WhatsApp Admin Terpusat</span>
+                <span>Pengaturan Metode Pembayaran &amp; Rekening Toko</span>
                 <Badge variant="outline" className="text-[10px] font-mono">
-                  Satu Nomor untuk Semua Produk
+                  Multi Rekening &amp; Toggle Aktif/Nonaktif
                 </Badge>
               </h2>
               <p className="text-xs text-muted-foreground">
                 {storeConfig.adminWhatsapp
-                  ? `Nomor WA Admin Aktif: ${storeConfig.adminWhatsapp} • ${storeConfig.bankAccounts.length} Rekening Bank`
-                  : "Nomor WhatsApp admin toko belum diisi (masih fallback ke profil pribadi)."}
+                  ? `Nomor WA Admin: ${storeConfig.adminWhatsapp} • ${storeConfig.bankAccounts.filter((b) => b.isActive !== false).length} Rekening Bank Aktif`
+                  : "Kelola nomor rekening bank, status aktif/nonaktif, QRIS, dan metode pembayaran toko."}
               </p>
             </div>
           </div>
@@ -473,140 +425,12 @@ export default function AdminProductsPage() {
         </div>
 
         {storeConfigOpen && (
-          <form onSubmit={handleSaveStoreConfig} className="p-4 pt-0 border-t border-border space-y-4 animate-in fade-in">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-              {/* No. WhatsApp Admin Khusus Toko */}
-              <div className="space-y-1.5">
-                <Label htmlFor="adminWhatsapp" className="text-xs font-medium">
-                  Nomor WhatsApp Admin Toko (Semua Produk) *
-                </Label>
-                <Input
-                  id="adminWhatsapp"
-                  required
-                  placeholder="6281234567890 (format angka tanpa + atau spasi)"
-                  value={storeConfig.adminWhatsapp}
-                  onChange={(e) => setStoreConfig({ ...storeConfig, adminWhatsapp: e.target.value })}
-                  className="text-xs bg-[var(--vt-paper)] font-mono"
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  Semua transaksi checkout akan langsung diarahkan ke nomor ini, terpisah dari kontak profil pribadi.
-                </p>
-              </div>
-
-              {/* Akun Internasional PayPal */}
-              <div className="space-y-1.5">
-                <Label htmlFor="paypalUrl" className="text-xs font-medium">
-                  Tautan Pembayaran PayPal / Kartu Internasional (Opsional)
-                </Label>
-                <Input
-                  id="paypalUrl"
-                  placeholder="https://paypal.me/username..."
-                  value={storeConfig.internationalPayment?.paypalUrl || ""}
-                  onChange={(e) =>
-                    setStoreConfig({
-                      ...storeConfig,
-                      internationalPayment: {
-                        ...storeConfig.internationalPayment,
-                        paypalUrl: e.target.value,
-                      },
-                    })
-                  }
-                  className="text-xs bg-[var(--vt-paper)] font-mono"
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  Ditampilkan pada modal checkout saat pembeli luar negeri memilih mode bahasa Inggris (EN).
-                </p>
-              </div>
-            </div>
-
-            {/* Gambar Barcode QRIS Toko */}
-            <div className="space-y-2 pt-2 border-t border-border">
-              <Label className="text-xs font-medium block">Gambar Barcode / QRIS Toko Resmi</Label>
-              <div className="max-w-xs">
-                <ImageUpload
-                  value={storeConfig.qrisImageUrl}
-                  onChange={(url) => setStoreConfig({ ...storeConfig, qrisImageUrl: url })}
-                  label="Unggah QRIS Toko"
-                />
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                Digunakan pada modal checkout pembeli dengan fitur pembesar resolusi dan tombol unduh barcode.
-              </p>
-            </div>
-
-            {/* Pengaturan Rekening Bank Terstruktur */}
-            <div className="space-y-2 pt-2 border-t border-border">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-xs font-medium block">Daftar Rekening Bank Toko</Label>
-                  <p className="text-[10px] text-muted-foreground">
-                    Pelanggan dapat menyalin nomor rekening dengan 1-klik di modal checkout.
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  onClick={addBankAccount}
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-xs gap-1"
-                >
-                  <Plus className="h-3 w-3" />
-                  <span>Tambah Rekening</span>
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                {storeConfig.bankAccounts.map((acc) => (
-                  <div
-                    key={acc.id}
-                    className="flex flex-col sm:flex-row items-center gap-2 p-2 bg-muted/40 rounded border border-border"
-                  >
-                    <div className="w-full sm:w-32">
-                      <Input
-                        placeholder="Nama Bank (BCA)"
-                        value={acc.bankName}
-                        onChange={(e) => updateBankAccount(acc.id, "bankName", e.target.value)}
-                        className="text-xs bg-[var(--vt-paper)] uppercase font-bold"
-                      />
-                    </div>
-                    <div className="w-full sm:flex-1">
-                      <Input
-                        placeholder="Nomor Rekening"
-                        value={acc.accountNumber}
-                        onChange={(e) => updateBankAccount(acc.id, "accountNumber", e.target.value)}
-                        className="text-xs bg-[var(--vt-paper)] font-mono"
-                      />
-                    </div>
-                    <div className="w-full sm:flex-1">
-                      <Input
-                        placeholder="Atas Nama (a.n.)"
-                        value={acc.accountHolder}
-                        onChange={(e) => updateBankAccount(acc.id, "accountHolder", e.target.value)}
-                        className="text-xs bg-[var(--vt-paper)]"
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeBankAccount(acc.id)}
-                      className="h-8 w-8 text-rose-500 hover:text-rose-600 shrink-0"
-                      title="Hapus Rekening"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="pt-2 flex justify-end">
-              <Button type="submit" disabled={savingStoreConfig} size="sm" className="text-xs gap-1.5 h-8">
-                {savingStoreConfig && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                <span>Simpan Pengaturan Toko</span>
-              </Button>
-            </div>
-          </form>
+          <div className="p-4 pt-0 border-t border-border animate-in fade-in">
+            <PaymentMethodsManager
+              showCardWrapper={false}
+              onSaved={(newCfg) => setStoreConfig(newCfg)}
+            />
+          </div>
         )}
       </Card>
 

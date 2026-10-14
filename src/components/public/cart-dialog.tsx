@@ -95,14 +95,41 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
   }, [profile?.paymentBankInfo]);
 
   const bankAccounts = React.useMemo(() => {
-    if (storeConfig?.bankAccounts && storeConfig.bankAccounts.length > 0) {
-      return normalizeBankAccounts(storeConfig.bankAccounts);
-    }
-    return parsedProfileBankAccounts;
+    const raw = (storeConfig?.bankAccounts && storeConfig.bankAccounts.length > 0)
+      ? storeConfig.bankAccounts
+      : parsedProfileBankAccounts;
+    return normalizeBankAccounts(raw).filter((acc) => acc.isActive !== false);
   }, [storeConfig, parsedProfileBankAccounts]);
 
-  // Ambil store config terpusat (No WA admin khusus, rekening, QRIS, pembayaran global)
+  const isQrisEnabled = storeConfig?.paymentMethods?.qris !== false && Boolean(currentQris);
+  const isBankEnabled = storeConfig?.paymentMethods?.bank !== false && bankAccounts.length > 0;
+  const isPaypalEnabled = storeConfig?.paymentMethods?.paypal !== false && Boolean(storeConfig?.internationalPayment?.paypalUrl || storeConfig?.internationalPayment?.wiseInfo || isEn);
+  const isWaDirectEnabled = storeConfig?.paymentMethods?.wa_direct !== false;
+
+  // Auto-switch jika metode pembayaran yang terpilih saat ini dinonaktifkan oleh admin
   useEffect(() => {
+    if (customer.paymentMethod === "qris" && !isQrisEnabled) {
+      if (isBankEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "bank" }));
+      else if (isWaDirectEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "wa_direct" }));
+      else if (isPaypalEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "paypal" }));
+    } else if (customer.paymentMethod === "bank" && !isBankEnabled) {
+      if (isQrisEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "qris" }));
+      else if (isWaDirectEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "wa_direct" }));
+      else if (isPaypalEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "paypal" }));
+    } else if (customer.paymentMethod === "paypal" && !isPaypalEnabled) {
+      if (isQrisEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "qris" }));
+      else if (isBankEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "bank" }));
+      else if (isWaDirectEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "wa_direct" }));
+    } else if (customer.paymentMethod === "wa_direct" && !isWaDirectEnabled) {
+      if (isQrisEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "qris" }));
+      else if (isBankEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "bank" }));
+      else if (isPaypalEnabled) setCustomer((prev) => ({ ...prev, paymentMethod: "paypal" }));
+    }
+  }, [isQrisEnabled, isBankEnabled, isPaypalEnabled, isWaDirectEnabled, customer.paymentMethod]);
+
+  // Ambil store config terpusat saat modal dibuka agar selalu instan sinkron dengan admin
+  useEffect(() => {
+    if (!open) return;
     let mounted = true;
     getStoreConfig()
       .then((cfg) => {
@@ -112,7 +139,7 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [open]);
 
   // Muat data pelanggan dari localStorage browser (Auto-Fill / Zero Friction)
   useEffect(() => {
@@ -692,47 +719,51 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
                       <label className="block text-[11px] font-bold">
                         {isEn ? "Select Payment Method:" : "Pilih Metode Pembayaran:"}
                       </label>
-                      <div className={`grid ${isEn ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"} gap-2`}>
-                        <button
-                          type="button"
-                          onClick={() => setCustomer({ ...customer, paymentMethod: "qris" })}
-                          className={`p-2 rounded-xs border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                            customer.paymentMethod === "qris"
-                              ? "bg-primary text-primary-foreground font-bold border-primary shadow-xs"
-                              : "bg-[var(--vt-card)] border-border hover:bg-muted text-[var(--vt-ink)]"
-                          }`}
-                        >
-                          <QrCode className="h-4 w-4" />
-                          <span className="text-[10px]">QRIS</span>
-                        </button>
+                      <div className={`grid ${[isQrisEnabled, isBankEnabled, isPaypalEnabled, isWaDirectEnabled].filter(Boolean).length <= 2 ? "grid-cols-2" : [isQrisEnabled, isBankEnabled, isPaypalEnabled, isWaDirectEnabled].filter(Boolean).length === 3 ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4"} gap-2`}>
+                        {isQrisEnabled && (
+                          <button
+                            type="button"
+                            onClick={() => setCustomer({ ...customer, paymentMethod: "qris" })}
+                            className={`p-2 rounded-xs border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                              customer.paymentMethod === "qris"
+                                ? "bg-primary text-primary-foreground font-bold border-primary shadow-xs"
+                                : "bg-[var(--vt-card)] border-border hover:bg-muted text-[var(--vt-ink)]"
+                            }`}
+                          >
+                            <QrCode className="h-4 w-4" />
+                            <span className="text-[10px]">QRIS</span>
+                          </button>
+                        )}
 
-                        <button
-                          type="button"
-                          onClick={() => setCustomer({ ...customer, paymentMethod: "bank" })}
-                          className={`p-2 rounded-xs border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                            customer.paymentMethod === "bank"
-                              ? "bg-primary text-primary-foreground font-bold border-primary shadow-xs"
-                              : "bg-[var(--vt-card)] border-border hover:bg-muted text-[var(--vt-ink)]"
-                          }`}
-                        >
-                          <Building2 className="h-4 w-4" />
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px]">{isEn ? "Bank Transfer" : "Transfer Bank"}</span>
-                            {bankAccounts.length > 0 && (
-                              <span
-                                className={`text-[9px] px-1 rounded-xs font-mono font-bold ${
-                                  customer.paymentMethod === "bank"
-                                    ? "bg-white/20 text-white"
-                                    : "bg-primary/10 text-primary"
-                                }`}
-                              >
-                                {bankAccounts.length}
-                              </span>
-                            )}
-                          </div>
-                        </button>
+                        {isBankEnabled && (
+                          <button
+                            type="button"
+                            onClick={() => setCustomer({ ...customer, paymentMethod: "bank" })}
+                            className={`p-2 rounded-xs border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                              customer.paymentMethod === "bank"
+                                ? "bg-primary text-primary-foreground font-bold border-primary shadow-xs"
+                                : "bg-[var(--vt-card)] border-border hover:bg-muted text-[var(--vt-ink)]"
+                            }`}
+                          >
+                            <Building2 className="h-4 w-4" />
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px]">{isEn ? "Bank Transfer" : "Transfer Bank"}</span>
+                              {bankAccounts.length > 0 && (
+                                <span
+                                  className={`text-[9px] px-1 rounded-xs font-mono font-bold ${
+                                    customer.paymentMethod === "bank"
+                                      ? "bg-white/20 text-white"
+                                      : "bg-primary/10 text-primary"
+                                  }`}
+                                >
+                                  {bankAccounts.length}
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        )}
 
-                        {isEn && (
+                        {isPaypalEnabled && (
                           <button
                             type="button"
                             onClick={() => setCustomer({ ...customer, paymentMethod: "paypal" })}
@@ -747,18 +778,20 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
                           </button>
                         )}
 
-                        <button
-                          type="button"
-                          onClick={() => setCustomer({ ...customer, paymentMethod: "wa_direct" })}
-                          className={`p-2 rounded-xs border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                            customer.paymentMethod === "wa_direct"
-                              ? "bg-primary text-primary-foreground font-bold border-primary shadow-xs"
-                              : "bg-[var(--vt-card)] border-border hover:bg-muted text-[var(--vt-ink)]"
-                          }`}
-                        >
-                          <MessageCircle className="h-4 w-4" />
-                          <span className="text-[10px]">{isEn ? "WhatsApp Direct" : "Chat WhatsApp"}</span>
-                        </button>
+                        {isWaDirectEnabled && (
+                          <button
+                            type="button"
+                            onClick={() => setCustomer({ ...customer, paymentMethod: "wa_direct" })}
+                            className={`p-2 rounded-xs border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                              customer.paymentMethod === "wa_direct"
+                                ? "bg-primary text-primary-foreground font-bold border-primary shadow-xs"
+                                : "bg-[var(--vt-card)] border-border hover:bg-muted text-[var(--vt-ink)]"
+                            }`}
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                            <span className="text-[10px]">{isEn ? "WhatsApp Direct" : "Chat WhatsApp"}</span>
+                          </button>
+                        )}
                       </div>
 
                       {/* QRIS Display with Zoom & Download Buttons */}
