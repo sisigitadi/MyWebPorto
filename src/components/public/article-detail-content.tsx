@@ -9,7 +9,6 @@ import {
   Tag,
   Mail,
   FileText,
-  Globe,
   Monitor,
   User,
 } from "lucide-react";
@@ -100,48 +99,30 @@ export function ArticleDetailContent({
     <div ref={containerRef} className="py-8 md:py-14 w-full vt-crt-on">
       <div className="max-w-4xl mx-auto px-3 sm:px-6 space-y-6">
         {/* Navigation Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Button
-              asChild
-              size="sm"
-              className="vt-btn vt-btn-chrome h-8 px-3 font-mono text-xs font-bold gap-1.5 cursor-pointer"
-            >
-              <Link href="/">
-                <Monitor className="h-3.5 w-3.5 text-primary" />
-                <span className="hidden sm:inline">{t.article_detail_back_desktop}</span>
-                <span className="sm:hidden">Desktop</span>
-              </Link>
-            </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            asChild
+            size="sm"
+            className="vt-btn vt-btn-chrome h-8 px-3 font-mono text-xs font-bold gap-1.5 cursor-pointer"
+          >
+            <Link href="/">
+              <Monitor className="h-3.5 w-3.5 text-primary" />
+              <span className="hidden sm:inline">{t.article_detail_back_desktop}</span>
+              <span className="sm:hidden">Desktop</span>
+            </Link>
+          </Button>
 
-            <Button
-              asChild
-              size="sm"
-              className="vt-btn vt-btn-chrome h-8 px-3 font-mono text-xs font-bold gap-1.5 cursor-pointer"
-            >
-              <Link href="/#artikel">
-                <ArrowLeft className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{t.article_detail_back_articles}</span>
-                <span className="sm:hidden">{isEn ? "Articles" : "Artikel"}</span>
-              </Link>
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[var(--vt-ink)] min-w-0">
-            <Globe className="h-3.5 w-3.5 text-primary shrink-0" />
-            <span className="hidden sm:inline mobile-safe-path max-w-[260px] sm:max-w-none truncate select-all">https://sigitadi.id/artikel/{article.slug}</span>
-            <span className="text-emerald-700 dark:text-emerald-400 font-bold shrink-0">[READY]</span>
-            <ShareButton
-              title={title}
-              url={`/artikel/${article.slug}`}
-              summary={summary || undefined}
-              thumbnailUrl={article.imageUrl || undefined}
-              badge="Artikel"
-              buttonText={isEn ? "Share" : "Bagikan"}
-              size="sm"
-              className="h-8 ml-1"
-            />
-          </div>
+          <Button
+            asChild
+            size="sm"
+            className="vt-btn vt-btn-chrome h-8 px-3 font-mono text-xs font-bold gap-1.5 cursor-pointer"
+          >
+            <Link href="/#artikel">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{t.article_detail_back_articles}</span>
+              <span className="sm:hidden">{isEn ? "Articles" : "Artikel"}</span>
+            </Link>
+          </Button>
         </div>
 
         {/* Main Article Document Window */}
