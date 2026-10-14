@@ -6,6 +6,7 @@ import { Calendar, Clock, ArrowRight, Folder, Monitor, Globe, Copy, Check, FileT
 import { useTranslation } from "@/lib/i18n";
 import { ArticleData } from "@/lib/dummy-data";
 import { OSWindow } from "@/components/public/os/os-window";
+import { ShareButton } from "@/components/public/share-button";
 import { toast } from "sonner";
 
 interface ArticlesCatalogContentProps {
@@ -74,8 +75,22 @@ export function ArticlesCatalogContent({ articles }: ArticlesCatalogContentProps
               </div>
             </div>
 
-            <div className="text-[11px] text-muted-foreground font-bold">
-              FORMAT: ARTICLE_INDEX_V2.5
+            <div className="flex items-center gap-2">
+              <ShareButton
+                title={isEn ? "Tech Articles & Architecture Insights - Sigit Adi Irianto" : "Artikel & Wawasan Teknologi - Sigit Adi Irianto"}
+                url="/artikel"
+                summary={
+                  isEn
+                    ? "In-depth technical articles, software architecture guides, Next.js tips, AI systems integration, and modern engineering insights by Sigit Adi Irianto."
+                    : "Kumpulan artikel mendalam, panduan arsitektur software engineering, tips Next.js, integrasi sistem AI, dan wawasan rekayasa teknologi modern."
+                }
+                badge={isEn ? "ARTICLES" : "ARTIKEL"}
+                buttonText={isEn ? "Share Page" : "Bagikan Halaman"}
+                className="vt-btn vt-btn-chrome text-xs font-mono font-bold"
+              />
+              <span className="text-[11px] text-muted-foreground font-bold hidden sm:inline">
+                FORMAT: ARTICLE_INDEX_V2.5
+              </span>
             </div>
           </div>
 

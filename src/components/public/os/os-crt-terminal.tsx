@@ -12,7 +12,9 @@ import {
   Mic,
   Volume2,
   VolumeX,
+  Share2,
 } from "lucide-react";
+import { ContentShareModal } from "@/components/public/content-share-modal";
 import { useTranslation } from "@/lib/i18n";
 import { queryAIEngine, detectLanguage, type EngineContext } from "@/lib/ai-engine";
 import { askSigitBot, getCloudAIStatus } from "@/lib/actions";
@@ -166,6 +168,7 @@ export function OSCrtTerminal({
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [copied, setCopied] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [cloudOn, setCloudOn] = useState(false);
   // Label pendek provider aktif (dari registry) — sebelumnya tag cloud terminal
   // meng-hardcode "Gemini" meski provider efektif bisa openai/anthropic/groq/dll.
@@ -515,6 +518,7 @@ export function OSCrtTerminal({
       `  theme <t>   - ${t.terminal_cmd_theme}`,
       `  lang <id|en> - ${t.terminal_cmd_lang}`,
       `  neofetch    - ${t.terminal_cmd_neofetch}`,
+      `  share       - ${language === "en" ? "Share terminal link & content" : "Bagikan tautan & konten terminal"}`,
       `  history     - ${t.terminal_cmd_history}`,
       `  clear       - ${t.terminal_cmd_clear}`,
       `  reboot      - ${t.terminal_cmd_reboot}`,
@@ -544,6 +548,18 @@ export function OSCrtTerminal({
       // Bilang boot loader untuk memutar ulang animasi BIOS (reboot sungguhan).
       sessionStorage.removeItem("sigitos_booted_session");
       window.location.reload();
+      return;
+    }
+
+    if (command === "share" || command === "bagikan") {
+      setShowShareModal(true);
+      appendLogs([
+        ...newLogs,
+        language === "en"
+          ? "[SHARE] Opened share modal for CRT Terminal: https://sigitadi.id/#terminal"
+          : "[BAGIKAN] Membuka panel bagikan tautan & konten terminal: https://sigitadi.id/#terminal",
+      ]);
+      setCommandInput("");
       return;
     }
 
@@ -869,6 +885,15 @@ export function OSCrtTerminal({
           <span className="text-[10px] text-[#37ff9b]/70 font-pixel hidden sm:inline">{t.terminal_baud}</span>
           <button
             type="button"
+            onClick={() => setShowShareModal(true)}
+            className="hover:text-white transition-colors flex items-center gap-1 text-[10px] cursor-pointer text-[#37ff9b]"
+            title={language === "en" ? "Share Terminal & Link" : "Bagikan Tautan & Konten Terminal"}
+          >
+            <Share2 className="h-2.5 w-2.5 text-primary" />
+            <span>{language === "en" ? "Share" : "Bagikan"}</span>
+          </button>
+          <button
+            type="button"
             onClick={handleCopy}
             className="hover:text-white transition-colors flex items-center gap-1 text-[10px] cursor-pointer"
             title={t.terminal_copy_title}
@@ -1041,6 +1066,23 @@ export function OSCrtTerminal({
       <p id="sigitbot-hint" className="sr-only">
         {t.terminal_input_hint}
       </p>
+
+      {/* Terminal Content Share Modal */}
+      {showShareModal && (
+        <ContentShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          title={language === "en" ? `Interactive CRT Terminal SigitOS - ${ownerName}` : `Terminal Interaktif SigitOS CRT - ${ownerName}`}
+          url="/#terminal"
+          summary={
+            language === "en"
+              ? "Access an interactive retro CRT web terminal with integrated AI assistant to explore portfolio, tech stack, and systems directly in your browser."
+              : "Akses terminal retro interaktif berbasis web dengan asisten AI terintegrasi untuk eksplorasi sistem, teknologi, dan portofolio langsung via browser."
+          }
+          badge="TERMINAL"
+          isEn={language === "en"}
+        />
+      )}
     </div>
   );
 }

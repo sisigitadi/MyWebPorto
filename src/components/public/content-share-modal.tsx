@@ -82,22 +82,14 @@ export function ContentShareModal({
     ? `${absoluteUrl}${absoluteUrl.includes("?") ? "&" : "?"}ref=${encodeURIComponent(customRef.trim())}`
     : absoluteUrl;
 
-  const cleanSummary = summary ? summary.slice(0, 150) : "";
-  const shareBroadcastText = isEn
-    ? [
-        `**${title}**`,
-        cleanSummary ? `${cleanSummary}...` : "",
-        finalUrl,
-      ]
-        .filter(Boolean)
-        .join("\n\n")
-    : [
-        `**${title}**`,
-        cleanSummary ? `${cleanSummary}...` : "",
-        finalUrl,
-      ]
-        .filter(Boolean)
-        .join("\n\n");
+  const cleanSummary = summary?.trim() || "";
+  const shareBroadcastText = [
+    `**${title}**`,
+    cleanSummary,
+    finalUrl,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   const whatsappShareUrl = `https://wa.me/?text=${encodeURIComponent(shareBroadcastText)}`;
   const telegramShareUrl = buildTelegramShareUrl(finalUrl, shareBroadcastText);
@@ -205,7 +197,7 @@ export function ContentShareModal({
               )}
             </div>
             {cleanSummary && (
-              <p className="text-[11px] text-[var(--vt-ink-mute)] line-clamp-1 mt-0.5">
+              <p className="text-[11px] text-[var(--vt-ink-mute)] leading-relaxed mt-0.5 break-words">
                 {cleanSummary}
               </p>
             )}

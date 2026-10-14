@@ -24,6 +24,7 @@ import { getProductSlug } from "@/lib/product-link";
 import { useTranslation } from "@/lib/i18n";
 import { useFeature } from "@/lib/features-context";
 import { OSWindow } from "@/components/public/os/os-window";
+import { ShareButton } from "@/components/public/share-button";
 import { useCart, buildSingleProductWhatsAppUrl } from "@/lib/cart-context";
 import { getOrderByInvoice, getStoreConfig, type StoreConfig } from "@/lib/order-actions";
 import type { Order } from "@/db/schema";
@@ -200,8 +201,21 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
             </p>
           </div>
 
-          {/* Quick Actions: Lacak Pesanan & Cart Trigger */}
+          {/* Quick Actions: Lacak Pesanan, Share & Cart Trigger */}
           <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+            <ShareButton
+              title={language === "en" ? `Sigit Adi Digital Store - ${profile?.name || "Sigit Adi Irianto"}` : `Toko Digital & Tools Developer - ${profile?.name || "Sigit Adi Irianto"}`}
+              url="/#produk"
+              summary={
+                language === "en"
+                  ? "Browse high-quality digital products, Next.js boilerplates, ready-to-use source code, SaaS templates, and developer tools curated by Sigit Adi Irianto."
+                  : "Dapatkan produk digital berkualitas, boilerplates Next.js, source code siap pakai, template SaaS, dan tools developer praktis untuk mempercepat pengembangan aplikasi."
+              }
+              badge={language === "en" ? "STORE" : "TOKO"}
+              buttonText={language === "en" ? "Share Store" : "Bagikan Toko"}
+              className="vt-btn vt-btn-chrome px-3 py-2 text-xs font-mono font-bold shadow-sm"
+            />
+
             <button
               type="button"
               onClick={() => {

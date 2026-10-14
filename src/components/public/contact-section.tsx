@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { ProfileData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
 import { OSWindow } from "@/components/public/os/os-window";
+import { ShareButton } from "@/components/public/share-button";
 import { buildSocialLinks } from "@/components/public/social-icons";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -30,7 +31,7 @@ const FORMSPREE_ENDPOINT =
   (process.env.NEXT_PUBLIC_FORMSPREE_ENDPOINT || "https://formspree.io/f/meaqbvpa").trim();
 
 export function ContactSection({ profile }: ContactSectionProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const containerRef = useRef<HTMLElement>(null);
   // Urutan: env > email profil live (Admin -> Profil) > fallback statis.
   // Sebelumnya konstanta level-modul sudah di-fallback lebih dulu sehingga
@@ -147,17 +148,34 @@ export function ContactSection({ profile }: ContactSectionProps) {
     >
       <div className="max-w-4xl mx-auto px-2 sm:px-4">
         {/* Section Heading */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-1.5 font-pixel text-xs text-[var(--vt-blue)]">
-            <span className="h-2 w-2 rounded-full bg-[var(--vt-blue)] animate-pulse" />
-            <span>{t.contact_eyebrow}</span>
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5 font-pixel text-xs text-[var(--vt-blue)]">
+              <span className="h-2 w-2 rounded-full bg-[var(--vt-blue)] animate-pulse" />
+              <span>{t.contact_eyebrow}</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
+              {t.contact_title}
+            </h2>
+            <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] font-bold mt-1 max-w-2xl">
+              {t.contact_subtitle}
+            </p>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
-            {t.contact_title}
-          </h2>
-          <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] font-bold mt-1 max-w-2xl">
-            {t.contact_subtitle}
-          </p>
+
+          <div className="shrink-0">
+            <ShareButton
+              title={language === "en" ? `Contact ${profile?.name || "Sigit Adi Irianto"} - Collaboration & Consultation` : `Hubungi ${profile?.name || "Sigit Adi Irianto"} - Kolaborasi & Konsultasi`}
+              url="/#kontak"
+              summary={
+                language === "en"
+                  ? "Get in touch to discuss web applications, system architecture, AI integrations, or professional collaboration opportunities. Send a message directly via email or contact form."
+                  : "Siap mendiskusikan kebutuhan proyek aplikasi web, arsitektur sistem, integrasi AI, atau peluang kolaborasi profesional. Kirim pesan langsung melalui formulir kontak atau email."
+              }
+              badge={language === "en" ? "CONTACT" : "KONTAK"}
+              buttonText={language === "en" ? "Share Contact" : "Bagikan Kontak"}
+              className="vt-btn vt-btn-chrome text-xs font-mono font-bold"
+            />
+          </div>
         </div>
 
         {/* Direct Mailer Form Window */}

@@ -9,6 +9,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { prefillContact, CONTACT_SECTION_HREF } from "@/lib/contact-link";
+import { ShareButton } from "@/components/public/share-button";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -53,17 +54,38 @@ export function ServicesSection({ services: propServices, profile }: ServicesSec
     >
       <div className="max-w-7xl mx-auto px-2 sm:px-4">
         {/* Section Header Window Wrapper */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-blue)]">
-            <span className="h-2 w-2 rounded-full bg-[var(--vt-blue)] animate-pulse" />
-            <span>{t.services_badge}</span>
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-blue)]">
+              <span className="h-2 w-2 rounded-full bg-[var(--vt-blue)] animate-pulse" />
+              <span>{t.services_badge}</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
+              {t.services_title}
+            </h2>
+            <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] font-medium mt-1 max-w-2xl">
+              {t.services_subtitle}
+            </p>
           </div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
-            {t.services_title}
-          </h2>
-          <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] font-medium mt-1 max-w-2xl">
-            {t.services_subtitle}
-          </p>
+
+          <div className="shrink-0">
+            <ShareButton
+              title={
+                language === "en"
+                  ? `Web Development & AI Services - ${profile.name}`
+                  : `Layanan Pengembangan Web & Solusi AI - ${profile.name}`
+              }
+              url="/#layanan"
+              summary={
+                language === "en"
+                  ? "Professional software engineering services including modern web apps, full-stack Next.js, AI integrations, intelligent automation, and high-performance cloud architecture."
+                  : "Layanan rekayasa software profesional meliputi pembuatan aplikasi web modern, full-stack Next.js, integrasi sistem AI, otomasi cerdas, dan arsitektur cloud berkinerja tinggi."
+              }
+              badge={language === "en" ? "SERVICES" : "LAYANAN"}
+              buttonText={language === "en" ? "Share Services" : "Bagikan Layanan"}
+              className="vt-btn vt-btn-chrome text-xs font-mono font-bold"
+            />
+          </div>
         </div>
 
         {/* 3 Equal Columns Balanced OS Windows Grid */}

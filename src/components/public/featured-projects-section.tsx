@@ -6,6 +6,7 @@ import { ArrowRight, FolderGit2, ExternalLink, Globe } from "lucide-react";
 import { ProjectData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
 import { OSWindow } from "@/components/public/os/os-window";
+import { ShareButton } from "@/components/public/share-button";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -64,6 +65,21 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
             <span className="hidden sm:inline-flex px-2.5 py-1 vt-btn vt-btn-chrome text-xs font-bold">
               [{featuredProjects.length} {language === "en" ? "ITEMS" : "ITEM"}]
             </span>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <ShareButton
+              title={language === "en" ? "Project Portfolio & Case Studies - Sigit Adi Irianto" : "Katalog Proyek & Portofolio - Sigit Adi Irianto"}
+              url="/proyek"
+              summary={
+                language === "en"
+                  ? "Explore full-stack web applications, AI system integrations, and modern software engineering case studies developed by Sigit Adi Irianto."
+                  : "Jelajahi kumpulan karya, studi kasus aplikasi web full-stack, integrasi model AI, dan solusi rekayasa perangkat lunak modern karya Sigit Adi Irianto."
+              }
+              badge={language === "en" ? "PROJECTS" : "PROYEK"}
+              buttonText={language === "en" ? "Share Projects" : "Bagikan Proyek"}
+              className="vt-btn vt-btn-chrome text-xs font-mono font-bold"
+            />
           </div>
         </div>
 

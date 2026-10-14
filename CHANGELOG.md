@@ -4,6 +4,25 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Added & Improved: Fitur Bagikan Tautan & Konten Lengkap pada Seluruh Halaman OS & Deskripsi Utuh Tanpa Terpotong
+
+- **Deskripsi Singkat Komplit Tanpa Terpotong**:
+  - Menghapus pemotongan paksa `.slice(0, 150)` dan tanda elipsis buatan (`...`) pada `ContentShareModal`.
+  - Menghapus `line-clamp-1` pada kartu pratinjau modal sehingga teks ringkasan tampil penuh, rapi, dan mudah dibaca.
+  - Memperbarui `buildProductPromoShareText` pada modul WhatsApp Order agar menyertakan deskripsi produk utuh tanpa pemotongan karakter.
+- **Ekspansi Fitur Bagikan ke Seluruh 7 Section & Halaman Publik**:
+  - Menambahkan tombol bagikan langsung pada jendela aktif SigitOS (`OSDesktopManager`) sehingga setiap aplikasi yang sedang dibuka dapat dibagikan dengan tautan kanonik dan ringkasan lengkap.
+  - **Layanan (`/#layanan`)**: Tombol bagikan di header bagian layanan dengan ringkasan lingkup servis dan rekayasa software.
+  - **Proyek (`/proyek`)**: Tombol bagikan di bilah alamat bagian proyek beranda dan bilah navigasi katalog `/proyek`.
+  - **Toko (`/#produk`)**: Tombol bagikan di bilah aksi cepat katalog produk digital.
+  - **Artikel (`/artikel`)**: Tombol bagikan di header bagian artikel beranda dan bilah navigasi katalog `/artikel`.
+  - **Terminal (`/#terminal`)**: Tombol bagikan di bilah atas CRT Terminal serta perintah CLI `share`/`bagikan` langsung dari terminal retro.
+  - **Testimoni (`/#testimoni`)**: Tombol bagikan di header bagian ulasan klien.
+  - **Kontak (`/#kontak`)**: Tombol bagikan di header bagian formulir kontak dan kolaborasi.
+- **Metadata Terpusat & Pengujian Komprehensif**:
+  - Penambahan modul `getAppShareMeta` pada `src/lib/os-apps-meta.ts` sebagai sumber kebenaran metadata share untuk seluruh aplikasi OS.
+  - Penambahan test suite `tests/share-feature.test.ts` untuk memverifikasi keutuhan deskripsi dan ketiadaan pemotongan teks.
+
 ### Added & Improved: Perombakan Alur Toko, Express Checkout, Bypass Affiliate & Kontrol Storage Bukti Transfer
 
 Penyederhanaan alur belanja dari pemilihan produk, checkout, pembayaran, hingga pengiriman agar lebih cepat, simpel, dan hemat storage:
