@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   ShoppingBag,
   Search,
-  Filter,
   RefreshCw,
   ExternalLink,
   MessageCircle,
@@ -15,21 +14,15 @@ import {
   XCircle,
   Copy,
   Check,
-  Download,
   Trash2,
   Eye,
   FileSpreadsheet,
   AlertTriangle,
   User,
   Phone,
-  Mail,
-  MapPin,
-  Tag,
   Sparkles,
   ArrowUpRight,
-  Send,
   CreditCard,
-  QrCode,
   DollarSign,
   Briefcase,
 } from "lucide-react";
@@ -870,7 +863,6 @@ export default function AdminOrdersPage() {
                         : "-";
 
                       const itemsList = Array.isArray(order.items) ? order.items : [];
-                      const isEn = order.currency === "USD";
                       const totalFormatted = renderAmount(order.totalAmount, order.currency);
 
                       // Bank info for follow-up reminder

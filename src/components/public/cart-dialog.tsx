@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ShoppingCart,
   Trash2,
@@ -46,6 +47,7 @@ interface CartDialogProps {
 const CUSTOMER_STORAGE_KEY = "sigitos_customer_data_v1";
 
 export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
+  const router = useRouter();
   const { items, isOpen, setIsOpen, removeItem, updateQuantity, clearCart, totalCount, totalAmount } = useCart();
   const { language } = useTranslation();
   const isEn = language === "en";
@@ -355,7 +357,7 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
                             const trimmed = input.trim().toUpperCase();
                             const match = trimmed.match(/INV-\d{8}-[A-Za-z0-9]{4}/);
                             if (match) {
-                              window.location.href = `/order/${match[0]}`;
+                              router.push(`/order/${match[0]}`);
                             } else {
                               toast.error(
                                 isEn
@@ -489,7 +491,7 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
                               const trimmed = input.trim().toUpperCase();
                               const match = trimmed.match(/INV-\d{8}-[A-Za-z0-9]{4}/);
                               if (match) {
-                                window.location.href = `/order/${match[0]}`;
+                                router.push(`/order/${match[0]}`);
                               } else {
                                 toast.error(
                                   isEn

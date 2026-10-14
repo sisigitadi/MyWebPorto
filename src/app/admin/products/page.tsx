@@ -6,21 +6,16 @@ import {
   Plus,
   Pencil,
   Trash2,
-  ExternalLink,
   Search,
   Loader2,
   AlertCircle,
   Sparkles,
   Globe,
   Share2,
-  QrCode,
-  CreditCard,
   ShoppingBag,
-  ArrowRight,
   Settings,
   ChevronDown,
   ChevronUp,
-  Briefcase,
 } from "lucide-react";
 import {
   Table,
@@ -561,7 +556,7 @@ export default function AdminProductsPage() {
               </div>
 
               <div className="space-y-2">
-                {storeConfig.bankAccounts.map((acc, index) => (
+                {storeConfig.bankAccounts.map((acc) => (
                   <div
                     key={acc.id}
                     className="flex flex-col sm:flex-row items-center gap-2 p-2 bg-muted/40 rounded border border-border"

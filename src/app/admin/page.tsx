@@ -2,28 +2,15 @@ import Link from "next/link";
 import { currentUser } from "@clerk/nextjs/server";
 import {
   FolderGit2,
-  Briefcase,
   Package,
-  MessageSquareQuote,
   Eye,
   ArrowUpRight,
-  Settings,
   Sparkles,
-  Layers,
-  FileText,
-  Activity,
   Globe2,
-  Wifi,
-  Clock,
-  MapPin,
   ShoppingBag,
   MessageSquare,
   Phone,
-  CreditCard,
-  CheckCircle2,
   AlertCircle,
-  ExternalLink,
-  Zap,
 } from "lucide-react";
 import {
   Card,
@@ -39,8 +26,6 @@ import {
   getProjects,
   getServices,
   getProducts,
-  getTestimonials,
-  getArticles,
 } from "@/lib/actions";
 import { getOrders } from "@/lib/order-actions";
 import { getWABotState } from "@/lib/whatsapp-bot/wa-service";
@@ -58,8 +43,6 @@ export default async function AdminDashboardPage() {
     projects,
     services,
     products,
-    testimonials,
-    articles,
     ordersResult,
     analytics,
   ] = await Promise.all([
@@ -68,8 +51,6 @@ export default async function AdminDashboardPage() {
     getProjects({ includeScheduled: true }),
     getServices(),
     getProducts(),
-    getTestimonials(),
-    getArticles({ includeScheduled: true }),
     getOrders().catch(() => ({ success: false, orders: [], total: 0 })),
     getVisitorAnalytics("30d", false).catch(() => null),
   ]);
@@ -92,10 +73,7 @@ export default async function AdminDashboardPage() {
     "Admin";
 
   const publishedProjects = projects.filter((p) => isLivePublished(p)).length;
-  const publishedServices = services.filter((s) => s.published).length;
   const publishedProducts = products.filter((p) => p.published).length;
-  const publishedTestimonials = testimonials.filter((t) => t.published).length;
-  const publishedArticles = articles.filter((a) => isLivePublished(a)).length;
 
   // Metrik Pesanan & Pendapatan Toko
   const pendingOrders = orders.filter((o) => o.status === "pending");

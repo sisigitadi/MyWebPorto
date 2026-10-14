@@ -10,10 +10,8 @@ import {
   Power,
   LogOut,
   CheckCircle2,
-  AlertTriangle,
   Clock,
   Sparkles,
-  Database,
   Plus,
   Trash2,
   Edit2,
@@ -140,7 +138,7 @@ export default function WhatsAppBotAdminPage() {
         } else {
           toast.error(data.error || "Gagal memproses aksi.");
         }
-      } catch (err) {
+      } catch {
         toast.error("Terjadi kesalahan jaringan.");
       }
     });
@@ -162,7 +160,7 @@ export default function WhatsAppBotAdminPage() {
         } else {
           toast.error(data.error || "Gagal menyimpan.");
         }
-      } catch (err) {
+      } catch {
         toast.error("Terjadi kesalahan saat menyimpan.");
       }
     });

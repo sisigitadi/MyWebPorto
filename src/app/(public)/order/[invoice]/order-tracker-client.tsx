@@ -3,14 +3,10 @@
 import React, { useState } from "react";
 import {
   Package,
-  CheckCircle2,
-  Clock,
   ExternalLink,
   Printer,
   Copy,
   Check,
-  CreditCard,
-  QrCode,
   MessageCircle,
   Briefcase,
   AlertCircle,

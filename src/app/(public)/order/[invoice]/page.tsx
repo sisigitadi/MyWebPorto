@@ -1,24 +1,8 @@
 import React from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import {
-  Package,
-  CheckCircle2,
-  Clock,
-  ExternalLink,
-  ArrowLeft,
-  Receipt,
-  Phone,
-  Printer,
-  CreditCard,
-  QrCode,
-  ShieldCheck,
-  Briefcase,
-} from "lucide-react";
+import { ArrowLeft, Receipt } from "lucide-react";
 import { getOrderByInvoice, getStoreConfig } from "@/lib/order-actions";
-import { formatIdr, formatUsd } from "@/lib/whatsapp-order";
-import { OSWindow } from "@/components/public/os/os-window";
 import { OrderTrackerClient } from "./order-tracker-client";
 
 interface PageProps {

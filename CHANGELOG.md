@@ -4,6 +4,29 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Fixed & Improved: Audit Arsitektur, Penyelarasan antislop & Pembersihan Warning Linter
+
+Pembersihan menyeluruh kualitas kode, eliminasi 54 warning linter, optimasi query dashboard admin, dan konfigurasi panduan desain antislop:
+
+- **Pembersihan Linter ESLint (0 Warning, 0 Error)**:
+  - Membersihkan 54 peringatan ESLint di seluruh berkas order dan admin (`order-tracker-client.tsx`, `order/[invoice]/page.tsx`, `admin/orders/page.tsx`, `admin/page.tsx`, `admin/products/page.tsx`, `admin/whatsapp-bot/page.tsx`).
+  - Menghapus import ikon Lucide dan variabel yang tidak pernah dibaca.
+  - Merapikan blok penanganan error `catch` pada form admin WhatsApp Bot.
+
+- **Standarisasi Navigasi Next.js (`src/components/public/cart-dialog.tsx`)**:
+  - Mengganti navigasi `window.location.href` ke halaman `/order/[invoice]` dengan `router.push()` dari hook `useRouter` bawaan Next.js.
+  - Mempertahankan state SPA dan mencegah reload halaman yang tidak perlu.
+
+- **Optimasi Performa Dashboard Admin (`src/app/admin/page.tsx`)**:
+  - Menghapus 3 pemanggilan query database redundan (`getServices`, `getTestimonials`, `getArticles`) pada `Promise.all` awal untuk mempercepat waktu respons pemuatan dashboard admin.
+
+- **Konfigurasi antislop & Panduan Desain (`DESIGN.md`, `AGENTS.md`)**:
+  - Menyusun berkas panduan arah desain `DESIGN.md` dengan identitas retro-tech SigitOS dan dial `ENERGY 2 / RHYTHM 2 / MOTION 2`.
+  - Mendaftarkan pointer antislop beserta seluruh modul skill pendukung pada `AGENTS.md`.
+
+- **Hygiene & Pembersihan Berkas**:
+  - Menghapus berkas sampah kosong 0-byte `'))"` pada direktori utama proyek.
+
 ### Fixed & Improved: Ekstraksi Pesan WhatsApp Bot Baileys & Optimasi Panjang Title SEO (Bing/Google)
 
 Peningkatan keandalan penerimaan pesan masuk WhatsApp Bot dan kepatuhan audit SEO mesin pencari:
