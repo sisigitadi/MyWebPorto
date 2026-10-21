@@ -112,8 +112,8 @@ test.describe("God Mode: settings.os_apps mengendalikan tampilan publik", () => 
       "Terminal.bat",
       "Profile.exe",
     ]);
-    // Taskbar desktop hanya menampilkan tab bagian yang dipilih (app pertama aktif)
-    expect(await taskbarLabels(page)).toEqual(["Contact.exe"]);
+    // Taskbar desktop hanya menampilkan tab bagian yang dipilih (default = Profile.exe)
+    expect(await taskbarLabels(page)).toEqual(["Profile.exe"]);
   });
 
   test("semua app dimatikan di config → kembali ke default (tidak pernah kosong)", async ({ page }) => {
@@ -143,6 +143,6 @@ test.describe("God Mode: settings.os_apps mengendalikan tampilan publik", () => 
     const labels = await desktopAppLabels(page);
     expect(labels.length).toBe(8);
     expect(labels[0]).toBe("Terminal.bat");
-    expect(await taskbarLabels(page)).toEqual(["Terminal.bat"]);
+    expect(await taskbarLabels(page)).toEqual(["Profile.exe"]);
   });
 });
