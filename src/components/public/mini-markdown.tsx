@@ -42,7 +42,7 @@ function renderInline(nodes: MdInline[], keyPrefix: string): React.ReactNode[] {
             key={key}
             href={node.url}
             target="_blank"
-            rel="noopener noreferrer"
+            rel="noopener noreferrer nofollow"
             className="font-medium underline decoration-dotted underline-offset-2 hover:opacity-80"
           >
             {node.text}

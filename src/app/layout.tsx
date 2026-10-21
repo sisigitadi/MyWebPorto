@@ -91,7 +91,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    locale: "en_US",
+    locale: "id_ID",
     url: appUrl,
     title: "Sigit Adi Portfolio",
     description: "Jelajahi portofolio interaktif SigitOS dengan sistem modern, karya unggulan, dan integrasi kecerdasan buatan.",
@@ -153,7 +153,7 @@ export default async function RootLayout({
   return (
     <ClerkGate>
       <html
-        lang="en"
+        lang="id"
         suppressHydrationWarning
         className={`${inter.variable} ${firaCode.variable} ${silkscreen.variable} ${azeretMono.variable} ${spaceGrotesk.variable} ${unbounded.variable}`}
       >

@@ -34,7 +34,7 @@ function renderInline(str: string): React.ReactNode {
             key={match.index}
             href={href}
             target="_blank"
-            rel="noopener noreferrer"
+            rel="noopener noreferrer nofollow"
             className="text-primary underline font-bold hover:text-primary/80 underline-offset-2"
           >
             {label}

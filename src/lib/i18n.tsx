@@ -384,9 +384,9 @@ interface LanguageContextType {
 }
 
 const LanguageContext = createContext<LanguageContextType>({
-  language: "en",
+  language: "id",
   setLanguage: () => {},
-  t: translations.en,
+  t: translations.id,
 });
 
 /**
@@ -416,9 +416,9 @@ export function LanguageProvider({
   children: React.ReactNode;
   overrides?: UIStringsOverlay;
 }) {
-  const [language, setLanguageState] = useState<Language>("en");
+  const [language, setLanguageState] = useState<Language>("id");
 
-  // Deteksi bahasa pasca-mount (URL ?lang= > localStorage > default EN): initializer
+  // Deteksi bahasa pasca-mount (URL ?lang= > localStorage > default ID): initializer
   // di useState → hydration mismatch.
   useEffect(() => {
     try {
@@ -445,9 +445,9 @@ export function LanguageProvider({
         return;
       }
 
-      // Default adalah EN. Pastikan atribut lang pada document diset ke "en".
+      // Default adalah ID untuk domain .id dan rute kanonik.
       if (typeof document !== "undefined") {
-        document.documentElement.lang = "en";
+        document.documentElement.lang = "id";
       }
     } catch {
       // Ignore storage errors in restricted contexts
