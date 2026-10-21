@@ -782,6 +782,23 @@ export function OSDesktopManager({
   return (
     <div className="flex-1 w-full h-full flex flex-col overflow-hidden relative select-none">
       <div className="flex-1 flex overflow-hidden p-1 sm:p-2 md:p-4 gap-1.5 sm:gap-3 relative">
+        {/* 0. Ambient Desktop Wallpaper Layer (Latar belakang halus berbasis gambar avatar & palet retro OS) */}
+        {profile.avatarUrl && (
+          <div className="absolute inset-0 pointer-events-none select-none overflow-hidden z-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={profile.avatarUrl}
+              alt=""
+              aria-hidden="true"
+              className="w-full h-full object-cover object-center filter blur-xl scale-110 opacity-25 brightness-75 contrast-125"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[var(--vt-desktop)]/80 via-[var(--vt-desktop)]/45 to-[var(--vt-desktop)]/80" />
+            <div className="absolute inset-0 bg-black/25" />
+            <div className="absolute inset-0 vt-scanlines opacity-15" />
+          </div>
+        )}
+
+        {/* Rail Shortcut Ikon Desktop (kiri) */}
         <div className={`flex-col gap-2 shrink-0 z-10 w-24 py-1 ${isMinimized ? "flex" : "hidden lg:flex"}`}>
           {apps.map((app) => (
             <button
@@ -804,6 +821,71 @@ export function OSDesktopManager({
             </button>
           ))}
         </div>
+
+        {/* Center: Showcase Wallpaper Desktop Saat Jendela Di-Minimize */}
+        {isMinimized && profile.avatarUrl && (
+          <div className="flex-1 flex flex-col items-center justify-center h-full overflow-hidden min-w-0 z-10 p-2 sm:p-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="relative flex flex-col items-center max-w-full">
+              {/* Retro Framed Wallpaper Showcase */}
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => switchApp("profil")}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    switchApp("profil");
+                  }
+                }}
+                className="vt-window bg-[var(--vt-chrome)] p-2 sm:p-3 shadow-2xl rounded-xs border-2 border-[var(--vt-edge-hi)] max-w-full flex flex-col items-center cursor-pointer transition-transform hover:scale-[1.01] active:scale-[0.99]"
+                title={language === "en" ? "Click to open Profile" : "Klik untuk membuka Profil"}
+                aria-label={language === "en" ? "Desktop wallpaper: open profile" : "Wallpaper desktop: buka profil"}
+              >
+                {/* Title header bar */}
+                <div className="w-full flex items-center justify-between px-1 pb-1.5 mb-1.5 border-b border-[var(--vt-edge-lo)]/50 text-[10px] sm:text-xs font-mono font-bold text-muted-foreground select-none">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[var(--vt-ink)] tracking-wide">WALLPAPER.BMP</span>
+                  </span>
+                  <span className="opacity-70 text-[9px] sm:text-[10px]">SigitOS 2026</span>
+                </div>
+
+                {/* Beveled Image Canvas */}
+                <div className="relative w-48 h-48 sm:w-60 sm:h-60 md:w-68 md:h-68 lg:w-72 lg:h-72 aspect-square rounded-xs overflow-hidden vt-card-inset bg-black/40 shadow-inner">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={profile.avatarUrl}
+                    alt={profile.name}
+                    className="w-full h-full object-cover object-top filter brightness-95 contrast-105"
+                  />
+                  <div className="absolute inset-0 vt-scanlines opacity-20 pointer-events-none" />
+                </div>
+
+                {/* Identity & Caption Plate */}
+                <div className="w-full mt-2.5 pt-2 border-t border-[var(--vt-edge-lo)]/50 flex flex-col items-center text-center">
+                  <span className="font-mono text-xs sm:text-sm font-extrabold text-[var(--vt-ink)] tracking-wider truncate w-full">
+                    {profile.name}
+                  </span>
+                  <span className="font-mono text-[10px] sm:text-xs text-primary font-bold truncate w-full mt-0.5">
+                    {language === "en" && profile.headlineEn ? profile.headlineEn : profile.headline}
+                  </span>
+                  <span className="font-mono text-[9px] sm:text-[10px] text-muted-foreground mt-1 truncate">
+                    {profile.location} • {language === "en" ? "Click to open profile" : "Klik untuk membuka profil"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Shortcut Hint Pill */}
+              <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/50 border border-white/10 backdrop-blur-xs font-mono text-[10px] sm:text-[11px] text-white/90 shadow-md">
+                <span>
+                  {language === "en"
+                    ? "💡 Click a desktop icon or taskbar tab to launch an app"
+                    : "💡 Pilih ikon desktop atau tab taskbar untuk membuka aplikasi"}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Center: The Active OS Application Window (disembunyikan saat diminimize ke desktop) */}
         {!isMinimized && (
