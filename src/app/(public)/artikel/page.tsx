@@ -27,7 +27,8 @@ export const metadata: Metadata = {
   },
 };
 
-export const revalidate = 60;
+// Optimasi Vercel Free: cache 24 jam di CDN Edge; pembaruan ditangani on-demand oleh revalidatePath.
+export const revalidate = 86400;
 
 export default async function ArticlesPage() {
   // Gate feature flag (settings.features): app Artikel OS di-exclude dari
