@@ -305,7 +305,10 @@ export async function auditStoredImageUrls(
     order by c.table_name, c.column_name
   `);
   const columns = ((metaRaw as unknown as { rows?: ColumnMeta[] }).rows ?? []).filter(
-    (c) => !EXCLUDED_TABLES.has(c.table_name) && isImageFieldName(c.column_name)
+    (c) =>
+      !EXCLUDED_TABLES.has(c.table_name) &&
+      (isImageFieldName(c.column_name) ||
+        (c.table_name === "settings" && c.column_name === "value"))
   );
 
   const findings: MediaUrlAuditFinding[] = [];
