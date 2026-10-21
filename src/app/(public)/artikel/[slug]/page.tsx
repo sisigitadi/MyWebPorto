@@ -11,7 +11,8 @@ interface ArticleDetailPageProps {
   }>;
 }
 
-export const revalidate = 60;
+// Optimasi Vercel Free: cache 24 jam di CDN Edge; pembaruan ditangani on-demand oleh revalidatePath.
+export const revalidate = 86400;
 
 export async function generateStaticParams() {
   const articles = await getArticles();

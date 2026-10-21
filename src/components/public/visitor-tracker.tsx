@@ -14,6 +14,22 @@ export default function VisitorTracker() {
   const pathname = usePathname();
 
   useEffect(() => {
+    const path = pathname || "/";
+    // Optimasi Vercel Free: hindari spam hit berulang pada sesi yang sama
+    // (mis. navigasi antar-tab internal / refresh cepat). Hit untuk path yang sama
+    // hanya dicatat 1x per 10 menit per tab sesi.
+    try {
+      const sessionKey = `sigitos_hit_${path}`;
+      const lastHit = window.sessionStorage?.getItem(sessionKey);
+      const now = Date.now();
+      if (lastHit && now - Number(lastHit) < 10 * 60 * 1000) {
+        return;
+      }
+      window.sessionStorage?.setItem(sessionKey, String(now));
+    } catch {
+      // sessionStorage diblokir / private mode — lanjutkan pencatatan biasa
+    }
+
     let timezone: string | undefined;
     try {
       timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;

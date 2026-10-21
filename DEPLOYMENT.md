@@ -249,22 +249,25 @@ Fitur Bot WhatsApp (`/admin/whatsapp-bot`) menggunakan engine **Baileys** yang m
    - Platform serverless seperti Vercel membatasi waktu eksekusi fungsi (10–15 detik) dan membekukan (*freeze/spin down*) container saat idle.
    - Oleh karena itu, soket WebSocket latar belakang tidak dapat bertahan hidup 24/7 di lingkungan serverless. Untuk mengaktifkan auto-reply WhatsApp 24/7 tanpa putus, deploy mandiri di VPS menggunakan PM2/Docker adalah opsi terbaik.
 
+
 ---
 
-## Reverse Proxy Nginx (Opsional jika menggunakan VPS)
+## Optimasi Kuota Vercel Hobby (Free Tier)
 
-```nginx
-server {
-    listen 80;
-    server_name domainanda.com;
+Jika Anda tetap menggunakan Vercel Free dan ingin menghemat kuota bulanan (mencegah peringatan *usage limit*):
 
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
+1. **Konfigurasi `vercel.json` (Hemat GB-Hours 50-75%)**:
+   - File `vercel.json` di root proyek telah dikonfigurasi untuk menurunkan alokasi memori Serverless Function (dari default 1024MB menjadi 256MB/512MB) serta membatasi durasi timeout execution.
+
+2. **On-Demand Revalidation (Hemat Function Invocations 99%)**:
+   - Rute publik utama menggunakan `revalidate = 86400` (24 jam) sehingga 100% permintaan disajikan langsung dari Edge Cache CDN Vercel.
+   - Server Actions di `src/lib/actions.ts` secara otomatis membersihkan cache secara instan (`revalidatePath`) saat admin memperbarui konten.
+
+3. **Hemat Build Minutes di Vercel Dashboard (Ignored Build Step)**:
+   - Buka **Vercel Dashboard** > Pilih Proyek > **Settings** > **Git**.
+   - Pada bagian **Ignored Build Step**, pilih **Custom** dan masukkan perintah:
+     ```bash
+     git diff --quiet HEAD^ HEAD ./src ./public ./package.json ./next.config.ts ./vercel.json
+     ```
+   - Pengaturan ini membuat Vercel melewatkan build otomatis jika perubahan git hanya berupa file dokumentasi (`.md`), script, atau workflow pengujian.
+

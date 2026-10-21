@@ -1,0 +1,22 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "functions": {
+    "src/app/api/visitor-hit/route.ts": {
+      "memory": 256,
+      "maxDuration": 5
+    },
+    "src/app/api/media/[id]/route.ts": {
+      "memory": 256,
+      "maxDuration": 5
+    },
+    "src/app/api/retrobot/route.ts": {
+      "memory": 512,
+      "maxDuration": 15
+    },
+    "src/app/api/indexnow/route.ts": {
+      "memory": 256,
+      "maxDuration": 10
+    }
+  }
+}
