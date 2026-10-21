@@ -439,7 +439,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                               <a
                                 href={product.ctaUrl}
                                 target="_blank"
-                                rel="noopener noreferrer"
+                                rel="noopener noreferrer nofollow"
                                 className="vt-btn vt-btn-pink flex-1 py-2 px-2.5 font-bold justify-center items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110"
                               >
                                 <ExternalLink className="h-3.5 w-3.5" />
@@ -457,7 +457,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                           <a
                             href={product.ctaUrl || 'https://freelanceops.sigitadi.id/'}
                             target="_blank"
-                            rel="noopener noreferrer"
+                            rel="noopener noreferrer nofollow"
                             className="vt-btn vt-btn-pink flex-1 py-2 px-2.5 font-bold justify-center items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110"
                           >
                             <ExternalLink className="h-3.5 w-3.5" />
@@ -468,7 +468,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                           <a
                             href={buildSingleProductWhatsAppUrl(product.customWhatsapp || profile?.phone || '', product, language === "en" ? "en" : "id")}
                             target="_blank"
-                            rel="noopener noreferrer"
+                            rel="noopener noreferrer nofollow"
                             className="vt-btn vt-btn-pink flex-1 py-2 px-2.5 font-bold justify-center items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110"
                           >
                             <MessageCircle className="h-3.5 w-3.5" />
@@ -479,7 +479,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                           <a
                             href={buildSingleProductWhatsAppUrl(product.customWhatsapp || profile?.phone || '', product, language === "en" ? "en" : "id")}
                             target="_blank"
-                            rel="noopener noreferrer"
+                            rel="noopener noreferrer nofollow"
                             className="vt-btn vt-btn-pink flex-1 py-2 px-2.5 font-bold justify-center items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110"
                           >
                             <MessageCircle className="h-3.5 w-3.5" />
@@ -526,7 +526,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                               <a
                                 href={buildSingleProductWhatsAppUrl(product.customWhatsapp || profile?.phone || '', product, language === "en" ? "en" : "id")}
                                 target="_blank"
-                                rel="noopener noreferrer"
+                                rel="noopener noreferrer nofollow"
                                 className="vt-btn vt-btn-chrome px-2.5 py-2 text-xs font-bold text-foreground justify-center items-center gap-1 group cursor-pointer"
                                 title={language === "en" ? "Ask questions on WhatsApp" : "Tanya via WhatsApp"}
                               >

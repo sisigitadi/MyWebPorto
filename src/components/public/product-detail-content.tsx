@@ -294,7 +294,7 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
                       <a
                         href={product.ctaUrl}
                         target="_blank"
-                        rel="noopener noreferrer"
+                        rel="noopener noreferrer nofollow"
                         className="vt-btn vt-btn-pink w-full justify-center items-center gap-2 py-3 px-4 text-xs font-bold font-mono text-white hover:brightness-110 cursor-pointer shadow-md flex"
                       >
                         <ExternalLink className="h-4 w-4" />
@@ -322,7 +322,7 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
                     <a
                       href={product.ctaUrl || "https://freelanceops.sigitadi.id/"}
                       target="_blank"
-                      rel="noopener noreferrer"
+                      rel="noopener noreferrer nofollow"
                       className="vt-btn vt-btn-pink w-full justify-center items-center gap-2 py-3 px-4 text-xs font-bold font-mono text-white hover:brightness-110 cursor-pointer shadow-md flex"
                     >
                       <Briefcase className="h-4 w-4" />
@@ -336,7 +336,7 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
                     <a
                       href={buildFreelanceOpsBriefWhatsAppUrl(adminPhone, product, undefined, isEn ? "en" : "id")}
                       target="_blank"
-                      rel="noopener noreferrer"
+                      rel="noopener noreferrer nofollow"
                       className="vt-btn vt-btn-chrome w-full justify-center items-center gap-2 py-2 px-4 text-xs font-bold font-mono text-foreground hover:bg-muted cursor-pointer flex"
                     >
                       <MessageCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -351,7 +351,7 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
                       <a
                         href={buildSingleProductWhatsAppUrl(adminPhone, product, isEn ? "en" : "id")}
                         target="_blank"
-                        rel="noopener noreferrer"
+                        rel="noopener noreferrer nofollow"
                         className="vt-btn vt-btn-pink w-full justify-center items-center gap-2 py-3 px-4 text-xs font-bold font-mono text-white hover:brightness-110 cursor-pointer shadow-md flex"
                       >
                         <MessageCircle className="h-4 w-4" />
@@ -367,7 +367,7 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
                       <a
                         href={buildSingleProductWhatsAppUrl(adminPhone, product, isEn ? "en" : "id")}
                         target="_blank"
-                        rel="noopener noreferrer"
+                        rel="noopener noreferrer nofollow"
                         className="vt-btn vt-btn-pink w-full justify-center items-center gap-2 py-3 px-4 text-xs font-bold font-mono text-white hover:brightness-110 cursor-pointer shadow-md flex"
                       >
                         <MessageCircle className="h-4 w-4" />

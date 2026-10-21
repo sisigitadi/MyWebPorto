@@ -254,11 +254,8 @@ export async function generateDynamicMetadata(): Promise<Metadata> {
     alternates: localeAlternates(appUrl),
     openGraph: {
       type: "website",
-      // Locale default situs ini en-US. Varian "?lang=id" TIDAK dideklarasikan
-      // sebagai hreflang: i18n 100% client-side → HTML-nya identik dengan
-      // kanonik, dan GSC melaporkan varian itu sebagai "Alternate page with
-      // proper canonical tag". Lihat catatan di localeAlternates().
-      locale: "en_US",
+      // Locale default situs ini id_ID (domain .id dan rute kanonik Bahasa Indonesia).
+      locale: "id_ID",
       url: appUrl,
       title: og.title || defaultTitle,
       description: og.description,
