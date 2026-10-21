@@ -32,7 +32,18 @@ function clearSettings(): void {
 }
 
 /**
- * Label taskbar desktop (aria-label = nama file retro).
+ * Label icon desktop (nama file retro pada icon wallpaper).
+ */
+async function desktopAppLabels(page: import("@playwright/test").Page): Promise<string[]> {
+  const icons = page.locator(".vt-icon-label");
+  await icons.first().waitFor({ state: "visible", timeout: 30_000 });
+  return icons.evaluateAll((els) =>
+    els.map((el) => el.textContent?.trim() || "")
+  );
+}
+
+/**
+ * Label taskbar desktop (aria-label = nama file retro pada tab yang dipilih).
  *
  * ?lang=en dipakai agar label deterministik (locale browser bisa id atau en),
  * sekaligus mem-bypass route cache 60 detik halaman ini — setiap test butuh
@@ -69,7 +80,7 @@ test.describe("God Mode: settings.os_apps mengendalikan tampilan publik", () => 
   test("tanpa pengaturan → 8 app default dalam urutan kode", async ({ page }) => {
     clearSettings();
     await page.goto(freshUrl());
-    expect(await taskbarLabels(page)).toEqual([
+    expect(await desktopAppLabels(page)).toEqual([
       "Profile.exe",
       "Services.exe",
       "Projects.exe",
@@ -79,6 +90,8 @@ test.describe("God Mode: settings.os_apps mengendalikan tampilan publik", () => 
       "Reviews.txt",
       "Contact.exe",
     ]);
+    // Taskbar desktop hanya menampilkan tab bagian yang dipilih (default = app pertama)
+    expect(await taskbarLabels(page)).toEqual(["Profile.exe"]);
   });
 
   test("mematikan app + mengubah urutan diterapkan ke taskbar", async ({ page }) => {
@@ -94,11 +107,13 @@ test.describe("God Mode: settings.os_apps mengendalikan tampilan publik", () => 
       { id: "testimoni", enabled: false, order: 7 },
     ]);
     await page.goto(freshUrl());
-    expect(await taskbarLabels(page)).toEqual([
+    expect(await desktopAppLabels(page)).toEqual([
       "Contact.exe",
       "Terminal.bat",
       "Profile.exe",
     ]);
+    // Taskbar desktop hanya menampilkan tab bagian yang dipilih (app pertama aktif)
+    expect(await taskbarLabels(page)).toEqual(["Contact.exe"]);
   });
 
   test("semua app dimatikan di config → kembali ke default (tidak pernah kosong)", async ({ page }) => {
@@ -114,7 +129,8 @@ test.describe("God Mode: settings.os_apps mengendalikan tampilan publik", () => 
     ]);
     await page.goto(freshUrl());
     // Pengaman resolveOSApps: minimal satu app aktif, jatuh ke default 8 app.
-    expect((await taskbarLabels(page)).length).toBe(8);
+    expect((await desktopAppLabels(page)).length).toBe(8);
+    expect((await taskbarLabels(page)).length).toBe(1);
   });
 
   test("config rusak (entry asing) diabaikan — default tetap utuh", async ({ page }) => {
@@ -124,8 +140,9 @@ test.describe("God Mode: settings.os_apps mengendalikan tampilan publik", () => 
       { id: { nested: true }, enabled: true, order: 2 },
     ]);
     await page.goto(freshUrl());
-    const labels = await taskbarLabels(page);
+    const labels = await desktopAppLabels(page);
     expect(labels.length).toBe(8);
     expect(labels[0]).toBe("Terminal.bat");
+    expect(await taskbarLabels(page)).toEqual(["Terminal.bat"]);
   });
 });

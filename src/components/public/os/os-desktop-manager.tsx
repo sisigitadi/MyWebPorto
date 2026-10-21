@@ -1129,39 +1129,43 @@ export function OSDesktopManager({
           {/* Retro Taskbar Separator */}
           <div className="h-7 sm:h-8 md:h-10 w-[2px] bg-[#5a5750] shadow-[1px_0_0_#fff] mx-0.5 sm:mx-2 shrink-0" />
 
-          {/* Open windows taskbar buttons */}
+          {/* Selected window taskbar button (hanya bagian yang dipilih) */}
           <div className="flex items-center gap-0.5 sm:gap-2 overflow-hidden min-w-0 flex-1 pr-0.5 sm:pr-2">
-            {apps.map((app) => (
+            {currentApp && (
               <button
-                key={app.id}
+                key={currentApp.id}
                 type="button"
-                onClick={() => switchApp(app.id)}
+                onClick={() => {
+                  if (isMinimized) {
+                    playOS("nav");
+                    setIsMinimized(false);
+                  } else {
+                    playOS("minimize");
+                    setIsMinimized(true);
+                  }
+                }}
                 title={
-                  activeApp === app.id && isMinimized
-                    ? `${appFilename(app.id, language)} (${language === "en" ? "minimized — click to restore" : "minimize — klik untuk pulihkan"})`
-                    : appFilename(app.id, language)
+                  isMinimized
+                    ? `${appFilename(currentApp.id, language)} (${language === "en" ? "minimized — click to restore" : "minimize — klik untuk pulihkan"})`
+                    : `${appFilename(currentApp.id, language)} (${language === "en" ? "active — click to minimize" : "aktif — klik untuk minimize"})`
                 }
-                aria-label={appFilename(app.id, language)}
-                className={`vt-taskbar-tab group relative h-6 sm:h-9 md:h-10 px-1 sm:px-3 text-[9px] sm:text-[11px] md:text-xs flex items-center justify-center gap-0.5 sm:gap-1.5 cursor-pointer shrink-0 transition-all duration-300 ${
-                  activeApp === app.id
-                    ? `active shadow-md ring-2 font-extrabold -translate-y-0.5 ${app.activeClass} ${
-                        isMinimized ? "opacity-70 ring-dashed animate-pulse" : ""
-                      }`
-                    : `text-foreground font-semibold opacity-85 hover:opacity-100 ${app.colorClass}`
+                aria-label={appFilename(currentApp.id, language)}
+                className={`vt-taskbar-tab group relative h-6 sm:h-9 md:h-10 px-2 sm:px-3 text-[9px] sm:text-[11px] md:text-xs flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer shrink-0 transition-all duration-300 active shadow-md ring-2 font-extrabold -translate-y-0.5 ${currentApp.activeClass} ${
+                  isMinimized ? "opacity-70 ring-dashed animate-pulse translate-y-0" : ""
                 }`}
               >
-                <span className="shrink-0">{app.icon}</span>
-                <span className="hidden md:inline truncate max-w-[100px] lg:max-w-none">
-                  {appFilename(app.id, language)}
+                <span className="shrink-0">{currentApp.icon}</span>
+                <span className="hidden md:inline truncate max-w-[120px] lg:max-w-none">
+                  {appFilename(currentApp.id, language)}
                 </span>
                 <span className="md:hidden text-[9px] leading-none">
-                  {appHumanLabel(app.id, language)}
+                  {appHumanLabel(currentApp.id, language)}
                 </span>
-                {activeApp === app.id && (
+                {!isMinimized && (
                   <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1/2 h-0.5 bg-current rounded-full animate-pulse" />
                 )}
               </button>
-            ))}
+            )}
           </div>
         </div>
 

@@ -76,6 +76,29 @@ interface RedaksiAutomationFormProps {
   cloudProvider: CloudProvider;
 }
 
+function initRawTopics(
+  topics: Record<AutomationSection, string[]> | undefined
+): Record<AutomationSection, string> {
+  const out = {} as Record<AutomationSection, string>;
+  for (const s of AUTOMATION_SECTIONS) {
+    out[s] = (topics?.[s] || []).join("\n");
+  }
+  return out;
+}
+
+function parseRawTopics(
+  raw: Record<AutomationSection, string>
+): Record<AutomationSection, string[]> {
+  const out = {} as Record<AutomationSection, string[]>;
+  for (const s of AUTOMATION_SECTIONS) {
+    out[s] = (raw[s] || "")
+      .split("\n")
+      .map((t) => t.trim())
+      .filter(Boolean);
+  }
+  return out;
+}
+
 export function RedaksiAutomationForm({ initial, cloudProvider }: RedaksiAutomationFormProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -85,6 +108,9 @@ export function RedaksiAutomationForm({ initial, cloudProvider }: RedaksiAutomat
     sections: { ...initial.sections },
     topics: { ...initial.topics },
   }));
+  const [rawTopics, setRawTopics] = useState<Record<AutomationSection, string>>(() =>
+    initRawTopics(initial.topics)
+  );
   const [error, setError] = useState("");
   const [runResult, setRunResult] = useState<AutomationJobResult[] | null>(null);
   // Konfirmasi ekspllisikan untuk menyalakan auto-publish (autoUpload/terjadwal).
@@ -98,8 +124,9 @@ export function RedaksiAutomationForm({ initial, cloudProvider }: RedaksiAutomat
     setValues((prev) => ({ ...prev, sections: { ...prev.sections, [key]: next } }));
   };
 
-  /** Topik disimpan sebagai array; textarea memakai satu topik per baris. */
-  const setTopicsText = (key: AutomationSection, text: string): void => {
+  /** Simpan teks mentah textarea agar spasi dan baris baru tidak terpotong saat mengetik. */
+  const handleTopicsTextChange = (key: AutomationSection, text: string): void => {
+    setRawTopics((prev) => ({ ...prev, [key]: text }));
     const list = text
       .split("\n")
       .map((t) => t.trim())
@@ -110,11 +137,12 @@ export function RedaksiAutomationForm({ initial, cloudProvider }: RedaksiAutomat
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
     setError("");
+    const parsedTopics = parseRawTopics(rawTopics);
     startTransition(async () => {
       const res = await saveRedaksiAutomationAction({
         enabled: values.enabled,
         sections: values.sections,
-        topics: values.topics,
+        topics: parsedTopics,
         autoUpload: values.autoUpload,
         scheduleMode: values.scheduleMode,
         publishAt: values.publishAt,
@@ -136,6 +164,7 @@ export function RedaksiAutomationForm({ initial, cloudProvider }: RedaksiAutomat
       topics: { ...DEFAULT_REDAKSI_AUTOMATION.topics },
       lastRunAt: initial.lastRunAt,
     });
+    setRawTopics(initRawTopics(DEFAULT_REDAKSI_AUTOMATION.topics));
     setError("");
   };
 
@@ -234,8 +263,8 @@ export function RedaksiAutomationForm({ initial, cloudProvider }: RedaksiAutomat
                   </Label>
                   <Textarea
                     id={`topics-${key}`}
-                    value={values.topics[key].join("\n")}
-                    onChange={(e) => setTopicsText(key, e.target.value)}
+                    value={rawTopics[key] ?? ""}
+                    onChange={(e) => handleTopicsTextChange(key, e.target.value)}
                     rows={3}
                     disabled={pending}
                     placeholder={"Contoh:\nArtikel tentang Next.js 15 untuk developer Indonesia\nTips performa Tailwind CSS"}
