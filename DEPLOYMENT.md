@@ -263,11 +263,8 @@ Jika Anda tetap menggunakan Vercel Free dan ingin menghemat kuota bulanan (mence
    - Rute publik utama menggunakan `revalidate = 86400` (24 jam) sehingga 100% permintaan disajikan langsung dari Edge Cache CDN Vercel.
    - Server Actions di `src/lib/actions.ts` secara otomatis membersihkan cache secara instan (`revalidatePath`) saat admin memperbarui konten.
 
-3. **Hemat Build Minutes di Vercel Dashboard (Ignored Build Step)**:
-   - Buka **Vercel Dashboard** > Pilih Proyek > **Settings** > **Git**.
-   - Pada bagian **Ignored Build Step**, pilih **Custom** dan masukkan perintah:
-     ```bash
-     git diff --quiet HEAD^ HEAD ./src ./public ./package.json ./next.config.ts ./vercel.json
-     ```
-   - Pengaturan ini membuat Vercel melewatkan build otomatis jika perubahan git hanya berupa file dokumentasi (`.md`), script, atau workflow pengujian.
+3. **Hemat Build Minutes Otomatis (Ignored Build Step)**:
+   - Proyek ini telah mengonfigurasi properti `"ignoreCommand": "node scripts/vercel-ignore.mjs"` langsung di dalam `vercel.json`.
+   - Script ini otomatis memeriksa apakah commit hanya menyentuh file dokumentasi (`.md`, `docs/`, `.github/`). Jika ya, Vercel secara otomatis membatalkan build untuk menghemat kuota fast builds harian Anda tanpa perlu konfigurasi manual di dashboard.
+   - *(Opsional)* Jika Anda ingin menyetelnya secara manual di Dashboard Vercel: buka **Settings > Git** > scroll ke bawah ke bagian **Ignored Build Step**.
 
