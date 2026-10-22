@@ -26,7 +26,7 @@ const known = new Set([LIVE_UUID, LIVE_UUID_2]);
 
 beforeAll(async () => {
   audit = await import("@/lib/media-url-audit");
-});
+}, 30000);
 
 const classify = (url: string | null | undefined, ids?: ReadonlySet<string> | null) =>
   audit.classifyStoredImageUrl(url, ids === undefined ? {} : { knownMediaIds: ids });

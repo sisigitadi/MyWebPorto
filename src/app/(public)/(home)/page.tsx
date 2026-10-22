@@ -7,6 +7,7 @@ import {
   getTestimonials,
   getArticles,
 } from "@/lib/actions";
+import { resolveProfileCards } from "@/lib/profile-cards-config";
 import { OSDesktopManager } from "@/components/public/os/os-desktop-manager";
 import { JsonLdSchema } from "@/components/public/json-ld";
 import { resolveOSApps } from "@/lib/os-apps-config";
@@ -31,8 +32,9 @@ export const metadata = {
 
 export default async function HomePage() {
   const { isEnabled: isPreview } = await draftMode();
-  const [profile, services, projects, products, testimonials, articles] = await Promise.all([
+  const [profile, profileCards, services, projects, products, testimonials, articles] = await Promise.all([
     getProfile(),
+    resolveProfileCards({ preview: isPreview }),
     getServices(),
     getProjects(),
     getProducts(),
@@ -134,6 +136,7 @@ export default async function HomePage() {
       {/* True Single-Page Retro Desktop Window Manager */}
       <OSDesktopManager
         profile={profile}
+        profileCards={profileCards}
         services={services}
         projects={projects}
         products={products}
