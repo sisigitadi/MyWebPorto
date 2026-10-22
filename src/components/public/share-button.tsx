@@ -51,7 +51,7 @@ export function ShareButton({
             : "h-9 min-h-[44px] px-3 rounded-xs text-xs font-mono text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-border"
         } ${className}`}
         title={isEn ? `Share ${title}` : `Bagikan ${title}`}
-        aria-label={isEn ? `Share ${title}` : `Bagikan ${title}`}
+        aria-label={iconOnly ? (isEn ? `Share ${title}` : `Bagikan ${title}`) : undefined}
       >
         <Share2 className="h-3.5 w-3.5 text-primary shrink-0" />
         {!iconOnly && <span>{defaultText}</span>}
