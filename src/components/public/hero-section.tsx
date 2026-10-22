@@ -4,6 +4,8 @@ import React, { useRef } from "react";
 import Link from "next/link";
 import { ArrowRight, MapPin, User, Mail } from "lucide-react";
 import { ProfileData } from "@/lib/dummy-data";
+import { ProfileCardsConfig, DEFAULT_PROFILE_CARDS } from "@/lib/profile-cards-meta";
+import { ProfileTabs } from "@/components/public/profile/profile-tabs";
 import { useTranslation } from "@/lib/i18n";
 import { OSWindow } from "@/components/public/os/os-window";
 import gsap from "gsap";
@@ -11,10 +13,11 @@ import { useGSAP } from "@gsap/react";
 
 interface HeroSectionProps {
   profile: ProfileData;
+  profileCards?: ProfileCardsConfig;
   onOpenContact?: () => void;
 }
 
-export function HeroSection({ profile, onOpenContact }: HeroSectionProps) {
+export function HeroSection({ profile, profileCards, onOpenContact }: HeroSectionProps) {
   const { t, language } = useTranslation();
   const heroRef = useRef<HTMLElement>(null);
 
@@ -110,6 +113,9 @@ export function HeroSection({ profile, onOpenContact }: HeroSectionProps) {
                   </div>
                 ))}
               </div>
+
+              {/* 5 Retro System Properties Tabs */}
+              <ProfileTabs cards={profileCards || DEFAULT_PROFILE_CARDS} />
             </div>
 
             {/* CTA & Location Footer */}

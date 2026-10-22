@@ -73,6 +73,22 @@ export function ContactSection({ profile }: ContactSectionProps) {
       subject: subject || current.subject,
       message: body || current.message,
     }));
+
+    const handlePrefillEvent = (e: Event) => {
+      const custom = e as CustomEvent<{ subject?: string; message?: string }>;
+      if (custom.detail) {
+        setFormData((current) => ({
+          ...current,
+          subject: custom.detail.subject || current.subject,
+          message: custom.detail.message || current.message,
+        }));
+      }
+    };
+
+    window.addEventListener("prefill-contact-form", handlePrefillEvent);
+    return () => {
+      window.removeEventListener("prefill-contact-form", handlePrefillEvent);
+    };
   }, []);
 
   useGSAP(

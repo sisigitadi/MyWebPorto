@@ -28,6 +28,7 @@ import {
   Share2,
 } from "lucide-react";
 import { ProfileData, ServiceData, ProjectData, ProductData, TestimonialData, ArticleData } from "@/lib/dummy-data";
+import { ProfileCardsConfig } from "@/lib/profile-cards-meta";
 import { useTranslation } from "@/lib/i18n";
 import { appFilename, appHumanLabel, getAppShareMeta, type AppId, type OSAppConfig } from "@/lib/os-apps-meta";
 import { ContentShareModal } from "@/components/public/content-share-modal";
@@ -48,6 +49,7 @@ import { setGsapScroller, getGsapScroller } from "@/lib/gsap-scroller";
 
 interface OSDesktopManagerProps {
   profile: ProfileData;
+  profileCards?: ProfileCardsConfig;
   services: ServiceData[];
   projects: ProjectData[];
   products: ProductData[];
@@ -138,6 +140,7 @@ const APPS: AppItem[] = [
 
 export function OSDesktopManager({
   profile,
+  profileCards,
   services,
   projects,
   products,
@@ -977,7 +980,7 @@ export function OSDesktopManager({
                   data-gsap-scroller="desktop"
                   className="flex-1 overflow-y-auto vt-scrollbar bg-[var(--vt-paper)] text-[var(--vt-ink)] p-2 sm:p-3 md:p-6"
                 >
-                  {activeApp === "profil" && <HeroSection profile={profile} />}
+                  {activeApp === "profil" && <HeroSection profile={profile} profileCards={profileCards} />}
                   {activeApp === "layanan" && (
                     <ServicesSection services={services} profile={profile} />
                   )}

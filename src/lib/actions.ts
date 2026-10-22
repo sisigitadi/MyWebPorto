@@ -504,6 +504,39 @@ export async function updateProfile(data: unknown) {
   return { success: true, message: "Profil berhasil disimpan!" };
 }
 
+export async function getProfileCardsAction() {
+  const { resolveProfileCards } = await import("@/lib/profile-cards-config");
+  return await resolveProfileCards();
+}
+
+export async function saveProfileCardsAction(input: unknown) {
+  try {
+    await verifyAdmin();
+  } catch (authErr: unknown) {
+    return {
+      success: false,
+      error: sanitizeError(authErr),
+    };
+  }
+
+  try {
+    const { saveProfileCards } = await import("@/lib/profile-cards-config");
+    const cards = await saveProfileCards(input);
+    void logAudit({
+      action: "update",
+      entity: "settings",
+      entityId: "profile_cards",
+      detail: "Memperbarui kartu profil OS",
+    });
+    revalidatePath("/", "layout");
+    revalidatePath("/admin/profile");
+    return { success: true, data: cards };
+  } catch (err: unknown) {
+    return { success: false, error: sanitizeError(err) };
+  }
+}
+
+
 // ==========================================
 // PROYEK SERVER ACTIONS
 // ==========================================

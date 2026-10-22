@@ -30,7 +30,15 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUpload } from "@/components/admin/image-upload";
 import { DUMMY_PROFILE, ProfileData } from "@/lib/dummy-data";
-import { getProfile, updateProfile, translateFieldAction } from "@/lib/actions";
+import {
+  getProfile,
+  updateProfile,
+  translateFieldAction,
+  getProfileCardsAction,
+  saveProfileCardsAction,
+} from "@/lib/actions";
+import { ProfileCardsConfig, DEFAULT_PROFILE_CARDS } from "@/lib/profile-cards-meta";
+import { ProfileCardsEditor } from "@/components/admin/profile-cards-editor";
 import { isTranslationErrorPayload } from "@/lib/content-edit";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { toast } from "sonner";
@@ -58,6 +66,7 @@ const SOCIAL_LINK_FIELDS: Array<{
 
 export default function AdminProfilePage() {
   const [profile, setProfile] = useState<ProfileData>(DUMMY_PROFILE);
+  const [profileCards, setProfileCards] = useState<ProfileCardsConfig>(DEFAULT_PROFILE_CARDS);
   const [isLoading, setIsLoading] = useState(true);
   const [newSkill, setNewSkill] = useState("");
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -72,10 +81,16 @@ export default function AdminProfilePage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const data = await getProfile();
+        const [data, cardsData] = await Promise.all([
+          getProfile(),
+          getProfileCardsAction(),
+        ]);
         if (data) {
           setProfile(data);
           setProfileVersion((v) => v + 1);
+        }
+        if (cardsData) {
+          setProfileCards(cardsData);
         }
       } finally {
         setIsLoading(false);
@@ -157,39 +172,50 @@ export default function AdminProfilePage() {
 
     startTransition(async () => {
       try {
-        const res = await updateProfile({
-          name: profile.name,
-          headline: profile.headline,
-          headlineEn: profile.headlineEn,
-          bio: profile.bio,
-          bioEn: profile.bioEn,
-          avatarUrl: profile.avatarUrl,
-          email: profile.email,
-          phone: profile.phone,
-          location: profile.location,
-          cvUrl: profile.cvUrl || undefined,
-          paymentQrUrl: profile.paymentQrUrl || undefined,
-          paymentBankInfo: profile.paymentBankInfo || undefined,
-          availableForHire: profile.availableForHire,
-          availabilityBadge: profile.availabilityBadge,
-          availabilityBadgeEn: profile.availabilityBadgeEn,
-          skills: profile.skills,
-          stats: profile.stats,
-          socialLinks: profile.socialLinks,
-        });
+        const [res, cardsRes] = await Promise.all([
+          updateProfile({
+            name: profile.name,
+            headline: profile.headline,
+            headlineEn: profile.headlineEn,
+            bio: profile.bio,
+            bioEn: profile.bioEn,
+            avatarUrl: profile.avatarUrl,
+            email: profile.email,
+            phone: profile.phone,
+            location: profile.location,
+            cvUrl: profile.cvUrl || undefined,
+            paymentQrUrl: profile.paymentQrUrl || undefined,
+            paymentBankInfo: profile.paymentBankInfo || undefined,
+            availableForHire: profile.availableForHire,
+            availabilityBadge: profile.availabilityBadge,
+            availabilityBadgeEn: profile.availabilityBadgeEn,
+            skills: profile.skills,
+            stats: profile.stats,
+            socialLinks: profile.socialLinks,
+          }),
+          saveProfileCardsAction(profileCards),
+        ]);
 
-        if (res.success) {
+        if (res.success && cardsRes.success) {
           setSavedSuccess(true);
-          const updated = await getProfile();
+          const [updated, updatedCards] = await Promise.all([
+            getProfile(),
+            getProfileCardsAction(),
+          ]);
           if (updated) {
             setProfile(updated);
             setProfileVersion((v) => v + 1);
           }
+          if (updatedCards) {
+            setProfileCards(updatedCards);
+          }
+          toast.success("Profil dan kartu OS berhasil disimpan!");
           setTimeout(() => {
             setSavedSuccess(false);
           }, 3500);
         } else {
-          setErrorMessage(res.error || "Gagal menyimpan data profil.");
+          const errMsg = res.error || (!cardsRes.success ? cardsRes.error : "") || "Gagal menyimpan data profil.";
+          setErrorMessage(errMsg);
         }
       } catch (err) {
         console.error("[admin] updateProfile gagal:", err);
@@ -245,6 +271,9 @@ export default function AdminProfilePage() {
           </TabsTrigger>
           <TabsTrigger value="sosial" className="text-xs">
             Sosial Media & Foto
+          </TabsTrigger>
+          <TabsTrigger value="kartu-os" className="text-xs">
+            Kartu Profil OS (5 Tab)
           </TabsTrigger>
         </TabsList>
 
@@ -698,6 +727,11 @@ export default function AdminProfilePage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* Tab 4: Kartu Profil OS (5 Tab) */}
+        <TabsContent value="kartu-os">
+          <ProfileCardsEditor cards={profileCards} onChange={setProfileCards} />
         </TabsContent>
       </Tabs>
     </div>
