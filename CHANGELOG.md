@@ -4,6 +4,22 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Added & Improved: Alur Cover Image Gemini Web (Salin Prompt 16:9, Tautan Cepat & Upload Langsung)
+
+Solusi praktis kendala kuota API Gemini Image (HTTP 429) pada akun gratis/tanpa billing dengan menghubungkan alur kerja ke Gemini Web browser yang gratis:
+
+- **Generator Prompt Cover Client-Safe (`src/lib/cover-prompt.ts`)**:
+  - Mengekstrak fungsi pembangun prompt 16:9 editorial (`buildCoverImagePrompt`) menjadi modul murni yang aman diimpor baik di browser (client component) maupun server action.
+  - Memastikan prompt cover konsisten (16:9, tanpa watermark/teks pseudografis, komposisi terpusat) untuk artikel, proyek, dan produk.
+- **Tombol Salin Prompt Gemini di Redaksi Composer (`RedaksiComposer`)**:
+  - Tombol aksi 1-klik untuk menyalin deskripsi prompt visual konten ke clipboard pengguna (`navigator.clipboard.writeText`) disertai feedback visual dan toast panduan.
+  - Tombol tautan cepat "Buka Gemini ↗" yang membuka `https://gemini.google.com` di tab baru.
+- **Upload File Gambar Langsung ke Media Library**:
+  - Tombol "Unggah Gambar" untuk memilih file cover yang telah dibuat dan diunduh dari browser Gemini.
+  - File langsung disimpan ke tabel `media` di database via `uploadImageLocal`, URL `/api/media/[id]` otomatis mengisi field `imageUrl`, dan pratinjau gambar langsung tampil.
+- **Opsi API Tetap Tersedia**:
+  - Tombol "Buat via API" tetap dipertahankan sebagai opsi cadangan bila sewaktu-waktu akun Google Cloud mengaktifkan billing pay-as-you-go atau memiliki kuota API aktif.
+
 ### Fixed & Cleaned: Pembersihan Elemen Bagikan Redundan pada Detail Artikel
 
 - **Pembersihan Navigasi Detail Artikel (`/artikel/[slug]`)**:

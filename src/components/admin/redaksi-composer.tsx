@@ -1,8 +1,21 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Save, Sparkles, Bot, Trash2, UploadCloud, TrendingUp, AlertTriangle } from "lucide-react";
+import {
+  Loader2,
+  Save,
+  Sparkles,
+  Bot,
+  Trash2,
+  UploadCloud,
+  TrendingUp,
+  AlertTriangle,
+  Copy,
+  Check,
+  ExternalLink,
+  Upload,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +25,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ContentEditor } from "@/components/admin/content-editor";
 import { SeoAnalyzerPanel } from "@/components/admin/seo-analyzer-panel";
+import { buildCoverImagePrompt } from "@/lib/cover-prompt";
+import { uploadImageLocal } from "@/lib/local-upload";
 import type { SeoAnalysis } from "@/lib/seo-keywords";
 import type { DraftSeoReport } from "@/lib/seo-remediate";
 import {
@@ -308,6 +323,10 @@ export function RedaksiComposer({
   // sendiri (mis. ganti ke gambar lain) tanpagusul "Buat ulang".
   const [aiImageUrl, setAiImageUrl] = useState("");
   const [aiImageBusy, setAiImageBusy] = useState(false);
+  // Salin prompt untuk Gemini browser (solusi kuota 429) & upload manual
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
   // Analisis SEO: null = belum dijalankan. Sengaja TIDAK auto-refresh tiap
   // ketikan — hasil analisis harus merujuk pada draf yang benar-benar dianalisis.
   const [seoAnalysis, setSeoAnalysis] = useState<SeoAnalysis | null>(null);
@@ -477,6 +496,68 @@ export function RedaksiComposer({
     })();
   };
 
+  /**
+   * Salin prompt cover 16:9 untuk ditempel di Gemini Web (gemini.google.com).
+   * Solusi saat kuota Gemini API habis (429) tapi user punya akses browser.
+   */
+  const handleCopyPrompt = async (): Promise<void> => {
+    try {
+      const bodyField = tdef?.bodyField || "content";
+      const prompt = buildCoverImagePrompt({
+        title: String(values.title ?? ""),
+        description: String(values.summary ?? values.description ?? ""),
+        body: String(values[bodyField] ?? ""),
+        contentType: type,
+      });
+
+      await navigator.clipboard.writeText(prompt);
+      setCopiedPrompt(true);
+      setTimeout(() => setCopiedPrompt(false), 3000);
+      toast.success(
+        "Prompt cover 16:9 disalin! Silakan buka gemini.google.com dan tempel (paste)."
+      );
+    } catch {
+      toast.error("Gagal menyalin prompt ke clipboard. Izinkan akses clipboard di browser.");
+    }
+  };
+
+  /**
+   * Unggah file cover lokal (mis. hasil unduh dari Gemini browser) langsung
+   * ke media library server & isi otomatis ke field imageUrl.
+   */
+  const handleCoverFileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ): Promise<void> => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("Ukuran file terlalu besar. Maksimum 20 MB.");
+      if (coverFileInputRef.current) coverFileInputRef.current.value = "";
+      return;
+    }
+
+    setUploadingCover(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await uploadImageLocal(formData);
+      if (res.success && res.url) {
+        setAiImageUrl(res.url);
+        setField("imageUrl", res.url);
+        toast.success("Gambar cover berhasil diunggah ke media library.");
+      } else {
+        toast.error(res.error || "Gagal mengunggah gambar cover.");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Terjadi kesalahan saat upload.");
+    } finally {
+      setUploadingCover(false);
+      if (coverFileInputRef.current) coverFileInputRef.current.value = "";
+    }
+  };
+
   /** Jalankan analyzer SEO deterministik (tanpa LLM, tanpa kuota API). */
   const handleAnalyzeSeo = (): void => {
     setError("");
@@ -530,36 +611,101 @@ export function RedaksiComposer({
             />
             {f.key === "imageUrl" ? (
               <div className="space-y-2 pt-1">
+                <input
+                  ref={coverFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleCoverFileUpload}
+                  aria-label="Upload gambar cover lokal"
+                />
+
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
                     type="button"
                     size="sm"
                     variant="outline"
+                    onClick={handleCopyPrompt}
+                    disabled={pending}
+                    className="gap-1.5 cursor-pointer font-mono text-xs"
+                    title="Salin deskripsi prompt cover 16:9 untuk ditempel di Gemini Web"
+                  >
+                    {copiedPrompt ? (
+                      <Check className="h-3.5 w-3.5 text-emerald-500" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5" />
+                    )}
+                    {copiedPrompt ? "Prompt Tersalin!" : "Salin Prompt Gemini"}
+                  </Button>
+
+                  <a
+                    href="https://gemini.google.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      "inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xs border-2 border-[var(--vt-edge-lo-2)] bg-[var(--vt-paper)] hover:bg-[var(--vt-edge-hi-2)] font-mono font-bold text-[var(--vt-ink)] transition-colors cursor-pointer",
+                      pending && "pointer-events-none opacity-50"
+                    )}
+                    title="Buka Gemini di browser tab baru"
+                  >
+                    Buka Gemini <ExternalLink className="h-3 w-3" />
+                  </a>
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => coverFileInputRef.current?.click()}
+                    disabled={uploadingCover || pending}
+                    className="gap-1.5 cursor-pointer font-mono text-xs"
+                    title="Unggah gambar yang diunduh dari Gemini Web atau komputer Anda"
+                  >
+                    {uploadingCover ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="h-3.5 w-3.5" />
+                    )}
+                    {uploadingCover ? "Mengunggah..." : "Unggah Gambar"}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
                     onClick={handleGenerateImage}
                     disabled={aiImageBusy || pending}
+                    className="gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                    title="Coba buat langsung via Gemini API (memerlukan billing/kuota API)"
                   >
                     {aiImageBusy ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : (
                       <Sparkles className="h-3.5 w-3.5" />
                     )}
-                    {aiImageUrl ? "Buat ulang gambar" : "Buat gambar dengan AI"}
+                    {aiImageUrl ? "Coba via API" : "Buat via API"}
                   </Button>
-                  <span className="text-[11px] text-muted-foreground">
-                    Cover 16:9 tanpa teks, disimpan ke media library (ikut ter-deploy).
-                  </span>
                 </div>
-                {aiImageUrl ? (
-                  <div className="flex items-start gap-3">
+
+                <p className="text-[11px] text-muted-foreground">
+                  Tips: Jika kuota API habis (429), klik <strong>Salin Prompt Gemini</strong>, buat gambar di tab <strong>gemini.google.com</strong>, lalu klik <strong>Unggah Gambar</strong>.
+                </p>
+
+                {(aiImageUrl || (typeof val === "string" && val.trim().length > 0)) ? (
+                  <div className="flex items-start gap-3 pt-1">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={aiImageUrl}
-                      alt="Pratinjau gambar cover hasil AI"
-                      className="h-24 w-42 border border-[var(--vt-edge-lo-2)] object-cover"
+                      src={aiImageUrl || String(val)}
+                      alt="Pratinjau gambar cover"
+                      className="h-24 w-42 border-2 border-[var(--vt-edge-lo-2)] object-cover rounded-xs"
                     />
-                    <p className="max-w-64 text-[11px] text-muted-foreground break-all">
-                      {aiImageUrl}
-                    </p>
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                        ✓ Gambar cover siap digunakan
+                      </p>
+                      <p className="max-w-xs text-[11px] text-muted-foreground break-all font-mono">
+                        {aiImageUrl || String(val)}
+                      </p>
+                    </div>
                   </div>
                 ) : null}
               </div>
