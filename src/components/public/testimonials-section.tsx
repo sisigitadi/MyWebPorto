@@ -128,19 +128,21 @@ export function TestimonialsSection({ testimonials: propTestimonials }: Testimon
 
                   {/* Client Info */}
                   <div className="flex items-center gap-3 pt-2 border-t border-border/80">
-                    <div className="w-10 h-10 rounded-xs vt-raised p-0.5 shrink-0 bg-[var(--vt-chrome)] overflow-hidden">
+                    <div className="relative w-10 h-10 rounded-xs vt-raised p-0.5 shrink-0 bg-[var(--vt-chrome)] overflow-hidden flex items-center justify-center">
+                      <div className="w-full h-full flex items-center justify-center font-mono font-bold text-xs bg-[var(--vt-blue)] text-white select-none">
+                        {testi.clientName.charAt(0)}
+                      </div>
                       {testi.avatarUrl ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
                         <img
                           src={testi.avatarUrl}
                           alt={testi.clientName}
-                          className="w-full h-full object-cover rounded-xs"
+                          className="absolute inset-0 w-full h-full object-cover rounded-xs"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
                         />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center font-mono font-bold text-xs bg-[var(--vt-blue)] text-white">
-                          {testi.clientName.charAt(0)}
-                        </div>
-                      )}
+                      ) : null}
                     </div>
                     {/* min-w-0 + flex-1 agar teks bisa wrap di ruang sempit.
                         Sebelumnya memakai truncate → nama panjang (mis.
