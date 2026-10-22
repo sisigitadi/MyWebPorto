@@ -82,6 +82,8 @@ public/uploads/
 .claude/
 
 # agent tooling scratch (worktree lokal, log verifikasi sekali pakai — jangan masuk repo)
+.agent/
+.agents/
 .kilo/
 .superpowers/
 .verify*.log
