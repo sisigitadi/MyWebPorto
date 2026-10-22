@@ -10,18 +10,10 @@ describe("resolveSectionRedirect", () => {
     expect(resolveSectionRedirect("/contact")).toBe("#kontak");
   });
 
-  it("mengarahkan /toko ke #produk — id section di DOM 'produk', bukan 'toko'", () => {
-    // App "Toko" di taskbar merender section ber-id "produk"
-    // (products-section.tsx). Tombol "Kembali ke Toko" di detail produk juga
-    // memakai /#produk, jadi ini harus konsisten.
-    expect(resolveSectionRedirect("/toko")).toBe("#produk");
-  });
-
   it("normalisasi: trailing slash dan huruf besar tetap ke anchor sama", () => {
     expect(resolveSectionRedirect("/layanan/")).toBe("#layanan");
     expect(resolveSectionRedirect("/layanan//")).toBe("#layanan");
     expect(resolveSectionRedirect("/Layanan")).toBe("#layanan");
-    expect(resolveSectionRedirect("/TOKO")).toBe("#produk");
     expect(resolveSectionRedirect("/Kontak")).toBe("#kontak");
     expect(resolveSectionRedirect("/contact/")).toBe("#kontak");
   });
@@ -30,8 +22,7 @@ describe("resolveSectionRedirect", () => {
     expect(resolveSectionRedirect("/")).toBeNull();
     expect(resolveSectionRedirect("/proyek")).toBeNull();
     expect(resolveSectionRedirect("/artikel")).toBeNull();
-    // /toko/[slug] adalah rute detail produk yang nyata — hanya /toko polos
-    // yang redirect.
+    expect(resolveSectionRedirect("/toko")).toBeNull();
     expect(resolveSectionRedirect("/toko/template-portfolio-notion")).toBeNull();
     expect(resolveSectionRedirect("/proyek/dashboard-halaqah")).toBeNull();
     expect(resolveSectionRedirect("/admin")).toBeNull();
@@ -40,9 +31,15 @@ describe("resolveSectionRedirect", () => {
     expect(resolveSectionRedirect("/sitemap.xml")).toBeNull();
   });
 
-  it("hanya memetakan enam path section virtual yang disengaja", () => {
+  it("menjamin /toko tidak lagi dialihkan ke #produk karena telah menjadi rute katalog tersendiri", () => {
+    expect(resolveSectionRedirect("/toko")).toBeNull();
+    expect(resolveSectionRedirect("/toko/")).toBeNull();
+  });
+
+  it("hanya memetakan lima path section virtual yang disengaja", () => {
     expect(Object.keys(SECTION_PATH_REDIRECTS).sort()).toEqual(
-      ["/contact", "/kontak", "/layanan", "/terminal", "/testimoni", "/toko"].sort(),
+      ["/contact", "/kontak", "/layanan", "/terminal", "/testimoni"].sort(),
     );
   });
 });
+

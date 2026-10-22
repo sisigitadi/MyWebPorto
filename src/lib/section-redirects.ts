@@ -18,13 +18,11 @@
  * `/toko` → `#produk` — konsisten dengan tombol "Kembali ke Toko" di halaman
  * detail produk (`product-detail-content.tsx`).
  *
- * JANGAN tambahkan `/proyek` atau `/artikel` ke tabel ini — keduanya rute
- * nyata (halaman katalog). `/toko/[slug]` juga rute nyata; hanya path polos
- * `/toko` yang tidak punya halaman katalog.
+ * JANGAN tambahkan `/proyek`, `/artikel`, atau `/toko` ke tabel ini — ketiganya
+ * adalah rute nyata (halaman katalog).
  */
 export const SECTION_PATH_REDIRECTS: Readonly<Record<string, string>> = {
   "/layanan": "#layanan",
-  "/toko": "#produk",
   "/terminal": "#terminal",
   "/testimoni": "#testimoni",
   "/kontak": "#kontak",

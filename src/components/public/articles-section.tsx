@@ -10,6 +10,9 @@ import {
   Tag,
   Search,
   BookOpen,
+  LayoutGrid,
+  List as ListIcon,
+  FolderOpen,
 } from "lucide-react";
 import { ArticleData } from "@/lib/dummy-data";
 import { useTranslation } from "@/lib/i18n";
@@ -21,6 +24,8 @@ import { useGSAP } from "@gsap/react";
 
 gsap.registerPlugin(ScrollTrigger);
 
+const INITIAL_LIMIT = 6;
+
 interface ArticlesSectionProps {
   articles: ArticleData[];
 }
@@ -30,6 +35,8 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
   const sectionRef = useRef<HTMLElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string>("ALL");
+  const [visibleCount, setVisibleCount] = useState<number>(INITIAL_LIMIT);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Tanpa fallback dummy: tanpa artikel, tampil empty state jujur
   const publishedArticles = ((propArticles && Array.isArray(propArticles)) ? propArticles : []).filter(
@@ -62,23 +69,29 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
     });
   }, [articles, searchQuery, selectedTag, language]);
 
+  const displayedArticles = useMemo(() => {
+    return filteredArticles.slice(0, visibleCount);
+  }, [filteredArticles, visibleCount]);
+
   useGSAP(
     () => {
-      gsap.from(".sigit-article-card", {
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top 80%",
-          toggleActions: "play none none none",
-        },
-        opacity: 0,
-        y: 35,
-        stagger: 0.1,
-        duration: 0.75,
-        ease: "power3.out",
-        clearProps: "all",
-      });
+      if (viewMode === "grid") {
+        gsap.from(".sigit-article-card", {
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: "top 80%",
+            toggleActions: "play none none none",
+          },
+          opacity: 0,
+          y: 35,
+          stagger: 0.08,
+          duration: 0.65,
+          ease: "power3.out",
+          clearProps: "all",
+        });
+      }
     },
-    { scope: sectionRef }
+    { scope: sectionRef, dependencies: [viewMode, visibleCount] }
   );
 
   return (
@@ -103,7 +116,7 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
             </p>
           </div>
 
-          <div className="shrink-0">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <ShareButton
               title={language === "en" ? "Tech Articles & Architecture Insights - Sigit Adi Irianto" : "Artikel & Wawasan Teknologi - Sigit Adi Irianto"}
               url="/artikel"
@@ -119,7 +132,7 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
           </div>
         </div>
 
-        {/* Retro Filter Bar */}
+        {/* Retro Filter Bar & Toolbar */}
         <div className="mb-6 p-3 bg-[var(--vt-chrome)] border-2 border-t-[var(--vt-edge-hi-2)] border-l-[var(--vt-edge-hi-2)] border-r-[var(--vt-edge-lo)] border-b-[var(--vt-edge-lo)] shadow-[inset_1px_1px_0_var(--vt-edge-hi),inset_-1px_-1px_0_var(--vt-edge-lo)] flex flex-col md:flex-row gap-3 items-center justify-between min-w-0">
           {/* Tag Chips */}
           <div className="flex flex-wrap gap-1.5 w-full md:w-auto items-center min-w-0">
@@ -131,8 +144,11 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
               return (
                 <button
                   key={tag}
-                  onClick={() => setSelectedTag(tag)}
-                  className={`px-2 py-0.5 text-[11px] font-mono transition-all uppercase ${
+                  onClick={() => {
+                    setSelectedTag(tag);
+                    setVisibleCount(INITIAL_LIMIT);
+                  }}
+                  className={`px-2 py-0.5 text-[11px] font-mono transition-all uppercase cursor-pointer ${
                     isActive
                       ? "bg-[var(--vt-amber)] text-black font-bold border-2 border-t-[#000] border-l-[#000] border-r-[#fff] border-b-[#fff] shadow-[inset_1px_1px_0_rgba(0,0,0,0.5)]"
                       : "bg-[var(--vt-card)] text-[var(--vt-ink)] border-2 border-t-[var(--vt-edge-hi)] border-l-[var(--vt-edge-hi)] border-r-[var(--vt-edge-lo)] border-b-[var(--vt-edge-lo)] hover:bg-[var(--vt-edge-hi-2)]"
@@ -144,30 +160,154 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
             })}
           </div>
 
-          {/* Search Box */}
-          <div className="relative w-full md:w-64 min-w-0">
-            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-[var(--vt-ink-mute)]" />
-            <input
-              type="text"
-              placeholder={language === "en" ? "Search articles..." : "Cari artikel..."}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1 bg-[var(--vt-paper)] border-2 border-t-[var(--vt-edge-lo)] border-l-[var(--vt-edge-lo)] border-r-[var(--vt-edge-hi-2)] border-b-[var(--vt-edge-hi-2)] text-xs font-mono text-[var(--vt-ink)] placeholder:text-[var(--vt-ink-mute)] focus:outline-none focus:ring-1 focus:ring-[var(--vt-amber)] min-w-0"
-            />
+          <div className="flex items-center gap-2.5 w-full md:w-auto justify-between md:justify-end min-w-0">
+            {/* Search Box */}
+            <div className="relative w-full md:w-60 min-w-0">
+              <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-[var(--vt-ink-mute)] pointer-events-none" />
+              <input
+                type="text"
+                placeholder={language === "en" ? "Search articles..." : "Cari artikel..."}
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setVisibleCount(INITIAL_LIMIT);
+                }}
+                className="w-full pl-8 pr-3 py-1 bg-[var(--vt-paper)] border-2 border-t-[var(--vt-edge-lo)] border-l-[var(--vt-edge-lo)] border-r-[var(--vt-edge-hi-2)] border-b-[var(--vt-edge-hi-2)] text-xs font-mono text-[var(--vt-ink)] placeholder:text-[var(--vt-ink-mute)] focus:outline-none focus:ring-1 focus:ring-[var(--vt-amber)] min-w-0"
+              />
+            </div>
+
+            {/* View Mode Toggle: Grid vs Compact List */}
+            <div className="flex items-center border-2 border-t-[var(--vt-edge-lo)] border-l-[var(--vt-edge-lo)] border-r-[var(--vt-edge-hi-2)] border-b-[var(--vt-edge-hi-2)] bg-[var(--vt-paper)] p-0.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setViewMode("grid")}
+                className={`p-1.5 transition-colors cursor-pointer ${
+                  viewMode === "grid"
+                    ? "bg-[var(--vt-amber)] text-black font-bold"
+                    : "text-[var(--vt-ink-mute)] hover:text-[var(--vt-ink)]"
+                }`}
+                title={language === "en" ? "Grid View" : "Tampilan Grid 16:9"}
+                aria-label="Grid View"
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                className={`p-1.5 transition-colors cursor-pointer ${
+                  viewMode === "list"
+                    ? "bg-[var(--vt-amber)] text-black font-bold"
+                    : "text-[var(--vt-ink-mute)] hover:text-[var(--vt-ink)]"
+                }`}
+                title={language === "en" ? "Compact Explorer List View" : "Tampilan Berkas Padat (Explorer)"}
+                aria-label="List View"
+              >
+                <ListIcon className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Articles Grid */}
+        {/* Empty State */}
         {filteredArticles.length === 0 ? (
-          <div className="p-8 text-center bg-[var(--vt-chrome)] border-2 border-[var(--vt-edge-lo-2)] shadow-[inset_1px_1px_0_var(--vt-edge-hi)]">
+          <div className="p-8 text-center bg-[var(--vt-chrome)] border-2 border-[var(--vt-edge-lo-2)] shadow-[inset_1px_1px_0_var(--vt-edge-hi)] font-mono">
             <BookOpen className="h-8 w-8 mx-auto text-[var(--vt-ink-mute)] mb-2" />
-            <p className="font-mono text-xs text-[var(--vt-ink)]">
+            <p className="text-xs text-[var(--vt-ink)] font-bold">
               {t.articles_empty}
             </p>
+            <p className="text-[11px] text-[var(--vt-ink-mute)] mt-1">
+              {language === "en" ? "Try resetting the tag filter or search keyword." : "Coba pilih filter ALL atau ubah kata kunci pencarian."}
+            </p>
           </div>
+        ) : viewMode === "list" ? (
+          /* =======================================================
+             COMPACT EXPLORER LIST VIEW — Hemat ruang vertikal (~300px)
+             ======================================================= */
+          <OSWindow
+            title="ARTIKEL_DIRECTORY.DIR"
+            icon={<FolderOpen className="h-3.5 w-3.5 text-[var(--vt-amber)]" />}
+            statusText={`Total records: ${filteredArticles.length} files | Showing: ${displayedArticles.length} records`}
+            className="w-full shadow-md"
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full text-left font-mono text-xs border-collapse">
+                <thead>
+                  <tr className="bg-[var(--vt-chrome)] border-b-2 border-[var(--vt-edge-lo-2)] text-[10px] text-[var(--vt-ink-mute)] uppercase tracking-wider">
+                    <th className="py-2 px-3 font-bold">Dokumen / Judul</th>
+                    <th className="py-2 px-3 font-bold hidden md:table-cell">Topik &amp; Tag</th>
+                    <th className="py-2 px-3 font-bold hidden sm:table-cell">Tanggal</th>
+                    <th className="py-2 px-3 font-bold hidden lg:table-cell">Waktu</th>
+                    <th className="py-2 px-3 font-bold text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--vt-edge-hi-2)] bg-[var(--vt-paper)] text-[var(--vt-ink)]">
+                  {displayedArticles.map((article) => {
+                    const title = language === "en" && article.titleEn ? article.titleEn : article.title;
+                    const readTimeMin = Math.max(1, Math.ceil((article.content || "").split(/\s+/).length / 180));
+                    return (
+                      <tr
+                        key={article.id}
+                        className="hover:bg-[var(--vt-chrome)] transition-colors group"
+                      >
+                        <td className="py-2.5 px-3">
+                          <Link
+                            href={`/artikel/${article.slug}`}
+                            className="flex items-start gap-2 group-hover:text-[var(--vt-blue)] transition-colors"
+                          >
+                            <FileText className="h-4 w-4 shrink-0 text-[var(--vt-amber)] mt-0.5" />
+                            <div className="min-w-0">
+                              <span className="font-bold font-display line-clamp-1 text-xs sm:text-sm">
+                                {title}
+                              </span>
+                              <span className="text-[10px] text-[var(--vt-ink-mute)] block sm:hidden">
+                                {new Date(article.createdAt).toLocaleDateString(language === "en" ? "en-US" : "id-ID", { month: "short", day: "numeric", year: "numeric" })}
+                              </span>
+                            </div>
+                          </Link>
+                        </td>
+                        <td className="py-2.5 px-3 hidden md:table-cell">
+                          <div className="flex flex-wrap gap-1">
+                            {article.tags.slice(0, 2).map((tg, i) => (
+                              <span key={i} className="text-[9px] px-1 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)] rounded-2xs">
+                                #{tg}
+                              </span>
+                            ))}
+                            {article.tags.length > 2 && (
+                              <span className="text-[9px] opacity-70">+{article.tags.length - 2}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-3 whitespace-nowrap text-[11px] text-[var(--vt-ink-mute)] hidden sm:table-cell">
+                          {new Date(article.createdAt).toLocaleDateString(
+                            language === "en" ? "en-US" : "id-ID",
+                            { month: "short", day: "numeric", year: "numeric" }
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 whitespace-nowrap text-[11px] text-[var(--vt-ink-mute)] hidden lg:table-cell">
+                          {readTimeMin} {t.articles_read_time}
+                        </td>
+                        <td className="py-2.5 px-3 text-right">
+                          <Link
+                            href={`/artikel/${article.slug}`}
+                            className="vt-btn vt-btn-chrome px-2.5 py-1 text-[11px] font-bold inline-flex items-center gap-1 group-hover:border-[var(--vt-blue)]"
+                          >
+                            <span>BACA</span>
+                            <ArrowRight className="h-3 w-3" />
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </OSWindow>
         ) : (
+          /* =======================================================
+             GRID VIEW (Visual Card) — Dibatasi visibleCount
+             ======================================================= */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredArticles.map((article, index) => {
+            {displayedArticles.map((article, index) => {
               const title =
                 language === "en" && article.titleEn
                   ? article.titleEn
@@ -258,7 +398,7 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
                         <div className="flex items-center">
                           <Link
                             href={`/artikel/${article.slug}`}
-                            className="w-full flex items-center justify-between px-3 py-1.5 bg-[var(--vt-card)] border-2 border-t-[var(--vt-edge-hi)] border-l-[var(--vt-edge-hi)] border-r-[var(--vt-edge-lo)] border-b-[var(--vt-edge-lo)] hover:bg-[var(--vt-edge-hi-2)] active:border-t-[var(--vt-edge-lo)] active:border-l-[var(--vt-edge-lo)] active:border-r-[var(--vt-edge-hi-2)] active:border-b-[var(--vt-edge-hi-2)] font-mono text-xs font-bold text-[var(--vt-ink)] group transition-all"
+                            className="w-full flex items-center justify-between px-3 py-1.5 bg-[var(--vt-card)] border-2 border-t-[var(--vt-edge-hi)] border-l-[var(--vt-edge-hi)] border-r-[var(--vt-edge-lo)] border-b-[var(--vt-edge-lo)] hover:bg-[var(--vt-edge-hi-2)] active:border-t-[var(--vt-edge-lo)] active:border-l-[var(--vt-edge-lo)] active:border-r-[var(--vt-edge-hi-2)] active:border-b-[var(--vt-edge-hi-2)] font-mono text-xs font-bold text-[var(--vt-ink)] group transition-all cursor-pointer"
                           >
                             <span className="flex items-center gap-1.5">
                               <FileText className="h-3.5 w-3.5 text-[var(--vt-amber)]" />
@@ -273,6 +413,44 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* =======================================================
+           LOAD MORE & CATALOG EXPLORER BANNER
+           ======================================================= */}
+        {filteredArticles.length > 0 && (
+          <div className="mt-8 pt-4 border-t-2 border-[var(--vt-edge-hi-2)] flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-xs">
+            <span className="text-[var(--vt-ink-mute)] text-[11px]">
+              {language === "en"
+                ? `Showing ${displayedArticles.length} of ${filteredArticles.length} articles`
+                : `Menampilkan ${displayedArticles.length} dari ${filteredArticles.length} artikel`}
+            </span>
+
+            <div className="flex items-center gap-3 flex-wrap justify-center sm:justify-end">
+              {filteredArticles.length > visibleCount && (
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((prev) => prev + 6)}
+                  className="vt-btn vt-btn-chrome px-3.5 py-1.5 text-xs font-bold text-[var(--vt-ink)] flex items-center gap-1.5 cursor-pointer hover:border-[var(--vt-amber)] shadow-xs"
+                >
+                  <span className="text-[var(--vt-amber)] font-extrabold">+</span>
+                  <span>
+                    {language === "en"
+                      ? `Load ${Math.min(6, filteredArticles.length - visibleCount)} More (${filteredArticles.length - visibleCount} remaining)`
+                      : `Muat ${Math.min(6, filteredArticles.length - visibleCount)} Artikel Lagi (Sisa ${filteredArticles.length - visibleCount})`}
+                  </span>
+                </button>
+              )}
+
+              <Link
+                href="/artikel"
+                className="vt-btn vt-btn-pink px-4 py-1.5 text-xs font-bold font-mono inline-flex items-center gap-1.5 shadow-sm hover:scale-[1.02] transition-transform"
+              >
+                <span>{language === "en" ? "Explore Full Catalog" : "Buka Folder Artikel Lengkap"}</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
           </div>
         )}
       </div>
