@@ -299,6 +299,62 @@ export async function translateFieldAction(
   }
 }
 
+export async function translateBatchAction(
+  texts: string[],
+  from: string = "id",
+  to: string = "en"
+) {
+  try {
+    await verifyAdmin();
+  } catch (authErr: unknown) {
+    return {
+      success: false,
+      results: texts,
+      error: sanitizeError(authErr),
+    };
+  }
+
+  if (!isExternalTranslateEnabled()) {
+    return {
+      success: false,
+      results: texts,
+      error:
+        "Terjemahan otomatis dinonaktifkan (ENABLE_EXTERNAL_TRANSLATE=false). Isi kolom English secara manual.",
+    };
+  }
+
+  try {
+    const results: string[] = [];
+    // Process in chunks of 5 to avoid overwhelming translation endpoints
+    for (let i = 0; i < texts.length; i += 5) {
+      const chunk = texts.slice(i, i + 5);
+      const chunkResults = await Promise.all(
+        chunk.map(async (t) => {
+          if (!t || !t.trim()) return "";
+          try {
+            const res = await translateText(t, from, to);
+            return isTranslationErrorPayload(res) ? "" : res;
+          } catch {
+            return "";
+          }
+        })
+      );
+      results.push(...chunkResults);
+    }
+    return { success: true, results };
+  } catch (err: unknown) {
+    console.error("Auto-translate batch gagal:", err);
+    return {
+      success: false,
+      results: texts,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Gagal menerjemahkan teks batch. Periksa log server untuk detail teknis.",
+    };
+  }
+}
+
 // ==========================================
 // PROFIL SERVER ACTIONS
 // ==========================================

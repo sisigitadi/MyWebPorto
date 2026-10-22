@@ -117,3 +117,22 @@ describe("kapasitas karakter schema — konsisten dengan redaksi konten (50.000)
     expect(parsedService.success).toBe(true);
   });
 });
+
+describe("translateBatchAction — pemrosesan batch dwibahasa", () => {
+  it("menangani array kosong dengan aman", async () => {
+    const { translateBatchAction } = await import("@/lib/actions");
+    const res = await translateBatchAction([]);
+    expect(res.success).toBe(true);
+    expect(res.results).toEqual([]);
+  });
+
+  it("menerjemahkan batch teks pendek dan mengembalikan jumlah hasil sepadan", async () => {
+    const { translateBatchAction } = await import("@/lib/actions");
+    const inputs = ["Frontend Engineer", "Arsitektur Sistem", ""];
+    const res = await translateBatchAction(inputs);
+    expect(res.success).toBe(true);
+    expect(Array.isArray(res.results)).toBe(true);
+    expect(res.results.length).toBe(inputs.length);
+    expect(res.results[2]).toBe("");
+  });
+});
