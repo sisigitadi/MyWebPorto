@@ -206,9 +206,9 @@ export function ProfileTabs({ cards }: ProfileTabsProps) {
                   >
                     <div className="flex items-center gap-2 mb-2 pb-1.5 border-b border-[var(--vt-edge-lo-2)]/60">
                       {getCategoryIcon(category.iconName)}
-                      <h4 className="font-mono font-bold text-xs text-[var(--vt-ink)] uppercase tracking-wider">
+                      <div className="font-mono font-bold text-xs text-[var(--vt-ink)] uppercase tracking-wider">
                         {title}
-                      </h4>
+                      </div>
                     </div>
 
                     <div className="flex flex-wrap gap-1.5">
@@ -413,9 +413,9 @@ export function ProfileTabs({ cards }: ProfileTabsProps) {
                         <span className="font-bold">{cred.issuer}</span>
                         <span>{cred.year}</span>
                       </div>
-                      <h4 className="font-bold text-xs sm:text-sm text-[var(--vt-ink)] leading-snug">
+                      <div className="font-bold text-xs sm:text-sm text-[var(--vt-ink)] leading-snug">
                         {title}
-                      </h4>
+                      </div>
                     </div>
 
                     {cred.badgeText && (
