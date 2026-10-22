@@ -496,17 +496,22 @@ export default function AdminServicesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description" className="text-xs font-medium">
-                    Deskripsi Solusi (ID) *
-                  </Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="description" className="text-xs font-medium">
+                      Deskripsi Solusi (ID) *
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      Gunakan `- ` untuk poin output
+                    </span>
+                  </div>
                   <Textarea
                     id="description"
                     required
-                    rows={3}
-                    placeholder="Menjelaskan apa yang didapatkan klien serta hasil akhirnya..."
+                    rows={5}
+                    placeholder={`Ringkasan layanan 1-2 kalimat...\n- Poin deliverable 1\n- Poin deliverable 2\n- Poin deliverable 3`}
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
-                    className="text-xs"
+                    className="text-xs font-sans leading-relaxed"
                   />
                 </div>
               </TabsContent>
@@ -548,16 +553,21 @@ export default function AdminServicesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="descriptionEn" className="text-xs font-medium">
-                    Deskripsi Solusi (EN)
-                  </Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="descriptionEn" className="text-xs font-medium">
+                      Deskripsi Solusi (EN)
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      Use `- ` for bullet points
+                    </span>
+                  </div>
                   <Textarea
                     id="descriptionEn"
-                    rows={3}
-                    placeholder="Explaining what the client gets and the final delivery..."
+                    rows={5}
+                    placeholder={`Short summary of services...\n- Key deliverable 1\n- Key deliverable 2\n- Key deliverable 3`}
                     value={formDescriptionEn}
                     onChange={(e) => setFormDescriptionEn(e.target.value)}
-                    className="text-xs"
+                    className="text-xs font-sans leading-relaxed"
                   />
                 </div>
               </TabsContent>
