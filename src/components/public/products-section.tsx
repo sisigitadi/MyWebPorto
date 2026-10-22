@@ -15,6 +15,9 @@ import {
   ExternalLink,
   ArrowRight,
   Zap,
+  LayoutGrid,
+  List as ListIcon,
+  FolderOpen,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -68,9 +71,12 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
   const containerRef = useRef<HTMLElement>(null);
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
 
+  const INITIAL_LIMIT = 6;
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [sortBy, setSortBy] = useState<"default" | "price_asc" | "price_desc">("default");
+  const [visibleCount, setVisibleCount] = useState<number>(INITIAL_LIMIT);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // State untuk modal Lacak_Pesanan.exe
   const [showTrackerModal, setShowTrackerModal] = useState(false);
@@ -156,23 +162,29 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
       });
   }, [allProducts, selectedCategory, searchQuery, sortBy]);
 
+  const displayedProducts = useMemo(() => {
+    return filteredProducts.slice(0, visibleCount);
+  }, [filteredProducts, visibleCount]);
+
   useGSAP(
     () => {
-      gsap.from(".sigit-product-card", {
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: "top 80%",
-          toggleActions: "play none none none",
-        },
-        opacity: 0,
-        y: 40,
-        stagger: 0.1,
-        duration: 0.7,
-        ease: "power3.out",
-        clearProps: "all",
-      });
+      if (viewMode === "grid") {
+        gsap.from(".sigit-product-card", {
+          scrollTrigger: {
+            trigger: containerRef.current,
+            start: "top 80%",
+            toggleActions: "play none none none",
+          },
+          opacity: 0,
+          y: 40,
+          stagger: 0.1,
+          duration: 0.7,
+          ease: "power3.out",
+          clearProps: "all",
+        });
+      }
     },
-    { scope: containerRef, dependencies: [selectedCategory, sortBy] }
+    { scope: containerRef, dependencies: [selectedCategory, sortBy, viewMode, visibleCount] }
   );
 
   const handleAddToCart = (product: ProductData) => {
@@ -263,19 +275,54 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
               />
             </div>
 
-            {/* Sort Select */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
-              <select
-                value={sortBy}
-                aria-label={language === "en" ? "Sort products" : "Urutkan produk"}
-                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                className="bg-[var(--vt-paper)] border border-[var(--vt-edge-lo-2)] rounded-xs px-2.5 py-1.5 text-xs outline-none font-bold text-[var(--vt-ink)] cursor-pointer"
-              >
-                <option value="default">{language === "en" ? "Latest First" : "Urutan Default"}</option>
-                <option value="price_asc">{language === "en" ? "Price: Low to High" : "Harga Terendah"}</option>
-                <option value="price_desc">{language === "en" ? "Price: High to Low" : "Harga Tertinggi"}</option>
-              </select>
+            {/* Sort Select & View Mode Toggle */}
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+              <div className="flex items-center gap-1.5">
+                <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+                <select
+                  value={sortBy}
+                  aria-label={language === "en" ? "Sort products" : "Urutkan produk"}
+                  onChange={(e) => {
+                    setSortBy(e.target.value as typeof sortBy);
+                    setVisibleCount(INITIAL_LIMIT);
+                  }}
+                  className="bg-[var(--vt-paper)] border border-[var(--vt-edge-lo-2)] rounded-xs px-2.5 py-1.5 text-xs outline-none font-bold text-[var(--vt-ink)] cursor-pointer"
+                >
+                  <option value="default">{language === "en" ? "Latest First" : "Urutan Default"}</option>
+                  <option value="price_asc">{language === "en" ? "Price: Low to High" : "Harga Terendah"}</option>
+                  <option value="price_desc">{language === "en" ? "Price: High to Low" : "Harga Tertinggi"}</option>
+                </select>
+              </div>
+
+              {/* View Mode Toggle: Grid vs Compact List */}
+              <div className="flex items-center border border-[var(--vt-edge-lo-2)] bg-[var(--vt-paper)] p-0.5 rounded-xs">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("grid")}
+                  className={`p-1.5 transition-colors cursor-pointer rounded-2xs ${
+                    viewMode === "grid"
+                      ? "bg-primary text-primary-foreground font-bold"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  title={language === "en" ? "Grid View" : "Tampilan Grid Visual"}
+                  aria-label="Grid View"
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("list")}
+                  className={`p-1.5 transition-colors cursor-pointer rounded-2xs ${
+                    viewMode === "list"
+                      ? "bg-primary text-primary-foreground font-bold"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  title={language === "en" ? "Compact Explorer List View" : "Tampilan Berkas Padat (Explorer)"}
+                  aria-label="List View"
+                >
+                  <ListIcon className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -288,7 +335,10 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
 
             <button
               type="button"
-              onClick={() => setSelectedCategory("all")}
+              onClick={() => {
+                setSelectedCategory("all");
+                setVisibleCount(INITIAL_LIMIT);
+              }}
               className={`px-2.5 py-1 text-[11px] font-bold rounded-xs cursor-pointer transition-colors shrink-0 ${
                 selectedCategory === "all"
                   ? "bg-primary text-primary-foreground font-extrabold shadow-xs"
@@ -304,7 +354,10 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                 <button
                   key={cat}
                   type="button"
-                  onClick={() => setSelectedCategory(cat)}
+                  onClick={() => {
+                    setSelectedCategory(cat);
+                    setVisibleCount(INITIAL_LIMIT);
+                  }}
                   className={`px-2.5 py-1 text-[11px] font-bold rounded-xs cursor-pointer transition-colors shrink-0 ${
                     selectedCategory.toLowerCase() === cat.toLowerCase()
                       ? "bg-primary text-primary-foreground font-extrabold shadow-xs"
@@ -318,7 +371,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
           </div>
         </div>
 
-        {/* Products Grid */}
+        {/* Products Grid / List */}
         {filteredProducts.length === 0 ? (
           <div className="text-center py-12 vt-card-inset p-6 bg-[var(--vt-card)] rounded-xs border border-dashed border-border font-mono text-xs">
             <Package className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
@@ -333,9 +386,101 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
               {language === "en" ? "Try another keyword or reset the category." : "Coba kata kunci lain atau pilih Semua Produk."}
             </p>
           </div>
+        ) : viewMode === "list" ? (
+          /* =======================================================
+             COMPACT LIST VIEW (Windows Explorer Details Style)
+             ======================================================= */
+          <OSWindow
+            title="STORE_CATALOG.DIR"
+            icon={<FolderOpen className="h-3.5 w-3.5 text-[#ffd400]" />}
+            statusText={`Total records: ${filteredProducts.length} items | Showing: ${displayedProducts.length} records`}
+            className="w-full shadow-md"
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full text-left font-mono text-xs border-collapse">
+                <thead>
+                  <tr className="bg-[var(--vt-chrome)] border-b-2 border-[var(--vt-edge-lo-2)] text-[10px] text-[var(--vt-ink-mute)] uppercase tracking-wider">
+                    <th className="py-2.5 px-3 font-bold">Produk / Item</th>
+                    <th className="py-2.5 px-3 font-bold hidden sm:table-cell">Kategori</th>
+                    <th className="py-2.5 px-3 font-bold">Harga</th>
+                    <th className="py-2.5 px-3 font-bold hidden md:table-cell">Status</th>
+                    <th className="py-2.5 px-3 font-bold text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--vt-edge-hi-2)] bg-[var(--vt-paper)] text-[var(--vt-ink)]">
+                  {displayedProducts.map((product) => {
+                    const title = language === "en" && product.titleEn ? product.titleEn : product.title;
+                    const productUrl = `/toko/${getProductSlug(product)}`;
+                    const isOutOfStock = product.stock === 0;
+
+                    return (
+                      <tr key={product.id} className="hover:bg-[var(--vt-chrome)] transition-colors group">
+                        <td className="py-2.5 px-3">
+                          <Link href={productUrl} className="flex items-center gap-2.5 group-hover:text-primary transition-colors">
+                            {product.thumbnailUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={product.thumbnailUrl}
+                                alt={title}
+                                className="h-8 w-8 rounded-xs object-cover border border-border shrink-0 bg-muted"
+                              />
+                            ) : (
+                              <Package className="h-5 w-5 text-[#ffd400] shrink-0" />
+                            )}
+                            <div className="min-w-0">
+                              <span className="font-bold font-display line-clamp-1 text-xs sm:text-sm">
+                                {title}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground block sm:hidden">
+                                {product.category || "General"}
+                              </span>
+                            </div>
+                          </Link>
+                        </td>
+                        <td className="py-2.5 px-3 hidden sm:table-cell">
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-2xs bg-muted border border-border">
+                            {product.category || "General"}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 whitespace-nowrap font-pixel font-bold text-xs text-primary">
+                          {formatIdr(product.priceAmount || 0)}
+                        </td>
+                        <td className="py-2.5 px-3 whitespace-nowrap text-[10px] hidden md:table-cell">
+                          {isOutOfStock ? (
+                            <span className="text-red-500 font-bold">Habis</span>
+                          ) : (
+                            <span className="text-emerald-600 dark:text-emerald-400 font-bold">Tersedia</span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => buyNow(product)}
+                              disabled={isOutOfStock}
+                              className="vt-btn vt-btn-pink px-2.5 py-1 text-[11px] font-bold cursor-pointer disabled:opacity-40"
+                            >
+                              <span>Beli</span>
+                            </button>
+                            <Link
+                              href={productUrl}
+                              className="vt-btn vt-btn-chrome px-2 py-1 text-[11px] font-bold inline-flex items-center"
+                              title="Lihat Detail"
+                            >
+                              <ArrowUpRight className="h-3 w-3" />
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </OSWindow>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-            {filteredProducts.map((product, index) => {
+            {displayedProducts.map((product, index) => {
               const title = language === "en" && product.titleEn ? product.titleEn : product.title;
               const description =
                 language === "en" && product.descriptionEn ? product.descriptionEn : product.description;
@@ -552,6 +697,42 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Load More & Catalog Navigation */}
+        {filteredProducts.length > 0 && (
+          <div className="mt-8 pt-4 border-t-2 border-[var(--vt-edge-hi-2)] flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-xs">
+            <span className="text-muted-foreground text-[11px]">
+              {language === "en"
+                ? `Showing ${displayedProducts.length} of ${filteredProducts.length} products`
+                : `Menampilkan ${displayedProducts.length} dari ${filteredProducts.length} produk`}
+            </span>
+
+            <div className="flex items-center gap-3 flex-wrap justify-center sm:justify-end">
+              {filteredProducts.length > visibleCount && (
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((prev) => prev + 6)}
+                  className="vt-btn vt-btn-chrome px-3.5 py-1.5 text-xs font-bold text-foreground flex items-center gap-1.5 cursor-pointer hover:border-[var(--vt-pink)] shadow-xs"
+                >
+                  <span className="text-[var(--vt-pink)] font-extrabold">+</span>
+                  <span>
+                    {language === "en"
+                      ? `Load ${Math.min(6, filteredProducts.length - visibleCount)} More (${filteredProducts.length - visibleCount} remaining)`
+                      : `Muat ${Math.min(6, filteredProducts.length - visibleCount)} Produk Lagi (Sisa ${filteredProducts.length - visibleCount})`}
+                  </span>
+                </button>
+              )}
+
+              <Link
+                href="/toko"
+                className="vt-btn vt-btn-pink px-4 py-1.5 text-xs font-bold font-mono inline-flex items-center gap-1.5 shadow-sm hover:scale-[1.02] transition-transform"
+              >
+                <span>{language === "en" ? "Visit Full Digital Store" : "Kunjungi Katalog Toko Lengkap"}</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
           </div>
         )}
       </div>
