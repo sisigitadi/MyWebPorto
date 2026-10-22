@@ -73,6 +73,7 @@ export default function AdminProfilePage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [isPending, startTransition] = useTransition();
   const [translating, setTranslating] = useState(false);
+  const [translatingBadge, setTranslatingBadge] = useState(false);
   // `profile` berganti identitas pada tiap ketikan, jadi ia tidak bisa
   // dipakai langsung sebagai sessionKey. `profileVersion` dinaikkan saat
   // baseline harus direset: setelah muat awal & setelah simpan berhasil.
@@ -162,6 +163,26 @@ export default function AdminProfilePage() {
       });
     } finally {
       setTranslating(false);
+    }
+  };
+
+  const handleTranslateBadge = async () => {
+    if (!profile.availabilityBadge?.trim()) return;
+    setTranslatingBadge(true);
+    try {
+      const res = await translateFieldAction(profile.availabilityBadge, "id", "en");
+      if (res.success && res.text && !isTranslationErrorPayload(res.text)) {
+        setProfile((prev) => ({ ...prev, availabilityBadgeEn: res.text }));
+        toast.success("Label ketersediaan berhasil diterjemahkan!");
+      } else {
+        toast.error("Gagal menerjemahkan label ketersediaan", {
+          description: res.error || "Layanan penerjemah tidak valid.",
+        });
+      }
+    } catch {
+      toast.error("Gagal menerjemahkan teks");
+    } finally {
+      setTranslatingBadge(false);
     }
   };
 
@@ -526,9 +547,26 @@ export default function AdminProfilePage() {
                     </p>
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="availabilityBadgeEn" className="text-xs font-medium">
-                      Label Badge Ketersediaan (EN)
-                    </Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="availabilityBadgeEn" className="text-xs font-medium">
+                        Label Badge Ketersediaan (EN)
+                      </Label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleTranslateBadge}
+                        disabled={translatingBadge || !profile.availabilityBadge?.trim()}
+                        className="h-6 px-1.5 text-[10px] gap-1 text-primary hover:bg-primary/10"
+                      >
+                        {translatingBadge ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3 w-3" />
+                        )}
+                        <span>Terjemahkan (ID &rarr; EN)</span>
+                      </Button>
+                    </div>
                     <Input
                       id="availabilityBadgeEn"
                       value={profile.availabilityBadgeEn || ""}
