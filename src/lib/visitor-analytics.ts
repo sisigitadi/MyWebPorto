@@ -3,6 +3,20 @@ import { sql, desc, eq } from "drizzle-orm";
 import { db, isDbConnected } from "@/db";
 import { visitorHits } from "@/db/schema";
 
+function toRows<T>(result: unknown): T[] {
+  if (Array.isArray(result)) return result as T[];
+  if (
+    result &&
+    typeof result === "object" &&
+    "rows" in result &&
+    Array.isArray((result as { rows: unknown[] }).rows)
+  ) {
+    return (result as { rows: T[] }).rows;
+  }
+  return [];
+}
+
+
 export interface ParsedUA {
   isBot: boolean;
   device: "desktop" | "mobile" | "tablet" | "bot" | "unknown";
@@ -625,10 +639,12 @@ export async function getVisitorAnalytics(
       WHERE ${botCondition} AND created_at >= ${startOfTodayJakarta}
     `);
 
-    const totalHits = Number(totalQuery.rows[0]?.total_hits || 0);
-    const uniqueVisitors = Number(totalQuery.rows[0]?.unique_visitors || 0);
-    const todayHits = Number(todayQuery.rows[0]?.today_hits || 0);
-    const todayUniq = Number(todayQuery.rows[0]?.today_uniq || 0);
+    const totalRows = toRows<{ total_hits: number; unique_visitors: number }>(totalQuery);
+    const todayRows = toRows<{ today_hits: number; today_uniq: number }>(todayQuery);
+    const totalHits = Number(totalRows[0]?.total_hits || 0);
+    const uniqueVisitors = Number(totalRows[0]?.unique_visitors || 0);
+    const todayHits = Number(todayRows[0]?.today_hits || 0);
+    const todayUniq = Number(todayRows[0]?.today_uniq || 0);
 
     // 2. Top Pages
     const pagesQuery = await db.execute<{
@@ -647,7 +663,7 @@ export async function getVisitorAnalytics(
       LIMIT 15
     `);
 
-    const topPages: PageStat[] = pagesQuery.rows.map((r) => ({
+    const topPages: PageStat[] = toRows<{ path: string; hits: number; unique: number }>(pagesQuery).map((r) => ({
       path: String(r.path),
       hits: Number(r.hits),
       unique: Number(r.unique),
@@ -670,7 +686,7 @@ export async function getVisitorAnalytics(
 
     // Grouping per domain
     const domainMap = new Map<string, { referrer: string; domain: string; hits: number }>();
-    for (const r of referrersQuery.rows) {
+    for (const r of toRows<{ referrer: string | null; hits: number }>(referrersQuery)) {
       const ref = r.referrer === "direct" ? null : String(r.referrer);
       const domain = extractReferrerDomain(ref);
       const hits = Number(r.hits);
@@ -699,7 +715,7 @@ export async function getVisitorAnalytics(
         LIMIT ${limit}
       `);
 
-      return res.rows.map((r) => ({
+      return toRows<{ name: string | null; count: number }>(res).map((r) => ({
         name: String(r.name || "Unknown"),
         count: Number(r.count),
         percentage: totalHits > 0 ? Math.round((Number(r.count) / totalHits) * 100) : 0,
@@ -776,13 +792,13 @@ export async function getVisitorAnalytics(
       };
     });
 
-    const cityBreakdown: CityStat[] = citiesQuery.rows.map((r) => ({
+    const cityBreakdown: CityStat[] = toRows<{ city: string | null; count: number }>(citiesQuery).map((r) => ({
       city: String(r.city || "Unknown"),
       count: Number(r.count),
       percentage: totalHits > 0 ? Math.round((Number(r.count) / totalHits) * 100) : 0,
     }));
 
-    const timezoneBreakdown: TimezoneStat[] = timezonesQuery.rows.map((r) => ({
+    const timezoneBreakdown: TimezoneStat[] = toRows<{ timezone: string | null; count: number }>(timezonesQuery).map((r) => ({
       timezone: String(r.timezone || "Unknown"),
       count: Number(r.count),
       percentage: totalHits > 0 ? Math.round((Number(r.count) / totalHits) * 100) : 0,
@@ -790,7 +806,7 @@ export async function getVisitorAnalytics(
 
     // Agregasi nama jaringan manusiawi yang rapi dan terstandardisasi
     const networkMap = new Map<string, number>();
-    for (const r of networksQuery.rows) {
+    for (const r of toRows<{ network: string | null; asn: string | null; count: number }>(networksQuery)) {
       const cleanName = formatReadableNetwork(r.network, r.asn);
       networkMap.set(cleanName, (networkMap.get(cleanName) || 0) + Number(r.count));
     }
@@ -803,7 +819,12 @@ export async function getVisitorAnalytics(
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
-    const locationBreakdown: LocationStat[] = locationsQuery.rows.map((r) => {
+    const locationBreakdown: LocationStat[] = toRows<{
+      country: string | null;
+      city: string | null;
+      region: string | null;
+      count: number;
+    }>(locationsQuery).map((r) => {
       const countryInfo = getCountryInfo(r.country);
       const locParts: string[] = [];
       if (r.city) locParts.push(r.city);
@@ -840,7 +861,7 @@ export async function getVisitorAnalytics(
       LIMIT 60
     `);
 
-    const dailyTrend: DailyTrendStat[] = trendQuery.rows.map((r) => ({
+    const dailyTrend: DailyTrendStat[] = toRows<{ day: string; hits: number; unique: number }>(trendQuery).map((r) => ({
       date: String(r.day),
       hits: Number(r.hits),
       unique: Number(r.unique),
