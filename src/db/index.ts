@@ -11,14 +11,25 @@ export const isDbConnected = Boolean(
 );
 
 
+declare global {
+  // eslint-disable-next-line no-var
+  var __db_client__: ReturnType<typeof postgres> | undefined;
+}
+
 const connectionString = process.env.DATABASE_URL || "postgres://dummy:dummy@localhost/dummy";
 
-const client = postgres(connectionString, {
-  prepare: false,
-  max: 1,
-  idle_timeout: 5,
-  connect_timeout: 10,
-});
+const client =
+  globalThis.__db_client__ ??
+  postgres(connectionString, {
+    prepare: false,
+    max: 5,
+    idle_timeout: 10,
+    connect_timeout: 10,
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  globalThis.__db_client__ = client;
+}
 
 export const db = drizzle(client, { schema });
 

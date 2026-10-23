@@ -67,17 +67,17 @@ export function AdminHeader({ onToggleSidebar, dbConnected }: AdminHeaderProps) 
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
-        {/* Realtime Database Connection Badge — status dari probe layout server */}
+        {/* Realtime Database Connection Badge: status dari probe layout server */}
         {dbConnected !== undefined && (
           dbConnected ? (
             <div className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-[11px] font-mono font-bold">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Neon DB: Connected</span>
+              <span>Supabase DB: Connected</span>
             </div>
           ) : (
             <div className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xs bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-400 text-[11px] font-mono font-bold">
               <span className="h-2 w-2 rounded-full bg-rose-500" />
-              <span>Neon DB: Offline (fallback lokal)</span>
+              <span>Supabase DB: Offline (fallback lokal)</span>
             </div>
           )
         )}
@@ -90,7 +90,7 @@ export function AdminHeader({ onToggleSidebar, dbConnected }: AdminHeaderProps) 
                 ? "bg-emerald-500 animate-pulse"
                 : "bg-rose-500"
             }`}
-            title={dbConnected ? "Neon DB: Connected" : "Neon DB: Offline (fallback lokal)"}
+            title={dbConnected ? "Supabase DB: Connected" : "Supabase DB: Offline (fallback lokal)"}
             aria-label={dbConnected ? "Database terhubung" : "Database offline"}
           />
         )}
