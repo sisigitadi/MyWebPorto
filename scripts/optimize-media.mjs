@@ -2,7 +2,7 @@ import * as dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 dotenv.config();
 
-import { neon } from "@neondatabase/serverless";
+import postgres from "postgres";
 import sharp from "sharp";
 
 const dbUrl = process.env.DATABASE_URL;
@@ -11,7 +11,7 @@ if (!dbUrl) {
   process.exit(1);
 }
 
-const sql = neon(dbUrl);
+const sql = postgres(dbUrl, { prepare: false });
 
 async function run() {
   console.log("🚀 Memulai optimasi seluruh media di database ke WebP / SVG...");
@@ -99,6 +99,7 @@ async function run() {
   console.log(`- Ukuran Akhir: ${(totalAfter / 1024 / 1024).toFixed(2)} MB`);
   console.log(`- Total Penghematan Storage: ${savedMb} MB (${totalSavedPct}% hemat!)`);
   console.log("===========================================\n");
+  await sql.end();
 }
 
 run().catch((err) => {

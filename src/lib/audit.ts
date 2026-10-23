@@ -9,8 +9,8 @@ import * as schema from "@/db/schema";
 import { verifyAdmin } from "./admin-auth";
 
 /**
- * Audit log admin — best-effort, TIDAK PERNAH melempar error.
- * Urutan tulis: Neon (bila terhubung) → fallback local-store.json.
+ * Audit log admin: best-effort, TIDAK PERNAH melempar error.
+ * Urutan tulis: Supabase (bila terhubung) -> fallback local-store.json.
  * Dibaca kembali di /admin/system via getAuditLogs().
  */
 
@@ -131,7 +131,7 @@ export async function getAuditLogs(limit = 50): Promise<{ logs: AuditLogData[]; 
           detail: r.detail,
           createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt),
         })),
-        source: "Neon PostgreSQL",
+        source: "Supabase PostgreSQL",
       };
     } catch {
       // Fallback ke file di bawah.

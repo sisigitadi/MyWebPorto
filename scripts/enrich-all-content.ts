@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { analyzeSeo, tokenize } from "../src/lib/seo-keywords";
-import { neon } from "@neondatabase/serverless";
+import postgres from "postgres";
 import dotenv from "dotenv";
 
 dotenv.config({ path: ".env.local" });
@@ -521,53 +521,57 @@ localData.projects.forEach((p: any, i: number) => {
 
 console.log(`\nRingkasan: ${totalArticlesPassed}/${localData.articles.length} Artikel 100/100, ${totalProjectsPassed}/${localData.projects.length} Proyek 100/100.`);
 
-// Update ke Database Neon jika DATABASE_URL tersedia
-async function syncToNeon() {
+// Update ke Database PostgreSQL (Supabase) jika DATABASE_URL tersedia
+async function syncToDatabase() {
   if (!process.env.DATABASE_URL) {
     console.log("DATABASE_URL tidak disetel. Lewati update database.");
     return;
   }
-  const sql = neon(process.env.DATABASE_URL);
-  console.log("Mengupdate database Neon...");
+  const sql = postgres(process.env.DATABASE_URL, { prepare: false });
+  console.log("Mengupdate database PostgreSQL (Supabase)...");
 
-  for (const a of localData.articles) {
-    await sql.query(
-      `INSERT INTO articles (id, slug, title, title_en, summary, summary_en, content, content_en, image_url, tags, featured, published, "order", created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
-       ON CONFLICT (slug) DO UPDATE SET
-         title = EXCLUDED.title,
-         summary = EXCLUDED.summary,
-         content = EXCLUDED.content,
-         updated_at = NOW()`,
-      [
-        a.id,
-        a.slug,
-        a.title,
-        a.titleEn || null,
-        a.summary,
-        a.summaryEn || null,
-        a.content,
-        a.contentEn || null,
-        a.imageUrl || null,
-        JSON.stringify(a.tags || []),
-        a.featured ?? true,
-        a.published ?? true,
-        a.order ?? 0,
-        a.createdAt || new Date().toISOString(),
-      ]
-    );
-  }
-  console.log("Seluruh Artikel di database Neon berhasil disinkronkan!");
+  try {
+    for (const a of localData.articles) {
+      await sql.unsafe(
+        `INSERT INTO articles (id, slug, title, title_en, summary, summary_en, content, content_en, image_url, tags, featured, published, "order", created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
+         ON CONFLICT (slug) DO UPDATE SET
+           title = EXCLUDED.title,
+           summary = EXCLUDED.summary,
+           content = EXCLUDED.content,
+           updated_at = NOW()`,
+        [
+          a.id,
+          a.slug,
+          a.title,
+          a.titleEn || null,
+          a.summary,
+          a.summaryEn || null,
+          a.content,
+          a.contentEn || null,
+          a.imageUrl || null,
+          JSON.stringify(a.tags || []),
+          a.featured ?? true,
+          a.published ?? true,
+          a.order ?? 0,
+          a.createdAt || new Date().toISOString(),
+        ]
+      );
+    }
+    console.log("Seluruh Artikel di database berhasil disinkronkan!");
 
-  for (const p of localData.projects) {
-    await sql.query(
-      `UPDATE projects SET title = $1, summary = $2, description = $3, updated_at = NOW() WHERE slug = $4`,
-      [p.title, p.summary, p.description, p.slug]
-    );
+    for (const p of localData.projects) {
+      await sql.unsafe(
+        `UPDATE projects SET title = $1, summary = $2, description = $3, updated_at = NOW() WHERE slug = $4`,
+        [p.title, p.summary, p.description, p.slug]
+      );
+    }
+    console.log("Seluruh Proyek di database berhasil disinkronkan!");
+  } finally {
+    await sql.end();
   }
-  console.log("Seluruh Proyek di database Neon berhasil disinkronkan!");
 }
 
-syncToNeon().then(() => {
+syncToDatabase().then(() => {
   console.log("Sinkronisasi database selesai!");
 });

@@ -27,9 +27,9 @@ async function cloudAIDetail(): Promise<string> {
 
 function storageDetail(): string {
   if (!isDbConnected) {
-    return "Database belum dikonfigurasi — upload gambar tidak akan tersimpan. Isi DATABASE_URL (Neon Postgres).";
+    return "Database belum dikonfigurasi: upload gambar tidak akan tersimpan. Isi DATABASE_URL (Supabase PostgreSQL).";
   }
-  return "Postgres bytea (tabel media) — gambar disimpan langsung di database, dilayani via GET /api/media/<id> dengan cache immutable. Persisten di semua environment, tanpa CDN eksternal.";
+  return "Postgres bytea (tabel media): gambar disimpan langsung di database, dilayani via GET /api/media/<id> dengan cache immutable. Persisten di semua environment, tanpa CDN eksternal.";
 }
 
 /**
@@ -133,7 +133,7 @@ export async function getSystemStatus(): Promise<SystemStatus> {
     },
     {
       key: "DATABASE_URL",
-      label: "Neon PostgreSQL",
+      label: "Supabase PostgreSQL",
       configured: isDbConnected,
       maskedValue: maskSecret(dbUrl, 12),
       hint: "Tanpa ini aplikasi fallback ke data/local-store.json.",

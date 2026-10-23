@@ -10,9 +10,9 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
- * Tipe bytea untuk Drizzle — drizzle-orm 0.45 tidak menyediakannya
- * bawaan, jadi didefinisikan via customType. Driver neon HTTP mengirim
- * biner terenkode base64 di wire dan mengembalikan Buffer saat dibaca.
+ * Tipe bytea untuk Drizzle: drizzle-orm 0.45 tidak menyediakannya
+ * bawaan, jadi didefinisikan via customType. Driver postgres-js mengirim
+ * biner Buffer langsung di wire protocol PostgreSQL.
  */
 const bytea = customType<{ data: Buffer }>({
   dataType() {
@@ -316,8 +316,7 @@ export type NewSettingsHistory = typeof settingsHistory.$inferInsert;
  *
  * Mengapa bytea dan bukan base64 di jsonb: jsonb meng-encode biner sebagai
  * base64 (+33% ukuran) dan tidak bisa di-decode native di wire protocol.
- * bytea utuh sampai 2MB terbukti roundtrip mulus lewat neon HTTP driver
- * (probe 2026-10-05).
+ * bytea utuh sampai 2MB terbukti roundtrip mulus lewat driver postgres-js.
  */
 export const media = pgTable(
   "media",
@@ -345,7 +344,8 @@ export type Media = typeof media.$inferSelect;
 export type NewMedia = typeof media.$inferInsert;
 
 /**
- * Visitor analytics / hits log — analitik kunjungan internal di Postgres Neon.
+ * Visitor analytics / hits log: analitik kunjungan internal di PostgreSQL (Supabase).
+ * (Catatan: Pelacakan aktif saat ini dinonaktifkan sesuai konfigurasi sistem).
  *
  * Privasi (UU PDP & Anti-Slop):
  * - IP mentah TIDAK PERNAH disimpan. Hanya salted SHA-256 hash.

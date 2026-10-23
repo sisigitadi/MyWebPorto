@@ -1,7 +1,7 @@
 /**
  * Penyimpanan pengaturan aplikasi (key/value) — SERVER-ONLY.
  *
- * Sama filosofinya dengan actions.ts: Neon Postgres bila DATABASE_URL terisi,
+ * Sama filosofinya dengan actions.ts: database PostgreSQL (Supabase) bila DATABASE_URL terisi,
  * fallback ke file JSON lokal bila tidak (dev/offline). Perbedaan: tabelnya
  * terpisah (`settings`) dan valuenya JSON, karena yang disimpan adalah
  * konfigurasi terstruktur (mis. {provider, apiKey, model} untuk Cloud AI).
@@ -59,7 +59,7 @@ export async function setSetting(key: string, value: unknown): Promise<void> {
           .values({ key, value })
           .onConflictDoUpdate({ target: settings.key, set: { value, updatedAt: new Date() } });
       } catch (dbErr) {
-        console.warn(`setSetting: Neon DB offline/kuota habis untuk "${key}", tersimpan di fallback lokal:`, dbErr);
+        console.warn(`setSetting: Database offline untuk "${key}", tersimpan di fallback lokal:`, dbErr);
       }
     }
   } catch (err) {

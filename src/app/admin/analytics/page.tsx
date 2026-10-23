@@ -18,6 +18,7 @@ import {
   Clock,
   Wifi,
   MapPin,
+  AlertCircle,
 } from "lucide-react";
 import {
   Card,
@@ -64,14 +65,25 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
+      {/* Status Banner Dinonaktifkan */}
+      <div className="flex items-center gap-3 p-3.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200 text-xs">
+        <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
+        <span>
+          <strong>Status: Pelacakan Kunjungan Dinonaktifkan.</strong> Pengumpulan hit baru dan beacon publik saat ini dinonaktifkan. Metrik dan log di bawah ini merupakan data historis tersimpan.
+        </span>
+      </div>
+
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold flex items-center gap-2">
-            <Activity className="h-5 w-5 text-primary" /> Visitor Analytics (Internal Neon)
+            <Activity className="h-5 w-5 text-primary" /> Visitor Analytics
+            <Badge variant="outline" className="text-[10px] h-5 px-1.5 text-amber-600 border-amber-500/40">
+              Nonaktif
+            </Badge>
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Data analitik kunjungan mandiri tersimpan di PostgreSQL Neon · Nol cookie · UU PDP Friendly (salted SHA-256).
+            Data analitik kunjungan mandiri tersimpan di database PostgreSQL (Supabase) · Nol cookie · UU PDP Friendly.
           </p>
         </div>
 
@@ -570,7 +582,7 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
             <Activity className="h-4 w-4 text-primary" /> Log Kunjungan Terbaru (Waktu Asia/Jakarta)
           </CardTitle>
           <CardDescription>
-            30 entri hit terbaru tercatat dalam zona waktu WIB (UTC+7) di PostgreSQL Neon secara real-time.
+            30 entri hit historis tersimpan dalam zona waktu WIB (UTC+7) di database PostgreSQL (Supabase).
           </CardDescription>
         </CardHeader>
         <CardContent>

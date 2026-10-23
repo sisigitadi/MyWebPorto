@@ -6,7 +6,6 @@ import {
   Eye,
   ArrowUpRight,
   Sparkles,
-  Globe2,
   ShoppingBag,
   MessageSquare,
   Phone,
@@ -31,7 +30,6 @@ import { getOrders } from "@/lib/order-actions";
 import { getWABotState } from "@/lib/whatsapp-bot/wa-service";
 import { formatIdr } from "@/lib/whatsapp-order";
 import { isLivePublished } from "@/lib/publish";
-import { getVisitorAnalytics } from "@/lib/visitor-analytics";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -44,7 +42,6 @@ export default async function AdminDashboardPage() {
     services,
     products,
     ordersResult,
-    analytics,
   ] = await Promise.all([
     currentUser(),
     getProfile(),
@@ -52,7 +49,6 @@ export default async function AdminDashboardPage() {
     getServices(),
     getProducts(),
     getOrders().catch(() => ({ success: false, orders: [], total: 0 })),
-    getVisitorAnalytics("30d", false).catch(() => null),
   ]);
 
   const orders = Array.isArray(ordersResult)
@@ -345,58 +341,7 @@ export default async function AdminDashboardPage() {
         </Card>
       </div>
 
-      {/* Sebaran Geografi & Trafik Pengunjung (Internal Neon) */}
-      <Card className="border border-border">
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 gap-2">
-          <div>
-            <div className="flex items-center gap-2">
-              <Globe2 className="h-4 w-4 text-primary" />
-              <CardTitle className="text-base font-semibold text-foreground">
-                Sebaran Geografi Pengunjung (30 Hari)
-              </CardTitle>
-            </div>
-            <CardDescription className="text-xs text-muted-foreground mt-0.5">
-              Data analitik privat dari beacon tanpa cookies.
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs font-mono">
-              Total Hits: {analytics?.totalHits ?? 0}
-            </Badge>
-            <Button asChild variant="ghost" size="sm" className="h-7 text-xs">
-              <Link href="/admin/analytics">
-                Detail Lengkap
-                <ArrowUpRight className="h-3 w-3 ml-1" />
-              </Link>
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-3 rounded-lg border border-border bg-muted/20 space-y-1">
-              <span className="text-xs text-muted-foreground">Pengunjung Unik</span>
-              <p className="text-xl font-bold font-mono text-foreground">
-                {analytics?.uniqueVisitors ?? 0}
-              </p>
-            </div>
-            <div className="p-3 rounded-lg border border-border bg-muted/20 space-y-1">
-              <span className="text-xs text-muted-foreground">Tayangan Halaman (Hits)</span>
-              <p className="text-xl font-bold font-mono text-foreground">
-                {analytics?.totalHits ?? 0}
-              </p>
-            </div>
-            <div className="p-3 rounded-lg border border-border bg-muted/20 space-y-1">
-              <span className="text-xs text-muted-foreground">Aktivitas Hari Ini</span>
-              <p className="text-xl font-bold font-mono text-foreground">
-                {analytics?.todayHits ?? 0}{" "}
-                <span className="text-xs font-normal text-muted-foreground">
-                  ({analytics?.todayUniq ?? 0} unik)
-                </span>
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+
 
       {/* Row Bawah: Karya Terbaru & Status Profil */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

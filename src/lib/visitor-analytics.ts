@@ -242,29 +242,27 @@ export interface VisitorHitPayload {
   region?: string;
 }
 
+export const VISITOR_ANALYTICS_ENABLED = false;
+
 /**
- * Catat satu hit kunjungan ke Postgres Neon secara aman dan non-blocking.
+ * Catat satu hit kunjungan ke database PostgreSQL secara aman dan non-blocking.
+ * Jika VISITOR_ANALYTICS_ENABLED bernilai false, hit tidak akan disimpan ke database.
  */
 export async function recordVisitorHit(
-  headers: Headers,
+  headers?: Headers,
   payload: VisitorHitPayload = {}
-): Promise<{ ok: boolean; rateLimited?: boolean }> {
+): Promise<{ ok: boolean; rateLimited?: boolean; disabled?: boolean }> {
   try {
     const rawPath = typeof payload?.path === "string" ? payload.path.trim() : "/";
     const path = rawPath.startsWith("/") ? rawPath.slice(0, 500) : `/${rawPath.slice(0, 499)}`;
-    const referrer = typeof payload?.referrer === "string" && payload.referrer.trim()
-      ? payload.referrer.trim().slice(0, 500)
-      : null;
 
     // Ambil IP klien dari header reverse proxy
-    const forwarded = headers.get("x-forwarded-for");
-    const realIp = headers.get("x-real-ip");
-    const cfIp = headers.get("cf-connecting-ip");
+    const forwarded = headers?.get("x-forwarded-for");
+    const realIp = headers?.get("x-real-ip");
+    const cfIp = headers?.get("cf-connecting-ip");
     const ip = forwarded ? forwarded.split(",")[0].trim() : realIp || cfIp || "127.0.0.1";
 
     const ipHash = hashIp(ip);
-    const ua = headers.get("user-agent") || "";
-    const parsed = parseUserAgent(ua);
 
     // Debounce hit burst dari IP yang sama pada path yang sama dalam 2.5 detik
     const cacheKey = `${ipHash}:${path}`;
@@ -282,113 +280,13 @@ export async function recordVisitorHit(
       }
     }
 
-    // Geolocation dari Edge headers (Vercel, Cloudflare, dsb.)
-    const country =
-      headers.get("x-vercel-ip-country") ||
-      headers.get("cf-ipcountry") ||
-      headers.get("x-country") ||
-      headers.get("x-geo-country") ||
-      (typeof payload?.country === "string" ? payload.country : null) ||
-      null;
-
-    const rawCity =
-      headers.get("x-vercel-ip-city") ||
-      headers.get("cf-ipcity") ||
-      headers.get("x-city") ||
-      headers.get("x-geo-city") ||
-      (typeof payload?.city === "string" ? payload.city : null) ||
-      null;
-
-    let city: string | null = rawCity ? rawCity.trim() : null;
-    if (city) {
-      try {
-        city = decodeURIComponent(city);
-      } catch {
-        // Format non-URI decode aman dibiarkan utuh
-      }
-    }
-
-    const rawRegion =
-      headers.get("x-vercel-ip-country-region") ||
-      headers.get("cf-region") ||
-      headers.get("cf-region-code") ||
-      headers.get("x-region") ||
-      headers.get("x-geo-region") ||
-      (typeof payload?.region === "string" ? payload.region : null) ||
-      null;
-
-    let region: string | null = rawRegion ? rawRegion.trim() : null;
-    if (region) {
-      try {
-        region = decodeURIComponent(region);
-      } catch {
-        // ignore
-      }
-    }
-
-    // Timezone dari Client Intl atau Edge Header
-    const timezone =
-      (typeof payload?.timezone === "string" && payload.timezone.trim() ? payload.timezone.trim() : null) ||
-      headers.get("x-vercel-ip-timezone") ||
-      headers.get("cf-timezone") ||
-      headers.get("x-timezone") ||
-      null;
-
-    // ASN & Network ISP
-    const rawAsn =
-      headers.get("x-vercel-ip-as-number") ||
-      headers.get("cf-asnumber") ||
-      headers.get("x-asn") ||
-      null;
-    const asn = rawAsn
-      ? rawAsn.toUpperCase().startsWith("AS")
-        ? rawAsn.toUpperCase()
-        : `AS${rawAsn}`
-      : null;
-
-    const rawOrg =
-      headers.get("x-vercel-ip-as-org") ||
-      headers.get("cf-as-org") ||
-      headers.get("cf-asn-name") ||
-      null;
-
-    let rawNetwork: string | null = null;
-    if (rawOrg) {
-      try {
-        rawNetwork = decodeURIComponent(rawOrg.trim());
-      } catch {
-        rawNetwork = rawOrg.trim();
-      }
-    } else if (asn) {
-      rawNetwork = asn;
-    } else if (typeof payload?.connection === "string" && payload.connection.trim()) {
-      rawNetwork = `Cellular / ${payload.connection.trim()}`;
-    }
-
-    const readableNetwork = formatReadableNetwork(rawNetwork, asn);
-
-    if (isDbConnected) {
-      await db.insert(visitorHits).values({
-        ipHash,
-        path,
-        referrer,
-        userAgent: ua ? ua.slice(0, 500) : null,
-        browser: parsed.browser,
-        os: parsed.os,
-        device: parsed.device,
-        country: country ? country.toUpperCase().slice(0, 10) : null,
-        city: city ? city.slice(0, 100) : null,
-        region: region ? region.slice(0, 100) : null,
-        timezone: timezone ? timezone.slice(0, 100) : null,
-        asn: asn ? asn.slice(0, 50) : null,
-        network: readableNetwork ? readableNetwork.slice(0, 150) : null,
-        isBot: parsed.isBot,
-      });
+    // Jika pelacakan dinonaktifkan, hentikan tanpa menulis ke database
+    if (!VISITOR_ANALYTICS_ENABLED) {
+      return { ok: true, disabled: true };
     }
 
     return { ok: true };
   } catch (err) {
-    // Analytics tidak boleh menggagalkan flow aplikasi
     console.warn("visitor analytics record warning:", err instanceof Error ? err.message : err);
     return { ok: false };
   }
@@ -562,7 +460,7 @@ export function extractReferrerDomain(rawReferrer: string | null | undefined): s
 }
 
 /**
- * Ambil analitik lengkap dari Postgres Neon.
+ * Ambil analitik lengkap dari database PostgreSQL.
  */
 export async function getVisitorAnalytics(
   range: AnalyticsRange = "30d",
@@ -612,9 +510,12 @@ export async function getVisitorAnalytics(
       since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     }
 
+    const sinceIso = since ? since.toISOString() : null;
+    const startOfTodayJakartaIso = startOfTodayJakarta.toISOString();
+
     // Filter kondisi query
     const botCondition = includeBots ? sql`1=1` : sql`is_bot = false`;
-    const rangeCondition = since ? sql`created_at >= ${since}` : sql`1=1`;
+    const rangeCondition = sinceIso ? sql`created_at >= ${sinceIso}::timestamptz` : sql`1=1`;
 
     // 1. Overall stats
     const totalQuery = await db.execute<{
@@ -636,7 +537,7 @@ export async function getVisitorAnalytics(
         COUNT(*)::int AS today_hits,
         COUNT(DISTINCT ip_hash)::int AS today_uniq
       FROM visitor_hits
-      WHERE ${botCondition} AND created_at >= ${startOfTodayJakarta}
+      WHERE ${botCondition} AND created_at >= ${startOfTodayJakartaIso}::timestamptz
     `);
 
     const totalRows = toRows<{ total_hits: number; unique_visitors: number }>(totalQuery);

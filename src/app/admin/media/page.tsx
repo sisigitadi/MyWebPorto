@@ -25,7 +25,7 @@ export default async function AdminMediaPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             Penyimpanan aktif{" "}
-            <Badge variant="default">Database (Neon Postgres)</Badge>
+            <Badge variant="default">Database (Supabase PostgreSQL)</Badge>
           </CardTitle>
           <CardDescription>
             Gambar disimpan langsung di Postgres (bytea) dan dilayani via /api/media/&lt;id&gt;. Persisten di semua environment, tanpa CDN eksternal.

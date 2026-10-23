@@ -291,7 +291,7 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
           ? new URLSearchParams(window.location.search).get("ref") || undefined
           : undefined;
 
-      // 1. Simpan pesanan ke database Neon secara persisten
+      // 1. Simpan pesanan ke database PostgreSQL (Supabase) secara persisten
       const orderRes = await createOrder({
         customerName: customer.name,
         customerPhone: customer.phone,
