@@ -2,7 +2,9 @@ import * as dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 dotenv.config();
 
-import { neon } from "@neondatabase/serverless";
+import fs from "fs";
+import path from "path";
+import postgres from "postgres";
 
 const dbUrl = process.env.DATABASE_URL;
 if (!dbUrl) {
@@ -10,243 +12,307 @@ if (!dbUrl) {
   process.exit(1);
 }
 
-const sql = neon(dbUrl);
+const sql = postgres(dbUrl, { prepare: false });
 
 async function seed() {
-  console.log("🌱 Menjalankan seed data awal ke Neon PostgreSQL...");
+  console.log("🌱 Menjalankan seed data ke PostgreSQL (Supabase / Universal)...");
 
   try {
-    // 1. Profil
+    // 1. Media Library (bila file ada di disk)
+    const mediaFiles = [
+      { id: "caa97511-be71-4c45-8972-7a01ffc722dc", file: "profile-avatar.jpg", mime: "image/jpeg", name: "profile-avatar.jpg" },
+      { id: "ab382469-a191-4094-8514-eaafb01801f9", file: "1791098437470-5b89105b.png", mime: "image/png", name: "payment-qris.png" },
+      { id: "a269091a-0db1-4c1a-ae11-34543cd41224", file: "1789433754543-7f16f6aa.webp", mime: "image/webp", name: "fajar-nugroho-avatar.webp" },
+      { id: "3f069a13-121d-485a-9daa-7596533d5412", file: "1789177425748-93e9001a.png", mime: "image/png", name: "halaqah-dashboard-cover.png" },
+      { id: "0b15a13f-7953-49ec-b55e-9c95bf9d6767", file: "1791150657181-86612d05.png", mime: "image/png", name: "chatgpt-video-cover.png" },
+    ];
+
+    for (const m of mediaFiles) {
+      const fullPath = path.join(process.cwd(), "public", "uploads", m.file);
+      if (fs.existsSync(fullPath)) {
+        const buffer = fs.readFileSync(fullPath);
+        await sql`
+          INSERT INTO media (id, name, mime, size, data, created_at)
+          VALUES (${m.id}, ${m.name}, ${m.mime}, ${buffer.length}, ${buffer}, NOW())
+          ON CONFLICT (id) DO UPDATE SET
+            name = EXCLUDED.name,
+            mime = EXCLUDED.mime,
+            size = EXCLUDED.size,
+            data = EXCLUDED.data;
+        `;
+      }
+    }
+    console.log("✅ Media library berhasil diperiksa & di-seed.");
+
+    // 2. Baca data/local-store.json bila tersedia
+    const storePath = path.join(process.cwd(), "data", "local-store.json");
+    let store = null;
+    if (fs.existsSync(storePath)) {
+      try {
+        store = JSON.parse(fs.readFileSync(storePath, "utf-8"));
+      } catch (e) {
+        console.warn("⚠️ Gagal membaca data/local-store.json, beralih ke fallback dummy:", e);
+      }
+    }
+
+    // 3. Profil
+    const p = store?.profile || {
+      id: "owner",
+      name: "Sigit",
+      headline: "Web Developer & Systems Architect",
+      headlineEn: "Web Developer & Systems Architect",
+      bio: "Saya membantu UMKM dan kreator digital membangun website yang cepat, profesional, dan mudah digunakan.",
+      bioEn: "I help SMBs and digital creators build fast, professional, and intuitive websites.",
+      avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=600&auto=format&fit=crop",
+      email: "x@sigitadi.id",
+      phone: "6281234567890",
+      location: "Indonesia",
+      availableForHire: true,
+      skills: ["Next.js 15", "React", "TypeScript", "Tailwind CSS", "Drizzle ORM", "PostgreSQL", "UI/UX Design", "Content Strategy"],
+      stats: [{ label: "Tahun Pengalaman", labelEn: "Years Experience", value: "4+" }, { label: "Proyek Selesai", labelEn: "Projects Done", value: "25+" }, { label: "Kepuasan Klien", labelEn: "Client Rating", value: "100%" }],
+      socialLinks: { github: "https://github.com/sisigitadi", linkedin: "https://linkedin.com/in/sigit", instagram: "https://instagram.com/sigit", twitter: "https://twitter.com/sigit" },
+    };
+
     await sql`
       INSERT INTO profiles (
-        id, name, headline, headline_en, bio, bio_en, avatar_url, email, phone, location, available_for_hire, skills, stats, social_links, updated_at
+        id, name, headline, headline_en, bio, bio_en, avatar_url, email, phone, location,
+        cv_url, payment_qr_url, payment_bank_info, available_for_hire, availability_badge,
+        availability_badge_en, skills, stats, social_links, updated_at
       ) VALUES (
-        'owner',
-        'Sigit',
-        'Web Developer & Systems Architect',
-        'Web Developer & Systems Architect',
-        'Saya membantu UMKM dan kreator digital membangun website yang cepat, profesional, dan mudah digunakan.',
-        'I help SMBs and digital creators build fast, professional, and intuitive websites.',
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=600&auto=format&fit=crop',
-        'x@sigitadi.id',
-        '6281234567890',
-        'Indonesia',
-        true,
-        '["Next.js 15", "React", "TypeScript", "Tailwind CSS", "Drizzle ORM", "PostgreSQL", "UI/UX Design", "Content Strategy"]'::jsonb,
-        '[{"label": "Tahun Pengalaman", "labelEn": "Years Experience", "value": "4+"}, {"label": "Proyek Selesai", "labelEn": "Projects Done", "value": "25+"}, {"label": "Kepuasan Klien", "labelEn": "Client Rating", "value": "100%"}]'::jsonb,
-        '{"github": "https://github.com/sisigitadi", "linkedin": "https://linkedin.com/in/sigit", "instagram": "https://instagram.com/sigit", "twitter": "https://twitter.com/sigit"}'::jsonb,
+        ${p.id || "owner"},
+        ${p.name},
+        ${p.headline},
+        ${p.headlineEn || null},
+        ${p.bio},
+        ${p.bioEn || null},
+        ${p.avatarUrl || null},
+        ${p.email},
+        ${p.phone || null},
+        ${p.location || null},
+        ${p.cvUrl || null},
+        ${p.paymentQrUrl || null},
+        ${p.paymentBankInfo || null},
+        ${p.availableForHire ?? true},
+        ${p.availabilityBadge || null},
+        ${p.availabilityBadgeEn || null},
+        ${JSON.stringify(p.skills || [])}::jsonb,
+        ${JSON.stringify(p.stats || [])}::jsonb,
+        ${JSON.stringify(p.socialLinks || {})}::jsonb,
         NOW()
       )
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         headline = EXCLUDED.headline,
+        headline_en = EXCLUDED.headline_en,
         bio = EXCLUDED.bio,
+        bio_en = EXCLUDED.bio_en,
+        avatar_url = EXCLUDED.avatar_url,
+        email = EXCLUDED.email,
+        phone = EXCLUDED.phone,
+        location = EXCLUDED.location,
+        cv_url = EXCLUDED.cv_url,
+        payment_qr_url = EXCLUDED.payment_qr_url,
+        payment_bank_info = EXCLUDED.payment_bank_info,
+        available_for_hire = EXCLUDED.available_for_hire,
+        availability_badge = EXCLUDED.availability_badge,
+        availability_badge_en = EXCLUDED.availability_badge_en,
+        skills = EXCLUDED.skills,
+        stats = EXCLUDED.stats,
+        social_links = EXCLUDED.social_links,
         updated_at = NOW();
     `;
     console.log("✅ Profil 'owner' berhasil di-seed.");
 
-    // 2. Layanan (Services)
-    const services = [
-      {
-        id: "serv-1",
-        title: "Pembuatan Website Profesional",
-        titleEn: "Professional Website Development",
-        description: "Saya membantu Anda membuat website company profile, landing page, atau aplikasi bisnis yang modern, responsif, dan optimal dalam kecepatan akses.",
-        descriptionEn: "I help you craft modern, responsive, and ultra-fast company profiles, high-converting landing pages, and web applications tailored to your business needs.",
-        order: 1,
-      },
-      {
-        id: "serv-2",
-        title: "UI/UX Design & Prototyping",
-        titleEn: "UI/UX Design & Prototyping",
-        description: "Saya merancang antarmuka aplikasi yang bersih, mudah dipakai pengguna awam, dan selaras dengan identitas visual merek Anda menggunakan Figma.",
-        descriptionEn: "I design clean, intuitive interfaces and interactive prototypes that seamlessly align with your visual identity using Figma.",
-        order: 2,
-      },
-      {
-        id: "serv-3",
-        title: "Optimasi Kinerja & SEO Web",
-        titleEn: "Performance Optimization & Web SEO",
-        description: "Audit mendalam terhadap performa web, Core Web Vitals, struktur metadata Open Graph, serta optimasi kecepatan muat halaman untuk peringkat Google lebih tinggi.",
-        descriptionEn: "In-depth audits on Core Web Vitals, metadata structuring, and loading speed optimization to ensure higher search rankings and smoother UX.",
-        order: 3,
-      },
+    // 4. Layanan (Services)
+    const services = store?.services || [
+      { id: "serv-1", title: "Pembuatan Website Profesional", titleEn: "Professional Website Development", description: "Saya membantu Anda membuat website company profile, landing page, atau aplikasi bisnis yang modern, responsif, dan optimal dalam kecepatan akses.", descriptionEn: "I help you craft modern, responsive, and ultra-fast company profiles, high-converting landing pages, and web applications tailored to your business needs.", order: 1 },
+      { id: "serv-2", title: "UI/UX Design & Prototyping", titleEn: "UI/UX Design & Prototyping", description: "Saya merancang antarmuka aplikasi yang bersih, mudah dipakai pengguna awam, dan selaras dengan identitas visual merek Anda menggunakan Figma.", descriptionEn: "I design clean, intuitive interfaces and interactive prototypes that seamlessly align with your visual identity using Figma.", order: 2 },
+      { id: "serv-3", title: "Optimasi Kinerja & SEO Web", titleEn: "Performance Optimization & Web SEO", description: "Audit mendalam terhadap performa web, Core Web Vitals, struktur metadata Open Graph, serta optimasi kecepatan muat halaman untuk peringkat Google lebih tinggi.", descriptionEn: "In-depth audits on Core Web Vitals, metadata structuring, and loading speed optimization to ensure higher search rankings and smoother UX.", order: 3 },
     ];
 
     for (const s of services) {
       await sql`
         INSERT INTO services (id, title, title_en, description, description_en, published, "order", updated_at, created_at)
-        VALUES (${s.id}, ${s.title}, ${s.titleEn}, ${s.description}, ${s.descriptionEn}, true, ${s.order}, NOW(), NOW())
+        VALUES (${s.id}, ${s.title}, ${s.titleEn || null}, ${s.description}, ${s.descriptionEn || null}, ${s.published ?? true}, ${s.order ?? 0}, NOW(), NOW())
         ON CONFLICT (id) DO UPDATE SET
           title = EXCLUDED.title,
+          title_en = EXCLUDED.title_en,
           description = EXCLUDED.description,
+          description_en = EXCLUDED.description_en,
+          published = EXCLUDED.published,
+          "order" = EXCLUDED."order",
           updated_at = NOW();
       `;
     }
-    console.log("✅ Layanan berhasil di-seed (3 item).");
+    console.log(`✅ Layanan berhasil di-seed (${services.length} item).`);
 
-    // 3. Proyek (Projects)
-    const projects = [
-      {
-        id: "proj-1",
-        title: "Pojok Baca Digital",
-        titleEn: "Digital Reading Corner",
-        slug: "pojok-baca-digital",
-        summary: "Aplikasi web perpustakaan digital untuk komunitas, dilengkapi katalog buku online, peminjaman otomatis, dan laporan statistik.",
-        summaryEn: "Community digital library web application featuring online book catalogs, automated circulation, and statistical reports.",
-        description: "Pojok Baca Digital dibangun untuk memfasilitasi kebutuhan taman bacaan masyarakat dalam mengelola sirkulasi peminjaman buku fisik dan e-book. Platform ini dilengkapi sistem autentikasi anggota, QR Code untuk scan cepat inventaris buku, dan dasbor analitik real-time.",
-        descriptionEn: "Digital Reading Corner was built to streamline book circulation for community reading parks. Features member authentication, fast QR-code inventory scanning, and real-time analytical dashboards.",
-        imageUrl: "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=800&auto=format&fit=crop",
-        demoUrl: "https://demo.pojokbaca.example.com",
-        repoUrl: "https://github.com/sisigitadi/pojok-baca-digital",
-        techStacks: JSON.stringify(["Next.js", "PostgreSQL", "Tailwind CSS", "Drizzle ORM"]),
-        featured: true,
-        order: 1,
-      },
-      {
-        id: "proj-2",
-        title: "Mading Online Sekolah",
-        titleEn: "Online School Wall Magazine",
-        slug: "mading-online-sekolah",
-        summary: "Platform pengumuman dan majalah dinding digital untuk siswa dan guru di lingkungan sekolah menengah.",
-        summaryEn: "Digital wall magazine and announcements platform for high school students and teachers.",
-        description: "Sebuah platform informasi kampus yang memungkinkan tim jurnalis siswa mempublikasikan artikel, liputan kegiatan sekolah, karya sastra, serta pengumuman penting akademik secara mandiri dengan alur persetujuan guru pembina.",
-        descriptionEn: "A campus media platform enabling student journalists to publish articles, school event coverages, creative writing, and academic announcements with approval workflows.",
-        imageUrl: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=800&auto=format&fit=crop",
-        demoUrl: "https://mading.sekolah.example.com",
-        repoUrl: "https://github.com/sisigitadi/mading-online-sekolah",
-        techStacks: JSON.stringify(["Laravel", "MySQL", "Bootstrap", "Alpine.js"]),
-        featured: true,
-        order: 2,
-      },
-      {
-        id: "proj-3",
-        title: "Sistem Kasir UMKM Sederhana",
-        titleEn: "Simple POS for SMBs",
-        slug: "sistem-kasir-umkm",
-        summary: "Point of Sale (POS) berbasis web ringan untuk pencatatan transaksi kasir warung kopi dan cetak struk bluetooth.",
-        summaryEn: "Lightweight web-based Point of Sale (POS) for coffee shops featuring daily transaction tracking and Bluetooth receipt printing.",
-        description: "Solusi kasir web offline-first yang memudahkan barista dan pemilik kedai kopi mencatat transaksi harian, menghitung stok bahan baku secara otomatis, serta mencetak struk kasir melalui printer thermal.",
-        descriptionEn: "Offline-first POS solution empowering coffee shop owners to record transactions, monitor inventory levels automatically, and print receipts via thermal printers.",
-        imageUrl: "https://images.unsplash.com/photo-1556742049-0a67c5574f73?q=80&w=800&auto=format&fit=crop",
-        demoUrl: "https://pos-umkm.example.com",
-        repoUrl: "https://github.com/sisigitadi/pos-umkm",
-        techStacks: JSON.stringify(["React", "TypeScript", "Tailwind CSS", "IndexedDB"]),
-        featured: true,
-        order: 3,
-      },
-    ];
-
-    for (const p of projects) {
+    // 5. Proyek (Projects)
+    const projects = store?.projects || [];
+    for (const pr of projects) {
       await sql`
         INSERT INTO projects (
-          id, slug, title, title_en, summary, summary_en, description, description_en, image_url, demo_url, repo_url, tech_stacks, featured, published, "order", updated_at, created_at
+          id, slug, title, title_en, summary, summary_en, description, description_en,
+          image_url, demo_url, repo_url, tech_stacks, featured, published, "order",
+          publish_at, updated_at, created_at
         ) VALUES (
-          ${p.id}, ${p.slug}, ${p.title}, ${p.titleEn}, ${p.summary}, ${p.summaryEn}, ${p.description}, ${p.descriptionEn}, ${p.imageUrl}, ${p.demoUrl}, ${p.repoUrl}, ${p.techStacks}::jsonb, ${p.featured}, true, ${p.order}, NOW(), NOW()
+          ${pr.id}, ${pr.slug}, ${pr.title}, ${pr.titleEn || null}, ${pr.summary || null},
+          ${pr.summaryEn || null}, ${pr.description}, ${pr.descriptionEn || null},
+          ${pr.thumbnailUrl || pr.imageUrl}, ${pr.demoUrl || null}, ${pr.repoUrl || null},
+          ${JSON.stringify(pr.techStack || pr.techStacks || [])}::jsonb,
+          ${pr.featured ?? false}, ${pr.published ?? true}, ${pr.order ?? 0},
+          ${pr.publishAt ? new Date(pr.publishAt) : null}, NOW(),
+          ${pr.createdAt ? new Date(pr.createdAt) : new Date()}
         )
         ON CONFLICT (id) DO UPDATE SET
+          slug = EXCLUDED.slug,
           title = EXCLUDED.title,
           title_en = EXCLUDED.title_en,
           summary = EXCLUDED.summary,
           summary_en = EXCLUDED.summary_en,
           description = EXCLUDED.description,
           description_en = EXCLUDED.description_en,
+          image_url = EXCLUDED.image_url,
+          demo_url = EXCLUDED.demo_url,
+          repo_url = EXCLUDED.repo_url,
+          tech_stacks = EXCLUDED.tech_stacks,
+          featured = EXCLUDED.featured,
+          published = EXCLUDED.published,
+          "order" = EXCLUDED."order",
+          publish_at = EXCLUDED.publish_at,
           updated_at = NOW();
       `;
     }
-    console.log("✅ Proyek berhasil di-seed (3 item).");
+    console.log(`✅ Proyek berhasil di-seed (${projects.length} item).`);
 
-    // 4. Produk (Products)
-    const products = [
-      {
-        id: "prod-1",
-        title: "Template Portfolio Notion",
-        titleEn: "Notion Portfolio Template",
-        description: "Template siap pakai dan modular untuk menyusun portofolio profesional di Notion hanya dalam 15 menit.",
-        descriptionEn: "Modular, ready-to-use template to curate a polished, professional portfolio in Notion within 15 minutes.",
-        priceLabel: "Rp75.000",
-        imageUrl: "https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=600&auto=format&fit=crop",
-        ctaUrl: "https://karyakarsa.com/sigitadi/template-notion-porto",
-        order: 1,
-      },
-      {
-        id: "prod-2",
-        title: "E-book Belajar Freelance",
-        titleEn: "Freelance Mastery E-book",
-        description: "Panduan praktis langkah demi langkah memulai karier freelance untuk pemula, mulai dari negosiasi tarif hingga kontrak kerja.",
-        descriptionEn: "Practical step-by-step beginner guide to launching a freelance career, from pricing negotiation to contracts.",
-        priceLabel: "Rp49.000",
-        imageUrl: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=600&auto=format&fit=crop",
-        ctaUrl: "#kontak",
-        order: 2,
-      },
-    ];
-
-    for (const pr of products) {
+    // 6. Produk (Products)
+    const products = store?.products || [];
+    for (const prod of products) {
       await sql`
         INSERT INTO products (
-          id, title, title_en, description, description_en, image_url, price_label, cta_url, published, "order", updated_at, created_at
+          id, slug, title, title_en, description, description_en, image_url, price_label,
+          price_label_en, compare_price_label, price_amount, badge, category, stock,
+          gallery, cta_url, purchase_type, custom_whatsapp, custom_button_label,
+          referral_code, published, "order", updated_at, created_at
         ) VALUES (
-          ${pr.id}, ${pr.title}, ${pr.titleEn}, ${pr.description}, ${pr.descriptionEn}, ${pr.imageUrl}, ${pr.priceLabel}, ${pr.ctaUrl}, true, ${pr.order}, NOW(), NOW()
+          ${prod.id}, ${prod.slug || null}, ${prod.title}, ${prod.titleEn || null},
+          ${prod.description}, ${prod.descriptionEn || null},
+          ${prod.thumbnailUrl || prod.imageUrl},
+          ${prod.priceFormatted || prod.priceLabel || null},
+          ${prod.priceLabelEn || null}, ${prod.comparePriceLabel || null},
+          ${prod.priceAmount || null}, ${prod.badge || null}, ${prod.category || null},
+          ${prod.stock || null}, ${JSON.stringify(prod.gallery || [])}::jsonb,
+          ${prod.ctaUrl || null}, ${prod.purchaseType || "whatsapp"},
+          ${prod.customWhatsapp || null}, ${prod.customButtonLabel || null},
+          ${prod.referralCode || null}, ${prod.published ?? true}, ${prod.order ?? 0},
+          NOW(), NOW()
         )
         ON CONFLICT (id) DO UPDATE SET
+          slug = EXCLUDED.slug,
           title = EXCLUDED.title,
           title_en = EXCLUDED.title_en,
           description = EXCLUDED.description,
           description_en = EXCLUDED.description_en,
+          image_url = EXCLUDED.image_url,
+          price_label = EXCLUDED.price_label,
+          price_label_en = EXCLUDED.price_label_en,
+          compare_price_label = EXCLUDED.compare_price_label,
+          price_amount = EXCLUDED.price_amount,
+          badge = EXCLUDED.badge,
+          category = EXCLUDED.category,
+          stock = EXCLUDED.stock,
+          gallery = EXCLUDED.gallery,
           cta_url = EXCLUDED.cta_url,
+          purchase_type = EXCLUDED.purchase_type,
+          published = EXCLUDED.published,
+          "order" = EXCLUDED."order",
           updated_at = NOW();
       `;
     }
-    console.log("✅ Produk berhasil di-seed (2 item).");
+    console.log(`✅ Produk berhasil di-seed (${products.length} item).`);
 
-    // 5. Testimoni (Testimonials)
-    const testimonials = [
-      {
-        id: "testi-1",
-        clientName: "Budi Santoso",
-        clientRole: "Owner, Kopi Senja Mandiri",
-        clientRoleEn: "Owner, Kopi Senja Mandiri",
-        content: "Website profil dan POS yang dibangun sangat membantu efisiensi operasional kami. Pelayanan ramah, responsif, dan pengerjaan tepat waktu.",
-        contentEn: "The portfolio website and lightweight POS drastically improved our operational efficiency. Fast response, friendly communication, and timely delivery.",
-        avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=300&auto=format&fit=crop",
-        rating: 5,
-        order: 1,
-      },
-      {
-        id: "testi-2",
-        clientName: "Rina Wijaya",
-        clientRole: "Ketua Yayasan Taman Baca",
-        clientRoleEn: "Head of Reading Corner Foundation",
-        content: "Aplikasi Pojok Baca Digital kami sekarang dipakai oleh ratusan anggota warga. Desainnya bersih dan sangat mudah dipahami oleh pengurus yang awam teknologi.",
-        contentEn: "Our digital library platform is now used by hundreds of community members. Clean UI and effortlessly operated by non-tech coordinators.",
-        avatarUrl: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=300&auto=format&fit=crop",
-        rating: 5,
-        order: 2,
-      },
-    ];
-
+    // 7. Testimoni (Testimonials)
+    const testimonials = store?.testimonials || [];
     for (const t of testimonials) {
       await sql`
         INSERT INTO testimonials (
-          id, client_name, client_role, client_role_en, content, content_en, avatar_url, rating, published, "order", updated_at, created_at
+          id, client_name, client_role, client_role_en, content, content_en,
+          avatar_url, rating, published, "order", updated_at, created_at
         ) VALUES (
-          ${t.id}, ${t.clientName}, ${t.clientRole}, ${t.clientRoleEn}, ${t.content}, ${t.contentEn}, ${t.avatarUrl}, ${t.rating}, true, ${t.order}, NOW(), NOW()
+          ${t.id}, ${t.clientName}, ${t.clientRole || null}, ${t.clientRoleEn || null},
+          ${t.content}, ${t.contentEn || null}, ${t.avatarUrl || null},
+          ${t.rating ?? 5}, ${t.published ?? true}, ${t.order ?? 0}, NOW(), NOW()
         )
         ON CONFLICT (id) DO UPDATE SET
           client_name = EXCLUDED.client_name,
+          client_role = EXCLUDED.client_role,
+          client_role_en = EXCLUDED.client_role_en,
           content = EXCLUDED.content,
           content_en = EXCLUDED.content_en,
+          avatar_url = EXCLUDED.avatar_url,
           rating = EXCLUDED.rating,
+          published = EXCLUDED.published,
+          "order" = EXCLUDED."order",
           updated_at = NOW();
       `;
     }
-    console.log("✅ Testimoni berhasil di-seed (2 item).");
+    console.log(`✅ Testimoni berhasil di-seed (${testimonials.length} item).`);
 
-    console.log("\n🎉 SELURUH DATA AWAL BERHASIL DI-SEED KE NEON POSTGRESQL!");
+    // 8. Artikel (Articles)
+    const articles = store?.articles || [];
+    for (const a of articles) {
+      await sql`
+        INSERT INTO articles (
+          id, slug, title, title_en, summary, summary_en, content, content_en,
+          image_url, tags, featured, published, "order", publish_at, updated_at, created_at
+        ) VALUES (
+          ${a.id}, ${a.slug}, ${a.title}, ${a.titleEn || null}, ${a.summary || null},
+          ${a.summaryEn || null}, ${a.content}, ${a.contentEn || null},
+          ${a.imageUrl || null}, ${JSON.stringify(a.tags || [])}::jsonb,
+          ${a.featured ?? false}, ${a.published ?? true}, ${a.order ?? 0},
+          ${a.publishAt ? new Date(a.publishAt) : null}, NOW(),
+          ${a.createdAt ? new Date(a.createdAt) : new Date()}
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          slug = EXCLUDED.slug,
+          title = EXCLUDED.title,
+          title_en = EXCLUDED.title_en,
+          summary = EXCLUDED.summary,
+          summary_en = EXCLUDED.summary_en,
+          content = EXCLUDED.content,
+          content_en = EXCLUDED.content_en,
+          image_url = EXCLUDED.image_url,
+          tags = EXCLUDED.tags,
+          featured = EXCLUDED.featured,
+          published = EXCLUDED.published,
+          "order" = EXCLUDED."order",
+          publish_at = EXCLUDED.publish_at,
+          updated_at = NOW();
+      `;
+    }
+    console.log(`✅ Artikel berhasil di-seed (${articles.length} item).`);
+
+    // 9. Pengaturan (Settings)
+    const settingsPath = path.join(process.cwd(), "data", "local-settings.json");
+    if (fs.existsSync(settingsPath)) {
+      const settingsData = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
+      for (const [key, value] of Object.entries(settingsData)) {
+        await sql`
+          INSERT INTO settings (key, value, updated_at)
+          VALUES (${key}, ${JSON.stringify(value)}::jsonb, NOW())
+          ON CONFLICT (key) DO UPDATE SET
+            value = EXCLUDED.value,
+            updated_at = NOW();
+        `;
+      }
+      console.log("✅ Pengaturan berhasil di-seed.");
+    }
+
+    console.log("\n🎉 SELURUH DATA AWAL BERHASIL DI-SEED KE POSTGRESQL!");
   } catch (error) {
     console.error("❌ Gagal melakukan seed:", error);
     process.exit(1);
+  } finally {
+    await sql.end();
   }
 }
 

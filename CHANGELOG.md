@@ -4,6 +4,20 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Changed: Migrasi Database Utama ke Supabase PostgreSQL & Driver Universal postgres.js
+
+Migrasi infrastruktur basis data relasional dari Neon DB ke Supabase PostgreSQL untuk stabilitas jangka panjang dan kuota penyimpanan yang lebih leluasa:
+
+- **Transisi Driver Database (`src/db/index.ts`)**:
+  - Mengganti `@neondatabase/serverless` / `neon-http` dengan driver universal `postgres` (postgres.js) dipadukan dengan `drizzle-orm/postgres-js`.
+  - Mengonfigurasi `prepare: false` untuk kompatibilitas penuh dengan Transaction Pooler Supabase (port `6543`).
+  - Menambahkan lapisan kompatibilitas getter `.rows` pada `db.execute` serta pembantu `toRows` di `src/lib/visitor-analytics.ts` sehingga query raw SQL bekerja mulus lintas driver.
+  - Memastikan fase static generation Next.js berjalan instan tanpa terhambat open socket pooler.
+- **Sinkronisasi Lengkap Data & Media (`scripts/seed.mjs`)**:
+  - Memperbarui skrip seed basis data agar menyerap data portofolio riil dari `data/local-store.json` (profil, 6 layanan, 6 proyek, 3 produk, 6 testimoni, 16 artikel).
+  - Menyinkronkan konfigurasi toko dan fitur dari `data/local-settings.json` ke tabel `settings`.
+  - Mengunggah 5 aset media kunci (avatar profil, QRIS pembayaran, avatar Fajar Nugroho, cover artikel Halaqah dan video ChatGPT) dari `public/uploads/` ke tabel `media` bytea sehingga seluruh URL `/api/media/[id]` aktif dan lolos audit gate `npm run check:media` (19/19 lolos).
+
 ### Changed & Improved: Perampingan Kartu Profil 3 Tab, Penyelarasan Lebar Simetris & Dual-Persistence Media Fallback
 
 Penyederhanaan dan perapihan kartu profil pengembang (`Sigit_Profile.exe`), penyelarasan lebar simetris dengan kartu statistik, serta peningkatan ketahanan penyimpanan media:
