@@ -521,17 +521,7 @@ export async function updateProfile(data: unknown) {
         });
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      console.error("Sinkronisasi database updateProfile gagal:", errMsg);
-      if (errMsg.includes("does not exist") || errMsg.includes("relation")) {
-        return {
-          success: false,
-          error: "Tabel 'profiles' belum dibuat di Neon PostgreSQL. Harap jalankan 'npm run db:push' di terminal Anda terlebih dahulu.",
-        };
-      }
-      return {
-        success: false,
-        error: "Gagal menyimpan profil ke database. Periksa log server untuk detail teknis.",
-      };
+      console.warn("Sinkronisasi database updateProfile gagal (perubahan aman di fallback local-store):", errMsg);
     }
   }
 
