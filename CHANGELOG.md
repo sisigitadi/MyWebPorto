@@ -4,6 +4,27 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Changed & Improved: Perampingan Kartu Profil 3 Tab, Penyelarasan Lebar Simetris & Dual-Persistence Media Fallback
+
+Penyederhanaan dan perapihan kartu profil pengembang (`Sigit_Profile.exe`), penyelarasan lebar simetris dengan kartu statistik, serta peningkatan ketahanan penyimpanan media:
+
+- **Perampingan Kartu Profil Menjadi 3 Tab (`src/components/public/profile/profile-tabs.tsx`)**:
+  - Mengeliminasi Tab 04 (`04_SECURITY.DAT`) dan Tab 05 (`05_MANIFESTO.TXT`) dari tampilan publik untuk antarmuka yang lebih ringkas dan fokus.
+  - Tiga tab utama yang aktif: `01_SPECS.SYS`, `02_TIMELINE.LOG`, dan `03_AVAILABILITY.CFG` (responsif menjadi `03_AVAIL.CFG` pada layar ponsel).
+  - Menerapkan WAI-ARIA tab pattern lengkap dengan navigasi keyboard (`ArrowLeft`, `ArrowRight`, `Home`, `End`), indikator fokus eksplisit, dan kepatuhan kontras WCAG AA.
+- **Pembersihan Kartu 03 (`03_AVAILABILITY.CFG`)**:
+  - Menghapus blok teks permohonan CV dan tombol "Minta CV Lengkap via Form Kontak" untuk menghilangkan redundansi dengan tombol Portofolio dan Kontak pada footer jendela profil.
+  - Tata letak 2 kolom seimbang: Status Ketersediaan & SLA Respon di sisi kiri, Ruang Lingkup Kolaborasi di sisi kanan.
+  - Menghilangkan seluruh karakter em dash (`—`) sesuai panduan antislop R-02.
+- **Penyelarasan Lebar Simetris 3 Kolom (`src/components/public/hero-section.tsx`)**:
+  - Mengubah wrapper kartu statistik (`profile.stats`) dari `grid-cols-2 sm:grid-cols-4` menjadi `grid grid-cols-3 w-full`.
+  - Tiga kartu statistik (Tahun Pengalaman, Proyek Selesai, Kepuasan Klien) kini sejajar presisi 1-banding-1 dari tepi kiri hingga tepi kanan dengan 3 tab profil di bawahnya.
+- **Dual-Persistence Media Storage Fallback (`src/lib/storage.ts`, `src/lib/actions.ts`, `src/lib/settings.ts`)**:
+  - Menambahkan penyimpanan biner lokal ke `data/media/` dan metadata ke `data/local-media.json` saat database cloud Neon mengalami offline atau mencapai batas kuota (HTTP 402).
+  - Endpoint `/api/media/[id]` otomatis membaca berkas media dari disk lokal jika database tidak merespons.
+  - Memastikan aksi simpan profil (`updateProfile`) dan konfigurasi (`setSetting`) tidak gagal ketika terjadi hambatan koneksi database cloud, karena data telah persisten di penyimpanan cadangan lokal.
+
+
 ### Added & Improved: Alur Cover Image Gemini Web (Salin Prompt 16:9, Tautan Cepat & Upload Langsung)
 
 Solusi praktis kendala kuota API Gemini Image (HTTP 429) pada akun gratis/tanpa billing dengan menghubungkan alur kerja ke Gemini Web browser yang gratis:

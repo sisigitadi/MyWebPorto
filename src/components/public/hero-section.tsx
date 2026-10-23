@@ -97,8 +97,8 @@ export function HeroSection({ profile, profileCards, onOpenContact }: HeroSectio
                 {bio}
               </p>
 
-              {/* Stats Grid inside Profile — 2 kolom di ponsel, 4 di layar lebih besar */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2 mb-2">
+              {/* Stats Grid inside Profile — 3 kolom simetris sejajar presisi dengan 3 tab profil */}
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mb-2 w-full">
                 {profile.stats.map((stat, idx) => (
                   <div
                     key={idx}
@@ -114,7 +114,7 @@ export function HeroSection({ profile, profileCards, onOpenContact }: HeroSectio
                 ))}
               </div>
 
-              {/* 5 Retro System Properties Tabs */}
+              {/* 3 Retro System Properties Tabs */}
               <ProfileTabs cards={profileCards || DEFAULT_PROFILE_CARDS} />
             </div>
 

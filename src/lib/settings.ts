@@ -23,9 +23,12 @@ const LOCAL_FILE = path.join(DATA_DIR, "local-settings.json");
 export async function getSetting<T>(key: string): Promise<T | null> {
   try {
     if (isDbConnected) {
-      const rows = await db.select().from(settings).where(eq(settings.key, key)).limit(1);
-      if (rows.length) return (rows[0].value as T) ?? null;
-      return null;
+      try {
+        const rows = await db.select().from(settings).where(eq(settings.key, key)).limit(1);
+        if (rows.length && rows[0].value !== undefined) return (rows[0].value as T) ?? null;
+      } catch (dbErr) {
+        console.warn(`getSetting: DB query gagal untuk "${key}", beralih ke fallback lokal:`, dbErr);
+      }
     }
     const parsed = readLocal();
     return (parsed?.[key] as T) ?? null;
@@ -35,38 +38,50 @@ export async function getSetting<T>(key: string): Promise<T | null> {
   }
 }
 
-/** Tulis satu pengaturan (upsert). Tidak pernah throw — panggilan menangani. */
+/** Tulis satu pengaturan (upsert). Dual-Persistence: selalu tulis ke file lokal dan DB. */
 export async function setSetting(key: string, value: unknown): Promise<void> {
   try {
-    if (isDbConnected) {
-      await db
-        .insert(settings)
-        .values({ key, value })
-        .onConflictDoUpdate({ target: settings.key, set: { value, updatedAt: new Date() } });
-      return;
+    // 1. Selalu tulis ke file lokal terlebih dahulu
+    try {
+      const parsed = readLocal() || {};
+      parsed[key] = value;
+      ensureDir();
+      fs.writeFileSync(LOCAL_FILE, JSON.stringify(parsed, null, 2), "utf-8");
+    } catch (localErr) {
+      console.warn(`setSetting: gagal menulis ke local file untuk "${key}":`, localErr);
     }
-    const parsed = readLocal() || {};
-    parsed[key] = value;
-    ensureDir();
-    fs.writeFileSync(LOCAL_FILE, JSON.stringify(parsed, null, 2), "utf-8");
+
+    // 2. Jika database online, sinkronkan ke Postgres
+    if (isDbConnected) {
+      try {
+        await db
+          .insert(settings)
+          .values({ key, value })
+          .onConflictDoUpdate({ target: settings.key, set: { value, updatedAt: new Date() } });
+      } catch (dbErr) {
+        console.warn(`setSetting: Neon DB offline/kuota habis untuk "${key}", tersimpan di fallback lokal:`, dbErr);
+      }
+    }
   } catch (err) {
     console.warn(`Gagal menulis setting "${key}":`, err);
-    throw err;
   }
 }
 
 /** Hapus satu pengaturan. Berguna untuk membuang draf saat publish / discard. */
 export async function deleteSetting(key: string): Promise<void> {
   try {
-    if (isDbConnected) {
-      await db.delete(settings).where(eq(settings.key, key));
-      return;
-    }
     const parsed = readLocal();
     if (parsed && key in parsed) {
       delete parsed[key];
       ensureDir();
       fs.writeFileSync(LOCAL_FILE, JSON.stringify(parsed, null, 2), "utf-8");
+    }
+    if (isDbConnected) {
+      try {
+        await db.delete(settings).where(eq(settings.key, key));
+      } catch (dbErr) {
+        console.warn(`deleteSetting: DB delete gagal untuk "${key}":`, dbErr);
+      }
     }
   } catch (err) {
     console.warn(`Gagal menghapus setting "${key}":`, err);

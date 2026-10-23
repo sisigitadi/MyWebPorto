@@ -10,9 +10,11 @@
  */
 
 import { randomUUID } from "crypto";
+import fs from "fs";
+import path from "path";
 import { desc, eq } from "drizzle-orm";
 import sharp from "sharp";
-import { db } from "@/db";
+import { db, isDbConnected } from "@/db";
 import { media } from "@/db/schema";
 
 export const MAX_IMAGE_SIZE = 20 * 1024 * 1024;
@@ -200,7 +202,117 @@ export async function optimizeImageBuffer(
   }
 }
 
-// ---------- Database (Postgres bytea) ----------
+// ---------- Database (Postgres bytea) & Local Fallback (Dual-Persistence) ----------
+
+const isVercel = Boolean(process.env.VERCEL);
+const DATA_DIR = isVercel
+  ? path.join("/tmp", "my-web-porto-data")
+  : path.join(process.cwd(), "data");
+const MEDIA_DIR = path.join(DATA_DIR, "media");
+const MEDIA_META_FILE = path.join(DATA_DIR, "local-media.json");
+
+interface LocalMediaMeta {
+  id: string;
+  name: string;
+  mime: string;
+  size: number;
+  createdAt: string;
+}
+
+function ensureLocalMediaDir(): void {
+  try {
+    if (!fs.existsSync(MEDIA_DIR)) {
+      fs.mkdirSync(MEDIA_DIR, { recursive: true });
+    }
+  } catch (err) {
+    console.warn("ensureLocalMediaDir gagal:", err);
+  }
+}
+
+function readLocalMediaMeta(): LocalMediaMeta[] {
+  try {
+    ensureLocalMediaDir();
+    if (fs.existsSync(MEDIA_META_FILE)) {
+      const raw = fs.readFileSync(MEDIA_META_FILE, "utf-8");
+      return JSON.parse(raw) as LocalMediaMeta[];
+    }
+  } catch (err) {
+    console.warn("readLocalMediaMeta gagal:", err);
+  }
+  return [];
+}
+
+function writeLocalMediaMeta(items: LocalMediaMeta[]): void {
+  try {
+    ensureLocalMediaDir();
+    fs.writeFileSync(MEDIA_META_FILE, JSON.stringify(items, null, 2), "utf-8");
+  } catch (err) {
+    console.warn("writeLocalMediaMeta gagal:", err);
+  }
+}
+
+function saveMediaLocally(id: string, name: string, mime: string, buffer: Buffer): void {
+  try {
+    ensureLocalMediaDir();
+    const filePath = path.join(MEDIA_DIR, id);
+    fs.writeFileSync(filePath, buffer);
+
+    const items = readLocalMediaMeta().filter((m) => m.id !== id);
+    items.unshift({
+      id,
+      name,
+      mime,
+      size: buffer.length,
+      createdAt: new Date().toISOString(),
+    });
+    writeLocalMediaMeta(items);
+  } catch (err) {
+    console.warn("saveMediaLocally gagal:", err);
+  }
+}
+
+function getMediaLocally(id: string): { buffer: Buffer; mime: string } | null {
+  try {
+    ensureLocalMediaDir();
+    const filePath = path.join(MEDIA_DIR, id);
+    if (fs.existsSync(filePath)) {
+      const buffer = fs.readFileSync(filePath);
+      const items = readLocalMediaMeta();
+      const meta = items.find((m) => m.id === id);
+      const mime = meta?.mime || "image/webp";
+      return { buffer, mime };
+    }
+  } catch (err) {
+    console.warn("getMediaLocally gagal:", err);
+  }
+  return null;
+}
+
+function listLocalMediaItems(): MediaItem[] {
+  const meta = readLocalMediaMeta();
+  return meta.map((m) => ({
+    id: m.id,
+    name: m.name,
+    url: `/api/media/${m.id}`,
+    mime: m.mime,
+    size: m.size,
+    createdAt: m.createdAt,
+  }));
+}
+
+function deleteMediaLocally(id: string): void {
+  try {
+    ensureLocalMediaDir();
+    const filePath = path.join(MEDIA_DIR, id);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    const items = readLocalMediaMeta().filter((m) => m.id !== id);
+    writeLocalMediaMeta(items);
+  } catch (err) {
+    console.warn("deleteMediaLocally gagal:", err);
+  }
+}
 
 export interface MediaItem {
   id: string;
@@ -218,9 +330,9 @@ export function sanitizeMediaName(originalName: string): string {
 }
 
 /**
- * Simpan gambar ke tabel media. URL publiknya bersifat lokasi-independen
- * (path relatif /api/media/<id>) sehingga tetap valid pindah host/CDN.
- * Otomatis dioptimasi (WebP / SVG) sebelum disimpan ke bytea database.
+ * Simpan gambar ke tabel media dan penyimpanan lokal (Dual-Persistence).
+ * URL publiknya bersifat lokasi-independen (/api/media/<id>).
+ * Otomatis dioptimasi (WebP / SVG). Tetap sukses tersimpan saat Neon DB offline/kuota habis.
  */
 export async function putMedia(
   name: string,
@@ -231,77 +343,108 @@ export async function putMedia(
     const optimized = await optimizeImageBuffer(buffer, mime, name);
     const id = randomUUID();
     const finalName = sanitizeMediaName(optimized.name || name);
-    await db.insert(media).values({
-      id,
-      name: finalName,
-      mime: optimized.mime,
-      size: optimized.buffer.length,
-      data: optimized.buffer,
-    });
+
+    // 1. Selalu simpan di penyimpanan disk lokal terlebih dahulu
+    saveMediaLocally(id, finalName, optimized.mime, optimized.buffer);
+
+    // 2. Jika database online, sinkronkan ke Postgres bytea
+    if (isDbConnected) {
+      try {
+        await db.insert(media).values({
+          id,
+          name: finalName,
+          mime: optimized.mime,
+          size: optimized.buffer.length,
+          data: optimized.buffer,
+        });
+      } catch (dbErr) {
+        // Jangan batalkan upload jika Neon DB offline atau kuota habis!
+        console.warn("putMedia: Neon DB offline/kuota habis, tersimpan di fallback lokal:", dbErr);
+      }
+    }
+
     return { ok: true, id };
   } catch (err) {
-    console.error("putMedia: insert gagal:", err);
-    return { ok: false, error: "Gagal menyimpan gambar ke database. Coba lagi." };
+    console.error("putMedia: proses gagal:", err);
+    return { ok: false, error: "Gagal memproses gambar. Coba lagi." };
   }
 }
 
-/** Daftar metadata media (tanpa memuat bytea) — terbaru pertama. */
+/** Daftar metadata media (termasuk fallback lokal) — terbaru pertama. */
 export async function listMediaItems(): Promise<MediaItem[]> {
-  try {
-    const rows = await db
-      .select({
-        id: media.id,
-        name: media.name,
-        mime: media.mime,
-        size: media.size,
-        createdAt: media.createdAt,
-      })
-      .from(media)
-      .orderBy(desc(media.createdAt))
-      .limit(100);
-    return rows.map((r) => ({
-      id: r.id,
-      name: r.name,
-      url: `/api/media/${r.id}`,
-      mime: r.mime,
-      size: r.size,
-      createdAt: r.createdAt.toISOString(),
-    }));
-  } catch (err) {
-    console.error("listMediaItems: select gagal:", err);
-    return [];
+  let dbItems: MediaItem[] = [];
+  if (isDbConnected) {
+    try {
+      const rows = await db
+        .select({
+          id: media.id,
+          name: media.name,
+          mime: media.mime,
+          size: media.size,
+          createdAt: media.createdAt,
+        })
+        .from(media)
+        .orderBy(desc(media.createdAt))
+        .limit(100);
+      dbItems = rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        url: `/api/media/${r.id}`,
+        mime: r.mime,
+        size: r.size,
+        createdAt: r.createdAt.toISOString(),
+      }));
+    } catch (err) {
+      console.warn("listMediaItems: select DB gagal, beralih ke media lokal:", err);
+    }
   }
+
+  const localItems = listLocalMediaItems();
+  const map = new Map<string, MediaItem>();
+  for (const item of localItems) map.set(item.id, item);
+  for (const item of dbItems) map.set(item.id, item);
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 }
 
-/** Ambil biner + MIME untuk disajikan di GET /api/media/[id]. */
+/** Ambil biner + MIME untuk disajikan di GET /api/media/[id]. Mendukung fallback lokal. */
 export async function getMedia(
   id: string
 ): Promise<{ buffer: Buffer; mime: string } | null> {
-  try {
-    const rows = await db
-      .select({ data: media.data, mime: media.mime })
-      .from(media)
-      .where(eq(media.id, id))
-      .limit(1);
-    const row = rows[0];
-    if (!row) return null;
-    const buffer = Buffer.isBuffer(row.data) ? row.data : Buffer.from(row.data as Uint8Array);
-    return { buffer, mime: row.mime };
-  } catch (err) {
-    console.error("getMedia: select gagal:", err);
-    return null;
+  // 1. Coba baca dari database Postgres jika terhubung
+  if (isDbConnected) {
+    try {
+      const rows = await db
+        .select({ data: media.data, mime: media.mime })
+        .from(media)
+        .where(eq(media.id, id))
+        .limit(1);
+      const row = rows[0];
+      if (row) {
+        const buffer = Buffer.isBuffer(row.data) ? row.data : Buffer.from(row.data as Uint8Array);
+        return { buffer, mime: row.mime };
+      }
+    } catch (err) {
+      console.warn("getMedia: query DB gagal, beralih ke fallback lokal:", err);
+    }
   }
+
+  // 2. Fallback: baca dari disk lokal
+  return getMediaLocally(id);
 }
 
 /** Hapus 1 media berdasarkan id (parameterized — aman dari injection). */
 export async function deleteMediaRow(id: string): Promise<boolean> {
-  try {
-    await db.delete(media).where(eq(media.id, id));
-    return true;
-  } catch (err) {
-    console.error("deleteMediaRow: delete gagal:", err);
-    return false;
+  deleteMediaLocally(id);
+  if (isDbConnected) {
+    try {
+      await db.delete(media).where(eq(media.id, id));
+    } catch (err) {
+      console.warn("deleteMediaRow: delete DB gagal:", err);
+    }
   }
+  return true;
 }
 
 /**
