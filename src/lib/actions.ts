@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import fs from "fs";
 import path from "path";
 import { revalidatePath } from "next/cache";
@@ -140,12 +141,20 @@ function ensureStoreExists(): void {
   }
 }
 
+let localStoreMemoryCache: { data: LocalStoreData; mtime: number } | null = null;
+
 function getLocalStore(): LocalStoreData | null {
   try {
     ensureStoreExists();
     if (fs.existsSync(DATA_FILE)) {
+      const stats = fs.statSync(DATA_FILE);
+      if (localStoreMemoryCache && localStoreMemoryCache.mtime === stats.mtimeMs) {
+        return localStoreMemoryCache.data;
+      }
       const raw = fs.readFileSync(DATA_FILE, "utf-8");
-      return JSON.parse(raw) as LocalStoreData;
+      const parsed = JSON.parse(raw) as LocalStoreData;
+      localStoreMemoryCache = { data: parsed, mtime: stats.mtimeMs };
+      return parsed;
     }
   } catch (err) {
     console.warn("Gagal membaca local store:", err);
@@ -166,6 +175,12 @@ function updateLocalStore<K extends keyof LocalStoreData>(key: K, data: LocalSto
     };
     store[key] = data;
     fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2), "utf-8");
+    try {
+      const stats = fs.statSync(DATA_FILE);
+      localStoreMemoryCache = { data: store, mtime: stats.mtimeMs };
+    } catch {
+      localStoreMemoryCache = null;
+    }
   } catch (err) {
     console.warn("Gagal menulis ke local store:", err);
   }
@@ -358,7 +373,7 @@ export async function translateBatchAction(
 // ==========================================
 // PROFIL SERVER ACTIONS
 // ==========================================
-export async function getProfile(): Promise<ProfileData> {
+const getProfileInternal = cache(async (): Promise<ProfileData> => {
   const store = getLocalStore();
   const baseProfile = (store?.profile as ProfileData) || DUMMY_PROFILE;
 
@@ -457,6 +472,10 @@ export async function getProfile(): Promise<ProfileData> {
       bioEn: baseProfile.bioEn && !isTranslationErrorPayload(baseProfile.bioEn) ? baseProfile.bioEn : null,
     };
   }
+});
+
+export async function getProfile(): Promise<ProfileData> {
+  return getProfileInternal();
 }
 
 export async function updateProfile(data: unknown) {
@@ -550,10 +569,7 @@ export async function updateProfile(data: unknown) {
 
   void logAudit({ action: "save", entity: "profile", entityId: "owner", detail: payload.name });
   revalidatePath("/");
-  revalidatePath("/", "page");
-  revalidatePath("/", "layout");
   revalidatePath("/(public)", "layout");
-  revalidatePath("/admin", "layout");
   revalidatePath("/admin/profile");
   return { success: true, message: "Profil berhasil disimpan!", data: payload };
 }
@@ -583,8 +599,6 @@ export async function saveProfileCardsAction(input: unknown) {
       detail: "Memperbarui kartu profil OS",
     });
     revalidatePath("/");
-    revalidatePath("/", "page");
-    revalidatePath("/", "layout");
     revalidatePath("/(public)", "layout");
     revalidatePath("/admin/profile");
     return { success: true, data: cards };
@@ -597,13 +611,11 @@ export async function saveProfileCardsAction(input: unknown) {
 // ==========================================
 // PROYEK SERVER ACTIONS
 // ==========================================
-export async function getProjects(
-  opts: { includeScheduled?: boolean } = {}
-): Promise<ProjectData[]> {
+const getProjectsInternal = cache(async (includeScheduled: boolean): Promise<ProjectData[]> => {
   const store = getLocalStore();
   const baseProjects = (store?.projects as ProjectData[]) || DUMMY_PROJECTS;
   const visible = (list: ProjectData[]) =>
-    opts.includeScheduled ? list : list.filter((p) => isLivePublished(p));
+    includeScheduled ? list : list.filter((p) => isLivePublished(p));
 
   const sortedBase = [...baseProjects]
     .map((p, idx) => ({ ...p, order: p.order ?? idx + 1 }))
@@ -687,6 +699,12 @@ export async function getProjects(
       descriptionEn: p.descriptionEn && !isTranslationErrorPayload(p.descriptionEn) ? p.descriptionEn : null,
     })));
   }
+});
+
+export async function getProjects(
+  opts: { includeScheduled?: boolean } = {}
+): Promise<ProjectData[]> {
+  return getProjectsInternal(Boolean(opts.includeScheduled));
 }
 
 export async function saveProject(data: unknown) {
@@ -966,7 +984,7 @@ export async function reorderProjects(items: { id: string; order: number }[]) {
 // ==========================================
 // LAYANAN SERVER ACTIONS
 // ==========================================
-export async function getServices(): Promise<ServiceData[]> {
+const getServicesInternal = cache(async (): Promise<ServiceData[]> => {
   const store = getLocalStore();
   const baseServices = (store?.services as ServiceData[]) || DUMMY_SERVICES;
 
@@ -1016,6 +1034,10 @@ export async function getServices(): Promise<ServiceData[]> {
       descriptionEn: s.descriptionEn && !isTranslationErrorPayload(s.descriptionEn) ? s.descriptionEn : null,
     }));
   }
+});
+
+export async function getServices(): Promise<ServiceData[]> {
+  return getServicesInternal();
 }
 
 export async function saveService(data: unknown) {
@@ -1237,7 +1259,7 @@ export async function reorderServices(items: { id: string; order: number }[]) {
 // ==========================================
 // PRODUK SERVER ACTIONS
 // ==========================================
-export async function getProducts(): Promise<ProductData[]> {
+const getProductsInternal = cache(async (): Promise<ProductData[]> => {
   const store = getLocalStore();
   const baseProducts = (store?.products as ProductData[]) || DUMMY_PRODUCTS;
 
@@ -1313,6 +1335,10 @@ export async function getProducts(): Promise<ProductData[]> {
     console.warn("Database query getProducts gagal, menggunakan data lokal:", error);
     return sortedBase.map(sanitizeProduct);
   }
+});
+
+export async function getProducts(): Promise<ProductData[]> {
+  return getProductsInternal();
 }
 
 export async function saveProduct(data: unknown) {
@@ -1589,7 +1615,7 @@ export async function reorderProducts(items: { id: string; order: number }[]) {
 // ==========================================
 // TESTIMONI SERVER ACTIONS
 // ==========================================
-export async function getTestimonials(): Promise<TestimonialData[]> {
+const getTestimonialsInternal = cache(async (): Promise<TestimonialData[]> => {
   const store = getLocalStore();
   const baseTestimonials = (store?.testimonials as TestimonialData[]) || DUMMY_TESTIMONIALS;
 
@@ -1648,6 +1674,10 @@ export async function getTestimonials(): Promise<TestimonialData[]> {
       contentEn: t.contentEn && !isTranslationErrorPayload(t.contentEn) ? t.contentEn : null,
     }));
   }
+});
+
+export async function getTestimonials(): Promise<TestimonialData[]> {
+  return getTestimonialsInternal();
 }
 
 export async function saveTestimonial(data: unknown) {
@@ -1872,13 +1902,13 @@ export async function reorderTestimonials(items: { id: string; order: number }[]
 // ==========================================
 // ARTIKEL SERVER ACTIONS
 // ==========================================
-export async function getArticles(
-  opts: { includeScheduled?: boolean } = {}
-): Promise<ArticleData[]> {
+const getArticlesInternal = cache(async (
+  includeScheduled: boolean
+): Promise<ArticleData[]> => {
   const store = getLocalStore();
   const baseArticles = (store?.articles as ArticleData[]) || DUMMY_ARTICLES;
   const visible = (list: ArticleData[]) =>
-    opts.includeScheduled ? list : list.filter((a) => isLivePublished(a));
+    includeScheduled ? list : list.filter((a) => isLivePublished(a));
 
   const sortedBase = [...baseArticles]
     .map((a, idx) => ({ ...a, order: a.order ?? idx + 1 }))
@@ -1958,6 +1988,12 @@ export async function getArticles(
       contentEn: a.contentEn && !isTranslationErrorPayload(a.contentEn) ? a.contentEn : null,
     })));
   }
+});
+
+export async function getArticles(
+  opts: { includeScheduled?: boolean } = {}
+): Promise<ArticleData[]> {
+  return getArticlesInternal(Boolean(opts.includeScheduled));
 }
 
 export async function getArticleBySlug(slug: string): Promise<ArticleData | null> {

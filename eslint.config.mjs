@@ -23,6 +23,7 @@ const eslintConfig = [
       // Artefak tooling agen/IDE: git worktree (kilo), scratch, riwayat chat,
       // dan config lokal — duplikat kode yang bukan source yang dikelola.
       // Meng-lint/mencari di sini hanya menambah noise & warning palsu.
+      "scratch/**",
       ".kilo/**",
       ".superpowers/**",
       ".aider*",

@@ -14,6 +14,7 @@ import { putMedia } from "@/lib/storage";
 export type { BankAccountItem, CreateOrderInput };
 
 
+import { cache } from "react";
 import { revalidatePath } from "next/cache";
 import {
   DEFAULT_STORE_CONFIG,
@@ -29,7 +30,7 @@ export type { InternationalPaymentConfig, PaymentMethodsConfig, StoreConfig };
  * Mengambil konfigurasi toko terpusat dari tabel settings (key "store_config").
  * Bila belum pernah diatur, fallback otomatis ke paymentQrUrl & paymentBankInfo di profil.
  */
-export async function getStoreConfig(): Promise<StoreConfig> {
+const getStoreConfigInternal = cache(async (): Promise<StoreConfig> => {
   const profile = await getProfile().catch(() => null);
 
   if (!isDbConnected) {
@@ -96,6 +97,10 @@ export async function getStoreConfig(): Promise<StoreConfig> {
       allowPaymentProofUpload: true,
     };
   }
+});
+
+export async function getStoreConfig(): Promise<StoreConfig> {
+  return getStoreConfigInternal();
 }
 
 /**
@@ -177,13 +182,10 @@ export async function saveStoreConfig(data: Partial<StoreConfig>) {
       detail: `Memperbarui konfigurasi metode pembayaran & rekening (WA: ${updated.adminWhatsapp || "-"}, ${updatedBankAccounts.length} rekening)`,
     });
 
-    // Revalidasi seluruh rute publik & admin agar langsung berubah realtime tanpa jeda
-    revalidatePath("/", "layout");
+    // Revalidasi rute yang terpengaruh konfigurasi toko
+    revalidatePath("/");
     revalidatePath("/(public)", "layout");
-    revalidatePath("/proyek");
-    revalidatePath("/proyek/[slug]", "page");
-    revalidatePath("/order/[invoice]", "page");
-    revalidatePath("/admin/products");
+    revalidatePath("/toko");
     revalidatePath("/admin/profile");
     revalidatePath("/admin/orders");
 

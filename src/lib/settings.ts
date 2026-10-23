@@ -9,6 +9,7 @@
  * Keamanan: value bisa berisi rahasia. Pengakses wajib mem-mask sebelum
  * mengembalikan ke client; penulisan hanya lewat server action + verifyAdmin.
  */
+import { cache } from "react";
 import fs from "fs";
 import path from "path";
 import { desc, eq } from "drizzle-orm";
@@ -19,19 +20,30 @@ const isVercel = Boolean(process.env.VERCEL);
 const DATA_DIR = isVercel ? path.join("/tmp", "my-web-porto-data") : path.join(process.cwd(), "data");
 const LOCAL_FILE = path.join(DATA_DIR, "local-settings.json");
 
-/** Baca satu pengaturan (ter-parse), atau null bila tidak ada / gagal. */
+async function fetchSettingRaw(key: string): Promise<unknown> {
+  if (isDbConnected) {
+    try {
+      const rows = await db.select().from(settings).where(eq(settings.key, key)).limit(1);
+      if (rows.length && rows[0].value !== undefined) return rows[0].value ?? null;
+    } catch (dbErr) {
+      console.warn(`getSetting: DB query gagal untuk "${key}", beralih ke fallback lokal:`, dbErr);
+    }
+  }
+  const parsed = readLocal();
+  return parsed?.[key] ?? null;
+}
+
+const getSettingInternal = cache(fetchSettingRaw);
+
+/** Baca satu pengaturan (ter-parse), atau null bila tidak ada / gagal. Ter-memoize per-request. */
 export async function getSetting<T>(key: string): Promise<T | null> {
   try {
-    if (isDbConnected) {
-      try {
-        const rows = await db.select().from(settings).where(eq(settings.key, key)).limit(1);
-        if (rows.length && rows[0].value !== undefined) return (rows[0].value as T) ?? null;
-      } catch (dbErr) {
-        console.warn(`getSetting: DB query gagal untuk "${key}", beralih ke fallback lokal:`, dbErr);
-      }
+    if (process.env.NODE_ENV === "test" || process.env.VITEST) {
+      const val = await fetchSettingRaw(key);
+      return (val as T) ?? null;
     }
-    const parsed = readLocal();
-    return (parsed?.[key] as T) ?? null;
+    const val = await getSettingInternal(key);
+    return (val as T) ?? null;
   } catch (err) {
     console.warn(`Gagal membaca setting "${key}":`, err);
     return null;
@@ -47,6 +59,12 @@ export async function setSetting(key: string, value: unknown): Promise<void> {
       parsed[key] = value;
       ensureDir();
       fs.writeFileSync(LOCAL_FILE, JSON.stringify(parsed, null, 2), "utf-8");
+      try {
+        const stat = fs.statSync(LOCAL_FILE);
+        localSettingsCache = { data: parsed, mtime: stat.mtimeMs };
+      } catch {
+        localSettingsCache = null;
+      }
     } catch (localErr) {
       console.warn(`setSetting: gagal menulis ke local file untuk "${key}":`, localErr);
     }
@@ -75,6 +93,12 @@ export async function deleteSetting(key: string): Promise<void> {
       delete parsed[key];
       ensureDir();
       fs.writeFileSync(LOCAL_FILE, JSON.stringify(parsed, null, 2), "utf-8");
+      try {
+        const stat = fs.statSync(LOCAL_FILE);
+        localSettingsCache = { data: parsed, mtime: stat.mtimeMs };
+      } catch {
+        localSettingsCache = null;
+      }
     }
     if (isDbConnected) {
       try {
@@ -220,12 +244,28 @@ function ensureDir(): void {
   }
 }
 
+let localSettingsCache: { data: Record<string, unknown> | null; mtime: number } | null = null;
+
 function readLocal(): Record<string, unknown> | null {
   try {
-    if (!fs.existsSync(LOCAL_FILE)) return null;
+    if (!fs.existsSync(LOCAL_FILE)) {
+      localSettingsCache = null;
+      return null;
+    }
+    if (process.env.NODE_ENV === "test" || process.env.VITEST) {
+      const raw = fs.readFileSync(LOCAL_FILE, "utf-8");
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
+    }
+    const stat = fs.statSync(LOCAL_FILE);
+    if (localSettingsCache && localSettingsCache.mtime === stat.mtimeMs) {
+      return localSettingsCache.data;
+    }
     const raw = fs.readFileSync(LOCAL_FILE, "utf-8");
     const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
+    const data = parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
+    localSettingsCache = { data, mtime: stat.mtimeMs };
+    return data;
   } catch {
     return null;
   }

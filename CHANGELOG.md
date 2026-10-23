@@ -4,6 +4,24 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Fixed & Optimized: Akselerasi Refresh Portofolio & Eliminasi Bottleneck Pasca-Simpan Profil Admin
+
+Optimalisasi performa menyeluruh untuk mengatasi keluhan web portofolio lambat me-refresh setelah admin memperbarui data profil atau kartu profil OS:
+
+- **Targeted Cache Invalidation (`src/lib/actions.ts`, `src/lib/order-actions.ts`)**:
+  - Mengganti pemanggilan over-invalidation `revalidatePath("/", "layout")` dan `revalidatePath("/admin", "layout")` yang sebelumnya menghapus paksa seluruh 45 rute aplikasi (termasuk seluruh halaman admin dan gambar dinamis).
+  - Revalidasi kini ditargetkan hanya pada rute yang terdampak langsung: `revalidatePath("/")`, `revalidatePath("/(public)", "layout")`, dan `revalidatePath("/admin/profile")`.
+- **Request Deduplication dengan `React.cache()` (`src/lib/actions.ts`, `src/lib/settings.ts`, `src/lib/order-actions.ts`)**:
+  - Membungkus seluruh getter inti server actions (`getProfile`, `getProjects`, `getServices`, `getProducts`, `getTestimonials`, `getArticles`, `getSetting`, `getStoreConfig`) menggunakan `React.cache()`.
+  - Meniadakan query berulang dalam satu siklus render HTTP request (`getProfile` sebelumnya ditembakkan 4 kali secara terpisah oleh RootLayout, public layout, generateDynamicMetadata, dan HomePage).
+- **Peningkatan Kapasitas Connection Pool Postgres (`src/db/index.ts`)**:
+  - Menaikkan alokasi connection pool dari `max: 5` menjadi `max: 10` dengan `idle_timeout: 15s` pada Supabase Transaction Pooler (port 6543) untuk mencegah bottleneck antrean serial pada eksekusi query paralel beranda.
+- **In-Memory Memoization untuk Dual-Persistence Local Store (`src/lib/actions.ts`, `src/lib/settings.ts`)**:
+  - Menerapkan caching memori berbasis verifikasi `mtimeMs` disk pada pembacaan `data/local-store.json` (~327 KB) dan `data/local-settings.json`, mengeliminasi pembacaan file sinkron (`readFileSync`) berulang kali per request.
+- **Hasil Pengujian & Benchmark**:
+  - Total latensi eksekusi paralel seluruh data halaman beranda turun menjadi ~316 ms.
+  - Seluruh 48 berkas tes (605 tes unit/integrasi) lulus 100% dan build produksi Next.js 16 (`npm run build`) berjalan bersih tanpa error.
+
 ### Changed: Migrasi Database Utama ke Supabase PostgreSQL & Driver Universal postgres.js
 
 Migrasi infrastruktur basis data relasional dari Neon DB ke Supabase PostgreSQL untuk stabilitas jangka panjang dan kuota penyimpanan yang lebih leluasa:

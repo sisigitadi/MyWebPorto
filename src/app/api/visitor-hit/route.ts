@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { recordVisitorHit } from "@/lib/visitor-analytics";
 
 export const runtime = "nodejs";
 
