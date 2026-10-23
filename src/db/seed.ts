@@ -2,8 +2,8 @@ import * as dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 dotenv.config();
 
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
+import postgres from "postgres";
+import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
 import {
   DUMMY_PROFILE,
@@ -20,10 +20,10 @@ async function seed() {
     return;
   }
 
-  const sql = neon(dbUrl);
-  const db = drizzle(sql, { schema });
+  const client = postgres(dbUrl, { prepare: false });
+  const db = drizzle(client, { schema });
 
-  console.log("🌱 Menjalankan seed data ke database...");
+  console.log("🌱 Menjalankan seed data ke database PostgreSQL (Supabase / Universal)...");
 
   // 1. Seed Profile
   await db
@@ -129,6 +129,7 @@ async function seed() {
       .onConflictDoNothing();
   }
 
+  await client.end();
   console.log("✅ Seed database berhasil diselesaikan!");
 }
 

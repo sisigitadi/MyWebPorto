@@ -126,7 +126,7 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     group: "portofolio",
   },
   {
-    title: "Redaksi — Tulis Konten",
+    title: "Redaksi: Tulis Konten",
     href: "/admin/redaksi",
     icon: Newspaper,
     group: "portofolio",
@@ -181,6 +181,7 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     title: "Visitor Analytics",
     href: "/admin/analytics",
     icon: BarChart3,
+    badge: "Off",
     group: "sistem",
   },
   {

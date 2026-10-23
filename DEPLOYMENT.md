@@ -34,7 +34,7 @@ Perintah ini akan secara otomatis:
    CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/admin
    ADMIN_CLERK_ID=user_xxxx
    NEXT_PUBLIC_ADMIN_CLERK_ID=user_xxxx
-   DATABASE_URL=postgresql://user:password@host/neondb?sslmode=require
+   DATABASE_URL=postgresql://postgres.xxx:password@aws-0-xx.pooler.supabase.com:6543/postgres
    NEXT_PUBLIC_FORMSPREE_ENDPOINT=https://formspree.io/f/your-form-id
    NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL=x@sigitadi.id
    # Terjemahan ID -> EN (opt-in per field; set false bila egress data dilarang)
@@ -219,7 +219,7 @@ Pastikan sudah memenuhi checklist berikut sebelum produksi (lihat `SECURITY.md` 
 
 - [ ] `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` & `CLERK_SECRET_KEY` pakai key **produksi** (bukan `pk_test_xxxx`).
 - [ ] `ADMIN_CLERK_ID` diisi dengan Clerk user ID pemilik (bukan `user_xxxxxxxxxxxxxxxxx`).
-- [ ] `DATABASE_URL` Neon prod (`sslmode=require`), sudah `npm run db:push`.
+- [ ] `DATABASE_URL` Supabase / PostgreSQL prod, sudah `npm run db:push`.
 - [ ] `NEXT_PUBLIC_APP_URL` = domain prod (tanpa trailing slash, untuk canonical & OG).
 - [ ] `INDEXNOW_KEY` ganti dari default `e5b871c...` dan jangan commit. Key maupun token verifikasi Google/Bing bisa diisi/rotasi dari **`/admin/seo`** (disimpan di tabel `settings`) tanpa redeploy; env di atas hanya fallback pra-admin.
 - [ ] `ENABLE_EXTERNAL_TRANSLATE` sesuai kebijakan privasi (`false` jika egress dilarang).

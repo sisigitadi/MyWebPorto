@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { neon } from '@neondatabase/serverless';
+import postgres from 'postgres';
 
 function isTranslationErrorPayload(text) {
   if (!text) return false;
@@ -33,45 +33,46 @@ async function main() {
     return;
   }
 
-  const sql = neon(process.env.DATABASE_URL);
+  const sql = postgres(process.env.DATABASE_URL, { prepare: false });
 
-  // 1. Repair Gemini Pro 18 Bulan product specifically
-  await sql.query(
-    `UPDATE products 
-     SET description_en = $1, title_en = $2 
-     WHERE id = 'cdc65e19-706a-4328-97f0-675137411ed8' OR title ILIKE '%Gemini Pro 18 Bulan%'`,
-    [GEMINI_PRO_CLEAN_EN, 'Gemini Pro 18 Months']
-  );
-  console.log('Gemini Pro 18 Bulan description_en updated to clean translation.');
+  try {
+    // 1. Repair Gemini Pro 18 Bulan product specifically
+    await sql`UPDATE products 
+       SET description_en = ${GEMINI_PRO_CLEAN_EN}, title_en = ${'Gemini Pro 18 Months'} 
+       WHERE id = 'cdc65e19-706a-4328-97f0-675137411ed8' OR title ILIKE '%Gemini Pro 18 Bulan%'`;
+    console.log('Gemini Pro 18 Bulan description_en updated to clean translation.');
 
-  // 2. Scan and clean all other tables
-  const tables = [
-    { name: 'products', fields: ['title_en', 'description_en'] },
-    { name: 'services', fields: ['title_en', 'description_en'] },
-    { name: 'projects', fields: ['title_en', 'summary_en', 'description_en'] },
-    { name: 'articles', fields: ['title_en', 'summary_en', 'content_en'] },
-    { name: 'testimonials', fields: ['client_role_en', 'content_en'] },
-    { name: 'profiles', fields: ['headline_en', 'bio_en'] },
-  ];
+    // 2. Scan and clean all other tables
+    const tables = [
+      { name: 'products', fields: ['title_en', 'description_en'] },
+      { name: 'services', fields: ['title_en', 'description_en'] },
+      { name: 'projects', fields: ['title_en', 'summary_en', 'description_en'] },
+      { name: 'articles', fields: ['title_en', 'summary_en', 'content_en'] },
+      { name: 'testimonials', fields: ['client_role_en', 'content_en'] },
+      { name: 'profiles', fields: ['headline_en', 'bio_en'] },
+    ];
 
-  for (const t of tables) {
-    try {
-      const rows = await sql.query(`SELECT id, ${t.fields.join(', ')} FROM ${t.name}`);
-      for (const row of rows) {
-        for (const f of t.fields) {
-          const val = row[f];
-          if (typeof val === 'string' && isTranslationErrorPayload(val)) {
-            console.log(`Cleaning error payload in ${t.name}.${f} for row ${row.id}`);
-            await sql.query(`UPDATE ${t.name} SET ${f} = NULL WHERE id = $1`, [row.id]);
+    for (const t of tables) {
+      try {
+        const rows = await sql.unsafe(`SELECT id, ${t.fields.join(', ')} FROM ${t.name}`);
+        for (const row of rows) {
+          for (const f of t.fields) {
+            const val = row[f];
+            if (typeof val === 'string' && isTranslationErrorPayload(val)) {
+              console.log(`Cleaning error payload in ${t.name}.${f} for row ${row.id}`);
+              await sql.unsafe(`UPDATE ${t.name} SET ${f} = NULL WHERE id = $1`, [row.id]);
+            }
           }
         }
+      } catch (err) {
+        console.warn(`Table ${t.name} scan error (might not exist):`, err.message);
       }
-    } catch (err) {
-      console.warn(`Table ${t.name} scan error (might not exist):`, err.message);
     }
-  }
 
-  console.log('Database translation healing completed.');
+    console.log('Database translation healing completed.');
+  } finally {
+    await sql.end();
+  }
 }
 
 main().catch(console.error);

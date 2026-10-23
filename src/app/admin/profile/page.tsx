@@ -42,6 +42,7 @@ import { ProfileCardsEditor } from "@/components/admin/profile-cards-editor";
 import { isTranslationErrorPayload } from "@/lib/content-edit";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { PaymentMethodsManager } from "@/components/admin/payment-methods-manager";
 
 const SOCIAL_LINK_FIELDS: Array<{
@@ -65,6 +66,7 @@ const SOCIAL_LINK_FIELDS: Array<{
 ];
 
 export default function AdminProfilePage() {
+  const router = useRouter();
   const [profile, setProfile] = useState<ProfileData>(DUMMY_PROFILE);
   const [profileCards, setProfileCards] = useState<ProfileCardsConfig>(DEFAULT_PROFILE_CARDS);
   const [isLoading, setIsLoading] = useState(true);
@@ -219,17 +221,14 @@ export default function AdminProfilePage() {
 
         if (res.success && cardsRes.success) {
           setSavedSuccess(true);
-          const [updated, updatedCards] = await Promise.all([
-            getProfile(),
-            getProfileCardsAction(),
-          ]);
-          if (updated) {
-            setProfile(updated);
+          if (res.data) {
+            setProfile(res.data);
             setProfileVersion((v) => v + 1);
           }
-          if (updatedCards) {
-            setProfileCards(updatedCards);
+          if (cardsRes.data) {
+            setProfileCards(cardsRes.data);
           }
+          router.refresh();
           toast.success("Profil dan kartu OS berhasil disimpan!");
           setTimeout(() => {
             setSavedSuccess(false);
@@ -294,7 +293,7 @@ export default function AdminProfilePage() {
             Sosial Media & Foto
           </TabsTrigger>
           <TabsTrigger value="kartu-os" className="text-xs">
-            Kartu Profil OS (5 Tab)
+            Kartu Profil OS (3 Tab)
           </TabsTrigger>
         </TabsList>
 

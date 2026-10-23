@@ -4,24 +4,18 @@ import { recordVisitorHit } from "@/lib/visitor-analytics";
 export const runtime = "nodejs";
 
 /**
- * Endpoint internal pencatat kunjungan (hit beacon).
- * Menerima beacon tanpa cookie (credentials: "omit") dan aman dari pemblokiran.
+ * Endpoint internal pencatat kunjungan (hit beacon) - Dinonaktifkan.
  */
-export async function POST(request: Request) {
-  let body = {};
-  try {
-    body = await request.json();
-  } catch {
-    // Body kosong atau format bukan JSON
-  }
-
-  const result = await recordVisitorHit(request.headers, body);
-  return NextResponse.json(result, {
-    status: 200,
-    headers: {
-      "Cache-Control": "no-store",
-    },
-  });
+export async function POST() {
+  return NextResponse.json(
+    { ok: true, disabled: true },
+    {
+      status: 200,
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    }
+  );
 }
 
 export async function OPTIONS() {

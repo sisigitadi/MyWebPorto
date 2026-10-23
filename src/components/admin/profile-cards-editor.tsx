@@ -4,8 +4,6 @@ import React, { useState } from "react";
 import {
   Cpu,
   Clock,
-  ShieldCheck,
-  FileCode,
   Sliders,
   Plus,
   Trash2,
@@ -33,8 +31,6 @@ import {
   ProfileCardsConfig,
   TechCategory,
   CareerItem,
-  CredentialItem,
-  PhilosophyItem,
 } from "@/lib/profile-cards-meta";
 
 interface ProfileCardsEditorProps {
@@ -197,65 +193,6 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
   };
 
   // ==========================================
-  // CREDENTIALS HANDLERS
-  // ==========================================
-  const handleUpdateCredential = (
-    index: number,
-    field: keyof CredentialItem,
-    value: string
-  ) => {
-    const updated = [...cards.credentials];
-    updated[index] = { ...updated[index], [field]: value };
-    onChange({ ...cards, credentials: updated });
-  };
-
-  const handleAddCredential = () => {
-    const newCred: CredentialItem = {
-      id: `cred-${Date.now()}`,
-      title: "Sertifikasi / Pencapaian Baru",
-      titleEn: "New Certification / Achievement",
-      issuer: "Penerbit / Penyelenggara",
-      year: new Date().getFullYear().toString(),
-      badgeText: "VERIFIED",
-    };
-    onChange({ ...cards, credentials: [...cards.credentials, newCred] });
-  };
-
-  const handleDeleteCredential = (index: number) => {
-    const updated = cards.credentials.filter((_, idx) => idx !== index);
-    onChange({ ...cards, credentials: updated });
-  };
-
-  // ==========================================
-  // PHILOSOPHY HANDLERS
-  // ==========================================
-  const handleUpdatePhilosophy = (
-    index: number,
-    field: keyof PhilosophyItem,
-    value: string
-  ) => {
-    const updated = [...cards.philosophy];
-    updated[index] = { ...updated[index], [field]: value };
-    onChange({ ...cards, philosophy: updated });
-  };
-
-  const handleAddPhilosophy = () => {
-    const newPhil: PhilosophyItem = {
-      id: `phil-${Date.now()}`,
-      principle: "Prinsip Rekayasa Baru",
-      principleEn: "New Engineering Principle",
-      detail: "Penjelasan bagaimana prinsip ini diterapkan dalam penulisan kode...",
-      detailEn: "Explanation of how this principle is applied in engineering...",
-    };
-    onChange({ ...cards, philosophy: [...cards.philosophy, newPhil] });
-  };
-
-  const handleDeletePhilosophy = (index: number) => {
-    const updated = cards.philosophy.filter((_, idx) => idx !== index);
-    onChange({ ...cards, philosophy: updated });
-  };
-
-  // ==========================================
   // TRANSLATION HANDLERS (ID -> EN)
   // ==========================================
   const [translatingAll, setTranslatingAll] = useState(false);
@@ -394,92 +331,6 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
     }
   };
 
-  const handleTranslateCredential = async (idx: number) => {
-    const cred = cards.credentials[idx];
-    if (!cred?.title?.trim()) return;
-    setTranslatingItem(`cred-${idx}`);
-    try {
-      const translated = await translateField(cred.title);
-      if (translated) {
-        handleUpdateCredential(idx, "titleEn", translated);
-        toast.success(`Kredensial #${idx + 1} berhasil diterjemahkan!`);
-      } else {
-        toast.error("Gagal menerjemahkan kredensial.");
-      }
-    } finally {
-      setTranslatingItem(null);
-    }
-  };
-
-  const handleTranslateAllCredentials = async () => {
-    setTranslatingSection("credentials");
-    try {
-      const titles = cards.credentials.map((c) => c.title || "");
-      const res = await translateBatchAction(titles, "id", "en");
-      if (res.success && res.results) {
-        const updated = cards.credentials.map((c, idx) => ({
-          ...c,
-          titleEn: res.results[idx] || c.titleEn,
-        }));
-        onChange({ ...cards, credentials: updated });
-        toast.success("Seluruh kredensial & keamanan berhasil diterjemahkan!");
-      } else {
-        toast.error("Gagal menerjemahkan kredensial.");
-      }
-    } finally {
-      setTranslatingSection(null);
-    }
-  };
-
-  const handleTranslatePhilosophyItem = async (idx: number) => {
-    const phil = cards.philosophy[idx];
-    if (!phil) return;
-    setTranslatingItem(`phil-${idx}`);
-    try {
-      const texts = [phil.principle || "", phil.detail || ""];
-      const res = await translateBatchAction(texts, "id", "en");
-      if (res.success && res.results) {
-        const updated = [...cards.philosophy];
-        updated[idx] = {
-          ...updated[idx],
-          principleEn: res.results[0] || updated[idx].principleEn,
-          detailEn: res.results[1] || updated[idx].detailEn,
-        };
-        onChange({ ...cards, philosophy: updated });
-        toast.success(`Prinsip filosofi #${idx + 1} berhasil diterjemahkan!`);
-      } else {
-        toast.error("Gagal menerjemahkan prinsip filosofi.");
-      }
-    } finally {
-      setTranslatingItem(null);
-    }
-  };
-
-  const handleTranslateAllPhilosophy = async () => {
-    setTranslatingSection("philosophy");
-    try {
-      const texts: string[] = [];
-      cards.philosophy.forEach((phil) => {
-        texts.push(phil.principle || "");
-        texts.push(phil.detail || "");
-      });
-      const res = await translateBatchAction(texts, "id", "en");
-      if (res.success && res.results) {
-        const updated = cards.philosophy.map((phil, idx) => ({
-          ...phil,
-          principleEn: res.results[idx * 2] || phil.principleEn,
-          detailEn: res.results[idx * 2 + 1] || phil.detailEn,
-        }));
-        onChange({ ...cards, philosophy: updated });
-        toast.success("Seluruh filosofi & manifesto berhasil diterjemahkan!");
-      } else {
-        toast.error("Gagal menerjemahkan filosofi.");
-      }
-    } finally {
-      setTranslatingSection(null);
-    }
-  };
-
   const handleTranslateAll = async () => {
     setTranslatingAll(true);
     try {
@@ -492,10 +343,7 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
         | { type: "pref_loc" }
         | { type: "pref_sla" }
         | { type: "pref_prompt" }
-        | { type: "pref_collab"; collabIdx: number }
-        | { type: "cred_title"; credIdx: number }
-        | { type: "phil_principle"; philIdx: number }
-        | { type: "phil_detail"; philIdx: number };
+        | { type: "pref_collab"; collabIdx: number };
 
       const targets: Target[] = [];
       const texts: string[] = [];
@@ -542,24 +390,6 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
         if (collab.title?.trim()) {
           targets.push({ type: "pref_collab", collabIdx: idx });
           texts.push(collab.title);
-        }
-      });
-
-      cards.credentials.forEach((cred, idx) => {
-        if (cred.title?.trim()) {
-          targets.push({ type: "cred_title", credIdx: idx });
-          texts.push(cred.title);
-        }
-      });
-
-      cards.philosophy.forEach((phil, idx) => {
-        if (phil.principle?.trim()) {
-          targets.push({ type: "phil_principle", philIdx: idx });
-          texts.push(phil.principle);
-        }
-        if (phil.detail?.trim()) {
-          targets.push({ type: "phil_detail", philIdx: idx });
-          texts.push(phil.detail);
         }
       });
 
@@ -610,20 +440,11 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
           case "pref_collab":
             newCards.workPreferences.collaborationTypes[target.collabIdx].titleEn = translated;
             break;
-          case "cred_title":
-            newCards.credentials[target.credIdx].titleEn = translated;
-            break;
-          case "phil_principle":
-            newCards.philosophy[target.philIdx].principleEn = translated;
-            break;
-          case "phil_detail":
-            newCards.philosophy[target.philIdx].detailEn = translated;
-            break;
         }
       });
 
       onChange(newCards);
-      toast.success("Berhasil menerjemahkan seluruh 5 kartu profil ke bahasa Inggris!");
+      toast.success("Berhasil menerjemahkan seluruh 3 kartu profil ke bahasa Inggris!");
     } catch (err: unknown) {
       toast.error("Gagal menerjemahkan teks", {
         description: err instanceof Error ? err.message : "Terjadi kesalahan koneksi",
@@ -641,7 +462,7 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
           <span>Pengaturan Kartu Detail Profil OS (Sigit_Profile.exe)</span>
         </CardTitle>
         <CardDescription className="text-xs">
-          Kelola konten 5 kartu detail yang ditampilkan pada tab dialog retro di jendela profil pengunjung.
+          Kelola konten 3 kartu detail (Specs, Timeline, Availability) yang ditampilkan pada tab dialog retro di jendela profil pengunjung.
         </CardDescription>
       </CardHeader>
 
@@ -651,7 +472,7 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Globe className="h-4 w-4 text-primary shrink-0" />
             <span>
-              <strong>Dukungan Dwibahasa (ID &rarr; EN):</strong> Terjemahkan konten kartu otomatis ke bahasa Inggris sekali klik, atau gunakan tombol terjemahkan per kartu/item di bawah.
+              <strong>Dukungan Dwibahasa (ID -&gt; EN):</strong> Terjemahkan konten 3 kartu otomatis ke bahasa Inggris sekali klik, atau gunakan tombol terjemahkan per kartu/item di bawah.
             </span>
           </div>
           <Button
@@ -668,13 +489,13 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
               <Sparkles className="h-3.5 w-3.5 text-primary" />
             )}
             <span>
-              {translatingAll ? "Menerjemahkan Semua..." : "Terjemahkan Seluruh Kartu (ID → EN)"}
+              {translatingAll ? "Menerjemahkan Semua..." : "Terjemahkan Seluruh Kartu (3 Kartu)"}
             </span>
           </Button>
         </div>
 
         <Tabs value={subTab} onValueChange={setSubTab} className="space-y-4">
-          <TabsList className="grid grid-cols-2 sm:grid-cols-5 h-auto p-1 bg-muted/60 border border-[var(--vt-edge-lo-2)]">
+          <TabsList className="grid grid-cols-3 h-auto p-1 bg-muted/60 border border-[var(--vt-edge-lo-2)]">
             <TabsTrigger value="tech" className="text-xs gap-1.5 py-1.5">
               <Cpu className="h-3.5 w-3.5 text-primary" />
               <span>01 Stack</span>
@@ -686,14 +507,6 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
             <TabsTrigger value="preferences" className="text-xs gap-1.5 py-1.5">
               <Check className="h-3.5 w-3.5 text-emerald-500" />
               <span>03 Preferensi</span>
-            </TabsTrigger>
-            <TabsTrigger value="credentials" className="text-xs gap-1.5 py-1.5">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-              <span>04 Kredensial</span>
-            </TabsTrigger>
-            <TabsTrigger value="philosophy" className="text-xs gap-1.5 py-1.5 col-span-2 sm:col-span-1">
-              <FileCode className="h-3.5 w-3.5 text-indigo-500" />
-              <span>05 Filosofi</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1229,281 +1042,6 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
                   ))}
                 </div>
               </div>
-            </div>
-          </TabsContent>
-
-          {/* ====================================================
-              SUB-TAB 4: CREDENTIALS & BADGES
-              ==================================================== */}
-          <TabsContent value="credentials" className="space-y-4 pt-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-xs font-bold text-foreground">
-                  Kredensial, Sertifikasi & Keamanan ({cards.credentials.length})
-                </h4>
-                <p className="text-[11px] text-muted-foreground">
-                  Pencapaian khusus di bidang keamanan siber, kualitas rekayasa, dan standar industri
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleTranslateAllCredentials}
-                  disabled={translatingSection === "credentials"}
-                  className="text-xs h-8 gap-1.5"
-                >
-                  {translatingSection === "credentials" ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-3 w-3 text-primary" />
-                  )}
-                  <span>Terjemahkan Semua</span>
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleAddCredential}
-                  size="sm"
-                  className="text-xs h-8 gap-1"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Tambah Kredensial
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {cards.credentials.map((cred, idx) => (
-                <div
-                  key={cred.id || idx}
-                  className="p-3.5 bg-muted/30 border border-[var(--vt-edge-lo-2)] rounded-md space-y-3"
-                >
-                  <div className="flex items-center justify-between border-b border-border/50 pb-2">
-                    <span className="font-bold text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                      <ShieldCheck className="h-3.5 w-3.5" />
-                      <span>Kredensial #{idx + 1}</span>
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleTranslateCredential(idx)}
-                        disabled={translatingItem === `cred-${idx}`}
-                        className="h-7 px-2 text-xs gap-1 text-primary hover:bg-primary/10"
-                      >
-                        {translatingItem === `cred-${idx}` ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Sparkles className="h-3 w-3" />
-                        )}
-                        <span>Terjemahkan</span>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteCredential(idx)}
-                        className="text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 h-7 px-2 text-xs"
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Hapus
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-[11px]">Judul Pencapaian / Sertifikasi (ID)</Label>
-                      <Input
-                        value={cred.title}
-                        onChange={(e) =>
-                          handleUpdateCredential(idx, "title", e.target.value)
-                        }
-                        className="text-xs h-8"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px]">Title (EN)</Label>
-                      <Input
-                        value={cred.titleEn || ""}
-                        onChange={(e) =>
-                          handleUpdateCredential(idx, "titleEn", e.target.value)
-                        }
-                        className="text-xs h-8"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-[11px]">Penerbit / Penyelenggara</Label>
-                      <Input
-                        value={cred.issuer}
-                        onChange={(e) =>
-                          handleUpdateCredential(idx, "issuer", e.target.value)
-                        }
-                        className="text-xs h-8"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px]">Tahun</Label>
-                      <Input
-                        value={cred.year}
-                        onChange={(e) =>
-                          handleUpdateCredential(idx, "year", e.target.value)
-                        }
-                        className="text-xs h-8"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px]">Badge / Status Label</Label>
-                      <Input
-                        value={cred.badgeText || ""}
-                        onChange={(e) =>
-                          handleUpdateCredential(idx, "badgeText", e.target.value)
-                        }
-                        placeholder="Contoh: VERIFIED"
-                        className="text-xs h-8 font-mono"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-
-          {/* ====================================================
-              SUB-TAB 5: CODE PHILOSOPHY
-              ==================================================== */}
-          <TabsContent value="philosophy" className="space-y-4 pt-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-xs font-bold text-foreground">
-                  Filosofi Rekayasa & Manifesto Pengembang ({cards.philosophy.length})
-                </h4>
-                <p className="text-[11px] text-muted-foreground">
-                  Prinsip utama yang Anda pegang dalam merancang dan mengeksekusi perangkat lunak
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleTranslateAllPhilosophy}
-                  disabled={translatingSection === "philosophy"}
-                  className="text-xs h-8 gap-1.5"
-                >
-                  {translatingSection === "philosophy" ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-3 w-3 text-primary" />
-                  )}
-                  <span>Terjemahkan Semua</span>
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleAddPhilosophy}
-                  size="sm"
-                  className="text-xs h-8 gap-1"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Tambah Prinsip
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {cards.philosophy.map((phil, idx) => (
-                <div
-                  key={phil.id || idx}
-                  className="p-3.5 bg-muted/30 border border-[var(--vt-edge-lo-2)] rounded-md space-y-3"
-                >
-                  <div className="flex items-center justify-between border-b border-border/50 pb-2">
-                    <span className="font-bold text-xs text-indigo-500 flex items-center gap-1.5">
-                      <FileCode className="h-3.5 w-3.5" />
-                      <span>Prinsip #{idx + 1}</span>
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleTranslatePhilosophyItem(idx)}
-                        disabled={translatingItem === `phil-${idx}`}
-                        className="h-7 px-2 text-xs gap-1 text-primary hover:bg-primary/10"
-                      >
-                        {translatingItem === `phil-${idx}` ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Sparkles className="h-3 w-3" />
-                        )}
-                        <span>Terjemahkan</span>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeletePhilosophy(idx)}
-                        className="text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 h-7 px-2 text-xs"
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Hapus
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-[11px]">Nama Prinsip (ID)</Label>
-                      <Input
-                        value={phil.principle}
-                        onChange={(e) =>
-                          handleUpdatePhilosophy(idx, "principle", e.target.value)
-                        }
-                        className="text-xs h-8"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px]">Principle (EN)</Label>
-                      <Input
-                        value={phil.principleEn || ""}
-                        onChange={(e) =>
-                          handleUpdatePhilosophy(idx, "principleEn", e.target.value)
-                        }
-                        className="text-xs h-8"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-[11px]">Detail / Elaborasi (ID)</Label>
-                      <Textarea
-                        rows={2}
-                        value={phil.detail}
-                        onChange={(e) =>
-                          handleUpdatePhilosophy(idx, "detail", e.target.value)
-                        }
-                        className="text-xs"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px]">Detail / Elaboration (EN)</Label>
-                      <Textarea
-                        rows={2}
-                        value={phil.detailEn || ""}
-                        onChange={(e) =>
-                          handleUpdatePhilosophy(idx, "detailEn", e.target.value)
-                        }
-                        className="text-xs"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
             </div>
           </TabsContent>
         </Tabs>

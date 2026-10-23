@@ -194,7 +194,7 @@ export function OSBootLoader() {
             <p className="flex items-center gap-2">
               <span className="text-emerald-400">&gt;</span>
               <span>Detecting IDE Primary Master ...</span>
-              <span className="text-amber-300 font-bold">NEON-POSTGRES-POOLER [100GB]</span>
+              <span className="text-amber-300 font-bold">SUPABASE-POSTGRES-POOLER [100GB]</span>
               <span className="text-emerald-400">[ONLINE]</span>
             </p>
           )}

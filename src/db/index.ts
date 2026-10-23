@@ -33,7 +33,7 @@ if (process.env.NODE_ENV !== "production") {
 
 export const db = drizzle(client, { schema });
 
-// Compatibility layer for neon-http .rows format across raw queries
+// Compatibility layer for .rows format across raw queries
 const rawExecute = db.execute.bind(db);
 db.execute = (async (...args: Parameters<typeof rawExecute>) => {
   const result = await rawExecute(...args);

@@ -1,14 +1,14 @@
 import * as dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 dotenv.config();
-import { neon } from "@neondatabase/serverless";
+import postgres from "postgres";
 
 if (!process.env.DATABASE_URL) {
   console.log("No DATABASE_URL configured");
   process.exit(0);
 }
 
-const sql = neon(process.env.DATABASE_URL);
+const sql = postgres(process.env.DATABASE_URL, { prepare: false });
 try {
   const rows = await sql`SELECT id, name, mime, size, created_at FROM media`;
   console.log("Existing media rows count:", rows.length);
@@ -17,4 +17,7 @@ try {
   }
 } catch (err) {
   console.error("Query error:", err.message);
+} finally {
+  await sql.end();
 }
+

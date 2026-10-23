@@ -525,7 +525,7 @@ export async function updateProfile(data: unknown) {
     }
   }
 
-  // Sinkronkan ke store_config jika ada info pembayaran yang diubah di profile
+  // Sinkronkan ke store_config HANYA jika info pembayaran mengalami perubahan sebenarnya
   if (payload.paymentBankInfo !== undefined || payload.paymentQrUrl !== undefined) {
     try {
       const { getStoreConfig, saveStoreConfig } = await import("@/lib/order-actions");
@@ -534,20 +534,28 @@ export async function updateProfile(data: unknown) {
       const parsed = payload.paymentBankInfo !== undefined
         ? parseLegacyBankInfo(payload.paymentBankInfo)
         : currentCfg.bankAccounts;
-      await saveStoreConfig({
-        bankAccounts: parsed,
-        qrisImageUrl: payload.paymentQrUrl !== undefined ? (payload.paymentQrUrl || "") : currentCfg.qrisImageUrl,
-      });
+      const targetQris = payload.paymentQrUrl !== undefined ? (payload.paymentQrUrl || "") : currentCfg.qrisImageUrl;
+      const bankChanged = JSON.stringify(parsed) !== JSON.stringify(currentCfg.bankAccounts);
+      const qrisChanged = targetQris !== currentCfg.qrisImageUrl;
+      if (bankChanged || qrisChanged) {
+        await saveStoreConfig({
+          bankAccounts: parsed,
+          qrisImageUrl: targetQris,
+        });
+      }
     } catch (syncCfgErr) {
       console.warn("Sinkronisasi store_config dari profile warning:", syncCfgErr);
     }
   }
 
   void logAudit({ action: "save", entity: "profile", entityId: "owner", detail: payload.name });
+  revalidatePath("/");
+  revalidatePath("/", "page");
   revalidatePath("/", "layout");
+  revalidatePath("/(public)", "layout");
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/profile");
-  return { success: true, message: "Profil berhasil disimpan!" };
+  return { success: true, message: "Profil berhasil disimpan!", data: payload };
 }
 
 export async function getProfileCardsAction() {
@@ -574,7 +582,10 @@ export async function saveProfileCardsAction(input: unknown) {
       entityId: "profile_cards",
       detail: "Memperbarui kartu profil OS",
     });
+    revalidatePath("/");
+    revalidatePath("/", "page");
     revalidatePath("/", "layout");
+    revalidatePath("/(public)", "layout");
     revalidatePath("/admin/profile");
     return { success: true, data: cards };
   } catch (err: unknown) {
@@ -824,7 +835,7 @@ export async function saveProject(data: unknown) {
       if (errMsg.includes("does not exist") || errMsg.includes("relation")) {
         return {
           success: false,
-          error: "Tabel 'projects' belum ada di Neon PostgreSQL. Harap jalankan 'npm run db:push' di terminal Anda.",
+          error: "Tabel 'projects' belum ada di database PostgreSQL (Supabase). Harap jalankan 'npm run db:push' di terminal Anda.",
         };
       }
       return {
@@ -1100,7 +1111,7 @@ export async function saveService(data: unknown) {
       if (errMsg.includes("does not exist") || errMsg.includes("relation")) {
         return {
           success: false,
-          error: "Tabel 'services' belum ada di Neon PostgreSQL. Harap jalankan 'npm run db:push' di terminal Anda.",
+          error: "Tabel 'services' belum ada di database PostgreSQL (Supabase). Harap jalankan 'npm run db:push' di terminal Anda.",
         };
       }
       return {
@@ -1434,7 +1445,7 @@ export async function saveProduct(data: unknown) {
       if (errMsg.includes("does not exist") || errMsg.includes("relation")) {
         return {
           success: false,
-          error: "Tabel 'products' belum ada di Neon PostgreSQL. Harap jalankan 'npm run db:push' di terminal Anda.",
+          error: "Tabel 'products' belum ada di database PostgreSQL (Supabase). Harap jalankan 'npm run db:push' di terminal Anda.",
         };
       }
       return {
@@ -1736,7 +1747,7 @@ export async function saveTestimonial(data: unknown) {
       if (errMsg.includes("does not exist") || errMsg.includes("relation")) {
         return {
           success: false,
-          error: "Tabel 'testimonials' belum ada di Neon PostgreSQL. Harap jalankan 'npm run db:push' di terminal Anda.",
+          error: "Tabel 'testimonials' belum ada di database PostgreSQL (Supabase). Harap jalankan 'npm run db:push' di terminal Anda.",
         };
       }
       return {
@@ -1937,7 +1948,7 @@ export async function getArticles(
       }))
     );
   } catch (error) {
-    console.warn("Neon DB query getArticles gagal, beralih ke local-store/dummy:", error);
+    console.warn("Database query getArticles gagal, beralih ke local-store/dummy:", error);
     const sorted = [...baseArticles].sort((a, b) => a.order - b.order);
     return visible(sorted.map((a, idx) => ({
       ...a,
@@ -2049,7 +2060,7 @@ export async function saveArticle(data: unknown) {
   }
   updateLocalStore("articles", currentArticles);
 
-  // 2. Simpan ke Neon PostgreSQL jika terhubung
+  // 2. Simpan ke database PostgreSQL (Supabase) jika terhubung
   if (isDbConnected) {
     try {
       await db
@@ -2096,7 +2107,7 @@ export async function saveArticle(data: unknown) {
       if (errMsg.includes("does not exist") || errMsg.includes("relation")) {
         return {
           success: false,
-          error: "Tabel 'articles' belum ada di Neon PostgreSQL. Harap jalankan 'npm run db:push' di terminal Anda.",
+          error: "Tabel 'articles' belum ada di database PostgreSQL (Supabase). Harap jalankan 'npm run db:push' di terminal Anda.",
         };
       }
       return {

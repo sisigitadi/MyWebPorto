@@ -332,7 +332,7 @@ export function sanitizeMediaName(originalName: string): string {
 /**
  * Simpan gambar ke tabel media dan penyimpanan lokal (Dual-Persistence).
  * URL publiknya bersifat lokasi-independen (/api/media/<id>).
- * Otomatis dioptimasi (WebP / SVG). Tetap sukses tersimpan saat Neon DB offline/kuota habis.
+ * Otomatis dioptimasi (WebP / SVG). Tetap sukses tersimpan saat database cloud offline/terkendala.
  */
 export async function putMedia(
   name: string,
@@ -358,8 +358,8 @@ export async function putMedia(
           data: optimized.buffer,
         });
       } catch (dbErr) {
-        // Jangan batalkan upload jika Neon DB offline atau kuota habis!
-        console.warn("putMedia: Neon DB offline/kuota habis, tersimpan di fallback lokal:", dbErr);
+        // Jangan batalkan upload jika database cloud offline
+        console.warn("putMedia: Database cloud offline, tersimpan di fallback lokal:", dbErr);
       }
     }
 
