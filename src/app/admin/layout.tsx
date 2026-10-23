@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   },
 };
 
-/** Probe ringan reachability Neon (dipakai badge status di header admin). */
+/** Probe ringan reachability database (dipakai badge status di header admin). */
 async function probeDb(): Promise<boolean> {
   if (!isDbConnected) return false;
   try {
