@@ -19,6 +19,7 @@ describe("profile-cards-meta & sanitizer", () => {
     const prefs = DEFAULT_PROFILE_CARDS.workPreferences;
     expect(prefs.responseTimeSla).toContain("Jam");
     expect(prefs.contactPrompt).toBeDefined();
+    expect(prefs.slaDescription).toBeDefined();
     // Memastikan tidak ada field cvUrl langsung di kartu profil untuk privasi resume
     expect((prefs as unknown as Record<string, unknown>).cvUrl).toBeUndefined();
     expect((prefs as unknown as Record<string, unknown>).downloadUrl).toBeUndefined();
@@ -64,6 +65,8 @@ describe("profile-cards-meta & sanitizer", () => {
         collaborationTypes: [{ title: "Audit Arsitektur", titleEn: "Architecture Audit" }],
         responseTimeSla: "< 1 Jam",
         responseTimeSlaEn: "< 1 Hour",
+        slaDescription: "Respon cepat 1 jam",
+        slaDescriptionEn: "Quick 1 hour response",
         contactPrompt: "Hubungi untuk diskusi",
         contactPromptEn: "Reach out for discussion",
       },
@@ -92,6 +95,7 @@ describe("profile-cards-meta & sanitizer", () => {
     expect(sanitized.techStack[0].items).toEqual(["Rust", "Go"]);
     expect(sanitized.careerTimeline[0].company).toBe("Acme Corp");
     expect(sanitized.workPreferences.responseTimeSla).toBe("< 1 Jam");
+    expect(sanitized.workPreferences.slaDescription).toBe("Respon cepat 1 jam");
     expect(sanitized.credentials[0].badgeText).toBe("CHAMPION");
     expect(sanitized.philosophy[0].principle).toBe("Keep It Simple");
   });

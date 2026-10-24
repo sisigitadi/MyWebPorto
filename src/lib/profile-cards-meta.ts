@@ -34,6 +34,8 @@ export interface WorkPreferences {
   }>;
   responseTimeSla: string;
   responseTimeSlaEn?: string | null;
+  slaDescription?: string | null;
+  slaDescriptionEn?: string | null;
   contactPrompt: string;
   contactPromptEn?: string | null;
 }
@@ -158,6 +160,8 @@ export const DEFAULT_PROFILE_CARDS: ProfileCardsConfig = {
     ],
     responseTimeSla: "< 2 Jam Kerja (Senin — Sabtu, 08:00 — 21:00 WIB)",
     responseTimeSlaEn: "< 2 Business Hours (Mon — Sat, 08:00 — 21:00 WIB)",
+    slaDescription: "Pesan yang masuk melalui form kontak maupun WhatsApp ditinjau cepat dengan penilaian teknis langsung.",
+    slaDescriptionEn: "Inquiries received via the contact form or WhatsApp are reviewed promptly with direct technical feasibility feedback.",
     contactPrompt: "Tertarik berkolaborasi atau membutuhkan salinan CV resmi? Klik tombol di bawah untuk mengirim pesan langsung via formulir kontak.",
     contactPromptEn: "Interested in collaborating or need an official CV copy? Click the button below to reach out directly via the contact form.",
   },
@@ -279,6 +283,10 @@ export function sanitizeProfileCards(input: unknown): ProfileCardsConfig {
             : DEFAULT_PROFILE_CARDS.workPreferences.collaborationTypes,
           responseTimeSla: String(raw.workPreferences.responseTimeSla || DEFAULT_PROFILE_CARDS.workPreferences.responseTimeSla),
           responseTimeSlaEn: raw.workPreferences.responseTimeSlaEn ? String(raw.workPreferences.responseTimeSlaEn) : null,
+          slaDescription: raw.workPreferences.slaDescription !== undefined && raw.workPreferences.slaDescription !== null
+            ? String(raw.workPreferences.slaDescription)
+            : DEFAULT_PROFILE_CARDS.workPreferences.slaDescription,
+          slaDescriptionEn: raw.workPreferences.slaDescriptionEn ? String(raw.workPreferences.slaDescriptionEn) : null,
           contactPrompt: String(raw.workPreferences.contactPrompt || DEFAULT_PROFILE_CARDS.workPreferences.contactPrompt),
           contactPromptEn: raw.workPreferences.contactPromptEn ? String(raw.workPreferences.contactPromptEn) : null,
         }

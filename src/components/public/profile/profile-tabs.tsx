@@ -213,9 +213,12 @@ export function ProfileTabs({ cards }: ProfileTabsProps) {
                     </span>
                   </p>
                   <p className="text-[11px] text-muted-foreground font-sans mt-2 leading-relaxed">
-                    {isEn
-                      ? "Inquiries received via the contact form or WhatsApp are reviewed promptly with direct technical feasibility feedback."
-                      : "Pesan yang masuk melalui form kontak maupun WhatsApp ditinjau cepat dengan penilaian teknis langsung."}
+                    {((isEn && cards.workPreferences.slaDescriptionEn
+                      ? cards.workPreferences.slaDescriptionEn
+                      : cards.workPreferences.slaDescription) ||
+                      (isEn
+                        ? "Inquiries received via the contact form or WhatsApp are reviewed promptly with direct technical feasibility feedback."
+                        : "Pesan yang masuk melalui form kontak maupun WhatsApp ditinjau cepat dengan penilaian teknis langsung.")).replace(/—/g, "-")}
                   </p>
                 </div>
                 <div className="pt-2 border-t border-[var(--vt-edge-lo-2)]/60 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
