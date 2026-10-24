@@ -242,7 +242,7 @@ export interface VisitorHitPayload {
   region?: string;
 }
 
-export const VISITOR_ANALYTICS_ENABLED = false;
+export const VISITOR_ANALYTICS_ENABLED = true;
 
 /**
  * Catat satu hit kunjungan ke database PostgreSQL secara aman dan non-blocking.
@@ -283,6 +283,46 @@ export async function recordVisitorHit(
     // Jika pelacakan dinonaktifkan, hentikan tanpa menulis ke database
     if (!VISITOR_ANALYTICS_ENABLED) {
       return { ok: true, disabled: true };
+    }
+
+    const userAgent = headers?.get("user-agent") || "";
+    const parsed = parseUserAgent(userAgent);
+
+    // Bot throttling: batasi crawler dan bot maksimal 1 hit per 60 detik per IP agar hemat resource
+    if (parsed.isBot) {
+      const botKey = `bot:${ipHash}`;
+      const lastBotHit = recentHitsCache.get(botKey);
+      if (lastBotHit && now - lastBotHit < 60000) {
+        return { ok: true, rateLimited: true };
+      }
+      recentHitsCache.set(botKey, now);
+    }
+
+    // Geolocation headers dari edge proxy (Vercel / Cloudflare)
+    const country = payload.country || headers?.get("x-vercel-ip-country") || headers?.get("cf-ipcountry") || null;
+    const city = payload.city || headers?.get("x-vercel-ip-city") || headers?.get("cf-ipcity") || null;
+    const region = payload.region || headers?.get("x-vercel-ip-country-region") || headers?.get("cf-region") || null;
+    const asn = headers?.get("x-vercel-ip-as-number") || headers?.get("cf-as-number") || null;
+    const network = payload.connection || (asn ? `AS${asn}` : null);
+    const readableNetwork = formatReadableNetwork(network, asn);
+
+    if (isDbConnected) {
+      await db.insert(visitorHits).values({
+        ipHash,
+        path,
+        referrer: payload.referrer ? payload.referrer.slice(0, 500) : null,
+        userAgent: userAgent ? userAgent.slice(0, 500) : null,
+        browser: parsed.browser,
+        os: parsed.os,
+        device: parsed.device,
+        country: country ? country.slice(0, 10) : null,
+        city: city ? city.slice(0, 100) : null,
+        region: region ? region.slice(0, 100) : null,
+        timezone: null,
+        asn: asn ? String(asn).slice(0, 50) : null,
+        network: readableNetwork ? readableNetwork.slice(0, 150) : null,
+        isBot: parsed.isBot,
+      });
     }
 
     return { ok: true };
@@ -459,6 +499,9 @@ export function extractReferrerDomain(rawReferrer: string | null | undefined): s
   }
 }
 
+// Cache in-memory berdurasi 30 detik untuk ringkasan analitik agar hemat CPU & query database
+const analyticsCache = new Map<string, { data: VisitorAnalyticsSummary; expiresAt: number }>();
+
 /**
  * Ambil analitik lengkap dari database PostgreSQL.
  */
@@ -466,6 +509,13 @@ export async function getVisitorAnalytics(
   range: AnalyticsRange = "30d",
   includeBots: boolean = false
 ): Promise<VisitorAnalyticsSummary> {
+  const cacheKey = `${range}:${includeBots ? "1" : "0"}`;
+  const nowMs = Date.now();
+  const cached = analyticsCache.get(cacheKey);
+  if (cached && nowMs < cached.expiresAt) {
+    return cached.data;
+  }
+
   const emptyResult: VisitorAnalyticsSummary = {
     totalHits: 0,
     uniqueVisitors: 0,
@@ -602,41 +652,23 @@ export async function getVisitorAnalytics(
       .sort((a, b) => b.hits - a.hits)
       .slice(0, 10);
 
-    // Helper dimension query
-    async function queryDimension(columnName: string, limit = 8): Promise<DimensionStat[]> {
-      const colSql = sql.raw(columnName);
-      const res = await db.execute<{ name: string | null; count: number }>(sql`
-        SELECT
-          COALESCE(${colSql}, 'Unknown') AS name,
-          COUNT(*)::int AS count
-        FROM visitor_hits
-        WHERE ${botCondition} AND ${rangeCondition}
-        GROUP BY ${colSql}
-        ORDER BY count DESC
-        LIMIT ${limit}
-      `);
-
-      return toRows<{ name: string | null; count: number }>(res).map((r) => ({
-        name: String(r.name || "Unknown"),
-        count: Number(r.count),
-        percentage: totalHits > 0 ? Math.round((Number(r.count) / totalHits) * 100) : 0,
-      }));
-    }
-
+    // Query negara, kota, jaringan, dan lokasi lengkap secara teroptimasi (omits browser, os, perangkat, and timezone)
     const [
-      deviceBreakdown,
-      browserBreakdown,
-      osBreakdown,
-      rawCountryBreakdown,
+      countryQuery,
       citiesQuery,
-      timezonesQuery,
       networksQuery,
       locationsQuery,
     ] = await Promise.all([
-      queryDimension("device"),
-      queryDimension("browser"),
-      queryDimension("os"),
-      queryDimension("country", 10),
+      db.execute<{ name: string | null; count: number }>(sql`
+        SELECT
+          COALESCE(country, 'Unknown') AS name,
+          COUNT(*)::int AS count
+        FROM visitor_hits
+        WHERE ${botCondition} AND ${rangeCondition}
+        GROUP BY country
+        ORDER BY count DESC
+        LIMIT 10
+      `),
       db.execute<{ city: string | null; count: number }>(sql`
         SELECT
           city,
@@ -644,16 +676,6 @@ export async function getVisitorAnalytics(
         FROM visitor_hits
         WHERE ${botCondition} AND ${rangeCondition} AND city IS NOT NULL AND city != ''
         GROUP BY city
-        ORDER BY count DESC
-        LIMIT 10
-      `),
-      db.execute<{ timezone: string | null; count: number }>(sql`
-        SELECT
-          timezone,
-          COUNT(*)::int AS count
-        FROM visitor_hits
-        WHERE ${botCondition} AND ${rangeCondition} AND timezone IS NOT NULL AND timezone != ''
-        GROUP BY timezone
         ORDER BY count DESC
         LIMIT 10
       `),
@@ -682,25 +704,19 @@ export async function getVisitorAnalytics(
       `),
     ]);
 
-    const countryBreakdown: CountryStat[] = rawCountryBreakdown.map((c) => {
+    const countryBreakdown: CountryStat[] = toRows<{ name: string | null; count: number }>(countryQuery).map((c) => {
       const info = getCountryInfo(c.name);
       return {
         code: info.code,
         name: info.name,
         flag: info.flag,
-        count: c.count,
-        percentage: totalHits > 0 ? Math.round((c.count / totalHits) * 100) : 0,
+        count: Number(c.count),
+        percentage: totalHits > 0 ? Math.round((Number(c.count) / totalHits) * 100) : 0,
       };
     });
 
     const cityBreakdown: CityStat[] = toRows<{ city: string | null; count: number }>(citiesQuery).map((r) => ({
       city: String(r.city || "Unknown"),
-      count: Number(r.count),
-      percentage: totalHits > 0 ? Math.round((Number(r.count) / totalHits) * 100) : 0,
-    }));
-
-    const timezoneBreakdown: TimezoneStat[] = toRows<{ timezone: string | null; count: number }>(timezonesQuery).map((r) => ({
-      timezone: String(r.timezone || "Unknown"),
       count: Number(r.count),
       percentage: totalHits > 0 ? Math.round((Number(r.count) / totalHits) * 100) : 0,
     }));
@@ -806,24 +822,27 @@ export async function getVisitorAnalytics(
       };
     });
 
-    return {
+    const result: VisitorAnalyticsSummary = {
       totalHits,
       uniqueVisitors,
       todayHits,
       todayUniq,
       topPages,
       topReferrers,
-      deviceBreakdown,
-      browserBreakdown,
-      osBreakdown,
+      deviceBreakdown: [],
+      browserBreakdown: [],
+      osBreakdown: [],
       countryBreakdown,
       cityBreakdown,
       locationBreakdown,
-      timezoneBreakdown,
+      timezoneBreakdown: [],
       networkBreakdown,
       dailyTrend,
       recentVisits,
     };
+
+    analyticsCache.set(cacheKey, { data: result, expiresAt: nowMs + 30000 });
+    return result;
   } catch (err) {
     console.error("Failed to query visitor analytics:", err);
     return emptyResult;

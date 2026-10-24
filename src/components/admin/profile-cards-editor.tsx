@@ -39,7 +39,7 @@ interface ProfileCardsEditorProps {
 }
 
 export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps) {
-  const [subTab, setSubTab] = useState("tech");
+  const [subTab, setSubTab] = useState("preferences");
   const [newSkillInputs, setNewSkillInputs] = useState<Record<string, string>>({});
   const [newBadgeInputs, setNewBadgeInputs] = useState<Record<string, string>>({});
 
@@ -462,7 +462,7 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
           <span>Pengaturan Kartu Detail Profil OS (Sigit_Profile.exe)</span>
         </CardTitle>
         <CardDescription className="text-xs">
-          Kelola konten 3 kartu detail (Specs, Timeline, Availability) yang ditampilkan pada tab dialog retro di jendela profil pengunjung.
+          Kelola konten 3 kartu detail (Availability, Timeline, Specs) yang ditampilkan pada tab dialog retro di jendela profil pengunjung.
         </CardDescription>
       </CardHeader>
 
@@ -496,152 +496,193 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
 
         <Tabs value={subTab} onValueChange={setSubTab} className="space-y-4">
           <TabsList className="grid grid-cols-3 h-auto p-1 bg-muted/60 border border-[var(--vt-edge-lo-2)]">
-            <TabsTrigger value="tech" className="text-xs gap-1.5 py-1.5">
-              <Cpu className="h-3.5 w-3.5 text-primary" />
-              <span>01 Stack</span>
+            <TabsTrigger value="preferences" className="text-xs gap-1.5 py-1.5">
+              <Check className="h-3.5 w-3.5 text-emerald-500" />
+              <span>01 Preferensi</span>
             </TabsTrigger>
             <TabsTrigger value="career" className="text-xs gap-1.5 py-1.5">
               <Clock className="h-3.5 w-3.5 text-amber-500" />
               <span>02 Karir</span>
             </TabsTrigger>
-            <TabsTrigger value="preferences" className="text-xs gap-1.5 py-1.5">
-              <Check className="h-3.5 w-3.5 text-emerald-500" />
-              <span>03 Preferensi</span>
+            <TabsTrigger value="tech" className="text-xs gap-1.5 py-1.5">
+              <Cpu className="h-3.5 w-3.5 text-primary" />
+              <span>03 Stack</span>
             </TabsTrigger>
           </TabsList>
 
           {/* ====================================================
-              SUB-TAB 1: TECH STACK
+              SUB-TAB 1: WORK PREFERENCES & SLA
               ==================================================== */}
-          <TabsContent value="tech" className="space-y-4 pt-2">
+          <TabsContent value="preferences" className="space-y-4 pt-2">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-foreground block">
-                  Arsenal Keahlian Terkategori (4 Kategori)
-                </span>
-                <span className="text-[11px] text-muted-foreground">
-                  Masing-masing kategori memiliki daftar skill chips
-                </span>
+                <h4 className="text-xs font-bold text-foreground">
+                  Preferensi Kerja, Jaminan SLA, & Permintaan Resume
+                </h4>
+                <p className="text-[11px] text-muted-foreground">
+                  Menampilkan parameter kesiapan kerja dan tombol pemicu permintaan resume via form kontak
+                </p>
               </div>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleTranslateAllTech}
-                disabled={translatingSection === "tech"}
-                className="h-7 text-xs gap-1.5"
+                onClick={handleTranslatePreferences}
+                disabled={translatingSection === "preferences"}
+                className="text-xs h-8 gap-1.5"
               >
-                {translatingSection === "tech" ? (
+                {translatingSection === "preferences" ? (
                   <Loader2 className="h-3 w-3 animate-spin" />
                 ) : (
                   <Sparkles className="h-3 w-3 text-primary" />
                 )}
-                <span>Terjemahkan Judul Kategori</span>
+                <span>Terjemahkan Preferensi & SLA</span>
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {cards.techStack.map((cat, catIdx) => (
-                <div
-                  key={cat.id || catIdx}
-                  className="p-3.5 bg-muted/30 border border-[var(--vt-edge-lo-2)] rounded-md space-y-3"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-[11px] font-bold">Judul Kategori (ID & EN)</Label>
+            <div className="p-4 bg-muted/30 border border-[var(--vt-edge-lo-2)] rounded-md space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-[11px]">Banner Status Ketersediaan (ID)</Label>
+                  <Input
+                    value={cards.workPreferences.statusBadge}
+                    onChange={(e) =>
+                      handleUpdatePreferences("statusBadge", e.target.value)
+                    }
+                    className="text-xs h-8"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px]">Availability Status Banner (EN)</Label>
+                  <Input
+                    value={cards.workPreferences.statusBadgeEn || ""}
+                    onChange={(e) =>
+                      handleUpdatePreferences("statusBadgeEn", e.target.value)
+                    }
+                    className="text-xs h-8"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-[11px]">Lokasi & Zona Waktu (ID)</Label>
+                  <Input
+                    value={cards.workPreferences.locationTimezone}
+                    onChange={(e) =>
+                      handleUpdatePreferences("locationTimezone", e.target.value)
+                    }
+                    className="text-xs h-8"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px]">Location & Timezone (EN)</Label>
+                  <Input
+                    value={cards.workPreferences.locationTimezoneEn || ""}
+                    onChange={(e) =>
+                      handleUpdatePreferences("locationTimezoneEn", e.target.value)
+                    }
+                    className="text-xs h-8"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-[11px]">Jaminan Waktu Respon SLA (ID)</Label>
+                  <Input
+                    value={cards.workPreferences.responseTimeSla}
+                    onChange={(e) =>
+                      handleUpdatePreferences("responseTimeSla", e.target.value)
+                    }
+                    className="text-xs h-8"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px]">Response Time SLA (EN)</Label>
+                  <Input
+                    value={cards.workPreferences.responseTimeSlaEn || ""}
+                    onChange={(e) =>
+                      handleUpdatePreferences("responseTimeSlaEn", e.target.value)
+                    }
+                    className="text-xs h-8"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-[11px]">Prompt Ajakan Minta CV (ID)</Label>
+                  <Input
+                    value={cards.workPreferences.contactPrompt}
+                    onChange={(e) =>
+                      handleUpdatePreferences("contactPrompt", e.target.value)
+                    }
+                    className="text-xs h-8"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px]">Prompt Request CV (EN)</Label>
+                  <Input
+                    value={cards.workPreferences.contactPromptEn || ""}
+                    onChange={(e) =>
+                      handleUpdatePreferences("contactPromptEn", e.target.value)
+                    }
+                    className="text-xs h-8"
+                  />
+                </div>
+              </div>
+
+              {/* Collaboration Types */}
+              <div className="space-y-2 pt-2 border-t border-border/60">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[11px] font-bold">
+                    Lingkup / Jenis Kolaborasi ({cards.workPreferences.collaborationTypes.length})
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddCollabType}
+                    className="h-7 text-xs"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Tambah Lingkup
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  {cards.workPreferences.collaborationTypes.map((type, tIdx) => (
+                    <div key={tIdx} className="flex items-center gap-2">
+                      <Input
+                        value={type.title}
+                        onChange={(e) =>
+                          handleUpdateCollabType(tIdx, "title", e.target.value)
+                        }
+                        placeholder="Lingkup ID"
+                        className="text-xs h-8 flex-1"
+                      />
+                      <Input
+                        value={type.titleEn || ""}
+                        onChange={(e) =>
+                          handleUpdateCollabType(tIdx, "titleEn", e.target.value)
+                        }
+                        placeholder="Scope EN"
+                        className="text-xs h-8 flex-1"
+                      />
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleTranslateTechCategory(catIdx)}
-                        disabled={translatingItem === `tech-${catIdx}`}
-                        className="h-5 px-1.5 text-[10px] gap-1 text-primary hover:bg-primary/10"
+                        onClick={() => handleDeleteCollabType(tIdx)}
+                        className="h-8 px-2 text-rose-500 hover:text-rose-600"
                       >
-                        {translatingItem === `tech-${catIdx}` ? (
-                          <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                        ) : (
-                          <Sparkles className="h-2.5 w-2.5" />
-                        )}
-                        <span>Terjemahkan</span>
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Input
-                        value={cat.title}
-                        onChange={(e) =>
-                          handleUpdateTechCategory(catIdx, "title", e.target.value)
-                        }
-                        placeholder="Judul ID"
-                        className="text-xs h-8"
-                      />
-                      <Input
-                        value={cat.titleEn || ""}
-                        onChange={(e) =>
-                          handleUpdateTechCategory(catIdx, "titleEn", e.target.value)
-                        }
-                        placeholder="Title EN (opsional)"
-                        className="text-xs h-8"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Skills tags list */}
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] text-muted-foreground uppercase font-bold">
-                      Daftar Keahlian ({cat.items.length})
-                    </Label>
-                    <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-background/80 border border-border/60 rounded-xs">
-                      {cat.items.map((item, iIdx) => (
-                        <span
-                          key={iIdx}
-                          className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-xs"
-                        >
-                          <span>{item}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveSkillFromCategory(catIdx, item)}
-                            className="hover:text-rose-500 transition-colors cursor-pointer"
-                            title="Hapus"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-
-                    {/* Add new skill input */}
-                    <div className="flex items-center gap-2 pt-1">
-                      <Input
-                        value={newSkillInputs[cat.id] || ""}
-                        onChange={(e) =>
-                          setNewSkillInputs((prev) => ({
-                            ...prev,
-                            [cat.id]: e.target.value,
-                          }))
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            handleAddSkillToCategory(catIdx, cat.id);
-                          }
-                        }}
-                        placeholder="Ketik nama skill lalu Enter / Tambah..."
-                        className="text-xs h-7"
-                      />
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleAddSkillToCategory(catIdx, cat.id)}
-                        className="h-7 text-xs px-2.5"
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        Tambah
-                      </Button>
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
           </TabsContent>
 
@@ -870,178 +911,137 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
           </TabsContent>
 
           {/* ====================================================
-              SUB-TAB 3: WORK PREFERENCES & SLA
+              SUB-TAB 3: TECH STACK
               ==================================================== */}
-          <TabsContent value="preferences" className="space-y-4 pt-2">
+          <TabsContent value="tech" className="space-y-4 pt-2">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="text-xs font-bold text-foreground">
-                  Preferensi Kerja, Jaminan SLA, & Permintaan Resume
-                </h4>
-                <p className="text-[11px] text-muted-foreground">
-                  Menampilkan parameter kesiapan kerja dan tombol pemicu permintaan resume via form kontak
-                </p>
+                <span className="text-xs font-bold text-foreground block">
+                  Arsenal Keahlian Terkategori (4 Kategori)
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  Masing-masing kategori memiliki daftar skill chips
+                </span>
               </div>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleTranslatePreferences}
-                disabled={translatingSection === "preferences"}
-                className="text-xs h-8 gap-1.5"
+                onClick={handleTranslateAllTech}
+                disabled={translatingSection === "tech"}
+                className="h-7 text-xs gap-1.5"
               >
-                {translatingSection === "preferences" ? (
+                {translatingSection === "tech" ? (
                   <Loader2 className="h-3 w-3 animate-spin" />
                 ) : (
                   <Sparkles className="h-3 w-3 text-primary" />
                 )}
-                <span>Terjemahkan Preferensi & SLA</span>
+                <span>Terjemahkan Judul Kategori</span>
               </Button>
             </div>
 
-            <div className="p-4 bg-muted/30 border border-[var(--vt-edge-lo-2)] rounded-md space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-[11px]">Banner Status Ketersediaan (ID)</Label>
-                  <Input
-                    value={cards.workPreferences.statusBadge}
-                    onChange={(e) =>
-                      handleUpdatePreferences("statusBadge", e.target.value)
-                    }
-                    className="text-xs h-8"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[11px]">Availability Status Banner (EN)</Label>
-                  <Input
-                    value={cards.workPreferences.statusBadgeEn || ""}
-                    onChange={(e) =>
-                      handleUpdatePreferences("statusBadgeEn", e.target.value)
-                    }
-                    className="text-xs h-8"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-[11px]">Lokasi & Zona Waktu (ID)</Label>
-                  <Input
-                    value={cards.workPreferences.locationTimezone}
-                    onChange={(e) =>
-                      handleUpdatePreferences("locationTimezone", e.target.value)
-                    }
-                    className="text-xs h-8"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[11px]">Location & Timezone (EN)</Label>
-                  <Input
-                    value={cards.workPreferences.locationTimezoneEn || ""}
-                    onChange={(e) =>
-                      handleUpdatePreferences("locationTimezoneEn", e.target.value)
-                    }
-                    className="text-xs h-8"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-[11px]">Jaminan Waktu Respon SLA (ID)</Label>
-                  <Input
-                    value={cards.workPreferences.responseTimeSla}
-                    onChange={(e) =>
-                      handleUpdatePreferences("responseTimeSla", e.target.value)
-                    }
-                    className="text-xs h-8"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[11px]">Response Time SLA (EN)</Label>
-                  <Input
-                    value={cards.workPreferences.responseTimeSlaEn || ""}
-                    onChange={(e) =>
-                      handleUpdatePreferences("responseTimeSlaEn", e.target.value)
-                    }
-                    className="text-xs h-8"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-[11px]">Prompt Ajakan Minta CV (ID)</Label>
-                  <Input
-                    value={cards.workPreferences.contactPrompt}
-                    onChange={(e) =>
-                      handleUpdatePreferences("contactPrompt", e.target.value)
-                    }
-                    className="text-xs h-8"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[11px]">Prompt Request CV (EN)</Label>
-                  <Input
-                    value={cards.workPreferences.contactPromptEn || ""}
-                    onChange={(e) =>
-                      handleUpdatePreferences("contactPromptEn", e.target.value)
-                    }
-                    className="text-xs h-8"
-                  />
-                </div>
-              </div>
-
-              {/* Collaboration Types */}
-              <div className="space-y-2 pt-2 border-t border-border/60">
-                <div className="flex items-center justify-between">
-                  <Label className="text-[11px] font-bold">
-                    Lingkup / Jenis Kolaborasi ({cards.workPreferences.collaborationTypes.length})
-                  </Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAddCollabType}
-                    className="h-7 text-xs"
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Tambah Lingkup
-                  </Button>
-                </div>
-
-                <div className="space-y-2">
-                  {cards.workPreferences.collaborationTypes.map((type, tIdx) => (
-                    <div key={tIdx} className="flex items-center gap-2">
-                      <Input
-                        value={type.title}
-                        onChange={(e) =>
-                          handleUpdateCollabType(tIdx, "title", e.target.value)
-                        }
-                        placeholder="Lingkup ID"
-                        className="text-xs h-8 flex-1"
-                      />
-                      <Input
-                        value={type.titleEn || ""}
-                        onChange={(e) =>
-                          handleUpdateCollabType(tIdx, "titleEn", e.target.value)
-                        }
-                        placeholder="Scope EN"
-                        className="text-xs h-8 flex-1"
-                      />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {cards.techStack.map((cat, catIdx) => (
+                <div
+                  key={cat.id || catIdx}
+                  className="p-3.5 bg-muted/30 border border-[var(--vt-edge-lo-2)] rounded-md space-y-3"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[11px] font-bold">Judul Kategori (ID & EN)</Label>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDeleteCollabType(tIdx)}
-                        className="h-8 px-2 text-rose-500 hover:text-rose-600"
+                        onClick={() => handleTranslateTechCategory(catIdx)}
+                        disabled={translatingItem === `tech-${catIdx}`}
+                        className="h-5 px-1.5 text-[10px] gap-1 text-primary hover:bg-primary/10"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        {translatingItem === `tech-${catIdx}` ? (
+                          <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-2.5 w-2.5" />
+                        )}
+                        <span>Terjemahkan</span>
                       </Button>
                     </div>
-                  ))}
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        value={cat.title}
+                        onChange={(e) =>
+                          handleUpdateTechCategory(catIdx, "title", e.target.value)
+                        }
+                        placeholder="Judul ID"
+                        className="text-xs h-8"
+                      />
+                      <Input
+                        value={cat.titleEn || ""}
+                        onChange={(e) =>
+                          handleUpdateTechCategory(catIdx, "titleEn", e.target.value)
+                        }
+                        placeholder="Title EN (opsional)"
+                        className="text-xs h-8"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Skills tags list */}
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] text-muted-foreground uppercase font-bold">
+                      Daftar Keahlian ({cat.items.length})
+                    </Label>
+                    <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-background/80 border border-border/60 rounded-xs">
+                      {cat.items.map((item, iIdx) => (
+                        <span
+                          key={iIdx}
+                          className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-xs"
+                        >
+                          <span>{item}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSkillFromCategory(catIdx, item)}
+                            className="hover:text-rose-500 transition-colors cursor-pointer"
+                            title="Hapus"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Add new skill input */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <Input
+                        value={newSkillInputs[cat.id] || ""}
+                        onChange={(e) =>
+                          setNewSkillInputs((prev) => ({
+                            ...prev,
+                            [cat.id]: e.target.value,
+                          }))
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddSkillToCategory(catIdx, cat.id);
+                          }
+                        }}
+                        placeholder="Ketik nama skill lalu Enter / Tambah..."
+                        className="text-xs h-7"
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleAddSkillToCategory(catIdx, cat.id)}
+                        className="h-7 text-xs px-2.5"
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Tambah
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
           </TabsContent>
         </Tabs>

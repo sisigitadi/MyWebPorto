@@ -2,23 +2,16 @@ import Link from "next/link";
 import {
   Activity,
   ArrowUpRight,
-  BarChart3,
   Bot,
   Calendar,
   Compass,
   Eye,
   Globe2,
-  Laptop,
-  Monitor,
   RefreshCw,
   ShieldCheck,
-  Smartphone,
-  Tablet,
   Users,
-  Clock,
   Wifi,
   MapPin,
-  AlertCircle,
 } from "lucide-react";
 import {
   Card,
@@ -65,21 +58,13 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      {/* Status Banner Dinonaktifkan */}
-      <div className="flex items-center gap-3 p-3.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200 text-xs">
-        <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
-        <span>
-          <strong>Status: Pelacakan Kunjungan Dinonaktifkan.</strong> Pengumpulan hit baru dan beacon publik saat ini dinonaktifkan. Metrik dan log di bawah ini merupakan data historis tersimpan.
-        </span>
-      </div>
-
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold flex items-center gap-2">
             <Activity className="h-5 w-5 text-primary" /> Visitor Analytics
-            <Badge variant="outline" className="text-[10px] h-5 px-1.5 text-amber-600 border-amber-500/40">
-              Nonaktif
+            <Badge variant="outline" className="text-[10px] h-5 px-1.5 text-emerald-600 border-emerald-500/40">
+              Aktif // Teroptimasi
             </Badge>
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -406,9 +391,8 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
         </Card>
       </div>
 
-      {/* Network & Timezone Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Network & ASN */}
+      {/* Network & ISP Distribution */}
+      <div>
         <Card className="flex flex-col">
           <CardHeader>
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -424,7 +408,7 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
                 Belum ada data jaringan/ISP terdeteksi pada periode ini.
               </div>
             ) : (
-              <div className="space-y-2.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5">
                 {data.networkBreakdown.map((item) => (
                   <div key={item.network} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
@@ -448,128 +432,6 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
                   </div>
                 ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Zona Waktu (Timezone) */}
-        <Card className="flex flex-col">
-          <CardHeader>
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Clock className="h-4 w-4 text-amber-600" /> Distribusi Zona Waktu (Timezone)
-            </CardTitle>
-            <CardDescription>
-              Zona waktu lokal perangkat browser visitor ({rangeLabels[range]}).
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1">
-            {data.timezoneBreakdown.length === 0 ? (
-              <div className="py-8 text-center text-xs text-muted-foreground">
-                Belum ada data zona waktu tercatat pada periode ini.
-              </div>
-            ) : (
-              <div className="space-y-2.5">
-                {data.timezoneBreakdown.map((item) => (
-                  <div key={item.timezone} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="font-medium text-foreground truncate pr-2 flex items-center gap-2">
-                        <Clock className="h-3 w-3 text-amber-500 shrink-0" />
-                        <span className="truncate font-mono">{item.timezone}</span>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0 font-mono">
-                        <span className="font-bold text-foreground">
-                          {item.count.toLocaleString("id-ID")}
-                        </span>
-                        <span className="text-muted-foreground text-[10px]">({item.percentage}%)</span>
-                      </div>
-                    </div>
-                    <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-amber-600 rounded-full transition-all"
-                        style={{ width: `${Math.max(item.percentage, 2)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Systems & Technology Breakdown */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Devices */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
-              <Smartphone className="h-3.5 w-3.5 text-primary" /> Perangkat
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {data.deviceBreakdown.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Nihil</p>
-            ) : (
-              data.deviceBreakdown.map((item) => (
-                <div key={item.name} className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground capitalize flex items-center gap-1.5">
-                    {item.name === "mobile" && <Smartphone className="h-3 w-3" />}
-                    {item.name === "desktop" && <Monitor className="h-3 w-3" />}
-                    {item.name === "tablet" && <Tablet className="h-3 w-3" />}
-                    {item.name === "bot" && <Bot className="h-3 w-3" />}
-                    <span>{item.name}</span>
-                  </span>
-                  <span className="font-mono font-medium">
-                    {item.count} <span className="text-muted-foreground text-[10px]">({item.percentage}%)</span>
-                  </span>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Operating Systems */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
-              <Laptop className="h-3.5 w-3.5 text-emerald-600" /> Sistem Operasi
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {data.osBreakdown.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Nihil</p>
-            ) : (
-              data.osBreakdown.map((item) => (
-                <div key={item.name} className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground truncate pr-2">{item.name}</span>
-                  <span className="font-mono font-medium shrink-0">
-                    {item.count} <span className="text-muted-foreground text-[10px]">({item.percentage}%)</span>
-                  </span>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Browsers */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
-              <BarChart3 className="h-3.5 w-3.5 text-amber-600" /> Peramban (Browser)
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {data.browserBreakdown.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Nihil</p>
-            ) : (
-              data.browserBreakdown.map((item) => (
-                <div key={item.name} className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground truncate pr-2">{item.name}</span>
-                  <span className="font-mono font-medium shrink-0">
-                    {item.count} <span className="text-muted-foreground text-[10px]">({item.percentage}%)</span>
-                  </span>
-                </div>
-              ))
             )}
           </CardContent>
         </Card>
@@ -599,8 +461,7 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
                     <th className="py-2 px-3">Halaman</th>
                     <th className="py-2 px-3">Lokasi (Location)</th>
                     <th className="py-2 px-3">Jaringan (Network)</th>
-                    <th className="py-2 px-3">Zona Waktu Klien</th>
-                    <th className="py-2 px-3">Perangkat / OS</th>
+                    <th className="py-2 px-3">Tipe</th>
                     <th className="py-2 px-3">Referrer</th>
                     <th className="py-2 pl-3 text-right">Visitor ID</th>
                   </tr>
@@ -649,30 +510,15 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
                         )}
                       </td>
                       <td className="py-2.5 px-3 whitespace-nowrap">
-                        {visit.timezone ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-foreground font-mono truncate max-w-[130px]" title={visit.timezone}>
-                            <Clock className="h-2.5 w-2.5 text-amber-500 shrink-0" />
-                            <span className="truncate">{visit.timezone}</span>
-                          </span>
+                        {visit.isBot ? (
+                          <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-amber-600 border-amber-500/40 font-mono">
+                            BOT
+                          </Badge>
                         ) : (
-                          <span className="text-muted-foreground/60 italic font-sans">-</span>
+                          <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-emerald-600 border-emerald-500/40 font-mono">
+                            Pengunjung
+                          </Badge>
                         )}
-                      </td>
-                      <td className="py-2.5 px-3 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5">
-                          {visit.isBot ? (
-                            <Badge variant="outline" className="text-[10px] h-4 px-1 text-amber-600 border-amber-500/40">
-                              BOT
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-[10px] h-4 px-1 text-muted-foreground">
-                              {visit.device}
-                            </Badge>
-                          )}
-                          <span className="text-muted-foreground text-[11px]">
-                            {visit.browser} / {visit.os}
-                          </span>
-                        </span>
                       </td>
                       <td className="py-2.5 px-3 max-w-[140px] truncate text-muted-foreground text-[11px]" title={visit.referrer || "Direct"}>
                         {visit.referrer || "Direct"}

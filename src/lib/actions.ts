@@ -758,7 +758,7 @@ export async function saveProject(data: unknown) {
       ? projectData.descriptionEn.slice(0, 120) + (projectData.descriptionEn.length > 120 ? "..." : "")
       : null);
 
-  const targetId = id || `proj-${Date.now()}`;
+  const targetId = id || crypto.randomUUID();
   const publishAtISO = normalizePublishAt(projectData.publishAt);
   const dummyItem: ProjectData = {
     id: targetId,
@@ -782,7 +782,7 @@ export async function saveProject(data: unknown) {
   // Simpan secara persisten ke berkas lokal
   const store = getLocalStore();
   const currentList = (store?.projects as ProjectData[]) || [...DUMMY_PROJECTS];
-  const existingIdx = currentList.findIndex((p) => p.id === targetId || (id && p.id === id));
+  const existingIdx = currentList.findIndex((p) => p.id === targetId || (id && p.id === id) || (p.slug && p.slug === dummyItem.slug));
   if (existingIdx >= 0) {
     currentList[existingIdx] = {
       ...currentList[existingIdx],
@@ -794,7 +794,7 @@ export async function saveProject(data: unknown) {
   }
   updateLocalStore("projects", currentList);
 
-  const existingDummyIdx = DUMMY_PROJECTS.findIndex((p) => p.id === id);
+  const existingDummyIdx = DUMMY_PROJECTS.findIndex((p) => p.id === id || p.id === targetId || (p.slug && p.slug === dummyItem.slug));
   if (existingDummyIdx >= 0) {
     DUMMY_PROJECTS[existingDummyIdx] = {
       ...DUMMY_PROJECTS[existingDummyIdx],
@@ -808,45 +808,29 @@ export async function saveProject(data: unknown) {
   const publishAtDate = publishAtISO ? new Date(publishAtISO) : null;
   if (isDbConnected) {
     try {
-      if (id) {
-        const existing = await db.query.projects.findFirst({
-          where: eq(schema.projects.id, id),
-        });
-
-        if (existing) {
-          await db
-            .update(schema.projects)
-            .set({
-              ...projectData,
-              publishAt: publishAtDate,
-              summary: summaryId,
-              summaryEn: summaryEn,
-              imageUrl: projectData.imageUrl,
-              techStacks: projectData.techStacks,
-              updatedAt: new Date(),
-            })
-            .where(eq(schema.projects.id, id));
-        } else {
-          await db.insert(schema.projects).values({
-            id,
-            ...projectData,
-            publishAt: publishAtDate,
-            summary: summaryId,
-            summaryEn: summaryEn,
-            imageUrl: projectData.imageUrl,
-            techStacks: projectData.techStacks,
-          });
-        }
-      } else {
-        await db.insert(schema.projects).values({
+      await db
+        .insert(schema.projects)
+        .values({
+          id: targetId,
           ...projectData,
           publishAt: publishAtDate,
           summary: summaryId,
           summaryEn: summaryEn,
           imageUrl: projectData.imageUrl,
           techStacks: projectData.techStacks,
+        })
+        .onConflictDoUpdate({
+          target: schema.projects.id,
+          set: {
+            ...projectData,
+            publishAt: publishAtDate,
+            summary: summaryId,
+            summaryEn: summaryEn,
+            imageUrl: projectData.imageUrl,
+            techStacks: projectData.techStacks,
+            updatedAt: new Date(),
+          },
         });
-      }
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
       console.error("Sinkronisasi database saveProject gagal:", errMsg);
@@ -867,8 +851,9 @@ export async function saveProject(data: unknown) {
   if (isLivePublished(dummyItem)) {
     void submitUrlsToIndexNow([detailUrl("proyek", dummyItem.slug)]);
   }
-  revalidatePath("/", "layout");
-  revalidatePath("/proyek", "layout");
+  revalidatePath("/");
+  revalidatePath("/(public)", "layout");
+  revalidatePath("/proyek");
   revalidatePath("/proyek/[slug]", "page");
   revalidatePath("/admin/projects");
   return { success: true, message: "Proyek berhasil disimpan!" };
@@ -901,20 +886,21 @@ export async function deleteProject(id: string) {
   }
 
   if (store?.projects) {
-    const updated = (store.projects as ProjectData[]).filter((p) => p.id !== id);
+    const updated = (store.projects as ProjectData[]).filter((p) => p.id !== id && (!p.slug || p.slug !== id));
     updateLocalStore("projects", updated);
   }
 
-  const dummyIdx = DUMMY_PROJECTS.findIndex((p) => p.id === id);
+  const dummyIdx = DUMMY_PROJECTS.findIndex((p) => p.id === id || (p.slug && p.slug === id));
   if (dummyIdx >= 0) {
     DUMMY_PROJECTS.splice(dummyIdx, 1);
   }
 
   void logAudit({ action: "delete", entity: "projects", entityId: id });
   void submitUrlsToIndexNow([catalogUrl("proyek")]);
-  revalidatePath("/", "layout");
-  revalidatePath("/proyek", "layout");
-  revalidatePath("/proyek/[slug]", "page");
+  revalidatePath("/");
+  revalidatePath("/(public)", "layout");
+  revalidatePath("/proyek");
+  revalidatePath("/admin/projects");
   return { success: true, message: "Proyek berhasil dihapus!" };
 }
 
@@ -975,8 +961,9 @@ export async function reorderProjects(items: { id: string; order: number }[]) {
     detail: `Mengatur ulang urutan ${items.length} proyek`,
   });
 
-  revalidatePath("/", "layout");
-  revalidatePath("/proyek", "layout");
+  revalidatePath("/");
+  revalidatePath("/(public)", "layout");
+  revalidatePath("/proyek");
   revalidatePath("/admin/projects");
   return { success: true, message: "Urutan proyek berhasil diperbarui!" };
 }
@@ -1069,7 +1056,7 @@ export async function saveService(data: unknown) {
     descriptionEn: descriptionEn,
   };
 
-  const targetId = id || `serv-${Date.now()}`;
+  const targetId = id || crypto.randomUUID();
   const dummyItem: ServiceData = {
     id: targetId,
     order: serviceData.order ?? 1,
@@ -1095,7 +1082,7 @@ export async function saveService(data: unknown) {
   }
   updateLocalStore("services", currentList);
 
-  const existingDummyIdx = DUMMY_SERVICES.findIndex((s) => s.id === id);
+  const existingDummyIdx = DUMMY_SERVICES.findIndex((s) => s.id === id || s.id === targetId);
   if (existingDummyIdx >= 0) {
     DUMMY_SERVICES[existingDummyIdx] = {
       ...DUMMY_SERVICES[existingDummyIdx],
@@ -1108,25 +1095,19 @@ export async function saveService(data: unknown) {
 
   if (isDbConnected) {
     try {
-      if (id) {
-        const existing = await db.query.services.findFirst({
-          where: eq(schema.services.id, id),
-        });
-
-        if (existing) {
-          await db
-            .update(schema.services)
-            .set({ ...serviceData, updatedAt: new Date() })
-            .where(eq(schema.services.id, id));
-        } else {
-          await db.insert(schema.services).values({
-            id,
+      await db
+        .insert(schema.services)
+        .values({
+          id: targetId,
+          ...serviceData,
+        })
+        .onConflictDoUpdate({
+          target: schema.services.id,
+          set: {
             ...serviceData,
-          });
-        }
-      } else {
-        await db.insert(schema.services).values(serviceData);
-      }
+            updatedAt: new Date(),
+          },
+        });
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
       console.error("Sinkronisasi database saveService gagal:", errMsg);
@@ -1145,9 +1126,7 @@ export async function saveService(data: unknown) {
 
   void logAudit({ action: "save", entity: "services", entityId: targetId, detail: serviceData.title });
   revalidatePath("/");
-  revalidatePath("/", "layout");
-  revalidatePath("/admin");
-  revalidatePath("/admin", "layout");
+  revalidatePath("/(public)", "layout");
   revalidatePath("/admin/services");
   return { success: true, message: "Layanan berhasil disimpan!" };
 }
@@ -1190,9 +1169,7 @@ export async function deleteService(id: string) {
 
   void logAudit({ action: "delete", entity: "services", entityId: id });
   revalidatePath("/");
-  revalidatePath("/", "layout");
-  revalidatePath("/admin");
-  revalidatePath("/admin", "layout");
+  revalidatePath("/(public)", "layout");
   revalidatePath("/admin/services");
   return { success: true, message: "Layanan berhasil dihapus!" };
 }
@@ -1251,7 +1228,8 @@ export async function reorderServices(items: { id: string; order: number }[]) {
     detail: `Mengatur ulang urutan ${items.length} layanan`,
   });
 
-  revalidatePath("/", "layout");
+  revalidatePath("/");
+  revalidatePath("/(public)", "layout");
   revalidatePath("/admin/services");
   return { success: true, message: "Urutan layanan berhasil diperbarui!" };
 }
@@ -1385,7 +1363,7 @@ export async function saveProduct(data: unknown) {
   };
 
   const ctaUrl = parsed.data.ctaUrl?.trim() || null;
-  const targetId = id || `prod-${Date.now()}`;
+  const targetId = id || crypto.randomUUID();
   const galleryUrls = (productData.gallery || []).filter((u) => typeof u === "string" && u.trim()).slice(0, 10);
   const dummyItem: ProductData = {
     id: targetId,
@@ -1414,7 +1392,7 @@ export async function saveProduct(data: unknown) {
   // Simpan ke disk lokal
   const store = getLocalStore();
   const currentList = (store?.products as ProductData[]) || [...DUMMY_PRODUCTS];
-  const existingIdx = currentList.findIndex((p) => p.id === targetId || (id && p.id === id));
+  const existingIdx = currentList.findIndex((p) => p.id === targetId || (id && p.id === id) || (p.slug && p.slug === effectiveProductSlug));
   const previousProduct = existingIdx >= 0 ? currentList[existingIdx] : null;
   if (existingIdx >= 0) {
     currentList[existingIdx] = {
@@ -1427,7 +1405,7 @@ export async function saveProduct(data: unknown) {
   }
   updateLocalStore("products", currentList);
 
-  const existingDummyIdx = DUMMY_PRODUCTS.findIndex((p) => p.id === id);
+  const existingDummyIdx = DUMMY_PRODUCTS.findIndex((p) => p.id === id || p.id === targetId || (p.slug && p.slug === effectiveProductSlug));
   if (existingDummyIdx >= 0) {
     DUMMY_PRODUCTS[existingDummyIdx] = {
       ...DUMMY_PRODUCTS[existingDummyIdx],
@@ -1441,30 +1419,24 @@ export async function saveProduct(data: unknown) {
   if (isDbConnected) {
     try {
       const dbProductData = {
+        id: targetId,
         ...productData,
         ctaUrl,
         gallery: galleryUrls,
       };
 
-      if (id) {
-        const existing = await db.query.products.findFirst({
-          where: eq(schema.products.id, id),
+      await db
+        .insert(schema.products)
+        .values(dbProductData)
+        .onConflictDoUpdate({
+          target: schema.products.id,
+          set: {
+            ...productData,
+            ctaUrl,
+            gallery: galleryUrls,
+            updatedAt: new Date(),
+          },
         });
-
-        if (existing) {
-          await db
-            .update(schema.products)
-            .set({ ...dbProductData, updatedAt: new Date() })
-            .where(eq(schema.products.id, id));
-        } else {
-          await db.insert(schema.products).values({
-            id,
-            ...dbProductData,
-          });
-        }
-      } else {
-        await db.insert(schema.products).values(dbProductData);
-      }
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
       console.error("Sinkronisasi database saveProduct gagal:", errMsg);
@@ -1486,12 +1458,12 @@ export async function saveProduct(data: unknown) {
   if (dummyItem.published) {
     void submitUrlsToIndexNow([detailUrl("toko", getProductSlug(dummyItem))]);
   }
-  revalidatePath("/", "layout");
-  revalidatePath("/toko", "layout");
+  revalidatePath("/");
+  revalidatePath("/(public)", "layout");
+  revalidatePath("/toko");
   revalidatePath("/toko/[slug]", "page");
   if (previousProduct) revalidatePath(`/toko/${getProductSlug(previousProduct)}`);
   revalidatePath(`/toko/${getProductSlug(dummyItem)}`);
-  revalidatePath("/admin", "layout");
   revalidatePath("/admin/products");
   return { success: true, message: "Produk berhasil disimpan!" };
 }
@@ -1507,7 +1479,7 @@ export async function deleteProduct(id: string) {
   }
 
   const store = getLocalStore();
-  const deletedProduct = (store?.products as ProductData[] | undefined)?.find((p) => p.id === id);
+  const deletedProduct = (store?.products as ProductData[] | undefined)?.find((p) => p.id === id || (p.slug && p.slug === id));
 
   // DB dulu: bila hapus di database gagal, local store tidak ikut terlanjur diubah.
   if (isDbConnected) {
@@ -1524,11 +1496,11 @@ export async function deleteProduct(id: string) {
   }
 
   if (store?.products) {
-    const updated = (store.products as ProductData[]).filter((p) => p.id !== id);
+    const updated = (store.products as ProductData[]).filter((p) => p.id !== id && (!p.slug || p.slug !== id));
     updateLocalStore("products", updated);
   }
 
-  const dummyIdx = DUMMY_PRODUCTS.findIndex((p) => p.id === id);
+  const dummyIdx = DUMMY_PRODUCTS.findIndex((p) => p.id === id || (p.slug && p.slug === id));
   if (dummyIdx >= 0) {
     DUMMY_PRODUCTS.splice(dummyIdx, 1);
   }
@@ -1540,11 +1512,11 @@ export async function deleteProduct(id: string) {
   if (deletedProduct) {
     void submitUrlsToIndexNow([detailUrl("toko", getProductSlug(deletedProduct)), `${getIndexNowBaseUrl()}/`]);
   }
-  revalidatePath("/", "layout");
-  revalidatePath("/toko", "layout");
+  revalidatePath("/");
+  revalidatePath("/(public)", "layout");
+  revalidatePath("/toko");
   revalidatePath("/toko/[slug]", "page");
   if (deletedProduct) revalidatePath(`/toko/${getProductSlug(deletedProduct)}`);
-  revalidatePath("/admin", "layout");
   revalidatePath("/admin/products");
   return { success: true, message: "Produk berhasil dihapus!" };
 }
@@ -1606,8 +1578,9 @@ export async function reorderProducts(items: { id: string; order: number }[]) {
     detail: `Mengatur ulang urutan ${items.length} produk`,
   });
 
-  revalidatePath("/", "layout");
-  revalidatePath("/toko", "layout");
+  revalidatePath("/");
+  revalidatePath("/(public)", "layout");
+  revalidatePath("/toko");
   revalidatePath("/admin/products");
   return { success: true, message: "Urutan produk berhasil diperbarui!" };
 }
@@ -1711,7 +1684,7 @@ export async function saveTestimonial(data: unknown) {
     clientRoleEn: clientRoleEn || null,
   };
 
-  const targetId = id || `testi-${Date.now()}`;
+  const targetId = id || crypto.randomUUID();
   const dummyItem: TestimonialData = {
     id: targetId,
     clientName: testimonialData.clientName,
@@ -1739,7 +1712,7 @@ export async function saveTestimonial(data: unknown) {
   }
   updateLocalStore("testimonials", currentList);
 
-  const existingDummyIdx = DUMMY_TESTIMONIALS.findIndex((t) => t.id === id);
+  const existingDummyIdx = DUMMY_TESTIMONIALS.findIndex((t) => t.id === id || t.id === targetId);
   if (existingDummyIdx >= 0) {
     DUMMY_TESTIMONIALS[existingDummyIdx] = {
       ...DUMMY_TESTIMONIALS[existingDummyIdx],
@@ -1752,25 +1725,19 @@ export async function saveTestimonial(data: unknown) {
 
   if (isDbConnected) {
     try {
-      if (id) {
-        const existing = await db.query.testimonials.findFirst({
-          where: eq(schema.testimonials.id, id),
-        });
-
-        if (existing) {
-          await db
-            .update(schema.testimonials)
-            .set({ ...testimonialData, updatedAt: new Date() })
-            .where(eq(schema.testimonials.id, id));
-        } else {
-          await db.insert(schema.testimonials).values({
-            id,
+      await db
+        .insert(schema.testimonials)
+        .values({
+          id: targetId,
+          ...testimonialData,
+        })
+        .onConflictDoUpdate({
+          target: schema.testimonials.id,
+          set: {
             ...testimonialData,
-          });
-        }
-      } else {
-        await db.insert(schema.testimonials).values(testimonialData);
-      }
+            updatedAt: new Date(),
+          },
+        });
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
       console.error("Sinkronisasi database saveTestimonial gagal:", errMsg);
@@ -1788,8 +1755,8 @@ export async function saveTestimonial(data: unknown) {
   }
 
   void logAudit({ action: "save", entity: "testimonials", entityId: targetId, detail: testimonialData.clientName });
-  revalidatePath("/", "layout");
-  revalidatePath("/admin", "layout");
+  revalidatePath("/");
+  revalidatePath("/(public)", "layout");
   revalidatePath("/admin/testimonials");
   return { success: true, message: "Testimoni berhasil disimpan!" };
 }
@@ -1831,8 +1798,8 @@ export async function deleteTestimonial(id: string) {
   }
 
   void logAudit({ action: "delete", entity: "testimonials", entityId: id });
-  revalidatePath("/", "layout");
-  revalidatePath("/admin", "layout");
+  revalidatePath("/");
+  revalidatePath("/(public)", "layout");
   revalidatePath("/admin/testimonials");
   return { success: true, message: "Testimoni berhasil dihapus!" };
 }
@@ -1894,7 +1861,8 @@ export async function reorderTestimonials(items: { id: string; order: number }[]
     detail: `Mengatur ulang urutan ${items.length} testimoni`,
   });
 
-  revalidatePath("/", "layout");
+  revalidatePath("/");
+  revalidatePath("/(public)", "layout");
   revalidatePath("/admin/testimonials");
   return { success: true, message: "Urutan testimoni berhasil diperbarui!" };
 }
@@ -2157,10 +2125,10 @@ export async function saveArticle(data: unknown) {
   if (isLivePublished(articleRecord)) {
     void submitUrlsToIndexNow([detailUrl("artikel", articleRecord.slug)]);
   }
-  revalidatePath("/", "layout");
-  revalidatePath("/admin", "layout");
+  revalidatePath("/");
+  revalidatePath("/(public)", "layout");
   revalidatePath("/admin/articles");
-  revalidatePath("/artikel", "layout");
+  revalidatePath("/artikel");
   revalidatePath("/artikel/[slug]", "page");
   revalidatePath(`/artikel/${articleRecord.slug}`);
   return { success: true, message: "Artikel berhasil disimpan!", article: articleRecord };
@@ -2204,10 +2172,10 @@ export async function deleteArticle(id: string) {
 
   void logAudit({ action: "delete", entity: "articles", entityId: id });
   void submitUrlsToIndexNow([catalogUrl("artikel")]);
-  revalidatePath("/", "layout");
-  revalidatePath("/admin", "layout");
+  revalidatePath("/");
+  revalidatePath("/(public)", "layout");
   revalidatePath("/admin/articles");
-  revalidatePath("/artikel", "layout");
+  revalidatePath("/artikel");
   revalidatePath("/artikel/[slug]", "page");
   return { success: true, message: "Artikel berhasil dihapus!" };
 }
@@ -2269,8 +2237,9 @@ export async function reorderArticles(items: { id: string; order: number }[]) {
     detail: `Mengatur ulang urutan ${items.length} artikel`,
   });
 
-  revalidatePath("/", "layout");
-  revalidatePath("/artikel", "layout");
+  revalidatePath("/");
+  revalidatePath("/(public)", "layout");
+  revalidatePath("/artikel");
   revalidatePath("/admin/articles");
   return { success: true, message: "Urutan artikel berhasil diperbarui!" };
 }
@@ -2578,7 +2547,8 @@ export async function saveSeoConfigAction(
     });
     // Layout-level: meta verifikasi + OG berlaku untuk seluruh halaman publik;
     // /admin/seo butuh refresh tampilan status setelah simpan.
-    revalidatePath("/", "layout");
+    revalidatePath("/");
+    revalidatePath("/(public)", "layout");
     revalidatePath("/admin/seo");
     return { ok: true, config };
   } catch (err) {
@@ -2658,7 +2628,8 @@ export async function saveUIStringsAction(
       entityId: "ui_strings",
       detail: describeUIStrings(resolved, "id"),
     });
-    revalidatePath("/", "layout");
+    revalidatePath("/");
+    revalidatePath("/(public)", "layout");
     revalidatePath("/admin/strings");
     return { ok: true, strings: resolved };
   } catch (err) {
@@ -2690,7 +2661,8 @@ export async function saveFeaturesAction(
       detail: describeFeatures(features, "id"),
     });
     // Layout-level: maintenance_mode & gate app mengubah seluruh tree publik.
-    revalidatePath("/", "layout");
+    revalidatePath("/");
+    revalidatePath("/(public)", "layout");
     revalidatePath("/admin/features");
     return { ok: true, features };
   } catch (err) {
@@ -2820,7 +2792,8 @@ export async function publishGodModeAction(
       detail: label,
     });
 
-    revalidatePath("/", "layout");
+    revalidatePath("/");
+    revalidatePath("/(public)", "layout");
     if (key === "os_apps") revalidatePath("/admin/appearance");
     if (key === "ui_strings") revalidatePath("/admin/strings");
     if (key === "features") revalidatePath("/admin/features");
@@ -2896,7 +2869,8 @@ export async function rollbackGodModeAction(
       detail: `Rollback ke versi ${history.label ?? history.createdAt}`,
     });
 
-    revalidatePath("/", "layout");
+    revalidatePath("/");
+    revalidatePath("/(public)", "layout");
     if (key === "os_apps") revalidatePath("/admin/appearance");
     if (key === "ui_strings") revalidatePath("/admin/strings");
     if (key === "features") revalidatePath("/admin/features");

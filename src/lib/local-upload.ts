@@ -54,10 +54,9 @@ export async function uploadImageLocal(formData: FormData): Promise<{
       return { success: false, error: stored.error };
     }
 
-    revalidatePath("/", "layout");
-    revalidatePath("/proyek", "layout");
-    revalidatePath("/artikel", "layout");
-    revalidatePath("/admin", "layout");
+    revalidatePath("/");
+    revalidatePath("/(public)", "layout");
+    revalidatePath("/admin/media");
 
     return { success: true, url: `/api/media/${stored.id}` };
   } catch (err: unknown) {
@@ -93,7 +92,7 @@ export async function deleteMedia(id: string): Promise<{ success: boolean; error
     return { success: false, error: "Gagal menghapus gambar dari database." };
   }
 
-  revalidatePath("/admin", "layout");
+  revalidatePath("/admin/media");
   return { success: true };
 }
 
@@ -116,8 +115,9 @@ export async function optimizeMediaStorage(): Promise<{
   try {
     const res = await optimizeAllStoredMedia();
     const savedKb = Math.round(res.bytesSaved / 1024);
-    revalidatePath("/", "layout");
-    revalidatePath("/admin", "layout");
+    revalidatePath("/");
+    revalidatePath("/(public)", "layout");
+    revalidatePath("/admin/media");
     return {
       success: true,
       message: `Berhasil mengoptimalkan ${res.optimized} gambar (hemat ${savedKb} KB).`,
