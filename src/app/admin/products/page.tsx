@@ -618,7 +618,7 @@ export default function AdminProductsPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-1 pt-1 border-t border-border/50">
+                <div className="flex flex-wrap items-center justify-end gap-1.5 pt-1 border-t border-border/50">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -626,10 +626,10 @@ export default function AdminProductsPage() {
                       setPromoProduct(product);
                       setPromoOpen(true);
                     }}
-                    className="h-7 px-2 text-xs text-primary gap-1"
+                    className="h-7 px-2 text-xs text-primary gap-1 shrink-0"
                   >
                     <Share2 className="h-3.5 w-3.5" />
-                    <span>Bagikan</span>
+                    <span className="hidden xs:inline">Bagikan</span>
                   </Button>
                   <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
                     <Link href={`/toko/${getProductSlug(product)}`} target="_blank">

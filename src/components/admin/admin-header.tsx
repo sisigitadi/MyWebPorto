@@ -141,7 +141,8 @@ export function AdminHeader({ onToggleSidebar, dbConnected }: AdminHeaderProps) 
             className="vt-btn vt-btn-chrome h-8 px-2.5 text-[11px] font-mono font-bold gap-1.5 shrink-0"
           >
             <LogIn className="h-3.5 w-3.5" />
-            <span>Masuk Akun</span>
+            <span className="hidden xs:inline">Masuk Akun</span>
+            <span className="xs:hidden">Masuk</span>
           </Link>
         )}
       </div>

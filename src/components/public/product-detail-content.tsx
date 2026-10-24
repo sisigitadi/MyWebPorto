@@ -122,7 +122,8 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
             >
               <Link href="/">
                 <Monitor className="h-3.5 w-3.5 text-primary" />
-                <span className="hidden sm:inline">{isEn ? "Back to Desktop OS" : "Kembali ke Desktop OS"}</span>
+                <span className="hidden md:inline">{isEn ? "Back to Desktop OS" : "Kembali ke Desktop OS"}</span>
+                <span className="hidden sm:inline md:hidden">{isEn ? "Desktop OS" : "Desktop OS"}</span>
                 <span className="sm:hidden">Desktop</span>
               </Link>
             </Button>
@@ -134,7 +135,8 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
             >
               <Link href="/#produk">
                 <ArrowLeft className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{isEn ? `Back to ${storeName(isEn)}` : `Kembali ke ${storeName(isEn)}`}</span>
+                <span className="hidden md:inline">{isEn ? `Back to ${storeName(isEn)}` : `Kembali ke ${storeName(isEn)}`}</span>
+                <span className="hidden sm:inline md:hidden">{storeName(isEn)}</span>
                 <span className="sm:hidden">{isEn ? "Store" : "Toko"}</span>
               </Link>
             </Button>
@@ -277,7 +279,7 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
                   <button
                     type="button"
                     onClick={() => handleCopyCoupon(product.referralCode!)}
-                    className="vt-btn vt-btn-chrome px-2.5 py-1 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                    className="vt-btn vt-btn-chrome px-2.5 py-1 text-[11px] font-bold flex items-center gap-1 cursor-pointer shrink-0"
                   >
                     {copiedCoupon ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
                     <span>{copiedCoupon ? (isEn ? "Copied!" : "Tersalin!") : isEn ? "Copy Code" : "Salin Kode"}</span>
