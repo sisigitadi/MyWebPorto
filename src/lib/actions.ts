@@ -568,8 +568,8 @@ export async function updateProfile(data: unknown) {
   }
 
   void logAudit({ action: "save", entity: "profile", entityId: "owner", detail: payload.name });
+  revalidatePath("/", "layout");
   revalidatePath("/");
-  revalidatePath("/(public)", "layout");
   revalidatePath("/admin/profile");
   return { success: true, message: "Profil berhasil disimpan!", data: payload };
 }
@@ -598,8 +598,8 @@ export async function saveProfileCardsAction(input: unknown) {
       entityId: "profile_cards",
       detail: "Memperbarui kartu profil OS",
     });
+    revalidatePath("/", "layout");
     revalidatePath("/");
-    revalidatePath("/(public)", "layout");
     revalidatePath("/admin/profile");
     return { success: true, data: cards };
   } catch (err: unknown) {

@@ -181,7 +181,7 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     title: "Visitor Analytics",
     href: "/admin/analytics",
     icon: BarChart3,
-    badge: "Off",
+    badge: "Aktif",
     group: "sistem",
   },
   {
@@ -345,7 +345,10 @@ export function AdminSidebar({
                     ) : item.badge ? (
                       <Badge
                         variant={isActive ? "secondary" : "outline"}
-                        className="text-[10px] h-4 px-1.5 font-normal"
+                        className={cn(
+                          "text-[10px] h-4 px-1.5 font-normal",
+                          item.badge === "Aktif" && !isActive && "text-emerald-600 dark:text-emerald-400 border-emerald-500/40 bg-emerald-500/10"
+                        )}
                       >
                         {item.badge}
                       </Badge>

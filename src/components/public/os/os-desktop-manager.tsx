@@ -606,7 +606,7 @@ export function OSDesktopManager({
                 }}
                 className="scroll-mt-1"
               >
-                {id === "profil" && <HeroSection profile={profile} />}
+                {id === "profil" && <HeroSection profile={profile} profileCards={profileCards} />}
                 {id === "layanan" && <ServicesSection services={services} profile={profile} />}
                 {id === "proyek" && <FeaturedProjectsSection projects={projects} />}
                 {id === "toko" && <ProductsSection products={products} profile={profile} />}
