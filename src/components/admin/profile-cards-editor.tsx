@@ -304,7 +304,7 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
         cards.workPreferences.statusBadge || "",
         cards.workPreferences.locationTimezone || "",
         cards.workPreferences.responseTimeSla || "",
-        cards.workPreferences.contactPrompt || "",
+        cards.workPreferences.slaDescription || "",
         ...cards.workPreferences.collaborationTypes.map((c) => c.title || ""),
       ];
       const res = await translateBatchAction(texts, "id", "en");
@@ -318,7 +318,7 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
           statusBadgeEn: res.results[0] || cards.workPreferences.statusBadgeEn,
           locationTimezoneEn: res.results[1] || cards.workPreferences.locationTimezoneEn,
           responseTimeSlaEn: res.results[2] || cards.workPreferences.responseTimeSlaEn,
-          contactPromptEn: res.results[3] || cards.workPreferences.contactPromptEn,
+          slaDescriptionEn: res.results[3] || cards.workPreferences.slaDescriptionEn,
           collaborationTypes: collabTypes,
         };
         onChange({ ...cards, workPreferences: updatedPrefs });
@@ -342,7 +342,7 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
         | { type: "pref_status" }
         | { type: "pref_loc" }
         | { type: "pref_sla" }
-        | { type: "pref_prompt" }
+        | { type: "pref_sla_desc" }
         | { type: "pref_collab"; collabIdx: number };
 
       const targets: Target[] = [];
@@ -382,9 +382,9 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
         targets.push({ type: "pref_sla" });
         texts.push(cards.workPreferences.responseTimeSla);
       }
-      if (cards.workPreferences.contactPrompt?.trim()) {
-        targets.push({ type: "pref_prompt" });
-        texts.push(cards.workPreferences.contactPrompt);
+      if (cards.workPreferences.slaDescription?.trim()) {
+        targets.push({ type: "pref_sla_desc" });
+        texts.push(cards.workPreferences.slaDescription);
       }
       cards.workPreferences.collaborationTypes.forEach((collab, idx) => {
         if (collab.title?.trim()) {
@@ -434,8 +434,8 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
           case "pref_sla":
             newCards.workPreferences.responseTimeSlaEn = translated;
             break;
-          case "pref_prompt":
-            newCards.workPreferences.contactPromptEn = translated;
+          case "pref_sla_desc":
+            newCards.workPreferences.slaDescriptionEn = translated;
             break;
           case "pref_collab":
             newCards.workPreferences.collaborationTypes[target.collabIdx].titleEn = translated;
@@ -612,23 +612,27 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label className="text-[11px]">Prompt Ajakan Minta CV (ID)</Label>
-                  <Input
-                    value={cards.workPreferences.contactPrompt}
+                  <Label className="text-[11px]">Kalimat Jaminan Waktu SLA (ID)</Label>
+                  <Textarea
+                    rows={2}
+                    value={cards.workPreferences.slaDescription ?? ""}
                     onChange={(e) =>
-                      handleUpdatePreferences("contactPrompt", e.target.value)
+                      handleUpdatePreferences("slaDescription", e.target.value)
                     }
-                    className="text-xs h-8"
+                    placeholder="Pesan yang masuk melalui form kontak maupun WhatsApp ditinjau cepat dengan penilaian teknis langsung."
+                    className="text-xs"
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[11px]">Prompt Request CV (EN)</Label>
-                  <Input
-                    value={cards.workPreferences.contactPromptEn || ""}
+                  <Label className="text-[11px]">Kalimat Jaminan Waktu SLA (EN)</Label>
+                  <Textarea
+                    rows={2}
+                    value={cards.workPreferences.slaDescriptionEn ?? ""}
                     onChange={(e) =>
-                      handleUpdatePreferences("contactPromptEn", e.target.value)
+                      handleUpdatePreferences("slaDescriptionEn", e.target.value)
                     }
-                    className="text-xs h-8"
+                    placeholder="Inquiries received via the contact form or WhatsApp are reviewed promptly with direct technical feasibility feedback."
+                    className="text-xs"
                   />
                 </div>
               </div>
