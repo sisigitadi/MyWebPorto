@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildWhatsAppOrderUrl,
   buildSingleProductWhatsAppUrl,
+  normalizeWhatsAppPhone,
   formatIdr,
   type CustomerOrderInfo,
 } from "@/lib/whatsapp-order";
@@ -32,6 +33,22 @@ const fullCustomer: CustomerOrderInfo = {
   paymentMethod: "qris",
 };
 
+describe("normalizeWhatsAppPhone", () => {
+  it("mengonversi nomor lokal 08xxx menjadi 628xxx", () => {
+    expect(normalizeWhatsAppPhone("08123456789")).toBe("628123456789");
+  });
+
+  it("membersihkan karakter non-digit dan mempertahankan 62xxx", () => {
+    expect(normalizeWhatsAppPhone("+62 812-3456-7890")).toBe("6281234567890");
+    expect(normalizeWhatsAppPhone("6281234567890")).toBe("6281234567890");
+  });
+
+  it("mengembalikan string kosong bila input kosong atau undefined", () => {
+    expect(normalizeWhatsAppPhone(undefined)).toBe("");
+    expect(normalizeWhatsAppPhone("")).toBe("");
+  });
+});
+
 describe("formatIdr", () => {
   it("memformat angka menjadi currency IDR tanpa desimal", () => {
     // ICU memisahkan "Rp" dan angka dengan no-break space (U+00A0) — jadi
@@ -54,6 +71,11 @@ describe("buildWhatsAppOrderUrl — baris kosong & nomor", () => {
     expect(url.startsWith("https://wa.me/6281234567890?text=")).toBe(true);
   });
 
+  it("normalisasi nomor lokal 08xxx menjadi 628xxx di wa.me", () => {
+    const url = buildWhatsAppOrderUrl("08123456789", fullCustomer, [], 0);
+    expect(url.startsWith("https://wa.me/628123456789?text=")).toBe(true);
+  });
+
   it("membuang field pelanggan yang tidak diisi (tidak ada baris '• Nama: ' kosong)", () => {
     // Sebelumnya field kosong tetap dikirim sebagai baris berlabel kosong,
     // terlihat seperti data hilang di sisi penerima.
@@ -71,7 +93,7 @@ describe("buildWhatsAppOrderUrl — lokalisasi ID/EN", () => {
   it("default Bahasa Indonesia", () => {
     const url = buildWhatsAppOrderUrl("6281234567890", fullCustomer, items, 300000, "INV-123");
     const text = decodeURIComponent(url.split("text=")[1]);
-    expect(text).toContain("PESANAN BARU — TOKO [INV-123]");
+    expect(text).toContain("PESANAN BARU: TOKO [INV-123]");
     expect(text).toContain("Daftar Produk:");
     expect(text).toContain("Template Portofolio"); // judul ID
     expect(text).toContain(`Total Pembayaran:* ${formatIdr(300000)}`);
@@ -81,7 +103,7 @@ describe("buildWhatsAppOrderUrl — lokalisasi ID/EN", () => {
   it("Bahasa Inggris saat lang en", () => {
     const url = buildWhatsAppOrderUrl("6281234567890", fullCustomer, items, 300000, "INV-123", "en");
     const text = decodeURIComponent(url.split("text=")[1]);
-    expect(text).toContain("NEW ORDER — STORE [INV-123]");
+    expect(text).toContain("NEW ORDER: STORE [INV-123]");
     expect(text).toContain("Products:");
     expect(text).toContain("Portfolio Template"); // judul EN
     expect(text).not.toContain("Template Portofolio");

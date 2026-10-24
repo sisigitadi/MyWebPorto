@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, ExternalLink, Menu, Bell } from "lucide-react";
+import { LogIn, ExternalLink, Menu, Bell } from "lucide-react";
 import { UserButton, useUser } from "@clerk/nextjs";
 import { ADMIN_NAV_ITEMS } from "./admin-sidebar";
 import { getPendingOrdersCount } from "@/lib/order-actions";
@@ -140,7 +140,7 @@ export function AdminHeader({ onToggleSidebar, dbConnected }: AdminHeaderProps) 
             href="/sign-in"
             className="vt-btn vt-btn-chrome h-8 px-2.5 text-[11px] font-mono font-bold gap-1.5 shrink-0"
           >
-            <LogOut className="h-3.5 w-3.5" />
+            <LogIn className="h-3.5 w-3.5" />
             <span>Masuk Akun</span>
           </Link>
         )}

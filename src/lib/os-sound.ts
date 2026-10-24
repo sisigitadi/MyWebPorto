@@ -75,10 +75,22 @@ function tone({ freq, endFreq, dur, type = "square", gain = 0.03, delay = 0 }: T
   osc.stop(t0 + dur + 0.03);
 }
 
-/** Mainkan satu efek suara retro. Tidak pernah melempar error. */
+/** Getar haptic lembut pada perangkat sentuh (bila didukung). */
+export function triggerHaptic(duration: number | number[] = 12): void {
+  try {
+    if (typeof window !== "undefined" && typeof navigator !== "undefined" && "vibrate" in navigator) {
+      navigator.vibrate(duration);
+    }
+  } catch {
+    // Abaikan jika browser membatasi permissions vibration
+  }
+}
+
+/** Mainkan satu efek suara retro dan haptic taktil. Tidak pernah melempar error. */
 export function playOS(sound: OSSound): void {
   try {
     if (!isSoundOn()) return;
+    triggerHaptic(sound === "error" ? 28 : sound === "success" ? [12, 40, 16] : 12);
     switch (sound) {
       // Ketukan tombol: tik sangat pendek & pelan
       case "click":

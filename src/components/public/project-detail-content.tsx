@@ -93,12 +93,12 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
     <div ref={containerRef} className="py-6 md:py-10 vt-crt-on">
       <div className="max-w-5xl mx-auto px-3 sm:px-6 space-y-6">
         {/* Navigation Bar — sticky agar selalu terlihat saat scroll fullscreen */}
-        <div className="sticky top-0 z-20 -mx-3 sm:mx-0 px-3 sm:px-0 py-2 bg-[var(--vt-paper)]/95 backdrop-blur border-b border-border/60 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+        <div className="sticky top-0 z-20 -mx-3 sm:mx-0 px-3 sm:px-0 py-2 bg-[var(--vt-paper)]/95 backdrop-blur border-b border-border/60 flex items-center justify-between gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
             <Button
               asChild
               size="sm"
-              className="vt-btn vt-btn-chrome h-8 px-3 font-mono text-xs font-bold gap-1.5 cursor-pointer"
+              className="vt-btn vt-btn-chrome h-8 px-2 sm:px-3 font-mono text-xs font-bold gap-1 cursor-pointer shrink-0"
             >
               <Link href="/">
                 <Monitor className="h-3.5 w-3.5 text-primary" />
@@ -110,7 +110,7 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
             <Button
               asChild
               size="sm"
-              className="vt-btn vt-btn-chrome h-8 px-3 font-mono text-xs font-bold gap-1.5 cursor-pointer border-primary/30"
+              className="vt-btn vt-btn-chrome h-8 px-2 sm:px-3 font-mono text-xs font-bold gap-1 cursor-pointer border-primary/30 shrink-0"
             >
               <Link href="/proyek">
                 <ArrowLeft className="h-3.5 w-3.5" />
@@ -120,10 +120,10 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
             </Button>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-[var(--vt-ink)] min-w-0">
-            <Globe className="h-3.5 w-3.5 text-primary shrink-0" />
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs font-mono font-bold text-[var(--vt-ink)] shrink-0">
+            <Globe className="hidden sm:inline h-3.5 w-3.5 text-primary shrink-0" />
             <span className="hidden sm:inline mobile-safe-path max-w-[260px] sm:max-w-none truncate select-all">https://sigitadi.id/proyek/{project.slug}</span>
-            <span className="text-emerald-700 dark:text-emerald-400 font-bold shrink-0">[OK]</span>
+            <span className="hidden xs:inline text-emerald-700 dark:text-emerald-400 font-bold shrink-0">[OK]</span>
             <ShareButton
               title={title}
               url={`/proyek/${project.slug}`}
@@ -132,7 +132,7 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
               badge="Proyek"
               buttonText={language === "en" ? "Share" : "Bagikan"}
               size="sm"
-              className="h-8 ml-1"
+              className="h-8 px-2 sm:px-3"
             />
           </div>
         </div>

@@ -42,6 +42,19 @@ export function productTitle(product: ProductData, isEn: boolean): string {
 }
 
 /**
+ * Normalisasi nomor telepon ke format internasional WhatsApp (wa.me).
+ * Mengonversi awalan lokal '0' (mis. 0812...) menjadi '628...'.
+ */
+export function normalizeWhatsAppPhone(phone: string | undefined): string {
+  if (!phone) return "";
+  let clean = phone.replace(/\D/g, "");
+  if (clean.startsWith("0")) {
+    clean = "62" + clean.slice(1);
+  }
+  return clean;
+}
+
+/**
  * Generate pre-filled WhatsApp Checkout URL.
  * Mengembalikan string kosong bila nomor admin belum diatur.
  */
@@ -56,7 +69,7 @@ export function buildWhatsAppOrderUrl(
   referralCode?: string
 ): string {
   if (!phone || !phone.trim()) return "";
-  const cleanPhone = phone.replace(/\D/g, "");
+  const cleanPhone = normalizeWhatsAppPhone(phone);
   const isEn = lang === "en";
   const inv = invoiceNo || `ORD-${Date.now().toString().slice(-6)}`;
   const store = storeName(isEn).toUpperCase();
@@ -82,7 +95,7 @@ export function buildWhatsAppOrderUrl(
     currency === "USD" ? formatUsd(totalAmount) : formatIdr(totalAmount);
 
   const lines = [
-    isEn ? `*NEW ORDER — ${store} [${inv}]*` : `*PESANAN BARU — ${store} [${inv}]*`,
+    isEn ? `*NEW ORDER: ${store} [${inv}]*` : `*PESANAN BARU: ${store} [${inv}]*`,
     isEn
       ? "Hi, I would like to place an order for the following items:"
       : "Halo, saya ingin melakukan pemesanan produk:",
@@ -139,7 +152,7 @@ export function buildSingleProductWhatsAppUrl(
   lang: OrderLang = "id"
 ): string {
   if (!phone || !phone.trim()) return "";
-  const cleanPhone = phone.replace(/\D/g, "");
+  const cleanPhone = normalizeWhatsAppPhone(phone);
   const isEn = lang === "en";
   const price = isEn
     ? product.priceLabelEn || product.priceFormatted || "Free / Consult"
@@ -170,7 +183,7 @@ export function buildFreelanceOpsBriefWhatsAppUrl(
   lang: OrderLang = "id"
 ): string {
   if (!phone || !phone.trim()) return "";
-  const cleanPhone = phone.replace(/\D/g, "");
+  const cleanPhone = normalizeWhatsAppPhone(phone);
   const isEn = lang === "en";
 
   const text = [
@@ -201,7 +214,7 @@ export function buildFollowUpPaymentUrl(
   totalFormatted: string,
   bankDetails?: string
 ): string {
-  const cleanPhone = customerPhone.replace(/\D/g, "");
+  const cleanPhone = normalizeWhatsAppPhone(customerPhone);
   const text = [
     `Halo kak ${customerName || "Pelanggan"}, terima kasih atas pemesanan di toko kami.`,
     `Invoice: *${invoiceNumber}*`,
@@ -220,7 +233,7 @@ export function buildFollowUpVerifiedUrl(
   invoiceNumber: string,
   customerName: string
 ): string {
-  const cleanPhone = customerPhone.replace(/\D/g, "");
+  const cleanPhone = normalizeWhatsAppPhone(customerPhone);
   const text = [
     `Halo kak ${customerName || "Pelanggan"}, pembayaran untuk pesanan *${invoiceNumber}* telah berhasil kami verifikasi!`,
     "",
@@ -237,7 +250,7 @@ export function buildFollowUpDeliveryUrl(
   customerName: string,
   accessOrDownloadLink: string
 ): string {
-  const cleanPhone = customerPhone.replace(/\D/g, "");
+  const cleanPhone = normalizeWhatsAppPhone(customerPhone);
   const text = [
     `Halo kak ${customerName || "Pelanggan"}, pesanan Anda [${invoiceNumber}] telah selesai diproses!`,
     "",
@@ -256,7 +269,7 @@ export function buildFollowUpFreelanceOpsUrl(
   customerName: string,
   projectUrl: string
 ): string {
-  const cleanPhone = customerPhone.replace(/\D/g, "");
+  const cleanPhone = normalizeWhatsAppPhone(customerPhone);
   const text = [
     `Halo kak ${customerName || "Klien"}, terima kasih telah mempercayakan proyek Anda [${invoiceNumber}].`,
     "",
@@ -274,7 +287,7 @@ export function buildFollowUpCompletionUrl(
   invoiceNumber: string,
   customerName: string
 ): string {
-  const cleanPhone = customerPhone.replace(/\D/g, "");
+  const cleanPhone = normalizeWhatsAppPhone(customerPhone);
   const text = [
     `Halo kak ${customerName || "Pelanggan"}, pesanan Anda [${invoiceNumber}] telah resmi diselesaikan.`,
     "",

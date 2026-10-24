@@ -37,12 +37,12 @@ export function ArticlesCatalogContent({ articles }: ArticlesCatalogContentProps
           icon={<Folder className="h-4 w-4 text-amber-300" />}
           statusText={`Total records: ${articles.length} documents found | Directory status: READ_ONLY`}
         >
-          {/* Explorer Navigation Bar */}
-          <div className="mb-6 p-2 rounded bg-muted/40 border border-border flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
-            <div className="flex items-center gap-2 min-w-0">
+          {/* Explorer Navigation Bar - Single Row Compact */}
+          <div className="mb-6 p-2 rounded bg-muted/40 border border-border flex items-center justify-between gap-1.5 sm:gap-2 text-xs font-mono">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
               <Link
                 href="/"
-                className="vt-btn vt-btn-chrome px-3 py-1 text-xs font-bold text-foreground inline-flex items-center gap-1.5 shrink-0"
+                className="vt-btn vt-btn-chrome px-2 sm:px-3 py-1 text-xs font-bold text-foreground inline-flex items-center gap-1 shrink-0"
               >
                 <Monitor className="h-3.5 w-3.5 text-primary" />
                 <span className="hidden sm:inline">{t.articles_back}</span>
@@ -75,7 +75,7 @@ export function ArticlesCatalogContent({ articles }: ArticlesCatalogContentProps
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <ShareButton
                 title={isEn ? "Tech Articles & Architecture Insights - Sigit Adi Irianto" : "Artikel & Wawasan Teknologi - Sigit Adi Irianto"}
                 url="/artikel"
@@ -85,8 +85,8 @@ export function ArticlesCatalogContent({ articles }: ArticlesCatalogContentProps
                     : "Kumpulan artikel mendalam, panduan arsitektur software engineering, tips Next.js, integrasi sistem AI, dan wawasan rekayasa teknologi modern."
                 }
                 badge={isEn ? "ARTICLES" : "ARTIKEL"}
-                buttonText={isEn ? "Share Page" : "Bagikan Halaman"}
-                className="vt-btn vt-btn-chrome text-xs font-mono font-bold"
+                buttonText={isEn ? "Share" : "Bagikan"}
+                className="vt-btn vt-btn-chrome text-xs font-mono font-bold px-2 sm:px-3 py-1"
               />
               <span className="text-[11px] text-muted-foreground font-bold hidden sm:inline">
                 FORMAT: ARTICLE_INDEX_V2.5

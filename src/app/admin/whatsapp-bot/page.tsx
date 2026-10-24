@@ -351,20 +351,20 @@ export default function WhatsAppBotAdminPage() {
 
       {/* Navigation Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="bg-[var(--vt-card)] p-1 border border-border h-auto flex flex-wrap gap-1">
-          <TabsTrigger value="connection" className="text-xs font-mono gap-1.5 py-1.5">
+        <TabsList className="bg-[var(--vt-card)] p-1 border border-border h-auto flex items-center gap-1 overflow-x-auto no-scrollbar whitespace-nowrap">
+          <TabsTrigger value="connection" className="text-xs font-mono gap-1.5 py-1.5 shrink-0">
             <QrCode className="h-3.5 w-3.5" />
             <span>Koneksi &amp; QR Code</span>
           </TabsTrigger>
-          <TabsTrigger value="knowledge" className="text-xs font-mono gap-1.5 py-1.5">
+          <TabsTrigger value="knowledge" className="text-xs font-mono gap-1.5 py-1.5 shrink-0">
             <BookOpen className="h-3.5 w-3.5" />
             <span>Knowledge Hub &amp; FAQ</span>
           </TabsTrigger>
-          <TabsTrigger value="simulator" className="text-xs font-mono gap-1.5 py-1.5">
+          <TabsTrigger value="simulator" className="text-xs font-mono gap-1.5 py-1.5 shrink-0">
             <Sparkles className="h-3.5 w-3.5" />
             <span>Simulator Chat AI</span>
           </TabsTrigger>
-          <TabsTrigger value="logs" className="text-xs font-mono gap-1.5 py-1.5">
+          <TabsTrigger value="logs" className="text-xs font-mono gap-1.5 py-1.5 shrink-0">
             <Clock className="h-3.5 w-3.5" />
             <span>Log Aktivitas Chat ({logs.length})</span>
           </TabsTrigger>
