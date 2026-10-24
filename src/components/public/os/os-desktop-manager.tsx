@@ -651,7 +651,7 @@ export function OSDesktopManager({
                 membingungkan. Tombol di bawah ini bekerja di mana pun. */}
             <div className="pt-3 pb-5 flex flex-col items-center gap-2 font-mono text-[10px] font-bold text-[var(--vt-ink)]">
               <span className="opacity-60">
-                {language === "en" ? "— END OF DOCUMENT —" : "— AKHIR DOKUMEN —"}
+                {language === "en" ? "[ END OF DOCUMENT ]" : "[ AKHIR DOKUMEN ]"}
               </span>
               <button
                 type="button"

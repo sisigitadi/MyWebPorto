@@ -80,6 +80,7 @@ import {
 import {
   formatIdr,
   formatUsd,
+  normalizeWhatsAppPhone,
   buildFollowUpPaymentUrl,
   buildFollowUpVerifiedUrl,
   buildFollowUpDeliveryUrl,
@@ -431,7 +432,7 @@ export default function AdminOrdersPage() {
 
   // Open Direct Promotional Chat
   const handleOpenPromoChat = (cust: Customer) => {
-    const cleanPhone = cust.phone.replace(/\D/g, "");
+    const cleanPhone = normalizeWhatsAppPhone(cust.phone);
     const text = [
       `Halo kak ${cust.name || "Pelanggan"}, salam hangat dari Sigit Adi (https://sigitadi.id/)!`,
       "",
@@ -583,12 +584,12 @@ export default function AdminOrdersPage() {
         <TabsContent value="orders" className="space-y-4 outline-none">
           {/* Filter Bar & Export */}
           <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3 bg-[var(--vt-edge-lo-1)] border border-[var(--vt-edge-lo-2)] rounded-xs">
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar whitespace-nowrap pb-1 md:pb-0">
               <Button
                 variant={orderStatusFilter === "all" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setOrderStatusFilter("all")}
-                className="h-8 text-xs font-mono px-2.5"
+                className="h-8 text-xs font-mono px-2.5 shrink-0"
               >
                 Semua ({orders.length})
               </Button>
@@ -596,7 +597,7 @@ export default function AdminOrdersPage() {
                 variant={orderStatusFilter === "pending" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setOrderStatusFilter("pending")}
-                className={`h-8 text-xs font-mono px-2.5 ${
+                className={`h-8 text-xs font-mono px-2.5 shrink-0 ${
                   orderStatusFilter !== "pending" && stats.pendingCount > 0
                     ? "text-amber-600 dark:text-amber-400 border-amber-500/40"
                     : ""
@@ -608,7 +609,7 @@ export default function AdminOrdersPage() {
                 variant={orderStatusFilter === "paid" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setOrderStatusFilter("paid")}
-                className="h-8 text-xs font-mono px-2.5"
+                className="h-8 text-xs font-mono px-2.5 shrink-0"
               >
                 Dibayar ({orders.filter((o) => o.status === "paid").length})
               </Button>
@@ -616,7 +617,7 @@ export default function AdminOrdersPage() {
                 variant={orderStatusFilter === "processing" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setOrderStatusFilter("processing")}
-                className="h-8 text-xs font-mono px-2.5"
+                className="h-8 text-xs font-mono px-2.5 shrink-0"
               >
                 Diproses ({orders.filter((o) => o.status === "processing").length})
               </Button>
@@ -624,7 +625,7 @@ export default function AdminOrdersPage() {
                 variant={orderStatusFilter === "completed" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setOrderStatusFilter("completed")}
-                className="h-8 text-xs font-mono px-2.5"
+                className="h-8 text-xs font-mono px-2.5 shrink-0"
               >
                 Selesai ({stats.completedCount})
               </Button>
@@ -632,7 +633,7 @@ export default function AdminOrdersPage() {
                 variant={orderStatusFilter === "cancelled" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setOrderStatusFilter("cancelled")}
-                className="h-8 text-xs font-mono px-2.5"
+                className="h-8 text-xs font-mono px-2.5 shrink-0"
               >
                 Dibatalkan ({orders.filter((o) => o.status === "cancelled").length})
               </Button>
@@ -725,7 +726,7 @@ export default function AdminOrdersPage() {
                         <div className="flex justify-between items-center">
                           <span className="text-[var(--vt-ink-mute)]">WhatsApp:</span>
                           <a
-                            href={`https://wa.me/${order.customerPhone.replace(/\D/g, "")}`}
+                            href={`https://wa.me/${normalizeWhatsAppPhone(order.customerPhone)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-emerald-600 font-bold hover:underline"
@@ -918,7 +919,7 @@ export default function AdminOrdersPage() {
                             </div>
                             <div className="flex items-center gap-1 text-[11px] font-mono text-[var(--vt-ink-mute)] mt-0.5">
                               <a
-                                href={`https://wa.me/${order.customerPhone.replace(/\D/g, "")}`}
+                                href={`https://wa.me/${normalizeWhatsAppPhone(order.customerPhone)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-0.5"

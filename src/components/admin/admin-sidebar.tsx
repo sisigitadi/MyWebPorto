@@ -15,6 +15,7 @@ import {
   Images,
   ExternalLink,
   LogOut,
+  LogIn,
   Palette,
   Sparkles,
   Languages,
@@ -424,7 +425,7 @@ export function AdminSidebar({
             className="w-full justify-center text-xs h-8 gap-1.5 text-[var(--vt-ink)] hover:text-[var(--vt-pink)] hover:border-[var(--vt-edge-lo-2)]"
           >
             <Link href="/sign-in">
-              <LogOut className="h-3.5 w-3.5" />
+              <LogIn className="h-3.5 w-3.5" />
               <span>Masuk Akun</span>
             </Link>
           </Button>

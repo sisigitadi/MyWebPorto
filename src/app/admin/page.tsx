@@ -123,7 +123,7 @@ export default async function AdminDashboardPage() {
       {/* Actionable Alert: Pesanan Baru Menunggu Tindakan */}
       {pendingOrders.length > 0 && (
         <Card className="border-amber-500/40 bg-amber-500/5 shadow-xs">
-          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+          <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <div className="h-8 w-8 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
                 <AlertCircle className="h-4 w-4" />
@@ -137,7 +137,7 @@ export default async function AdminDashboardPage() {
                 </CardDescription>
               </div>
             </div>
-            <Button asChild size="sm" variant="outline" className="text-xs font-mono h-8 border-amber-500/30">
+            <Button asChild size="sm" variant="outline" className="text-xs font-mono h-8 border-amber-500/30 self-start sm:self-auto shrink-0">
               <Link href="/admin/orders">Lihat Semua Pesanan</Link>
             </Button>
           </CardHeader>

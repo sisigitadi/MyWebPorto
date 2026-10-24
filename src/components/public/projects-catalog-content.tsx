@@ -76,12 +76,12 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
           icon={<Folder className="h-4 w-4 text-amber-300" />}
           statusText={`Total records: ${projects.length} files found | Directory status: READ_ONLY`}
         >
-          {/* Retro Explorer Address Bar & Back to Desktop OS */}
-          <div className="mb-6 p-2 rounded bg-muted/40 border border-border flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
-            <div className="flex items-center gap-2 min-w-0">
+          {/* Retro Explorer Address Bar & Back to Desktop OS - Single Row Compact */}
+          <div className="mb-6 p-2 rounded bg-muted/40 border border-border flex items-center justify-between gap-1.5 sm:gap-2 text-xs font-mono">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
               <Link
                 href="/"
-                className="vt-btn vt-btn-chrome px-3 py-1 text-xs font-bold text-foreground inline-flex items-center gap-1.5 shrink-0"
+                className="vt-btn vt-btn-chrome px-2 sm:px-3 py-1 text-xs font-bold text-foreground inline-flex items-center gap-1 shrink-0"
               >
                 <Monitor className="h-3.5 w-3.5 text-primary" />
                 <span className="hidden sm:inline">{isEn ? "Back to Desktop OS" : "Kembali ke Menu Desktop"}</span>
@@ -113,7 +113,7 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-[var(--vt-ink)] font-bold text-xs min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-[var(--vt-ink)] font-bold text-xs shrink-0">
               <ShareButton
                 title={isEn ? "Project Portfolio & Case Studies - Sigit Adi Irianto" : "Katalog Proyek & Portofolio - Sigit Adi Irianto"}
                 url="/proyek"
@@ -123,8 +123,8 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
                     : "Jelajahi kumpulan karya, studi kasus aplikasi web full-stack, integrasi model AI, dan solusi rekayasa perangkat lunak modern karya Sigit Adi Irianto."
                 }
                 badge={isEn ? "PROJECTS" : "PROYEK"}
-                buttonText={isEn ? "Share Page" : "Bagikan Halaman"}
-                className="vt-btn vt-btn-chrome text-xs font-mono font-bold"
+                buttonText={isEn ? "Share" : "Bagikan"}
+                className="vt-btn vt-btn-chrome text-xs font-mono font-bold px-2 sm:px-3 py-1"
               />
               <span className="hidden md:inline-flex items-center gap-1.5">
                 <Terminal className="h-3.5 w-3.5 text-emerald-500 shrink-0" />

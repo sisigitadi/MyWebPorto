@@ -195,12 +195,12 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
           icon={<Package className="h-4 w-4 text-[#ffd400]" />}
           statusText={`Total records: ${allProducts.length} digital products | Status: MOUNTED // READY`}
         >
-          {/* Explorer Navigation Bar */}
-          <div className="mb-6 p-2 rounded bg-muted/40 border border-border flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
-            <div className="flex items-center gap-2 min-w-0">
+          {/* Explorer Navigation Bar - Single Row Compact */}
+          <div className="mb-6 p-2 rounded bg-muted/40 border border-border flex items-center justify-between gap-1.5 sm:gap-2 text-xs font-mono">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
               <Link
                 href="/"
-                className="vt-btn vt-btn-chrome px-3 py-1 text-xs font-bold text-foreground inline-flex items-center gap-1.5 shrink-0"
+                className="vt-btn vt-btn-chrome px-2 sm:px-3 py-1 text-xs font-bold text-foreground inline-flex items-center gap-1 shrink-0"
               >
                 <Monitor className="h-3.5 w-3.5 text-primary" />
                 <span className="hidden sm:inline">{isEn ? "Back to Desktop" : "Kembali ke Desktop"}</span>
@@ -233,7 +233,7 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
               </div>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
               <ShareButton
                 title={isEn ? `Sigit Adi Digital Store - ${profile?.name || "Sigit Adi Irianto"}` : `Toko Digital & Tools Developer - ${profile?.name || "Sigit Adi Irianto"}`}
                 url="/toko"
@@ -243,8 +243,8 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
                     : "Dapatkan produk digital berkualitas, boilerplates Next.js, source code siap pakai, template SaaS, dan tools developer praktis untuk mempercepat pengembangan aplikasi."
                 }
                 badge={isEn ? "STORE" : "TOKO"}
-                buttonText={isEn ? "Share Store" : "Bagikan Toko"}
-                className="vt-btn vt-btn-chrome text-xs font-mono font-bold"
+                buttonText={isEn ? "Share" : "Bagikan"}
+                className="vt-btn vt-btn-chrome text-xs font-mono font-bold px-2 sm:px-3 py-1"
               />
 
               <button
@@ -253,7 +253,7 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
                   setTrackerError("");
                   setShowTrackerModal(true);
                 }}
-                className="vt-btn vt-btn-chrome px-2.5 py-1 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer shadow-sm hover:border-[var(--vt-cyan)]"
+                className="vt-btn vt-btn-chrome px-2 sm:px-2.5 py-1 text-xs font-mono font-bold flex items-center gap-1 cursor-pointer shadow-sm hover:border-[var(--vt-cyan)]"
                 title={isEn ? "Track order status by invoice" : "Lacak status pesanan invoice"}
               >
                 <Search className="h-3.5 w-3.5 text-[var(--vt-cyan)]" />
@@ -264,13 +264,13 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
                 <button
                   type="button"
                   onClick={() => setIsOpen(true)}
-                  className={`group vt-btn vt-btn-pink px-3 py-1 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer shadow-md ${
+                  className={`group vt-btn vt-btn-pink px-2 sm:px-3 py-1 text-xs font-mono font-bold flex items-center gap-1 cursor-pointer shadow-md ${
                     totalCount > 0 ? "animate-pulse ring-2 ring-primary" : ""
                   }`}
                   title={isEn ? "Open Shopping Cart" : "Buka Keranjang Belanja"}
                 >
                   <ShoppingCart className="h-3.5 w-3.5" />
-                  <span>{isEn ? "Cart" : "Keranjang"}</span>
+                  <span className="hidden xs:inline">{isEn ? "Cart" : "Keranjang"}</span>
                   <span className="px-1.5 py-0.2 rounded-xs bg-white text-black font-extrabold text-[10px]">
                     {totalCount}
                   </span>

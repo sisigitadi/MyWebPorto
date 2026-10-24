@@ -517,9 +517,9 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
 
                         {/* Top Left Promo / Status Badge */}
                         {product.badge && (
-                          <div className="absolute top-2 left-2 px-2 py-0.5 bg-amber-500 text-black text-[10px] font-pixel font-bold shadow-md flex items-center gap-1 rounded-xs">
-                            <Sparkles className="h-2.5 w-2.5" />
-                            <span>{product.badge}</span>
+                          <div className="absolute top-2 left-2 px-2 py-0.5 bg-amber-500 text-black text-[10px] font-pixel font-bold shadow-md flex items-center gap-1 rounded-xs max-w-[42%] sm:max-w-[50%] min-w-0">
+                            <Sparkles className="h-2.5 w-2.5 shrink-0" />
+                            <span className="truncate">{product.badge}</span>
                           </div>
                         )}
 
@@ -628,7 +628,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                             className="vt-btn vt-btn-pink flex-1 py-2 px-2.5 font-bold justify-center items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110"
                           >
                             <MessageCircle className="h-3.5 w-3.5" />
-                            <span>{language === "en" ? "ORDER VIA WA" : "PESAN VIA WA (CEK STOK)"}</span>
+                            <span>{language === "en" ? "ORDER VIA WA" : "PESAN VIA WA"}</span>
                           </a>
                         ) : (
                           /* 5. Alur Standar Web Toko: Beli Langsung (Express) + Ikon Keranjang + Ikon WA */

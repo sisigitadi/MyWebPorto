@@ -110,15 +110,15 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
     : product.priceFormatted || "Gratis / Diskusi";
 
   return (
-    <div ref={containerRef} className="min-h-full py-6 sm:py-10 vt-crt-on">
+    <div ref={containerRef} className="min-h-full py-6 pb-20 sm:py-10 vt-crt-on">
       <div className="max-w-4xl mx-auto px-3 sm:px-6 space-y-5">
-        {/* Navigation Bar with Cart & Share Access */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+        {/* Navigation Bar with Cart & Share Access - Single Row Compact */}
+        <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
             <Button
               asChild
               size="sm"
-              className="vt-btn vt-btn-chrome h-8 px-3 font-mono text-xs font-bold gap-1.5 cursor-pointer"
+              className="vt-btn vt-btn-chrome h-8 px-2 sm:px-3 font-mono text-xs font-bold gap-1 cursor-pointer shrink-0"
             >
               <Link href="/">
                 <Monitor className="h-3.5 w-3.5 text-primary" />
@@ -130,7 +130,7 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
             <Button
               asChild
               size="sm"
-              className="vt-btn vt-btn-chrome h-8 px-3 font-mono text-xs font-bold gap-1.5 cursor-pointer"
+              className="vt-btn vt-btn-chrome h-8 px-2 sm:px-3 font-mono text-xs font-bold gap-1 cursor-pointer shrink-0"
             >
               <Link href="/#produk">
                 <ArrowLeft className="h-3.5 w-3.5" />
@@ -140,16 +140,16 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
             </Button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Share & Promo Kit Button */}
             <Button
               type="button"
               onClick={() => setShareModalOpen(true)}
               size="sm"
-              className="vt-btn vt-btn-chrome h-8 px-3 font-mono text-xs font-bold gap-1.5 cursor-pointer"
+              className="vt-btn vt-btn-chrome h-8 px-2 sm:px-3 font-mono text-xs font-bold gap-1 cursor-pointer"
             >
               <Share2 className="h-3.5 w-3.5 text-primary" />
-              <span>{isEn ? "Share & Promo" : "Bagikan"}</span>
+              <span className="hidden sm:inline">{isEn ? "Share & Promo" : "Bagikan"}</span>
             </Button>
 
             {/* Cart Button */}
@@ -157,10 +157,10 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
               <button
                 type="button"
                 onClick={() => setIsOpen(true)}
-                className="vt-btn vt-btn-pink h-8 px-3 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+                className="vt-btn vt-btn-pink h-8 px-2 sm:px-3 text-xs font-mono font-bold flex items-center gap-1 cursor-pointer shadow-sm"
               >
                 <ShoppingCart className="h-3.5 w-3.5" />
-                <span>{isEn ? "Cart" : "Keranjang"}</span>
+                <span className="hidden xs:inline">{isEn ? "Cart" : "Keranjang"}</span>
                 <span className="px-1.5 py-0.2 rounded-xs bg-white text-black font-extrabold text-[10px]">
                   {totalCount}
                 </span>
@@ -485,6 +485,67 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
             </div>
           </div>
         </OSWindow>
+      </div>
+
+      {/* Sticky Floating Mobile Buy Dock */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--vt-chrome)] border-t-2 border-[var(--vt-edge-hi)] p-2.5 px-3 flex items-center justify-between gap-2 shadow-[0_-4px_16px_rgba(0,0,0,0.35)]">
+        <div className="flex flex-col min-w-0 pr-1">
+          <span className="text-[10px] font-mono font-bold text-muted-foreground uppercase truncate">
+            {title}
+          </span>
+          <span className="text-xs font-mono font-extrabold text-primary truncate">
+            {displayPrice}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          {product.purchaseType === "freelanceops" ? (
+            <a
+              href={buildFreelanceOpsBriefWhatsAppUrl(adminPhone, product, undefined, isEn ? "en" : "id")}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="vt-btn vt-btn-chrome h-9 px-3 text-xs font-bold font-mono text-primary flex items-center gap-1.5 cursor-pointer shadow-xs"
+            >
+              <Briefcase className="h-3.5 w-3.5" />
+              <span>{isEn ? "BRIEF PROJECT" : "KONSULTASI"}</span>
+            </a>
+          ) : product.purchaseType === "external" && product.ctaUrl ? (
+            <a
+              href={product.ctaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="vt-btn vt-btn-pink h-9 px-3 text-xs font-bold font-mono text-white flex items-center gap-1.5 cursor-pointer shadow-md"
+            >
+              <span>{isEn ? "BUY NOW" : "BELI"}</span>
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          ) : (
+            <>
+              {enableStoreCart && (
+                <button
+                  type="button"
+                  disabled={isOutOfStock}
+                  onClick={handleAddToCart}
+                  className={`vt-btn vt-btn-chrome h-9 px-2.5 text-xs font-bold font-mono flex items-center justify-center cursor-pointer shadow-xs ${
+                    justAdded ? "bg-emerald-600 text-white" : ""
+                  }`}
+                  aria-label={isEn ? "Add to cart" : "Tambah ke keranjang"}
+                >
+                  {justAdded ? <Check className="h-4 w-4 text-white" /> : <ShoppingCart className="h-4 w-4" />}
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={isOutOfStock}
+                onClick={() => buyNow(product)}
+                className="vt-btn vt-btn-pink h-9 px-3.5 text-xs font-bold font-mono text-white flex items-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50"
+              >
+                <Zap className="h-3.5 w-3.5" />
+                <span>{isEn ? "BUY NOW" : "BELI"}</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Share & Promo Kit Modal */}

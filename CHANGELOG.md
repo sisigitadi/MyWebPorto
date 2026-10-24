@@ -4,6 +4,27 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Added & Fixed: Audit Menyeluruh UI/UX Mobile, Adaptive Single-Row Toolbar & Normalisasi WhatsApp
+
+- **Normalisasi Nomor WhatsApp & Pembersihan Em Dash (`src/lib/whatsapp-order.ts`, `tests/whatsapp-order.test.ts`, `tests/order-system.test.ts`)**:
+  - Menambahkan fungsi helper `normalizeWhatsAppPhone` yang mengubah awalan lokal `08...` menjadi format internasional `628...` pada seluruh builder URL `https://wa.me/` (checkout, instant buy, follow-up admin, promo CRM).
+  - Mengeliminasi karakter em dash `—` pada header template order (`*PESANAN BARU: ${store} [${inv}]*`) dan teks penanda EOF (`[ END OF DOCUMENT ]`) untuk kepatuhan ketat pedoman antislop Hard Gate R-02.
+- **Sticky Floating Mobile Action Dock (`src/components/public/product-detail-content.tsx`)**:
+  - Menambahkan bilah aksi melayang permanen di bawah layar ponsel (`sm:hidden fixed bottom-0`) pada halaman detail produk `/toko/[slug]`, menampilkan harga, tombol tambah keranjang, dan tombol beli instan untuk konversi checkout cepat tanpa harus bolak-balik scroll.
+- **Adaptive Compact Single-Row Toolbar (`src/components/public/products-catalog-content.tsx`, `src/components/public/product-detail-content.tsx`, `src/components/public/projects-catalog-content.tsx`, `src/components/public/project-detail-content.tsx`, `src/components/public/articles-catalog-content.tsx`, `src/components/public/article-detail-content.tsx`)**:
+  - Merombak seluruh navigation toolbar katalog dan detail rute publik agar selalu tampil dalam satu baris rapi dan proporsional di semua layar smartphone (<390px) tanpa wrap atau bertumpuk.
+- **Optimasi Kartu Produk & Badge Collision Guard (`src/components/public/products-section.tsx`)**:
+  - Membatasi lebar promo badge (`max-w-[42%] min-w-0 truncate`) agar tidak bertabrakan dengan compare price badge di layar smartphone sempit (<360px).
+  - Mempersingkat tombol WhatsApp order menjadi `PESAN VIA WA` (single-line).
+- **Feedback Taktil Haptik Mikro Retro (`src/lib/os-sound.ts`)**:
+  - Mengintegrasikan Web Vibration API (`triggerHaptic`) ke dalam Web Audio engine retro `playOS()` untuk getaran fisik mikro 12ms yang mantap di perangkat layar sentuh.
+- **Perbaikan Semantik Ikon Admin & Chip Strip Filter (`src/components/admin/admin-header.tsx`, `src/components/admin/admin-sidebar.tsx`, `src/app/admin/orders/page.tsx`, `src/app/admin/whatsapp-bot/page.tsx`, `src/app/admin/page.tsx`)**:
+  - Mengoreksi ikon tombol "Masuk Akun" dari sebelumnya salah memakai `LogOut` menjadi `LogIn`.
+  - Mengubah 6 tombol filter status pesanan dan 4 tab WhatsApp Bot menjadi horizontal scrollable chip strip (`overflow-x-auto no-scrollbar whitespace-nowrap`).
+  - Memperbaiki layout `CardHeader` alert pesanan baru di dashboard admin agar adaptif `flex-col sm:flex-row`.
+- **Pengujian & Sinkronisasi Dokumentasi**:
+  - Seluruh 48 berkas tes (609 unit & integration tests) lulus 100% dan verifikasi tipe TypeScript (`npx tsc --noEmit`) bersih tanpa error.
+
 ### Fixed: Peningkatan Kontras Warna WCAG AA pada Tab Preferensi Profil (`src/components/public/profile/profile-tabs.tsx`)
 
 - Memperbaiki kontras teks emerald pada panel preferensi kerja (LIVE MONITOR, status badge, dan jaminan konsultasi teknis) menjadi rasio >4.5:1 untuk mode terang dan gelap.

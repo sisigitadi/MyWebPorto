@@ -73,13 +73,13 @@ describe("Order System & WhatsApp Builder", () => {
       "AFFILIATE10"
     );
 
-    expect(url).toContain("https://wa.me/081234567890?text=");
+    expect(url).toContain("https://wa.me/6281234567890?text=");
     const decoded = decodeURIComponent(url);
     expect(decoded).toContain("INV-20261013-001");
     expect(decoded).toContain("Budi Santoso");
     expect(decoded).toContain("AFFILIATE10");
     expect(decoded).toContain("Source Code Portfolio Pro");
-    expect(decoded).toContain("PESANAN BARU —");
+    expect(decoded).toContain("PESANAN BARU:");
   });
 
   it("builds WhatsApp order URL with separate email and notes fields", () => {
@@ -122,7 +122,7 @@ describe("Order System & WhatsApp Builder", () => {
     );
 
     const decoded = decodeURIComponent(url);
-    expect(decoded).toContain("NEW ORDER —");
+    expect(decoded).toContain("NEW ORDER:");
     expect(decoded).toContain("Portfolio Pro Source Code");
     expect(decoded).toContain("$38.00");
     expect(decoded).toContain("PayPal");
@@ -167,7 +167,7 @@ describe("Order System & WhatsApp Builder", () => {
     const completionUrl = buildFollowUpCompletionUrl("081234567890", "INV-001", "Budi");
 
     [reminderUrl, verifiedUrl, deliveryUrl, freelanceOpsUrl, completionUrl].forEach((u) => {
-      expect(u).toContain("https://wa.me/081234567890");
+      expect(u).toContain("https://wa.me/6281234567890");
       const decoded = decodeURIComponent(u);
       expect(decoded).not.toContain("—"); // R-02
     });
