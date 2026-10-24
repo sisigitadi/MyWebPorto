@@ -4,6 +4,23 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Changed: Input Kalimat Jaminan Waktu SLA Menggantikan Prompt Ajakan CV (`src/components/admin/profile-cards-editor.tsx`, `src/components/public/profile/profile-tabs.tsx`, `src/components/public/os/os-desktop-manager.tsx`)
+
+- **Penyelarasan Input Form Admin (`src/components/admin/profile-cards-editor.tsx`)**:
+  - Mengganti input prompt permintaan CV (`cvPrompt` / `cvPromptEn`) dengan input kalimat jaminan waktu SLA (`slaNote` / `slaNoteEn`).
+  - Menyediakan placeholder dan panduan dwibahasa (ID/EN) yang intuitif untuk mengkustomisasi kalimat komitmen SLA.
+- **Tampilan Dinamis Kartu Preferensi Publik (`src/components/public/profile/profile-tabs.tsx`, `src/components/public/os/os-desktop-manager.tsx`)**:
+  - Merender kalimat jaminan SLA langsung dari konfigurasi kartu profil retro OS tanpa teks hardcoded.
+
+### Fixed: Penyelarasan Badge Sidebar Analytics & Sinkronisasi Profil Mobile (`src/components/admin/admin-sidebar.tsx`, `src/components/public/os/os-desktop-manager.tsx`, `src/lib/actions.ts`)
+
+- **Penyelarasan Badge Status Sidebar Admin (`src/components/admin/admin-sidebar.tsx`)**:
+  - Memperbarui status badge menu Visitor Analytics dari `Off` menjadi `Aktif` dengan aksen styling emerald, selaras dengan status di halaman `/admin/analytics`.
+- **Perbaikan Prop Tampilan Mobile OS (`src/components/public/os/os-desktop-manager.tsx`)**:
+  - Meneruskan prop `profileCards={profileCards}` ke `HeroSection` pada layout mobile (`<768px`). Sebelumnya, ketiadaan prop ini menyebabkan tampilan di smartphone/tablet selalu kembali ke fallback kartu bawaan statis (`DEFAULT_PROFILE_CARDS`).
+- **Koreksi Revalidasi Cache Next.js (`src/lib/actions.ts`)**:
+  - Mengganti revalidasi route group yang tidak valid `revalidatePath("/(public)", "layout")` menjadi `revalidatePath("/", "layout")` pada `updateProfile` dan `saveProfileCardsAction` agar cache HTML publik ter-purge secara bersih di seluruh peramban.
+
 ### Fixed & Optimized: Akselerasi Refresh Portofolio & Eliminasi Bottleneck Pasca-Simpan Profil Admin
 
 Optimalisasi performa menyeluruh untuk mengatasi keluhan web portofolio lambat me-refresh setelah admin memperbarui data profil atau kartu profil OS:
