@@ -4,6 +4,11 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Fixed: Peningkatan Kontras Warna WCAG AA pada Tab Preferensi Profil (`src/components/public/profile/profile-tabs.tsx`)
+
+- Memperbaiki kontras teks emerald pada panel preferensi kerja (LIVE MONITOR, status badge, dan jaminan konsultasi teknis) menjadi rasio >4.5:1 untuk mode terang dan gelap.
+- Menyelesaikan kegagalan audit Lighthouse CI accessibility (skor 100/100).
+
 ### Changed: Input Kalimat Jaminan Waktu SLA Menggantikan Prompt Ajakan CV (`src/components/admin/profile-cards-editor.tsx`, `src/components/public/profile/profile-tabs.tsx`, `src/components/public/os/os-desktop-manager.tsx`)
 
 - **Penyelarasan Input Form Admin (`src/components/admin/profile-cards-editor.tsx`)**:

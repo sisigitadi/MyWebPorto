@@ -172,10 +172,10 @@ export function ProfileTabs({ cards }: ProfileTabsProps) {
           >
             <div className="flex items-center justify-between border-b border-[var(--vt-edge-lo-2)] pb-2 text-xs font-mono">
               <span className="font-bold text-[var(--vt-ink)] flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>SYSTEM_CONFIG :: WORK_PREFERENCES_&_SLA</span>
               </span>
-              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+              <span className="text-[10px] text-emerald-800 dark:text-emerald-300 font-bold">
                 ● LIVE MONITOR
               </span>
             </div>
@@ -184,7 +184,7 @@ export function ProfileTabs({ cards }: ProfileTabsProps) {
             <div className="p-3 bg-emerald-500/10 border-2 border-emerald-500/40 rounded-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono">
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                <span className="font-extrabold text-emerald-700 dark:text-emerald-300">
+                <span className="font-extrabold text-emerald-900 dark:text-emerald-300">
                   {isEn && cards.workPreferences.statusBadgeEn
                     ? cards.workPreferences.statusBadgeEn
                     : cards.workPreferences.statusBadge}
@@ -221,7 +221,7 @@ export function ProfileTabs({ cards }: ProfileTabsProps) {
                         : "Pesan yang masuk melalui form kontak maupun WhatsApp ditinjau cepat dengan penilaian teknis langsung.")).replace(/—/g, "-")}
                   </p>
                 </div>
-                <div className="pt-2 border-t border-[var(--vt-edge-lo-2)]/60 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                <div className="pt-2 border-t border-[var(--vt-edge-lo-2)]/60 text-[10px] text-emerald-900 dark:text-emerald-300 font-bold flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3" />
                   <span>{isEn ? "Direct Technical Consultation" : "Konsultasi Rekayasa Langsung"}</span>
                 </div>
