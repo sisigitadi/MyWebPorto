@@ -84,15 +84,16 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
                 className="vt-btn vt-btn-chrome px-2 sm:px-3 py-1 text-xs font-bold text-foreground inline-flex items-center gap-1 shrink-0"
               >
                 <Monitor className="h-3.5 w-3.5 text-primary" />
-                <span className="hidden sm:inline">{isEn ? "Back to Desktop OS" : "Kembali ke Menu Desktop"}</span>
+                <span className="hidden md:inline">{isEn ? "Back to Desktop OS" : "Kembali ke Menu Desktop"}</span>
+                <span className="hidden sm:inline md:hidden">{isEn ? "Desktop OS" : "Desktop OS"}</span>
                 <span className="sm:hidden">Desktop</span>
               </Link>
-              <div className="hidden sm:flex items-center gap-2">
+              <div className="hidden lg:flex items-center gap-2 min-w-0 max-w-sm">
                 <span className="text-[var(--vt-ink)] font-bold">Address:</span>
                 <div
                   onClick={handleCopyAddress}
                   title={isEn ? "Click to copy address URL" : "Klik untuk menyalin alamat URL"}
-                  className="px-2 py-1 bg-background border border-border/80 rounded flex items-center gap-1.5 text-primary font-bold cursor-pointer hover:border-primary/50 transition-colors group select-all"
+                  className="px-2 py-1 bg-background border border-border/80 rounded flex items-center gap-1.5 text-primary font-bold cursor-pointer hover:border-primary/50 transition-colors group select-all min-w-0"
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {

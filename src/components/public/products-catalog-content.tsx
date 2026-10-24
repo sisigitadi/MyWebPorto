@@ -203,15 +203,16 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
                 className="vt-btn vt-btn-chrome px-2 sm:px-3 py-1 text-xs font-bold text-foreground inline-flex items-center gap-1 shrink-0"
               >
                 <Monitor className="h-3.5 w-3.5 text-primary" />
-                <span className="hidden sm:inline">{isEn ? "Back to Desktop" : "Kembali ke Desktop"}</span>
+                <span className="hidden md:inline">{isEn ? "Back to Desktop" : "Kembali ke Desktop"}</span>
+                <span className="hidden sm:inline md:hidden">{isEn ? "Desktop" : "Desktop"}</span>
                 <span className="sm:hidden">Desktop</span>
               </Link>
-              <div className="hidden sm:flex items-center gap-2">
+              <div className="hidden lg:flex items-center gap-2 min-w-0 max-w-xs">
                 <span className="text-[var(--vt-ink)] font-bold">Address:</span>
                 <div
                   onClick={handleCopyAddress}
                   title={isEn ? "Click to copy address URL" : "Klik untuk menyalin alamat URL"}
-                  className="px-2 py-1 bg-background border border-border/80 rounded flex items-center gap-1.5 text-primary font-bold cursor-pointer hover:border-primary/50 transition-colors group select-all"
+                  className="px-2 py-1 bg-background border border-border/80 rounded flex items-center gap-1.5 text-primary font-bold cursor-pointer hover:border-primary/50 transition-colors group select-all min-w-0"
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {
@@ -257,7 +258,8 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
                 title={isEn ? "Track order status by invoice" : "Lacak status pesanan invoice"}
               >
                 <Search className="h-3.5 w-3.5 text-[var(--vt-cyan)]" />
-                <span className="hidden sm:inline">{isEn ? "Track Order" : "Lacak Pesanan"}</span>
+                <span className="hidden md:inline">{isEn ? "Track Order" : "Lacak Pesanan"}</span>
+                <span className="hidden sm:inline md:hidden">{isEn ? "Track" : "Lacak"}</span>
               </button>
 
               {enableStoreCart && !storeConfig?.whatsappOnlyMode && (
@@ -577,23 +579,23 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                           <button
                             type="button"
                             onClick={() => buyNow(product)}
                             disabled={isOutOfStock}
-                            className="flex-1 vt-btn vt-btn-pink py-2 text-xs font-bold text-white justify-center items-center gap-1.5 cursor-pointer disabled:opacity-40"
+                            className="flex-1 min-w-0 vt-btn vt-btn-pink py-2 px-2 text-xs font-bold text-white justify-center items-center gap-1.5 cursor-pointer disabled:opacity-40"
                           >
-                            <Zap className="h-3.5 w-3.5" />
-                            <span>Beli Langsung</span>
+                            <Zap className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{isEn ? "BUY NOW" : "Beli Langsung"}</span>
                           </button>
                           {enableStoreCart && (
                             <button
                               type="button"
                               onClick={() => handleAddToCart(product)}
                               disabled={isOutOfStock}
-                              className="vt-btn vt-btn-chrome p-2 text-xs font-bold inline-flex items-center justify-center cursor-pointer disabled:opacity-40"
-                              title={justAddedId === product.id ? "Ditambahkan!" : "Tambah ke Keranjang"}
+                              className="vt-btn vt-btn-chrome p-2 text-xs font-bold inline-flex items-center justify-center cursor-pointer disabled:opacity-40 shrink-0"
+                              title={justAddedId === product.id ? (isEn ? "Added!" : "Ditambahkan!") : (isEn ? "Add to Cart" : "Tambah ke Keranjang")}
                             >
                               {justAddedId === product.id ? (
                                 <Check className="h-4 w-4 text-emerald-500" />
@@ -604,8 +606,8 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
                           )}
                           <Link
                             href={productUrl}
-                            className="vt-btn vt-btn-chrome p-2 text-xs font-bold inline-flex items-center justify-center"
-                            title="Lihat Detail"
+                            className="vt-btn vt-btn-chrome p-2 text-xs font-bold inline-flex items-center justify-center shrink-0"
+                            title={isEn ? "View Details" : "Lihat Detail"}
                           >
                             <ArrowUpRight className="h-4 w-4" />
                           </Link>

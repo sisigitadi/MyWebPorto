@@ -576,7 +576,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
 
                     {/* Shop Action Buttons */}
                     <div className="pt-3 border-t border-border/80 space-y-2 font-mono text-xs">
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                         {/* 1. Tipe Eksternal / Referral / Affiliate: Langsung ke link tujuan tanpa keranjang/checkout web */}
                         {(product.purchaseType === 'referral' || product.purchaseType === 'affiliate' || product.purchaseType === 'external') ? (
                           <>
@@ -585,9 +585,9 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                                 href={product.ctaUrl}
                                 target="_blank"
                                 rel="noopener noreferrer nofollow"
-                                className="vt-btn vt-btn-pink flex-1 py-2 px-2.5 font-bold justify-center items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110"
+                                className="vt-btn vt-btn-pink flex-1 min-w-0 py-2 px-2.5 font-bold justify-center items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110"
                               >
-                                <ExternalLink className="h-3.5 w-3.5" />
+                                <ExternalLink className="h-3.5 w-3.5 shrink-0" />
                                 <span className="truncate max-w-[170px]">
                                   {product.customButtonLabel || 
                                     (product.purchaseType === 'referral' ? (language === "en" ? "OPEN REFERRAL" : "KODE REFERRAL") :
@@ -603,10 +603,10 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                             href={product.ctaUrl || 'https://freelanceops.sigitadi.id/'}
                             target="_blank"
                             rel="noopener noreferrer nofollow"
-                            className="vt-btn vt-btn-pink flex-1 py-2 px-2.5 font-bold justify-center items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110"
+                            className="vt-btn vt-btn-pink flex-1 min-w-0 py-2 px-2.5 font-bold justify-center items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110"
                           >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                            <span>{product.customButtonLabel || (language === "en" ? "START PROJECT" : "MULAI PROYEK")}</span>
+                            <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{product.customButtonLabel || (language === "en" ? "START PROJECT" : "MULAI PROYEK")}</span>
                           </a>
                         ) : product.purchaseType === 'whatsapp_custom' ? (
                           /* 3. Pesanan Khusus / Nego / Konsultasi WhatsApp */
@@ -614,10 +614,10 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                             href={buildSingleProductWhatsAppUrl(product.customWhatsapp || profile?.phone || '', product, language === "en" ? "en" : "id")}
                             target="_blank"
                             rel="noopener noreferrer nofollow"
-                            className="vt-btn vt-btn-pink flex-1 py-2 px-2.5 font-bold justify-center items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110"
+                            className="vt-btn vt-btn-pink flex-1 min-w-0 py-2 px-2.5 font-bold justify-center items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110"
                           >
-                            <MessageCircle className="h-3.5 w-3.5" />
-                            <span>{product.customButtonLabel || (language === "en" ? "CUSTOM INQUIRY" : "KONSULTASI KHUSUS")}</span>
+                            <MessageCircle className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{product.customButtonLabel || (language === "en" ? "CUSTOM INQUIRY" : "KONSULTASI KHUSUS")}</span>
                           </a>
                         ) : storeConfig?.whatsappOnlyMode ? (
                           /* 4. Global WhatsApp Only Mode: Seluruh produk langsung diarahkan ke WA */
@@ -625,10 +625,10 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                             href={buildSingleProductWhatsAppUrl(product.customWhatsapp || profile?.phone || '', product, language === "en" ? "en" : "id")}
                             target="_blank"
                             rel="noopener noreferrer nofollow"
-                            className="vt-btn vt-btn-pink flex-1 py-2 px-2.5 font-bold justify-center items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110"
+                            className="vt-btn vt-btn-pink flex-1 min-w-0 py-2 px-2.5 font-bold justify-center items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110"
                           >
-                            <MessageCircle className="h-3.5 w-3.5" />
-                            <span>{language === "en" ? "ORDER VIA WA" : "PESAN VIA WA"}</span>
+                            <MessageCircle className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{language === "en" ? "ORDER VIA WA" : "PESAN VIA WA"}</span>
                           </a>
                         ) : (
                           /* 5. Alur Standar Web Toko: Beli Langsung (Express) + Ikon Keranjang + Ikon WA */
@@ -638,11 +638,11 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                               type="button"
                               disabled={isOutOfStock}
                               onClick={() => buyNow(product)}
-                              className="vt-btn vt-btn-pink flex-1 py-2 px-2 font-bold justify-center items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110 disabled:opacity-50"
+                              className="vt-btn vt-btn-pink flex-1 min-w-0 py-2 px-2 font-bold justify-center items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110 disabled:opacity-50"
                               title={language === "en" ? "Express Checkout (Instant Buy)" : "Beli Langsung (Checkout Cepat)"}
                             >
-                              <Zap className="h-3.5 w-3.5" />
-                              <span>{language === "en" ? "BUY NOW" : "BELI LANGSUNG"}</span>
+                              <Zap className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate">{language === "en" ? "BUY NOW" : "BELI LANGSUNG"}</span>
                             </button>
 
                             {/* Tombol Tambah ke Keranjang */}
@@ -651,7 +651,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                                 type="button"
                                 disabled={isOutOfStock}
                                 onClick={() => handleAddToCart(product)}
-                                className={`vt-btn px-2.5 py-2 font-bold justify-center items-center gap-1 cursor-pointer transition-colors ${
+                                className={`vt-btn px-2.5 py-2 font-bold justify-center items-center gap-1 cursor-pointer transition-colors shrink-0 ${
                                   isAdded
                                     ? "bg-emerald-600 text-white font-extrabold"
                                     : "vt-btn-chrome text-foreground hover:bg-muted"
@@ -672,7 +672,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                                 href={buildSingleProductWhatsAppUrl(product.customWhatsapp || profile?.phone || '', product, language === "en" ? "en" : "id")}
                                 target="_blank"
                                 rel="noopener noreferrer nofollow"
-                                className="vt-btn vt-btn-chrome px-2.5 py-2 text-xs font-bold text-foreground justify-center items-center gap-1 group cursor-pointer"
+                                className="vt-btn vt-btn-chrome px-2.5 py-2 text-xs font-bold text-foreground justify-center items-center gap-1 group cursor-pointer shrink-0"
                                 title={language === "en" ? "Ask questions on WhatsApp" : "Tanya via WhatsApp"}
                               >
                                 <MessageCircle className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />

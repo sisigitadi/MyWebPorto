@@ -4,7 +4,27 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Fixed: Eliminasi Menyeluruh Teks dan Tombol Bertumpuk pada Toolbar Navigasi, Kartu Produk, Dialog Keranjang dan Panel Admin
+
+- **Eliminasi Tumpang Tindih URL Detail Proyek (`src/components/public/project-detail-content.tsx`)**:
+  - Menghapus teks URL statis yang menimpa tombol kiri navigasi pada viewport tablet 640px hingga 860px.
+  - Menerapkan **Adaptive Responsive Text Stepping** pada tombol navigasi (`Desktop OS` / `Semua Proyek` di tablet, `Desktop` / `Proyek` di ponsel).
+  - Mengubah action bar bawah dari `sm:flex-row` menjadi `md:flex-row` agar tombol aksi dan chip teknologi tidak bertubrukan di layar 640px-768px.
+- **Optimasi Baris Alamat URL Retro pada Seluruh Katalog (`src/components/public/projects-catalog-content.tsx`, `src/components/public/products-catalog-content.tsx`, `src/components/public/articles-catalog-content.tsx`, `src/components/public/featured-projects-section.tsx`)**:
+  - Mengubah tampilan kotak retro `Address: [ https://... ]` dari `hidden sm:flex` menjadi `hidden lg:flex min-w-0 max-w-sm` sehingga hanya tampil pada layar lapang (>=1024px) dan menyisakan ruang bebas untuk tombol navigasi di tablet dan ponsel.
+  - Tombol lacak pesanan diberi teks adaptif responsif (*Track Order* / *Lacak Pesanan* di desktop, *Track* / *Lacak* di tablet).
+- **Proteksi Layout Tombol Kartu Produk (`src/components/public/products-section.tsx`, `src/components/public/products-catalog-content.tsx`)**:
+  - Tombol *BELI LANGSUNG* diberi `flex-1 min-w-0` dengan teks `truncate`.
+  - Tombol icon *Keranjang* dan *WhatsApp* diberi `shrink-0` agar proporsi ukuran icon tetap terjaga dan tidak saling gencet.
+- **Penataan Fleksibel Dialog Keranjang & Salin Rekening (`src/components/public/cart-dialog.tsx`)**:
+  - Tombol aksi QRIS (Zoom & Unduh QRIS) diberi `flex-wrap` dan `shrink-0`.
+  - Tombol salin rekening diberi tier responsif: *Salin No. Rekening* pada layar standar dan *Salin* pada layar sempit (<400px).
+- **Perapian Tombol Aksi Admin (`src/app/admin/products/page.tsx`, `src/components/admin/admin-header.tsx`)**:
+  - Kartu produk mobile admin pada baris aksi bawah (Lihat, Edit, Bagikan, Hapus) diberi `flex-wrap justify-end gap-1.5` dan teks tombol *Bagikan* disembunyikan di layar sempit (<400px).
+  - Tombol *Masuk Akun* di header admin diberi tier `hidden xs:inline` agar tidak mendesak breadcrumb di viewport 320px.
+
 ### Added & Fixed: Audit Menyeluruh UI/UX Mobile, Adaptive Single-Row Toolbar & Normalisasi WhatsApp
+
 
 - **Normalisasi Nomor WhatsApp & Pembersihan Em Dash (`src/lib/whatsapp-order.ts`, `tests/whatsapp-order.test.ts`, `tests/order-system.test.ts`)**:
   - Menambahkan fungsi helper `normalizeWhatsAppPhone` yang mengubah awalan lokal `08...` menjadi format internasional `628...` pada seluruh builder URL `https://wa.me/` (checkout, instant buy, follow-up admin, promo CRM).

@@ -92,7 +92,7 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
   return (
     <div ref={containerRef} className="py-6 md:py-10 vt-crt-on">
       <div className="max-w-5xl mx-auto px-3 sm:px-6 space-y-6">
-        {/* Navigation Bar — sticky agar selalu terlihat saat scroll fullscreen */}
+        {/* Navigation Bar: sticky agar selalu terlihat saat scroll fullscreen */}
         <div className="sticky top-0 z-20 -mx-3 sm:mx-0 px-3 sm:px-0 py-2 bg-[var(--vt-paper)]/95 backdrop-blur border-b border-border/60 flex items-center justify-between gap-1.5 sm:gap-2">
           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
             <Button
@@ -102,7 +102,8 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
             >
               <Link href="/">
                 <Monitor className="h-3.5 w-3.5 text-primary" />
-                <span className="hidden sm:inline">{language === "en" ? "Back to Desktop OS" : "Kembali ke Desktop OS"}</span>
+                <span className="hidden md:inline">{language === "en" ? "Back to Desktop OS" : "Kembali ke Desktop OS"}</span>
+                <span className="hidden sm:inline md:hidden">{language === "en" ? "Desktop OS" : "Desktop OS"}</span>
                 <span className="sm:hidden">Desktop</span>
               </Link>
             </Button>
@@ -114,16 +115,14 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
             >
               <Link href="/proyek">
                 <ArrowLeft className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{t.detail_back_all}</span>
+                <span className="hidden md:inline">{t.detail_back_all}</span>
+                <span className="hidden sm:inline md:hidden">{language === "en" ? "All Projects" : "Semua Proyek"}</span>
                 <span className="sm:hidden">{language === "en" ? "Projects" : "Proyek"}</span>
               </Link>
             </Button>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 text-xs font-mono font-bold text-[var(--vt-ink)] shrink-0">
-            <Globe className="hidden sm:inline h-3.5 w-3.5 text-primary shrink-0" />
-            <span className="hidden sm:inline mobile-safe-path max-w-[260px] sm:max-w-none truncate select-all">https://sigitadi.id/proyek/{project.slug}</span>
-            <span className="hidden xs:inline text-emerald-700 dark:text-emerald-400 font-bold shrink-0">[OK]</span>
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <ShareButton
               title={title}
               url={`/proyek/${project.slug}`}
@@ -132,7 +131,7 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
               badge="Proyek"
               buttonText={language === "en" ? "Share" : "Bagikan"}
               size="sm"
-              className="h-8 px-2 sm:px-3"
+              className="h-8 px-2 sm:px-3 font-mono text-xs font-bold"
             />
           </div>
         </div>
@@ -186,7 +185,7 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
             </div>
 
             {/* Action Bar & Tech Stack */}
-            <div className="p-4 rounded bg-muted/40 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="p-4 rounded bg-muted/40 border border-border flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-1.5">
                 <span className="text-[10px] uppercase font-mono font-bold text-primary tracking-wider block">
                   {t.detail_tech_title}

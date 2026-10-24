@@ -108,7 +108,8 @@ export function ArticleDetailContent({
             >
               <Link href="/">
                 <Monitor className="h-3.5 w-3.5 text-primary" />
-                <span className="hidden sm:inline">{t.article_detail_back_desktop}</span>
+                <span className="hidden md:inline">{t.article_detail_back_desktop}</span>
+                <span className="hidden sm:inline md:hidden">{isEn ? "Desktop OS" : "Desktop OS"}</span>
                 <span className="sm:hidden">Desktop</span>
               </Link>
             </Button>
@@ -120,7 +121,8 @@ export function ArticleDetailContent({
             >
               <Link href="/#artikel">
                 <ArrowLeft className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{t.article_detail_back_articles}</span>
+                <span className="hidden md:inline">{t.article_detail_back_articles}</span>
+                <span className="hidden sm:inline md:hidden">{isEn ? "Articles" : "Artikel"}</span>
                 <span className="sm:hidden">{isEn ? "Articles" : "Artikel"}</span>
               </Link>
             </Button>

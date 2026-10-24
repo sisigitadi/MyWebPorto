@@ -831,11 +831,11 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
                               </div>
 
                               {/* Tombol Perbesar & Unduh QRIS */}
-                              <div className="flex items-center justify-center gap-2 pt-1">
+                              <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
                                 <button
                                   type="button"
                                   onClick={() => setQrisZoomOpen(true)}
-                                  className="vt-btn vt-btn-chrome px-2.5 py-1 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer"
+                                  className="vt-btn vt-btn-chrome px-2.5 py-1 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer shrink-0"
                                 >
                                   <Maximize2 className="h-3 w-3" />
                                   <span>{isEn ? "Enlarge QRIS" : "Perbesar QRIS"}</span>
@@ -843,7 +843,7 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
                                 <button
                                   type="button"
                                   onClick={handleDownloadQris}
-                                  className="vt-btn vt-btn-pink px-2.5 py-1 text-[11px] font-bold text-white flex items-center gap-1.5 cursor-pointer shadow-sm hover:brightness-110"
+                                  className="vt-btn vt-btn-pink px-2.5 py-1 text-[11px] font-bold text-white flex items-center gap-1.5 cursor-pointer shadow-sm hover:brightness-110 shrink-0"
                                 >
                                   <Download className="h-3 w-3" />
                                   <span>{isEn ? "Download QRIS" : "Unduh QRIS"}</span>
@@ -941,7 +941,8 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
                                     ) : (
                                       <>
                                         <Copy className="h-3.5 w-3.5" />
-                                        <span>{isEn ? "Copy" : "Salin No. Rekening"}</span>
+                                        <span className="hidden xs:inline">{isEn ? "Copy" : "Salin No. Rekening"}</span>
+                                        <span className="xs:hidden">{isEn ? "Copy" : "Salin"}</span>
                                       </>
                                     )}
                                   </button>
