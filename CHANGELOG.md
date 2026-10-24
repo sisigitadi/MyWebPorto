@@ -11,6 +11,9 @@ Optimalisasi performa menyeluruh untuk mengatasi keluhan web portofolio lambat m
 - **Targeted Cache Invalidation (`src/lib/actions.ts`, `src/lib/order-actions.ts`)**:
   - Mengganti pemanggilan over-invalidation `revalidatePath("/", "layout")` dan `revalidatePath("/admin", "layout")` yang sebelumnya menghapus paksa seluruh 45 rute aplikasi (termasuk seluruh halaman admin dan gambar dinamis).
   - Revalidasi kini ditargetkan hanya pada rute yang terdampak langsung: `revalidatePath("/")`, `revalidatePath("/(public)", "layout")`, dan `revalidatePath("/admin/profile")`.
+- **Sinkronisasi ID Atomik & Konsistensi Data (`src/lib/actions.ts`)**:
+  - Memastikan penambahan entitas baru (proyek, layanan, produk, testimoni, artikel) menghasilkan UUID v4 (`crypto.randomUUID()`) yang sinkron antara penyimpanan lokal `data/local-store.json` dan Supabase PostgreSQL via atomic `onConflictDoUpdate`.
+  - Meniadakan anomali ID atau notifikasi loading berputar tiada henti (`loading.tsx`) pasca mutasi admin.
 - **Request Deduplication dengan `React.cache()` (`src/lib/actions.ts`, `src/lib/settings.ts`, `src/lib/order-actions.ts`)**:
   - Membungkus seluruh getter inti server actions (`getProfile`, `getProjects`, `getServices`, `getProducts`, `getTestimonials`, `getArticles`, `getSetting`, `getStoreConfig`) menggunakan `React.cache()`.
   - Meniadakan query berulang dalam satu siklus render HTTP request (`getProfile` sebelumnya ditembakkan 4 kali secara terpisah oleh RootLayout, public layout, generateDynamicMetadata, dan HomePage).
@@ -21,6 +24,40 @@ Optimalisasi performa menyeluruh untuk mengatasi keluhan web portofolio lambat m
 - **Hasil Pengujian & Benchmark**:
   - Total latensi eksekusi paralel seluruh data halaman beranda turun menjadi ~316 ms.
   - Seluruh 48 berkas tes (605 tes unit/integrasi) lulus 100% dan build produksi Next.js 16 (`npm run build`) berjalan bersih tanpa error.
+
+### Changed: Penukaran Posisi Kartu Profil Retro OS 1 dan 3 (Publik & Admin)
+
+Penyelarasan struktur kartu profil retro OS agar tab ketersediaan kerja tampil sebagai tab utama pembuka:
+
+- **Komponen Publik (`src/components/public/profile/profile-tabs.tsx`)**:
+  - Menukar posisi Tab 1 dengan Tab 3: Tab 1 kini menjadi `01_AVAILABILITY.CFG` (default aktif saat modal profil dibuka) dan Tab 3 menjadi `03_SPECS.SYS`.
+  - Mempertahankan WAI-ARIA tab pattern, navigasi keyboard (panah kiri/kanan, Home, End), dan kontras WCAG AA.
+- **Komponen Editor Admin (`src/components/admin/profile-cards-editor.tsx`)**:
+  - Menukar urutan sub-tab editor kartu profil: Sub-tab 1 beralih ke `01 Preferensi` (default) dan Sub-tab 3 menjadi `03 Stack`.
+  - Memastikan urutan form administrasi selaras 100% dengan tampilan publik retro desktop.
+
+### Changed & Optimized: Reaktivasi & Perampingan Visitor Analytics Ramah Sumber Daya
+
+Mengaktifkan kembali analitik pengunjung portofolio dengan eliminasi query berat dan proteksi agresif terhadap bot:
+
+- **Pembersihan Kolom & Agregasi Berat (`src/lib/visitor-analytics.ts`, `src/app/admin/analytics/page.tsx`)**:
+  - Menghapus kolom dan kartu yang membebani query: Peramban (Browser), Zona Waktu Klien (Client Timezone), serta Perangkat / OS (Device/OS).
+  - Mempertahankan kolom Visitor ID (`#visit.ipHashShort`) pada tabel kunjungan terkini sebagai tanda pengenal unik pengunjung.
+  - Menyederhanakan ringkasan jaringan hanya menampilkan alamat IP (`ipHashShort`), negara, dan kota.
+- **Deteksi & Throttling Bot Ramah Sumber Daya (`src/lib/visitor-analytics.ts`, `src/components/public/visitor-tracker.tsx`, `src/app/api/visitor-hit/route.ts`)**:
+  - Tetap mendeteksi dan menampilkan crawler / bot pencari dengan badge pembeda `BOT` vs `Pengunjung`.
+  - Melindungi database dari spam bot dengan debounce 60 detik per IP di level server, rate limiting 15 hit/menit/IP di route handler `/api/visitor-hit`, dan deduplikasi 10 menit via `sessionStorage` pada browser klien.
+  - Pelacak klien menggunakan `requestIdleCallback` dan `navigator.sendBeacon` agar tidak menghambat rendering utama halaman publik.
+- **In-Memory Summary Cache (`src/lib/visitor-analytics.ts`)**:
+  - Menambahkan caching memori 30 detik pada fungsi `getVisitorSummary()`, menekan beban komputasi raw SQL agregasi saat halaman admin dibuka.
+
+### Security: Pembaruan Framework Next.js & eslint-config-next ke Versi 16.4.3
+
+Penambalan dependensi framework inti untuk integritas dan keamanan aplikasi:
+
+- Memperbarui `next` dan `eslint-config-next` dari `16.4.0` ke `16.4.3` pada `package.json`.
+- Menyelesaikan security advisory bawaan pada Next.js 16.
+- Build Turbopack dan pemeriksaan linting ESLint 9 berjalan 100% bersih tanpa error.
 
 ### Changed: Migrasi Database Utama ke Supabase PostgreSQL & Driver Universal postgres.js
 
