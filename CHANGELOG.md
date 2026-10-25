@@ -6,8 +6,9 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ### Fixed: Eliminasi Menyeluruh Teks dan Tombol Bertumpuk pada Toolbar Navigasi, Kartu Produk, Dialog Keranjang dan Panel Admin
 
-- **Eliminasi Tumpang Tindih URL Detail Proyek (`src/components/public/project-detail-content.tsx`)**:
+- **Eliminasi Tumpang Tindih URL Detail Proyek & Duplikasi Tombol Share (`src/components/public/project-detail-content.tsx`, `src/components/public/article-detail-content.tsx`)**:
   - Menghapus teks URL statis yang menimpa tombol kiri navigasi pada viewport tablet 640px hingga 860px.
+  - Mengeliminasi tombol *Share* duplikat dari top sticky navigation bar di halaman detail artikel dan proyek, menyisakan satu tombol Share resmi di header konten (*Share Article* pada WordPad dan *Bagikan* pada Action Bar proyek) yang dipercantik dengan styling retro `vt-btn vt-btn-chrome`.
   - Menerapkan **Adaptive Responsive Text Stepping** pada tombol navigasi (`Desktop OS` / `Semua Proyek` di tablet, `Desktop` / `Proyek` di ponsel).
   - Mengubah action bar bawah dari `sm:flex-row` menjadi `md:flex-row` agar tombol aksi dan chip teknologi tidak bertubrukan di layar 640px-768px.
 - **Optimasi Baris Alamat URL Retro pada Seluruh Katalog (`src/components/public/projects-catalog-content.tsx`, `src/components/public/products-catalog-content.tsx`, `src/components/public/articles-catalog-content.tsx`, `src/components/public/featured-projects-section.tsx`)**:

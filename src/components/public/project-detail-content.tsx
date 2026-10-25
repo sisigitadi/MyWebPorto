@@ -93,47 +93,32 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
     <div ref={containerRef} className="py-6 md:py-10 vt-crt-on">
       <div className="max-w-5xl mx-auto px-3 sm:px-6 space-y-6">
         {/* Navigation Bar: sticky agar selalu terlihat saat scroll fullscreen */}
-        <div className="sticky top-0 z-20 -mx-3 sm:mx-0 px-3 sm:px-0 py-2 bg-[var(--vt-paper)]/95 backdrop-blur border-b border-border/60 flex items-center justify-between gap-1.5 sm:gap-2">
-          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-            <Button
-              asChild
-              size="sm"
-              className="vt-btn vt-btn-chrome h-8 px-2 sm:px-3 font-mono text-xs font-bold gap-1 cursor-pointer shrink-0"
-            >
-              <Link href="/">
-                <Monitor className="h-3.5 w-3.5 text-primary" />
-                <span className="hidden md:inline">{language === "en" ? "Back to Desktop OS" : "Kembali ke Desktop OS"}</span>
-                <span className="hidden sm:inline md:hidden">{language === "en" ? "Desktop OS" : "Desktop OS"}</span>
-                <span className="sm:hidden">Desktop</span>
-              </Link>
-            </Button>
+        <div className="sticky top-0 z-20 -mx-3 sm:mx-0 px-3 sm:px-0 py-2 bg-[var(--vt-paper)]/95 backdrop-blur border-b border-border/60 flex items-center gap-1.5 sm:gap-2">
+          <Button
+            asChild
+            size="sm"
+            className="vt-btn vt-btn-chrome h-8 px-2 sm:px-3 font-mono text-xs font-bold gap-1 cursor-pointer shrink-0"
+          >
+            <Link href="/">
+              <Monitor className="h-3.5 w-3.5 text-primary" />
+              <span className="hidden md:inline">{language === "en" ? "Back to Desktop OS" : "Kembali ke Desktop OS"}</span>
+              <span className="hidden sm:inline md:hidden">{language === "en" ? "Desktop OS" : "Desktop OS"}</span>
+              <span className="sm:hidden">Desktop</span>
+            </Link>
+          </Button>
 
-            <Button
-              asChild
-              size="sm"
-              className="vt-btn vt-btn-chrome h-8 px-2 sm:px-3 font-mono text-xs font-bold gap-1 cursor-pointer border-primary/30 shrink-0"
-            >
-              <Link href="/proyek">
-                <ArrowLeft className="h-3.5 w-3.5" />
-                <span className="hidden md:inline">{t.detail_back_all}</span>
-                <span className="hidden sm:inline md:hidden">{language === "en" ? "All Projects" : "Semua Proyek"}</span>
-                <span className="sm:hidden">{language === "en" ? "Projects" : "Proyek"}</span>
-              </Link>
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <ShareButton
-              title={title}
-              url={`/proyek/${project.slug}`}
-              summary={summary}
-              thumbnailUrl={project.thumbnailUrl}
-              badge="Proyek"
-              buttonText={language === "en" ? "Share" : "Bagikan"}
-              size="sm"
-              className="h-8 px-2 sm:px-3 font-mono text-xs font-bold"
-            />
-          </div>
+          <Button
+            asChild
+            size="sm"
+            className="vt-btn vt-btn-chrome h-8 px-2 sm:px-3 font-mono text-xs font-bold gap-1 cursor-pointer border-primary/30 shrink-0"
+          >
+            <Link href="/proyek">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">{t.detail_back_all}</span>
+              <span className="hidden sm:inline md:hidden">{language === "en" ? "All Projects" : "Semua Proyek"}</span>
+              <span className="sm:hidden">{language === "en" ? "Projects" : "Proyek"}</span>
+            </Link>
+          </Button>
         </div>
 
         {/* Main Project OS Window */}

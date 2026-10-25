@@ -98,47 +98,33 @@ export function ArticleDetailContent({
   return (
     <div ref={containerRef} className="py-8 md:py-14 w-full vt-crt-on">
       <div className="max-w-4xl mx-auto px-3 sm:px-6 space-y-6">
-        {/* Navigation Bar - Single Row Compact */}
-        <div className="flex items-center justify-between gap-1.5 sm:gap-2">
-          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-            <Button
-              asChild
-              size="sm"
-              className="vt-btn vt-btn-chrome h-8 px-2 sm:px-3 font-mono text-xs font-bold gap-1 cursor-pointer shrink-0"
-            >
-              <Link href="/">
-                <Monitor className="h-3.5 w-3.5 text-primary" />
-                <span className="hidden md:inline">{t.article_detail_back_desktop}</span>
-                <span className="hidden sm:inline md:hidden">{isEn ? "Desktop OS" : "Desktop OS"}</span>
-                <span className="sm:hidden">Desktop</span>
-              </Link>
-            </Button>
+        {/* Navigation Bar: Single Row Compact */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <Button
+            asChild
+            size="sm"
+            className="vt-btn vt-btn-chrome h-8 px-2 sm:px-3 font-mono text-xs font-bold gap-1 cursor-pointer shrink-0"
+          >
+            <Link href="/">
+              <Monitor className="h-3.5 w-3.5 text-primary" />
+              <span className="hidden md:inline">{t.article_detail_back_desktop}</span>
+              <span className="hidden sm:inline md:hidden">{isEn ? "Desktop OS" : "Desktop OS"}</span>
+              <span className="sm:hidden">Desktop</span>
+            </Link>
+          </Button>
 
-            <Button
-              asChild
-              size="sm"
-              className="vt-btn vt-btn-chrome h-8 px-2 sm:px-3 font-mono text-xs font-bold gap-1 cursor-pointer shrink-0"
-            >
-              <Link href="/#artikel">
-                <ArrowLeft className="h-3.5 w-3.5" />
-                <span className="hidden md:inline">{t.article_detail_back_articles}</span>
-                <span className="hidden sm:inline md:hidden">{isEn ? "Articles" : "Artikel"}</span>
-                <span className="sm:hidden">{isEn ? "Articles" : "Artikel"}</span>
-              </Link>
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <ShareButton
-              title={title}
-              url={`/artikel/${article.slug}`}
-              summary={summary}
-              badge="Artikel"
-              buttonText={isEn ? "Share" : "Bagikan"}
-              size="sm"
-              className="h-8 px-2 sm:px-3 text-xs font-mono font-bold"
-            />
-          </div>
+          <Button
+            asChild
+            size="sm"
+            className="vt-btn vt-btn-chrome h-8 px-2 sm:px-3 font-mono text-xs font-bold gap-1 cursor-pointer shrink-0"
+          >
+            <Link href="/#artikel">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">{t.article_detail_back_articles}</span>
+              <span className="hidden sm:inline md:hidden">{isEn ? "Articles" : "Artikel"}</span>
+              <span className="sm:hidden">{isEn ? "Articles" : "Artikel"}</span>
+            </Link>
+          </Button>
         </div>
 
         {/* Main Article Document Window */}
@@ -195,7 +181,7 @@ export function ArticleDetailContent({
                   badge="Artikel"
                   buttonText={isEn ? "Share Article" : "Bagikan Artikel"}
                   size="default"
-                  className="h-8 px-3 text-xs font-mono font-bold"
+                  className="h-8 px-3 text-xs font-mono font-bold vt-btn vt-btn-chrome"
                 />
               </div>
 
