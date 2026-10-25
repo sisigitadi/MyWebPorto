@@ -244,6 +244,7 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
                     : "Dapatkan produk digital berkualitas, boilerplates Next.js, source code siap pakai, template SaaS, dan tools developer praktis untuk mempercepat pengembangan aplikasi."
                 }
                 badge={isEn ? "STORE" : "TOKO"}
+                thumbnailUrl="/toko/opengraph-image"
                 buttonText={isEn ? "Share" : "Bagikan"}
                 className="vt-btn vt-btn-chrome text-xs font-mono font-bold px-2 sm:px-3 py-1"
               />

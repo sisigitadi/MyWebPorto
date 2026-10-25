@@ -124,6 +124,7 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
                     : "Jelajahi kumpulan karya, studi kasus aplikasi web full-stack, integrasi model AI, dan solusi rekayasa perangkat lunak modern karya Sigit Adi Irianto."
                 }
                 badge={isEn ? "PROJECTS" : "PROYEK"}
+                thumbnailUrl="/proyek/opengraph-image"
                 buttonText={isEn ? "Share" : "Bagikan"}
                 className="vt-btn vt-btn-chrome text-xs font-mono font-bold px-2 sm:px-3 py-1"
               />

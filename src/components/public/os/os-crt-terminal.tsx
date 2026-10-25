@@ -1080,6 +1080,7 @@ export function OSCrtTerminal({
               : "Akses terminal retro interaktif berbasis web dengan asisten AI terintegrasi untuk eksplorasi sistem, teknologi, dan portofolio langsung via browser."
           }
           badge="TERMINAL"
+          thumbnailUrl={`/api/og?section=terminal${language === "en" ? "&lang=en" : ""}`}
           isEn={language === "en"}
         />
       )}

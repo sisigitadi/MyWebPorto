@@ -13,17 +13,17 @@ export const metadata: Metadata = {
   description: "Kumpulan artikel mendalam, panduan arsitektur software engineering, tips Next.js, integrasi sistem AI, dan wawasan teknologi.",
   alternates: localeAlternates(`${baseUrl}/artikel`),
   openGraph: {
-    title: "Artikel & Wawasan Teknologi — Sigit Adi Irianto",
+    title: "Artikel & Wawasan Teknologi: Sigit Adi Irianto",
     description: "Kumpulan artikel mendalam, panduan arsitektur software, Next.js, dan AI.",
     url: `${baseUrl}/artikel`,
     type: "website",
-    images: [`${baseUrl}/opengraph-image`],
+    images: [`${baseUrl}/artikel/opengraph-image`],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Artikel & Wawasan Teknologi — Sigit Adi Irianto",
+    title: "Artikel & Wawasan Teknologi: Sigit Adi Irianto",
     description: "Kumpulan tulisan teknis dan panduan pengembangan aplikasi modern.",
-    images: [`${baseUrl}/opengraph-image`],
+    images: [`${baseUrl}/artikel/opengraph-image`],
   },
 };
 

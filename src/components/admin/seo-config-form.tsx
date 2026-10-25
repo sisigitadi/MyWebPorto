@@ -29,6 +29,7 @@ import { saveSeoConfigAction } from "@/lib/actions";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { ImageUpload } from "@/components/admin/image-upload";
 import type { AdminSeoView } from "@/lib/seo-config";
+import { APP_IDS, AppId, getAppShareMeta, appHumanLabel } from "@/lib/os-apps-meta";
 
 interface SeoConfigFormProps {
   /** Config efektif yang sudah di-mask di server (token tidak pernah mentah). */
@@ -59,7 +60,7 @@ function lengthHint(value: number, ideal: number, max: number): string {
  * Tiga bagian: (1) token verifikasi Google Search Console & Bing Webmaster,
  * (2) key IndexNow + ping manual, (3) override Open Graph + pratinjau kartu
  * sosial. Semua disimpan ke tabel settings (key "seo") lewat server action
- * berauth — tidak ada redeploy.
+ * berauth - tidak ada redeploy.
  *
  * Konvensi sama dengan cloud-ai-config-form: field token kosong saat submit =
  * "pertahankan yang sudah ada" (token di-mask, admin tidak perlu mengetik
@@ -69,7 +70,7 @@ export function SeoConfigForm({ initial, profile, baseUrl, indexNowKeyFileUrl }:
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  // Field token: sengaja dimulai kosong — input hanya untuk nilai BARU.
+  // Field token: sengaja dimulai kosong - input hanya untuk nilai BARU.
   const [googleToken, setGoogleToken] = useState("");
   const [bingToken, setBingToken] = useState("");
   const [indexNowKey, setIndexNowKey] = useState("");
@@ -80,6 +81,7 @@ export function SeoConfigForm({ initial, profile, baseUrl, indexNowKeyFileUrl }:
   const [ogImageUrl, setOgImageUrl] = useState(initial.ogImageUrl);
   const [ogImageAlt, setOgImageAlt] = useState(initial.ogImageAlt);
   const [error, setError] = useState("");
+  const [previewSection, setPreviewSection] = useState<AppId>("profil");
 
   // Cache-buster pratinjau gambar OG dinamis (dinaikkan setelah simpan).
   const [ogPreviewKey, setOgPreviewKey] = useState(0);
@@ -96,10 +98,24 @@ export function SeoConfigForm({ initial, profile, baseUrl, indexNowKeyFileUrl }:
     JSON.stringify({ googleToken, bingToken, indexNowKey, ogTitle, ogDescription, ogImageUrl, ogImageAlt })
   );
 
-  const ogTitlePreview =
-    ogTitle || `${profile.name} — ${profile.headline || "Web Developer"}`;
-  const ogDescPreview = ogDescription || profile.bio || "";
-  const ogImagePreview = ogImageUrl || `${baseUrl}/opengraph-image?t=${ogPreviewKey}`;
+  const sectionMeta = getAppShareMeta(previewSection, "id", profile.name);
+  const isProfileSection = previewSection === "profil";
+
+  const ogTitlePreview = isProfileSection
+    ? (ogTitle || `${profile.name}: ${profile.headline || "Web Developer"}`)
+    : sectionMeta.title;
+  const ogDescPreview = isProfileSection
+    ? (ogDescription || profile.bio || "")
+    : sectionMeta.summary;
+  const ogImagePreview = isProfileSection
+    ? (ogImageUrl || `${baseUrl}/opengraph-image?t=${ogPreviewKey}`)
+    : previewSection === "proyek"
+    ? `${baseUrl}/proyek/opengraph-image?t=${ogPreviewKey}`
+    : previewSection === "artikel"
+    ? `${baseUrl}/artikel/opengraph-image?t=${ogPreviewKey}`
+    : previewSection === "toko"
+    ? `${baseUrl}/toko/opengraph-image?t=${ogPreviewKey}`
+    : `${baseUrl}/api/og?section=${previewSection}&t=${ogPreviewKey}`;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -362,7 +378,7 @@ export function SeoConfigForm({ initial, profile, baseUrl, indexNowKeyFileUrl }:
       </Card>
 
       {/* ==================================================
-          3. Open Graph — override & pratinjau sosial
+          3. Open Graph: override & pratinjau sosial
          ================================================== */}
       <Card>
         <CardHeader>
@@ -382,7 +398,7 @@ export function SeoConfigForm({ initial, profile, baseUrl, indexNowKeyFileUrl }:
                 id="og-title"
                 value={ogTitle}
                 onChange={(e) => setOgTitle(e.target.value)}
-                placeholder={`Default: ${profile.name} — ${profile.headline || "Web Developer"}`}
+                placeholder={`Default: ${profile.name}: ${profile.headline || "Web Developer"}`}
                 maxLength={OG_TITLE_MAX}
               />
               <div className="flex items-center justify-between gap-2">
@@ -400,7 +416,7 @@ export function SeoConfigForm({ initial, profile, baseUrl, indexNowKeyFileUrl }:
                 id="og-alt"
                 value={ogImageAlt}
                 onChange={(e) => setOgImageAlt(e.target.value)}
-                placeholder={`Default: ${profile.name} — Portofolio`}
+                placeholder={`Default: ${profile.name}: Portofolio`}
                 maxLength={200}
               />
               <p className="text-[11px] text-muted-foreground">
@@ -437,38 +453,69 @@ export function SeoConfigForm({ initial, profile, baseUrl, indexNowKeyFileUrl }:
               label="Unggah Gambar OG (1200×630)"
             />
             <p className="text-[11px] text-muted-foreground">
-              Kosongkan untuk memakai gambar dinamis yang dibangkitkan dari profil —
+              Kosongkan untuk memakai gambar dinamis yang dibangkitkan dari profil:
               judul &amp; deskripsinya selalu mengikuti field di atas.
             </p>
           </div>
 
-          <div className="space-y-2 pt-2">
-            <p className="text-xs font-semibold">Gambar OG aktual (dibangkitkan dinamis)</p>
-            <div className="rounded-md overflow-hidden border border-border bg-muted/30 max-w-md">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={ogImagePreview} alt="Pratinjau Open Graph" className="w-full h-auto block" />
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              Render {ogImageUrl ? "gambar unggahan" : "/opengraph-image"} · diperbarui setelah
-              Simpan (browser mungkin meng-cache sebentar).
-            </p>
-          </div>
-
-          <div className="space-y-2 pt-2">
-            <p className="text-xs font-semibold">Pratinjau kartu sosial (Facebook / X / LinkedIn)</p>
-            <div className="rounded-md overflow-hidden border border-border max-w-md bg-background">
-              <div className="aspect-[1200/630] bg-muted/30 overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={ogImagePreview} alt="" className="w-full h-full object-cover block" />
-              </div>
-              <div className="p-3 space-y-1">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground truncate">
-                  {baseUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+          <div className="space-y-3 pt-3 border-t border-border">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold">Pilih Bagian / Halaman untuk Pratinjau</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Lihat tampilan visual Open Graph yang unik untuk setiap bagian situs.
                 </p>
-                <p className="text-sm font-semibold leading-snug line-clamp-2">{ogTitlePreview}</p>
-                {ogDescPreview && (
-                  <p className="text-xs text-muted-foreground line-clamp-2">{ogDescPreview}</p>
-                )}
+              </div>
+              <Badge variant="outline" className="font-mono text-[10px] uppercase">
+                {previewSection}
+              </Badge>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5">
+              {APP_IDS.map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setPreviewSection(id)}
+                  className={`px-2.5 py-1 rounded-sm text-xs font-mono font-medium transition-colors cursor-pointer border ${
+                    previewSection === id
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-muted/50 text-muted-foreground hover:bg-muted border-border"
+                  }`}
+                >
+                  {appHumanLabel(id, "id")}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs font-semibold">Gambar OG aktual ({previewSection})</p>
+              <div className="rounded-md overflow-hidden border border-border bg-muted/30 max-w-md">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={ogImagePreview} alt={`Pratinjau Open Graph ${previewSection}`} className="w-full h-auto block" />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Render {isProfileSection ? (ogImageUrl ? "gambar unggahan" : "/opengraph-image") : `/api/og?section=${previewSection}`} · diperbarui secara dinamis.
+              </p>
+            </div>
+
+            <div className="space-y-1 pt-1">
+              <p className="text-xs font-semibold">Pratinjau kartu sosial (Facebook / X / LinkedIn)</p>
+              <div className="rounded-md overflow-hidden border border-border max-w-md bg-background">
+                <div className="aspect-[1200/630] bg-muted/30 overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={ogImagePreview} alt="" className="w-full h-full object-cover block" />
+                </div>
+                <div className="p-3 space-y-1">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground truncate">
+                    {baseUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                    {sectionMeta.url.startsWith("/") ? sectionMeta.url : `/${sectionMeta.url}`}
+                  </p>
+                  <p className="text-sm font-semibold leading-snug line-clamp-2">{ogTitlePreview}</p>
+                  {ogDescPreview && (
+                    <p className="text-xs text-muted-foreground line-clamp-2">{ogDescPreview}</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -484,7 +531,7 @@ export function SeoConfigForm({ initial, profile, baseUrl, indexNowKeyFileUrl }:
         </Button>
         <span className="text-[11px] text-muted-foreground">
           Token verifikasi, key IndexNow, dan meta Open Graph langsung aktif untuk
-          seluruh halaman publik — tanpa redeploy.
+          seluruh halaman publik: tanpa redeploy.
         </span>
       </div>
     </form>

@@ -98,6 +98,7 @@ export interface AppShareMeta {
   url: string;
   summary: string;
   badge: string;
+  ogImageUrl: string;
 }
 
 /**
@@ -120,6 +121,7 @@ export function getAppShareMeta(
           ? "Professional portfolio of Sigit Adi Irianto, showcasing modern web applications, full-stack systems, and AI engineering."
           : "Portofolio profesional Sigit Adi Irianto, menampilkan karya rekayasa web modern, sistem full-stack, dan integrasi kecerdasan buatan.",
         badge: isEn ? "PROFILE" : "PROFIL",
+        ogImageUrl: "/opengraph-image",
       };
     case "layanan":
       return {
@@ -131,6 +133,7 @@ export function getAppShareMeta(
           ? "Professional software engineering services including modern web apps, full-stack Next.js, AI integrations, intelligent automation, and high-performance cloud architecture."
           : "Layanan rekayasa software profesional meliputi pembuatan aplikasi web modern, full-stack Next.js, integrasi sistem AI, otomasi cerdas, dan arsitektur cloud berkinerja tinggi.",
         badge: isEn ? "SERVICES" : "LAYANAN",
+        ogImageUrl: `/api/og?section=layanan${isEn ? "&lang=en" : ""}`,
       };
     case "proyek":
       return {
@@ -142,6 +145,7 @@ export function getAppShareMeta(
           ? "Explore full-stack web applications, AI system integrations, and modern software engineering case studies developed by Sigit Adi Irianto."
           : "Jelajahi kumpulan karya, studi kasus aplikasi web full-stack, integrasi model AI, dan solusi rekayasa perangkat lunak modern karya Sigit Adi Irianto.",
         badge: isEn ? "PROJECTS" : "PROYEK",
+        ogImageUrl: "/proyek/opengraph-image",
       };
     case "toko":
       return {
@@ -153,6 +157,7 @@ export function getAppShareMeta(
           ? "Browse high-quality digital products, Next.js boilerplates, ready-to-use source code, SaaS templates, and developer tools curated by Sigit Adi Irianto."
           : "Dapatkan produk digital berkualitas, boilerplates Next.js, source code siap pakai, template SaaS, dan tools developer praktis untuk mempercepat pengembangan aplikasi.",
         badge: isEn ? "STORE" : "TOKO",
+        ogImageUrl: "/toko/opengraph-image",
       };
     case "artikel":
       return {
@@ -164,6 +169,7 @@ export function getAppShareMeta(
           ? "In-depth technical articles, software architecture guides, Next.js tips, AI systems integration, and modern engineering insights by Sigit Adi Irianto."
           : "Kumpulan artikel mendalam, panduan arsitektur software engineering, tips Next.js, integrasi sistem AI, dan wawasan rekayasa teknologi modern.",
         badge: isEn ? "ARTICLES" : "ARTIKEL",
+        ogImageUrl: "/artikel/opengraph-image",
       };
     case "terminal":
       return {
@@ -175,6 +181,7 @@ export function getAppShareMeta(
           ? "Access an interactive retro CRT web terminal with integrated AI assistant to explore portfolio, tech stack, and systems directly in your browser."
           : "Akses terminal retro interaktif berbasis web dengan asisten AI terintegrasi untuk eksplorasi sistem, teknologi, dan portofolio langsung via browser.",
         badge: "TERMINAL",
+        ogImageUrl: `/api/og?section=terminal${isEn ? "&lang=en" : ""}`,
       };
     case "testimoni":
       return {
@@ -186,6 +193,7 @@ export function getAppShareMeta(
           ? "Authentic reviews and testimonials from clients and collaborators regarding satisfaction with web development, code quality, and professional communication."
           : "Ulasan autentik dan umpan balik dari klien serta kolaborator mengenai kepuasan kerja sama pengembangan sistem web, kualitas kode, dan komunikasi profesional.",
         badge: isEn ? "REVIEWS" : "TESTIMONI",
+        ogImageUrl: `/api/og?section=testimoni${isEn ? "&lang=en" : ""}`,
       };
     case "kontak":
       return {
@@ -197,6 +205,7 @@ export function getAppShareMeta(
           ? "Get in touch to discuss web applications, system architecture, AI integrations, or professional collaboration opportunities. Send a message directly via email or contact form."
           : "Siap mendiskusikan kebutuhan proyek aplikasi web, arsitektur sistem, integrasi AI, atau peluang kolaborasi profesional. Kirim pesan langsung melalui formulir kontak atau email.",
         badge: isEn ? "CONTACT" : "KONTAK",
+        ogImageUrl: `/api/og?section=kontak${isEn ? "&lang=en" : ""}`,
       };
     default:
       return {
@@ -204,6 +213,7 @@ export function getAppShareMeta(
         url: `/#${String(id)}`,
         summary: "",
         badge: String(id).toUpperCase(),
+        ogImageUrl: `/api/og?section=${String(id)}`,
       };
   }
 }

@@ -9,21 +9,21 @@ import { ProductsCatalogContent } from "@/components/public/products-catalog-con
 const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
 
 export const metadata: Metadata = {
-  title: `Katalog Produk & Source Code — ${STORE_NAME}`,
+  title: `Katalog Produk & Source Code: ${STORE_NAME}`,
   description: "Koleksi produk digital, source code aplikasi production-ready, template retro OS, dan lisensi software berkualitas karya Sigit Adi Irianto.",
   alternates: localeAlternates(`${baseUrl}/toko`),
   openGraph: {
-    title: `Katalog Produk Digital & Source Code — ${STORE_NAME}`,
+    title: `Katalog Produk Digital & Source Code: ${STORE_NAME}`,
     description: "Koleksi produk digital, source code aplikasi production-ready, template retro OS, dan lisensi software.",
     url: `${baseUrl}/toko`,
     type: "website",
-    images: [`${baseUrl}/opengraph-image`],
+    images: [`${baseUrl}/toko/opengraph-image`],
   },
   twitter: {
     card: "summary_large_image",
-    title: `Katalog Produk Digital & Source Code — ${STORE_NAME}`,
+    title: `Katalog Produk Digital & Source Code: ${STORE_NAME}`,
     description: "Koleksi produk digital, source code aplikasi production-ready, dan lisensi software.",
-    images: [`${baseUrl}/opengraph-image`],
+    images: [`${baseUrl}/toko/opengraph-image`],
   },
 };
 

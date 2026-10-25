@@ -1268,6 +1268,7 @@ export function OSDesktopManager({
           url={getAppShareMeta(activeApp, language, profile.name).url}
           summary={getAppShareMeta(activeApp, language, profile.name).summary}
           badge={getAppShareMeta(activeApp, language, profile.name).badge}
+          thumbnailUrl={getAppShareMeta(activeApp, language, profile.name).ogImageUrl}
           isEn={language === "en"}
         />
       )}

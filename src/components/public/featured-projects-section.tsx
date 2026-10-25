@@ -77,6 +77,7 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
                   : "Jelajahi kumpulan karya, studi kasus aplikasi web full-stack, integrasi model AI, dan solusi rekayasa perangkat lunak modern karya Sigit Adi Irianto."
               }
               badge={language === "en" ? "PROJECTS" : "PROYEK"}
+              thumbnailUrl="/proyek/opengraph-image"
               buttonText={language === "en" ? "Share Projects" : "Bagikan Proyek"}
               className="vt-btn vt-btn-chrome text-xs font-mono font-bold"
             />

@@ -134,7 +134,10 @@ export async function resolveOgImageSrc(
 
   if (/^https?:\/\//i.test(url)) return resolveRemoteUrl(url);
 
-  if (url.startsWith("/uploads/")) return resolveLegacyUpload(url);
+  if (url.startsWith("/uploads/") || url.startsWith("/public/") || (url.startsWith("/") && !url.startsWith("/api/"))) {
+    const relPath = url.replace(/^\/public\//, "/");
+    return resolveLegacyUpload(relPath);
+  }
 
   console.warn("resolveOgImage: bentuk referensi tidak dikenal:", url);
   return null;

@@ -224,6 +224,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                   : "Dapatkan produk digital berkualitas, boilerplates Next.js, source code siap pakai, template SaaS, dan tools developer praktis untuk mempercepat pengembangan aplikasi."
               }
               badge={language === "en" ? "STORE" : "TOKO"}
+              thumbnailUrl="/toko/opengraph-image"
               buttonText={language === "en" ? "Share Store" : "Bagikan Toko"}
               className="vt-btn vt-btn-chrome px-3 py-2 text-xs font-mono font-bold shadow-sm"
             />

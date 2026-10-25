@@ -118,6 +118,7 @@ export function ServicesSection({ services: propServices, profile }: ServicesSec
                   : "Layanan rekayasa software profesional meliputi pembuatan aplikasi web modern, full-stack Next.js, integrasi sistem AI, otomasi cerdas, dan arsitektur cloud berkinerja tinggi."
               }
               badge={language === "en" ? "SERVICES" : "LAYANAN"}
+              thumbnailUrl={`/api/og?section=layanan${language === "en" ? "&lang=en" : ""}`}
               buttonText={language === "en" ? "Share Services" : "Bagikan Layanan"}
               className="vt-btn vt-btn-chrome text-xs font-mono font-bold"
             />
