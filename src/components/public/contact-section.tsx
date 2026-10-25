@@ -188,6 +188,7 @@ export function ContactSection({ profile }: ContactSectionProps) {
                   : "Siap mendiskusikan kebutuhan proyek aplikasi web, arsitektur sistem, integrasi AI, atau peluang kolaborasi profesional. Kirim pesan langsung melalui formulir kontak atau email."
               }
               badge={language === "en" ? "CONTACT" : "KONTAK"}
+              thumbnailUrl={`/api/og?section=kontak${language === "en" ? "&lang=en" : ""}`}
               buttonText={language === "en" ? "Share Contact" : "Bagikan Kontak"}
               className="vt-btn vt-btn-chrome text-xs font-mono font-bold"
             />

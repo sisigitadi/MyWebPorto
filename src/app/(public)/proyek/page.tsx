@@ -11,17 +11,17 @@ export const metadata: Metadata = {
   description: "Jelajahi seluruh karya, studi kasus aplikasi web full-stack, sistem berbasis AI, dan solusi digital yang dikembangkan oleh Sigit Adi Irianto.",
   alternates: localeAlternates(`${baseUrl}/proyek`),
   openGraph: {
-    title: "Daftar Proyek & Portofolio Karya Digital — Sigit Adi Irianto",
+    title: "Daftar Proyek & Portofolio Karya Digital: Sigit Adi Irianto",
     description: "Jelajahi portofolio lengkap pengembangan web dan solusi teknologi modern.",
     url: `${baseUrl}/proyek`,
     type: "website",
-    images: [`${baseUrl}/opengraph-image`],
+    images: [`${baseUrl}/proyek/opengraph-image`],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Daftar Proyek & Portofolio — Sigit Adi Irianto",
+    title: "Daftar Proyek & Portofolio: Sigit Adi Irianto",
     description: "Katalog portofolio aplikasi web modern dan integrasi sistem AI.",
-    images: [`${baseUrl}/opengraph-image`],
+    images: [`${baseUrl}/proyek/opengraph-image`],
   },
 };
 

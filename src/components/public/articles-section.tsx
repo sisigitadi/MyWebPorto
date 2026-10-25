@@ -126,6 +126,7 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
                   : "Kumpulan artikel mendalam, panduan arsitektur software engineering, tips Next.js, integrasi sistem AI, dan wawasan rekayasa teknologi modern."
               }
               badge={language === "en" ? "ARTICLES" : "ARTIKEL"}
+              thumbnailUrl="/artikel/opengraph-image"
               buttonText={language === "en" ? "Share Articles" : "Bagikan Artikel"}
               className="vt-btn vt-btn-chrome text-xs font-mono font-bold"
             />

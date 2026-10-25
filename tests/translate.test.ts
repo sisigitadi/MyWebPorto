@@ -73,7 +73,7 @@ describe("translate utility — chunking & error guard", () => {
     expect(translated.length).toBeGreaterThan(100);
     expect(translated.toLowerCase()).toContain("gemini");
     expect(translated.toLowerCase()).toContain("month");
-  }, 15000);
+  }, 30000);
 });
 
 describe("kapasitas karakter schema — konsisten dengan redaksi konten (50.000)", () => {

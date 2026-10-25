@@ -77,6 +77,7 @@ export function TestimonialsSection({ testimonials: propTestimonials }: Testimon
                   : "Ulasan autentik dan umpan balik dari klien serta kolaborator mengenai kepuasan kerja sama pengembangan sistem web, kualitas kode, dan komunikasi profesional."
               }
               badge={language === "en" ? "REVIEWS" : "TESTIMONI"}
+              thumbnailUrl={`/api/og?section=testimoni${language === "en" ? "&lang=en" : ""}`}
               buttonText={language === "en" ? "Share Reviews" : "Bagikan Testimoni"}
               className="vt-btn vt-btn-chrome text-xs font-mono font-bold"
             />

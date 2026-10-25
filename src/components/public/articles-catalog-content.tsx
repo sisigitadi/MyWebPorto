@@ -86,6 +86,7 @@ export function ArticlesCatalogContent({ articles }: ArticlesCatalogContentProps
                     : "Kumpulan artikel mendalam, panduan arsitektur software engineering, tips Next.js, integrasi sistem AI, dan wawasan rekayasa teknologi modern."
                 }
                 badge={isEn ? "ARTICLES" : "ARTIKEL"}
+                thumbnailUrl="/artikel/opengraph-image"
                 buttonText={isEn ? "Share" : "Bagikan"}
                 className="vt-btn vt-btn-chrome text-xs font-mono font-bold px-2 sm:px-3 py-1"
               />
