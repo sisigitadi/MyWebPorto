@@ -9,6 +9,18 @@ vi.mock("@/lib/actions", () => ({
     bio: "Saya membantu personal, UMKM dan institusi membangun kebutuhan digitalisasi yang aman, reliable dan mudah digunakan.",
     avatarUrl: "/uploads/profile-avatar.jpg",
   })),
+  getTestimonials: vi.fn(async () => [
+    {
+      id: "test-1",
+      clientName: "Hendra Pratama",
+      clientRole: "CEO // Tech Enterprise",
+      avatarUrl: "https://example.com/client.jpg",
+      content: "Kualitas pengerjaan luar biasa rapi dan solutif.",
+      rating: 5,
+      published: true,
+      order: 1,
+    },
+  ]),
 }));
 
 vi.mock("@/lib/seo-config", () => ({
@@ -55,7 +67,7 @@ describe("getAppShareMeta: kelengkapan ogImageUrl untuk tiap bagian", () => {
   });
 });
 
-describe("renderSectionOgElement: visual unik untuk setiap section", () => {
+describe("renderSectionOgElement: visual unik dan avatar terpadu untuk setiap section", () => {
   it("merender elemen JSX valid untuk profil", async () => {
     const el = await renderSectionOgElement({ section: "profil" });
     expect(el).toBeDefined();
@@ -68,6 +80,33 @@ describe("renderSectionOgElement: visual unik untuk setiap section", () => {
       expect(el).toBeDefined();
       expect(el.type).toBe("div");
     }
+  });
+
+  it("menyertakan avatar di header author chip pada seluruh bagian", async () => {
+    for (const section of APP_IDS) {
+      const el = await renderSectionOgElement({ section, lang: "id" });
+      const serialized = JSON.stringify(el);
+      // Top bar author chip menyertakan avatarSrc yang di-resolve
+      expect(serialized).toContain("data:image/jpeg;base64,mocked");
+      expect(serialized).toContain("sigitadi.id");
+    }
+  });
+
+  it("menyertakan avatar kontekstual pada kontak, artikel, dan testimoni", async () => {
+    const kontakEl = await renderSectionOgElement({ section: "kontak" });
+    const kontakJson = JSON.stringify(kontakEl);
+    expect(kontakJson).toContain("CONNECT // DIRECT");
+    expect(kontakJson).toContain("Available for Hire");
+
+    const artikelEl = await renderSectionOgElement({ section: "artikel" });
+    const artikelJson = JSON.stringify(artikelEl);
+    expect(artikelJson).toContain("DOC // INSIGHTS");
+    expect(artikelJson).toContain("Author // Software Architect");
+
+    const testimoniEl = await renderSectionOgElement({ section: "testimoni" });
+    const testimoniJson = JSON.stringify(testimoniEl);
+    expect(testimoniJson).toContain("Hendra Pratama");
+    expect(testimoniJson).toContain("VERIFIED");
   });
 
   it("menerima override custom title dan subtitle tanpa error", async () => {
