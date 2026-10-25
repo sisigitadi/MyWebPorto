@@ -1,5 +1,5 @@
 import React from "react";
-import { getProfile } from "@/lib/actions";
+import { getProfile, getTestimonials } from "@/lib/actions";
 import { resolveOgMeta } from "@/lib/seo-config";
 import { resolveOgImageSrc } from "@/lib/og-image";
 import { AppId, getAppShareMeta } from "@/lib/os-apps-meta";
@@ -36,11 +36,37 @@ export async function renderSectionOgElement(options: SectionOgOptions) {
   const displaySubtitle = options.subtitle || (sectionKey === "profil" ? ogConfig?.description : meta.summary) || profile.headline || "";
   const displayBadge = options.badge || `SIGITOS // ${meta.badge || sectionKey.toUpperCase()}`;
 
-  // Avatar resolution untuk profil/home
+  // Avatar resolution untuk profil dan author chip
   const overrideImage = ogConfig && ogConfig.imageUrl !== "/opengraph-image" ? ogConfig.imageUrl : undefined;
   const resolvedAvatar = await resolveOgImageSrc(overrideImage || profile.avatarUrl || "/uploads/profile-avatar.jpg");
   const avatarSrc = resolvedAvatar?.src;
   const initial = (profile.name.charAt(0) || "S").toUpperCase();
+
+  // Testimonial client avatar resolution (jika pada bagian testimoni)
+  let clientAvatarSrc: string | null = null;
+  let clientInitial = "K";
+  let clientName = "Hendra Pratama";
+  let clientRole = "CEO // Tech Enterprise";
+  let testimonialQuote = "Kualitas pengerjaan luar biasa rapi, arsitektur kokoh, dan komunikasi sangat cepat serta solutif.";
+
+  if (sectionKey === "testimoni") {
+    try {
+      const testimonials = await getTestimonials();
+      const featured = testimonials.find((t) => t.published && t.avatarUrl) || testimonials[0];
+      if (featured) {
+        clientName = featured.clientName;
+        clientRole = featured.clientRole;
+        testimonialQuote = featured.content.length > 120 ? featured.content.slice(0, 117) + "..." : featured.content;
+        clientInitial = (featured.clientName.charAt(0) || "K").toUpperCase();
+        if (featured.avatarUrl) {
+          const resolvedClient = await resolveOgImageSrc(featured.avatarUrl);
+          clientAvatarSrc = resolvedClient?.src || null;
+        }
+      }
+    } catch (e) {
+      console.warn("Gagal memuat avatar testimoni untuk OG:", e);
+    }
+  }
 
   // Rendering visual sisi kanan berdasarkan bagian spesifik
   const renderSectionVisual = () => {
@@ -290,7 +316,7 @@ export async function renderSectionOgElement(options: SectionOgOptions) {
               padding: "24px",
               display: "flex",
               flexDirection: "column",
-              gap: "16px",
+              gap: "14px",
               boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
             }}
           >
@@ -300,7 +326,7 @@ export async function renderSectionOgElement(options: SectionOgOptions) {
               </div>
               <span style={{ color: "#94a3b8", fontSize: "12px", fontFamily: "monospace" }}>ENGINEERING LOG</span>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <div style={{ display: "flex", fontSize: "18px", fontWeight: 700, color: "#f1f5f9", lineHeight: 1.3 }}>
                 Panduan Arsitektur &amp; Praktik Terbaik Software
               </div>
@@ -308,6 +334,60 @@ export async function renderSectionOgElement(options: SectionOgOptions) {
                 Ulasan teknis seputar Next.js, keamanan sistem, integrasi AI modern, dan rekayasa cloud.
               </div>
             </div>
+
+            {/* Author Byline Row with Avatar */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                padding: "8px 12px",
+                background: "rgba(30, 41, 59, 0.75)",
+                borderRadius: "10px",
+                border: "1px solid rgba(56, 189, 248, 0.25)",
+              }}
+            >
+              {avatarSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={avatarSrc}
+                  alt=""
+                  width={42}
+                  height={42}
+                  style={{
+                    borderRadius: "50%",
+                    border: "2px solid #38bdf8",
+                    objectFit: "cover",
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: "42px",
+                    height: "42px",
+                    borderRadius: "50%",
+                    background: "#0369a1",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "18px",
+                    fontWeight: 700,
+                    color: "#ffffff",
+                  }}
+                >
+                  {initial}
+                </div>
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                <div style={{ display: "flex", fontSize: "13px", fontWeight: 700, color: "#f8fafc" }}>
+                  {profile.name}
+                </div>
+                <div style={{ display: "flex", fontSize: "11px", color: "#7dd3fc", fontFamily: "monospace" }}>
+                  Author // Software Architect
+                </div>
+              </div>
+            </div>
+
             <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
               {["Architecture", "Next.js", "Security", "AI Systems"].map((tag) => (
                 <div key={tag} style={{ display: "flex", background: "rgba(255, 255, 255, 0.08)", borderRadius: "4px", padding: "3px 8px", fontSize: "11px", color: "#cbd5e1", fontFamily: "monospace" }}>
@@ -374,11 +454,55 @@ export async function renderSectionOgElement(options: SectionOgOptions) {
               </div>
             </div>
             <div style={{ display: "flex", fontStyle: "italic", fontSize: "14px", color: "#e2e8f0", lineHeight: 1.5 }}>
-              &quot;Kualitas pengerjaan luar biasa rapi, arsitektur kokoh, dan komunikasi sangat cepat serta solutif.&quot;
+              &quot;{testimonialQuote}&quot;
             </div>
+
+            {/* Client Avatar & Verified Row */}
             <div style={{ borderTop: "1px solid rgba(255, 255, 255, 0.1)", paddingTop: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ display: "flex", fontSize: "12px", color: "#94a3b8", fontFamily: "monospace" }}>100% Client Satisfaction</div>
-              <div style={{ display: "flex", fontSize: "11px", color: "#4ade80", fontFamily: "monospace", fontWeight: 700 }}>VERIFIED REVIEWS</div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                {clientAvatarSrc ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={clientAvatarSrc}
+                    alt=""
+                    width={42}
+                    height={42}
+                    style={{
+                      borderRadius: "50%",
+                      border: "2px solid #facc15",
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: "42px",
+                      height: "42px",
+                      borderRadius: "50%",
+                      background: "#854d0e",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "18px",
+                      fontWeight: 800,
+                      color: "#fef08a",
+                    }}
+                  >
+                    {clientInitial}
+                  </div>
+                )}
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <div style={{ display: "flex", fontSize: "13px", fontWeight: 700, color: "#f8fafc" }}>
+                    {clientName}
+                  </div>
+                  <div style={{ display: "flex", fontSize: "11px", color: "#94a3b8", fontFamily: "monospace" }}>
+                    {clientRole}
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", fontSize: "10px", color: "#4ade80", fontFamily: "monospace", fontWeight: 700, background: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.4)", borderRadius: "4px", padding: "2px 6px" }}>
+                VERIFIED
+              </div>
             </div>
           </div>
         );
@@ -394,7 +518,7 @@ export async function renderSectionOgElement(options: SectionOgOptions) {
               padding: "24px",
               display: "flex",
               flexDirection: "column",
-              gap: "16px",
+              gap: "14px",
               boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
             }}
           >
@@ -402,18 +526,78 @@ export async function renderSectionOgElement(options: SectionOgOptions) {
               <div style={{ display: "flex", background: "rgba(99, 102, 241, 0.2)", border: "1px solid rgba(99, 102, 241, 0.4)", borderRadius: "6px", padding: "4px 10px", color: "#a5b4fc", fontSize: "12px", fontFamily: "monospace", fontWeight: 700 }}>
                 CONNECT // DIRECT
               </div>
-              <span style={{ color: "#34d399", fontSize: "12px", fontFamily: "monospace" }}>&lt; 24h Response</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10b981", display: "flex" }} />
+                <span style={{ color: "#34d399", fontSize: "12px", fontFamily: "monospace" }}>&lt; 24h Response</span>
+              </div>
             </div>
+
+            {/* Profil Avatar Card di Kontak */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "14px",
+                background: "rgba(15, 23, 42, 0.65)",
+                padding: "12px 14px",
+                borderRadius: "12px",
+                border: "1px solid rgba(99, 102, 241, 0.3)",
+              }}
+            >
+              {avatarSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={avatarSrc}
+                  alt=""
+                  width={68}
+                  height={68}
+                  style={{
+                    borderRadius: "14px",
+                    border: "2px solid rgba(99, 102, 241, 0.7)",
+                    objectFit: "cover",
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: "68px",
+                    height: "68px",
+                    borderRadius: "14px",
+                    background: "#312e81",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "28px",
+                    fontWeight: 800,
+                    color: "#ffffff",
+                  }}
+                >
+                  {initial}
+                </div>
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                <div style={{ display: "flex", fontSize: "16px", fontWeight: 800, color: "#f8fafc" }}>
+                  {profile.name}
+                </div>
+                <div style={{ display: "flex", fontSize: "12px", color: "#a5b4fc", fontFamily: "monospace", fontWeight: 600 }}>
+                  Available for Hire // Remote
+                </div>
+                <div style={{ display: "flex", fontSize: "11px", color: "#94a3b8" }}>
+                  {profile.location || "Jakarta, Indonesia"}
+                </div>
+              </div>
+            </div>
+
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <div style={{ display: "flex", fontSize: "18px", fontWeight: 700, color: "#f8fafc" }}>Diskusi Proyek &amp; Kolaborasi</div>
-              <div style={{ display: "flex", fontSize: "13px", color: "#94a3b8" }}>Kirim pesan atau jadwalkan konsultasi langsung.</div>
+              <div style={{ display: "flex", fontSize: "14px", fontWeight: 700, color: "#f8fafc" }}>Saluran Komunikasi Cepat</div>
+              <div style={{ display: "flex", fontSize: "12px", color: "#94a3b8" }}>Konsultasi arsitektur sistem, AI, dan kolaborasi proyek.</div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontFamily: "monospace", fontSize: "12px" }}>
-              <div style={{ display: "flex", background: "rgba(255, 255, 255, 0.05)", padding: "8px 12px", borderRadius: "8px", color: "#cbd5e1" }}>
-                • Email: Direct Mailer Form
+              <div style={{ display: "flex", background: "rgba(255, 255, 255, 0.05)", padding: "7px 12px", borderRadius: "8px", color: "#cbd5e1" }}>
+                • Email: {profile.email || "x@sigitadi.id"}
               </div>
-              <div style={{ display: "flex", background: "rgba(255, 255, 255, 0.05)", padding: "8px 12px", borderRadius: "8px", color: "#cbd5e1" }}>
-                • WhatsApp &amp; Telegram: Fast Chat
+              <div style={{ display: "flex", background: "rgba(255, 255, 255, 0.05)", padding: "7px 12px", borderRadius: "8px", color: "#cbd5e1" }}>
+                • WhatsApp &amp; Telegram: Direct Fast Chat
               </div>
             </div>
           </div>
@@ -451,7 +635,7 @@ export async function renderSectionOgElement(options: SectionOgOptions) {
         }}
       />
 
-      {/* Top Bar: Section Badge & Domain */}
+      {/* Top Bar: Section Badge on Left, Author Chip on Right */}
       <div
         style={{
           display: "flex",
@@ -476,17 +660,58 @@ export async function renderSectionOgElement(options: SectionOgOptions) {
         >
           {displayBadge}
         </div>
+
+        {/* Author Chip: Mini-avatar & Creator Domain */}
         <div
           style={{
-            fontSize: "22px",
-            fontFamily: "monospace",
-            color: "#64748b",
-            fontWeight: 700,
-            letterSpacing: "1px",
             display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            background: "rgba(15, 23, 42, 0.8)",
+            border: "1px solid rgba(59, 130, 246, 0.35)",
+            borderRadius: "40px",
+            padding: "4px 14px 4px 6px",
           }}
         >
-          sigitadi.id
+          {avatarSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarSrc}
+              alt=""
+              width={38}
+              height={38}
+              style={{
+                borderRadius: "50%",
+                border: "2px solid #3b82f6",
+                objectFit: "cover",
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #1e3a8a, #3b82f6)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "16px",
+                fontWeight: 800,
+                color: "#ffffff",
+              }}
+            >
+              {initial}
+            </div>
+          )}
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <span style={{ fontSize: "14px", fontWeight: 700, color: "#f8fafc", lineHeight: 1.2 }}>
+              {profile.name}
+            </span>
+            <span style={{ fontSize: "11px", fontFamily: "monospace", color: "#60a5fa", fontWeight: 600 }}>
+              sigitadi.id
+            </span>
+          </div>
         </div>
       </div>
 
