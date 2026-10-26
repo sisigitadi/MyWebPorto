@@ -149,7 +149,7 @@ export function shareImage(
   alt: string
 ): ShareImage {
   const url = absoluteImageUrl(src, baseUrl);
-  const isGeneratedCard = url.endsWith("/opengraph-image");
+  const isGeneratedCard = url.includes("/opengraph-image") || url.includes("/api/og");
   return isGeneratedCard
     ? {
         url,

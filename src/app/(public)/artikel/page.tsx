@@ -3,10 +3,15 @@ import { notFound } from "next/navigation";
 import { getArticles } from "@/lib/actions";
 import { resolveFeatures } from "@/lib/features-config";
 import { safeJsonLd } from "@/lib/json-ld";
-import { localeAlternates } from "@/lib/seo";
+import { localeAlternates, shareImage } from "@/lib/seo";
 import { ArticlesCatalogContent } from "@/components/public/articles-catalog-content";
 
 const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+const shareCard = shareImage(
+  `${baseUrl}/artikel/opengraph-image`,
+  baseUrl,
+  "Artikel & Wawasan Teknologi: Sigit Adi Irianto"
+);
 
 export const metadata: Metadata = {
   title: "Artikel & Wawasan Teknologi",
@@ -17,13 +22,13 @@ export const metadata: Metadata = {
     description: "Kumpulan artikel mendalam, panduan arsitektur software, Next.js, dan AI.",
     url: `${baseUrl}/artikel`,
     type: "website",
-    images: [`${baseUrl}/artikel/opengraph-image`],
+    images: [shareCard],
   },
   twitter: {
     card: "summary_large_image",
     title: "Artikel & Wawasan Teknologi: Sigit Adi Irianto",
     description: "Kumpulan tulisan teknis dan panduan pengembangan aplikasi modern.",
-    images: [`${baseUrl}/artikel/opengraph-image`],
+    images: [shareCard.url],
   },
 };
 

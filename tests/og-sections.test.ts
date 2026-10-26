@@ -118,4 +118,17 @@ describe("renderSectionOgElement: visual unik dan avatar terpadu untuk setiap se
     });
     expect(el).toBeDefined();
   });
+
+  it("merender elemen visual khusus untuk section order / invoice", async () => {
+    const el = await renderSectionOgElement({
+      section: "order",
+      title: "Invoice INV-20261026-0001",
+      badge: "INVOICE",
+    });
+    expect(el).toBeDefined();
+    const json = JSON.stringify(el);
+    expect(json).toContain("RECEIPT // VERIFIED");
+    expect(json).toContain("ORDER TRACKER");
+    expect(json).toContain("Status & Rincian Pesanan");
+  });
 });

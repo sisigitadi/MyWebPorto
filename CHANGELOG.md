@@ -4,6 +4,24 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Added & Fixed: Standarisasi Universal Open Graph (OG) Preview, Rich Social Card & Kepatuhan Antislop
+
+- **Standarisasi Metadata Dimensi Kaya Open Graph (`src/app/(public)/proyek/page.tsx`, `src/app/(public)/toko/page.tsx`, `src/app/(public)/artikel/page.tsx`)**:
+  - Mengubah tag `openGraph.images` dari array string mentah menjadi objek terstruktur lengkap `{ url, alt, width: 1200, height: 630, type: "image/png" }` melalui helper `shareImage()`.
+  - Memastikan crawler WhatsApp, Facebook, Telegram, dan LinkedIn dapat langsung mendeteksi dimensi gambar dan menampilkan kartu pratinjau kaya pada share pertama tanpa kegagalan cache crawler.
+- **Dukungan Open Graph & Twitter Khusus pada Lacak Pesanan (`src/app/(public)/order/[invoice]/page.tsx`)**:
+  - Menambahkan metadata `openGraph` dan `twitter` mandiri di `generateMetadata()`, mencegah invoice mewarisi metadata beranda ("Sigit Adi Portfolio").
+  - Menghubungkan invoice ke endpoint kartu dinamis `/api/og?section=order&badge=INVOICE`.
+- **Desain Kartu Satori untuk Section Order (`src/lib/og-section-renderer.tsx`)**:
+  - Menambahkan template visual khas untuk `case "order":` (voucher tanda terima berlabel `RECEIPT // VERIFIED` dan `ORDER TRACKER`).
+- **Penyempurnaan Modal Bagikan Publik (`src/components/public/content-share-modal.tsx`, `src/components/public/product-share-modal.tsx`)**:
+  - Merombak tampilan snapshot thumbnail dari kontainer sempit `48x48px` menjadi format **Kartu Pratinjau Sosial Proporsional (1.91:1 / `aspect-[1200/630]`)** yang mencerminkan kartu pratinjau sosial asli di platform chat dan media sosial tanpa terpotong.
+- **Kepatuhan Salinan Bebas Em Dash (Anti-Slop Hard Gate R-02, `src/app/(public)/toko/[slug]/page.tsx`)**:
+  - Mengeliminasi karakter em dash `\u2014` pada judul detail produk menjadi tanda titik dua (`:`).
+- **Penyelarasan Helper & Pengujian Unit (`src/lib/seo.ts`, `tests/og-sections.test.ts`, `tests/og-detail-metadata.test.ts`)**:
+  - Memperluas deteksi `isGeneratedCard` di `shareImage()` agar mengenali seluruh endpoint dinamis `/api/og`.
+  - Menambahkan unit test baru untuk verifikasi visual order OG dan kepatuhan em dash (total 620 unit tests, 100% lulus).
+
 ### Fixed: Eliminasi Menyeluruh Teks dan Tombol Bertumpuk pada Toolbar Navigasi, Kartu Produk, Dialog Keranjang dan Panel Admin
 
 - **Eliminasi Tumpang Tindih URL Detail Proyek & Duplikasi Tombol Share (`src/components/public/project-detail-content.tsx`, `src/components/public/article-detail-content.tsx`)**:

@@ -203,7 +203,7 @@ src/
 
 # Di luar src/:
 drizzle/                   # Migrasi SQL 0000–0012 + meta snapshot
-tests/                     # Unit test Vitest (49 file, 617 test)
+tests/                     # Unit test Vitest (49 file, 620 test)
 e2e/                       # E2E Playwright area publik
 scripts/                   # seed.mjs, package-deploy.mjs, dll
 data/                      # Local store: local-store.json, local-settings.json
@@ -347,7 +347,7 @@ npm run lint            # ESLint (flat config)
 npm run docs:check      # cek dokumentasi vs kode (angka README & daftar env var)
 ```
 
-Unit test Vitest mencakup **49 file / 617 test** (`npx vitest run`): AI engine (TF-IDF), provider & config Cloud AI, daftar model & quota Gemini, validasi env, IndexNow, helper slug & host produk, logika publish/schedule, validasi storage & audit URL media, stok keranjang, builder pesan WhatsApp, unsaved-changes guard, analyzer & remediator SEO/GEO, redaksi-draft & otomasi Redaksi, serta config God Mode (`settings.os_apps`, `ui_strings`, `features`, `settings_history`). Test yang butuh `DATABASE_URL` (audit URL media) otomatis di-skip tanpa DB, jadi CI tanpa DB tetap hijau; test metadata OG sengaja hermetik (fetch di-stub) sehingga tidak menyentuh jaringan. E2E `test:e2e:godmode` memverifikasi utas penuh config → props → DOM. CI (`.github/workflows/ci.yml`) menjalankan **lint + typecheck + unit test + build** otomatis di setiap PR ke `main` — jadikan *required status check* sebelum merge.
+Unit test Vitest mencakup **49 file / 620 test** (`npx vitest run`): AI engine (TF-IDF), provider & config Cloud AI, daftar model & quota Gemini, validasi env, IndexNow, helper slug & host produk, logika publish/schedule, validasi storage & audit URL media, stok keranjang, builder pesan WhatsApp, unsaved-changes guard, analyzer & remediator SEO/GEO, redaksi-draft & otomasi Redaksi, serta config God Mode (`settings.os_apps`, `ui_strings`, `features`, `settings_history`). Test yang butuh `DATABASE_URL` (audit URL media) otomatis di-skip tanpa DB, jadi CI tanpa DB tetap hijau; test metadata OG sengaja hermetik (fetch di-stub) sehingga tidak menyentuh jaringan. E2E `test:e2e:godmode` memverifikasi utas penuh config → props → DOM. CI (`.github/workflows/ci.yml`) menjalankan **lint + typecheck + unit test + build** otomatis di setiap PR ke `main` — jadikan *required status check* sebelum merge.
 
 ### Penjaga drift dokumentasi
 
