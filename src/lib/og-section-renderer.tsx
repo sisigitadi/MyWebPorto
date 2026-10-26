@@ -18,10 +18,10 @@ export interface SectionOgOptions {
 export async function renderSectionOgElement(options: SectionOgOptions) {
   const lang = options.lang === "en" ? "en" : "id";
   const profile = await getProfile();
-  const sectionKey = (options.section || "profil").toLowerCase() as AppId;
+  const sectionKey = (options.section || "profil").toLowerCase();
 
   // Metadata dasar section
-  const meta = getAppShareMeta(sectionKey, lang, profile.name);
+  const meta = getAppShareMeta(sectionKey as AppId, lang, profile.name);
 
   // Ambil override SEO global dari database jika pada bagian profil/home
   const ogConfig = sectionKey === "profil"
@@ -598,6 +598,42 @@ export async function renderSectionOgElement(options: SectionOgOptions) {
               </div>
               <div style={{ display: "flex", background: "rgba(255, 255, 255, 0.05)", padding: "7px 12px", borderRadius: "8px", color: "#cbd5e1" }}>
                 • WhatsApp &amp; Telegram: Direct Fast Chat
+              </div>
+            </div>
+          </div>
+        );
+
+      case "order":
+        return (
+          <div
+            style={{
+              width: "380px",
+              background: "linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95))",
+              border: "2px solid rgba(16, 185, 129, 0.5)",
+              borderRadius: "16px",
+              padding: "24px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "14px",
+              boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", background: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.4)", borderRadius: "6px", padding: "4px 10px", color: "#6ee7b7", fontSize: "12px", fontFamily: "monospace", fontWeight: 700 }}>
+                RECEIPT // VERIFIED
+              </div>
+              <div style={{ display: "flex", color: "#10b981", fontSize: "12px", fontFamily: "monospace", fontWeight: 700 }}>ORDER TRACKER</div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <div style={{ display: "flex", fontSize: "18px", fontWeight: 800, color: "#f8fafc" }}>Status &amp; Rincian Pesanan</div>
+              <div style={{ display: "flex", fontSize: "13px", color: "#94a3b8" }}>Pelacakan status pembayaran, nomor resi pengiriman, dan verifikasi faktur resmi.</div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontFamily: "monospace", fontSize: "12px" }}>
+              <div style={{ display: "flex", background: "rgba(255, 255, 255, 0.05)", padding: "7px 12px", borderRadius: "8px", color: "#cbd5e1" }}>
+                • Sistem Order: WhatsApp &amp; Transfer Bank
+              </div>
+              <div style={{ display: "flex", background: "rgba(255, 255, 255, 0.05)", padding: "7px 12px", borderRadius: "8px", color: "#6ee7b7" }}>
+                • Status: Terenkripsi &amp; Terverifikasi
               </div>
             </div>
           </div>

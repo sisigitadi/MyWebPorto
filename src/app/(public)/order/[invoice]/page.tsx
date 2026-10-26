@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowLeft, Receipt } from "lucide-react";
 import { getOrderByInvoice, getStoreConfig } from "@/lib/order-actions";
+import { localeAlternates, shareImage } from "@/lib/seo";
 import { OrderTrackerClient } from "./order-tracker-client";
 
 interface PageProps {
@@ -11,10 +12,34 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { invoice } = await params;
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+  const pageTitle = `Invoice ${invoice} - Status Pesanan: Sigit Adi`;
+  const pageDesc = `Lacak status pesanan resmi ${invoice} di toko digital Sigit Adi.`;
+  const pageUrl = `${baseUrl}/order/${invoice}`;
+  const shareCard = shareImage(
+    `${baseUrl}/api/og?section=order&badge=INVOICE`,
+    baseUrl,
+    pageTitle
+  );
+
   return {
-    title: `Invoice ${invoice} - Status Pesanan`,
-    description: `Lacak status pesanan resmi ${invoice} di toko digital Sigit Adi.`,
+    title: pageTitle,
+    description: pageDesc,
     robots: { index: false, follow: false },
+    alternates: localeAlternates(pageUrl),
+    openGraph: {
+      title: pageTitle,
+      description: pageDesc,
+      url: pageUrl,
+      type: "website",
+      images: [shareCard],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: pageTitle,
+      description: pageDesc,
+      images: [shareCard.url],
+    },
   };
 }
 

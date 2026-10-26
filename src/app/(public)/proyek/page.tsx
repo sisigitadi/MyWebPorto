@@ -1,10 +1,15 @@
 import { Metadata } from "next";
 import { getProjects } from "@/lib/actions";
 import { safeJsonLd } from "@/lib/json-ld";
-import { localeAlternates } from "@/lib/seo";
+import { localeAlternates, shareImage } from "@/lib/seo";
 import { ProjectsCatalogContent } from "@/components/public/projects-catalog-content";
 
 const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+const shareCard = shareImage(
+  `${baseUrl}/proyek/opengraph-image`,
+  baseUrl,
+  "Katalog Proyek & Portofolio Karya Digital: Sigit Adi Irianto"
+);
 
 export const metadata: Metadata = {
   title: "Katalog Proyek & Portofolio",
@@ -15,13 +20,13 @@ export const metadata: Metadata = {
     description: "Jelajahi portofolio lengkap pengembangan web dan solusi teknologi modern.",
     url: `${baseUrl}/proyek`,
     type: "website",
-    images: [`${baseUrl}/proyek/opengraph-image`],
+    images: [shareCard],
   },
   twitter: {
     card: "summary_large_image",
     title: "Daftar Proyek & Portofolio: Sigit Adi Irianto",
     description: "Katalog portofolio aplikasi web modern dan integrasi sistem AI.",
-    images: [`${baseUrl}/proyek/opengraph-image`],
+    images: [shareCard.url],
   },
 };
 

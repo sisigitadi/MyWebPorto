@@ -1,12 +1,17 @@
 import { Metadata } from "next";
 import { getProducts, getProfile } from "@/lib/actions";
 import { safeJsonLd } from "@/lib/json-ld";
-import { localeAlternates } from "@/lib/seo";
+import { localeAlternates, shareImage } from "@/lib/seo";
 import { STORE_NAME } from "@/lib/store";
 import { getProductSlug } from "@/lib/product-link";
 import { ProductsCatalogContent } from "@/components/public/products-catalog-content";
 
 const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+const shareCard = shareImage(
+  `${baseUrl}/toko/opengraph-image`,
+  baseUrl,
+  `Katalog Produk Digital & Source Code: ${STORE_NAME}`
+);
 
 export const metadata: Metadata = {
   title: `Katalog Produk & Source Code: ${STORE_NAME}`,
@@ -17,13 +22,13 @@ export const metadata: Metadata = {
     description: "Koleksi produk digital, source code aplikasi production-ready, template retro OS, dan lisensi software.",
     url: `${baseUrl}/toko`,
     type: "website",
-    images: [`${baseUrl}/toko/opengraph-image`],
+    images: [shareCard],
   },
   twitter: {
     card: "summary_large_image",
     title: `Katalog Produk Digital & Source Code: ${STORE_NAME}`,
     description: "Koleksi produk digital, source code aplikasi production-ready, dan lisensi software.",
-    images: [`${baseUrl}/toko/opengraph-image`],
+    images: [shareCard.url],
   },
 };
 

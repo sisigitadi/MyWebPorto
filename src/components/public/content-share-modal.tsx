@@ -177,33 +177,38 @@ export function ContentShareModal({
           </button>
         </div>
 
-        {/* Content Snapshot Preview */}
-        <div className="flex items-center gap-3 p-2.5 rounded-xs vt-card-inset bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)]">
+        {/* Social Card Preview */}
+        <div className="rounded-xs overflow-hidden vt-card-inset bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)]">
           {thumbnailUrl && (
-            <div className="h-12 w-12 rounded-xs overflow-hidden bg-muted shrink-0 border border-border">
+            <div className="aspect-[1200/630] w-full overflow-hidden bg-muted/40 border-b border-[var(--vt-edge-lo-2)] relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={thumbnailUrl} alt={title} className="h-full w-full object-cover" />
+              <img
+                src={thumbnailUrl}
+                alt={title}
+                className="h-full w-full object-cover block"
+                loading="lazy"
+              />
             </div>
           )}
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-bold text-xs truncate max-w-[240px] text-[var(--vt-ink)]">
-                {title}
-              </span>
+          <div className="p-3 space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wide truncate">
+                {origin.replace(/^https?:\/\//, "")}
+              </p>
               {badge && (
-                <span className="text-[9px] uppercase tracking-wide bg-primary/10 text-primary px-1.5 py-0.2 rounded-xs font-bold">
+                <span className="text-[9px] uppercase tracking-wide bg-primary/10 text-primary px-1.5 py-0.5 rounded-xs font-bold shrink-0">
                   {badge}
                 </span>
               )}
             </div>
+            <p className="font-bold text-xs sm:text-sm text-[var(--vt-ink)] line-clamp-2 leading-snug">
+              {title}
+            </p>
             {cleanSummary && (
-              <p className="text-[11px] text-[var(--vt-ink-mute)] leading-relaxed mt-0.5 break-words">
+              <p className="text-[11px] text-[var(--vt-ink-mute)] leading-relaxed line-clamp-2 break-words">
                 {cleanSummary}
               </p>
             )}
-            <p className="text-[10px] text-muted-foreground truncate font-mono mt-0.5">
-              {finalUrl}
-            </p>
           </div>
         </div>
 

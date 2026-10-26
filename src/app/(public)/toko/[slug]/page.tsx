@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   // dan twitter:title mewarisi judul profil, bukan judul produk.
   const image = shareImage(product.thumbnailUrl, baseUrl, product.title);
   return {
-    title: product.title + " \u2014 " + STORE_NAME,
+    title: `${product.title} : ${STORE_NAME}`,
     description,
     alternates: localeAlternates(url),
     openGraph: {

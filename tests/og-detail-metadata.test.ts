@@ -329,4 +329,35 @@ describe("generateMetadata — halaman detail produk", () => {
     expect(ogUrl).toBe(`${BASE}/opengraph-image`);
     expect(twUrl).toBe(ogUrl);
   });
+
+  it("judul produk bebas dari karakter em dash (aturan antislop R-02)", async () => {
+    getProductsMock.mockResolvedValue([productFixture("/api/media/abc")]);
+
+    const { generateMetadata } = await import("@/app/(public)/toko/[slug]/page");
+    const md = await generateMetadata({ params: params("produk-keren") });
+
+    expect(String(md.title)).not.toContain("—");
+    expect(String(md.title)).not.toContain("\u2014");
+    expect(String(md.title)).toContain("Produk Keren : Toko");
+  });
+});
+
+describe("generateMetadata — halaman order / invoice", () => {
+  it("menghasilkan metadata openGraph dan twitter lengkap dengan dimensi kartu 1200x630", async () => {
+    const { generateMetadata } = await import("@/app/(public)/order/[invoice]/page");
+    const md = await generateMetadata({ params: Promise.resolve({ invoice: "INV-20261026-0001" }) });
+
+    expect(md.openGraph).toBeDefined();
+    expect(md.openGraph?.title).toContain("INV-20261026-0001");
+    expect(md.twitter).toBeDefined();
+    expect(twitterCard(md)).toBe("summary_large_image");
+
+    const images = md.openGraph?.images as Array<{ url: string; width?: number; height?: number; type?: string }>;
+    expect(images).toBeDefined();
+    expect(images.length).toBeGreaterThan(0);
+    expect(images[0].url).toContain("/api/og?section=order");
+    expect(images[0].width).toBe(1200);
+    expect(images[0].height).toBe(630);
+    expect(images[0].type).toBe("image/png");
+  });
 });

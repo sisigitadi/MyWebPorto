@@ -157,15 +157,34 @@ export function ProductShareModal({ product, isOpen, onClose, isEn = false }: Pr
           </button>
         </div>
 
-        {/* Product Snapshot */}
-        <div className="flex items-center gap-3 p-2.5 rounded-xs vt-card-inset bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)]">
-          <div className="h-12 w-12 rounded-xs overflow-hidden bg-muted shrink-0 border border-border">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={product.thumbnailUrl} alt={product.title} className="h-full w-full object-cover" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="font-bold text-xs truncate">{isEn && product.titleEn ? product.titleEn : product.title}</p>
-            <p className="text-[11px] text-muted-foreground font-mono">
+        {/* Product Social Preview */}
+        <div className="rounded-xs overflow-hidden vt-card-inset bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)]">
+          {product.thumbnailUrl && (
+            <div className="aspect-[1200/630] w-full overflow-hidden bg-muted/40 border-b border-[var(--vt-edge-lo-2)] relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={product.thumbnailUrl}
+                alt={product.title}
+                className="h-full w-full object-cover block"
+                loading="lazy"
+              />
+            </div>
+          )}
+          <div className="p-3 space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wide truncate">
+                {product.category || (isEn ? "DIGITAL PRODUCT" : "PRODUK DIGITAL")}
+              </p>
+              {product.badge && (
+                <span className="text-[9px] uppercase tracking-wide bg-primary/10 text-primary px-1.5 py-0.5 rounded-xs font-bold shrink-0">
+                  {product.badge}
+                </span>
+              )}
+            </div>
+            <p className="font-bold text-xs sm:text-sm text-[var(--vt-ink)] line-clamp-2 leading-snug">
+              {isEn && product.titleEn ? product.titleEn : product.title}
+            </p>
+            <p className="text-[11px] text-muted-foreground font-mono font-semibold">
               {isEn ? product.priceLabelEn || product.priceFormatted : product.priceFormatted}
             </p>
           </div>
