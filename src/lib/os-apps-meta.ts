@@ -115,20 +115,20 @@ export function getAppShareMeta(
   switch (id) {
     case "profil":
       return {
-        title: `${ownerName} - Portofolio Software Engineer`,
+        title: `${ownerName}: Artificial Intelligence | Cybersecurity`,
         url: "https://sigitadi.id",
         summary: isEn
-          ? "Professional portfolio of Sigit Adi Irianto, showcasing modern web applications, full-stack systems, and AI engineering."
-          : "Portofolio profesional Sigit Adi Irianto, menampilkan karya rekayasa web modern, sistem full-stack, dan integrasi kecerdasan buatan.",
+          ? "Professional portfolio of Sigit Adi Irianto: Artificial Intelligence | Cybersecurity. Showcasing modern web applications, full-stack systems, and AI engineering."
+          : "Portofolio profesional Sigit Adi Irianto: Artificial Intelligence | Cybersecurity. Menampilkan karya rekayasa web modern, sistem full-stack, dan integrasi kecerdasan buatan.",
         badge: isEn ? "PROFILE" : "PROFIL",
         ogImageUrl: "/opengraph-image",
       };
     case "layanan":
       return {
         title: isEn
-          ? `Web Development & AI Services - ${ownerName}`
-          : `Layanan Pengembangan Web & Solusi AI - ${ownerName}`,
-        url: "/#layanan",
+          ? `Web Development & AI Services: ${ownerName}`
+          : `Layanan Pengembangan Web & Solusi AI: ${ownerName}`,
+        url: "/layanan",
         summary: isEn
           ? "Professional software engineering services including modern web apps, full-stack Next.js, AI integrations, intelligent automation, and high-performance cloud architecture."
           : "Layanan rekayasa software profesional meliputi pembuatan aplikasi web modern, full-stack Next.js, integrasi sistem AI, otomasi cerdas, dan arsitektur cloud berkinerja tinggi.",
@@ -138,8 +138,8 @@ export function getAppShareMeta(
     case "proyek":
       return {
         title: isEn
-          ? `Project Portfolio & Case Studies - ${ownerName}`
-          : `Katalog Proyek & Portofolio - ${ownerName}`,
+          ? `Project Portfolio & Case Studies: ${ownerName}`
+          : `Katalog Proyek & Portofolio: ${ownerName}`,
         url: "/proyek",
         summary: isEn
           ? "Explore full-stack web applications, AI system integrations, and modern software engineering case studies developed by Sigit Adi Irianto."
@@ -150,9 +150,9 @@ export function getAppShareMeta(
     case "toko":
       return {
         title: isEn
-          ? `Digital Store & Developer Tools - ${ownerName}`
-          : `Toko Digital & Tools Developer - ${ownerName}`,
-        url: "/#produk",
+          ? `Digital Store & Developer Tools: ${ownerName}`
+          : `Toko Digital & Tools Developer: ${ownerName}`,
+        url: "/toko",
         summary: isEn
           ? "Browse high-quality digital products, Next.js boilerplates, ready-to-use source code, SaaS templates, and developer tools curated by Sigit Adi Irianto."
           : "Dapatkan produk digital berkualitas, boilerplates Next.js, source code siap pakai, template SaaS, dan tools developer praktis untuk mempercepat pengembangan aplikasi.",
@@ -162,8 +162,8 @@ export function getAppShareMeta(
     case "artikel":
       return {
         title: isEn
-          ? `Tech Articles & Architecture Insights - ${ownerName}`
-          : `Artikel & Wawasan Teknologi - ${ownerName}`,
+          ? `Tech Articles & Architecture Insights: ${ownerName}`
+          : `Artikel & Wawasan Teknologi: ${ownerName}`,
         url: "/artikel",
         summary: isEn
           ? "In-depth technical articles, software architecture guides, Next.js tips, AI systems integration, and modern engineering insights by Sigit Adi Irianto."
@@ -174,9 +174,9 @@ export function getAppShareMeta(
     case "terminal":
       return {
         title: isEn
-          ? `Interactive CRT Terminal SigitOS - ${ownerName}`
-          : `Terminal Interaktif SigitOS CRT - ${ownerName}`,
-        url: "/#terminal",
+          ? `Interactive CRT Terminal SigitOS: ${ownerName}`
+          : `Terminal Interaktif SigitOS CRT: ${ownerName}`,
+        url: "/terminal",
         summary: isEn
           ? "Access an interactive retro CRT web terminal with integrated AI assistant to explore portfolio, tech stack, and systems directly in your browser."
           : "Akses terminal retro interaktif berbasis web dengan asisten AI terintegrasi untuk eksplorasi sistem, teknologi, dan portofolio langsung via browser.",
@@ -186,9 +186,9 @@ export function getAppShareMeta(
     case "testimoni":
       return {
         title: isEn
-          ? `Client Testimonials & Reviews - ${ownerName}`
-          : `Testimoni & Ulasan Klien - ${ownerName}`,
-        url: "/#testimoni",
+          ? `Client Testimonials & Reviews: ${ownerName}`
+          : `Testimoni & Ulasan Klien: ${ownerName}`,
+        url: "/testimoni",
         summary: isEn
           ? "Authentic reviews and testimonials from clients and collaborators regarding satisfaction with web development, code quality, and professional communication."
           : "Ulasan autentik dan umpan balik dari klien serta kolaborator mengenai kepuasan kerja sama pengembangan sistem web, kualitas kode, dan komunikasi profesional.",
@@ -198,9 +198,9 @@ export function getAppShareMeta(
     case "kontak":
       return {
         title: isEn
-          ? `Contact ${ownerName} - Collaboration & Consultation`
-          : `Hubungi ${ownerName} - Kolaborasi & Konsultasi`,
-        url: "/#kontak",
+          ? `Contact ${ownerName}: Collaboration & Consultation`
+          : `Hubungi ${ownerName}: Kolaborasi & Konsultasi`,
+        url: "/kontak",
         summary: isEn
           ? "Get in touch to discuss web applications, system architecture, AI integrations, or professional collaboration opportunities. Send a message directly via email or contact form."
           : "Siap mendiskusikan kebutuhan proyek aplikasi web, arsitektur sistem, integrasi AI, atau peluang kolaborasi profesional. Kirim pesan langsung melalui formulir kontak atau email.",
@@ -209,8 +209,8 @@ export function getAppShareMeta(
       };
     default:
       return {
-        title: `${ownerName} - ${String(id)}`,
-        url: `/#${String(id)}`,
+        title: `${ownerName}: ${String(id)}`,
+        url: `/${String(id)}`,
         summary: "",
         badge: String(id).toUpperCase(),
         ogImageUrl: `/api/og?section=${String(id)}`,

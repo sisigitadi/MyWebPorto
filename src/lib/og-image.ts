@@ -28,6 +28,7 @@
  */
 import { readFile } from "fs/promises";
 import path from "path";
+import sharp from "sharp";
 import { ALLOWED_IMAGE_MIMES, MAX_IMAGE_SIZE, getMedia, isMediaId, matchesImageSignature } from "@/lib/storage";
 
 export interface ResolvedOgImage {
@@ -38,8 +39,8 @@ export interface ResolvedOgImage {
 }
 
 /**
- * Satu-satunya format yang diterima satori (qI di next/og: png, apng, jpeg,
- * gif, svg). AVIF/WEBP/BMP ada di whitelist upload tapi MELEMPAR di satori.
+ * Format gambar yang didukung secara native oleh Satori (png, jpeg, gif).
+ * WEBP/AVIF/BMP yang diunggah dikonversi otomatis ke PNG via sharp.
  */
 const SATORI_MIMES = ["image/png", "image/jpeg", "image/gif"];
 
@@ -56,30 +57,37 @@ export function detectImageMime(buffer: Buffer): string | null {
 }
 
 /**
- * Buffer valid → data URL siap-<img>; selain itu (bukan gambar, format yang
- * ditolak satori, atau terlalu besar) → null agar jatuh ke monogram, bukan 500.
+ * Buffer valid → data URL siap-<img>.
+ * Bila format belum didukung Satori (mis. WEBP/AVIF), konversikan ke PNG via sharp.
+ * Selain itu (bukan gambar atau rusak) → null agar jatuh ke monogram, bukan 500.
  */
-function toRenderable(buffer: Buffer): ResolvedOgImage | null {
-  const mime = detectImageMime(buffer);
+async function toRenderable(buffer: Buffer): Promise<ResolvedOgImage | null> {
+  let mime = detectImageMime(buffer);
   if (!mime) {
     console.warn("resolveOgImage: buffer bukan gambar yang dikenali; pakai fallback.");
     return null;
   }
+  let finalBuffer = buffer;
   if (!SATORI_MIMES.includes(mime)) {
-    console.warn(`resolveOgImage: format ${mime} tidak didukung satori; pakai fallback monogram.`);
-    return null;
+    try {
+      finalBuffer = await sharp(buffer).png().toBuffer();
+      mime = "image/png";
+    } catch (convErr) {
+      console.warn(`resolveOgImage: format ${mime} tidak didukung satori dan gagal dikonversi ke png:`, convErr);
+      return null;
+    }
   }
-  if (buffer.length > MAX_IMAGE_SIZE) {
+  if (finalBuffer.length > MAX_IMAGE_SIZE) {
     console.warn("resolveOgImage: gambar melebihi batas; pakai fallback.");
     return null;
   }
-  return { src: `data:${mime};base64,${buffer.toString("base64")}`, mime };
+  return { src: `data:${mime};base64,${finalBuffer.toString("base64")}`, mime };
 }
 
 async function resolveMediaById(id: string): Promise<ResolvedOgImage | null> {
   const row = await getMedia(id);
   if (!row) return null;
-  return toRenderable(row.buffer);
+  return await toRenderable(row.buffer);
 }
 
 async function resolveLegacyUpload(relativeUrl: string): Promise<ResolvedOgImage | null> {
@@ -94,7 +102,7 @@ async function resolveLegacyUpload(relativeUrl: string): Promise<ResolvedOgImage
   }
   try {
     const buffer = await readFile(resolved);
-    return toRenderable(Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer));
+    return await toRenderable(Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer));
   } catch (err) {
     // Wajar di serverless: public/uploads di-.gitignore sehingga file lama
     // tidak ikut ter-deploy.
@@ -111,7 +119,7 @@ async function resolveRemoteUrl(url: string): Promise<ResolvedOgImage | null> {
       return null;
     }
     const buffer = Buffer.from(await res.arrayBuffer());
-    return toRenderable(buffer);
+    return await toRenderable(buffer);
   } catch (err) {
     console.warn("resolveOgImage: remote fetch error:", url, err);
     return null;

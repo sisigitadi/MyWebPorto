@@ -5,9 +5,9 @@ import { renderSectionOgElement } from "@/lib/og-section-renderer";
 vi.mock("@/lib/actions", () => ({
   getProfile: vi.fn(async () => ({
     name: "Sigit Adi Irianto",
-    headline: "Artificial Intelligence | Cybersecurity // Engineer",
+    headline: "Artificial Intelligence | Cybersecurity",
     bio: "Saya membantu personal, UMKM dan institusi membangun kebutuhan digitalisasi yang aman, reliable dan mudah digunakan.",
-    avatarUrl: "/uploads/profile-avatar.jpg",
+    avatarUrl: "/api/media/574c650c-80b1-4167-a752-43c858bd6482",
   })),
   getTestimonials: vi.fn(async () => [
     {
@@ -26,7 +26,7 @@ vi.mock("@/lib/actions", () => ({
 vi.mock("@/lib/seo-config", () => ({
   resolveOgMeta: vi.fn(async (params) => ({
     title: params.name || "Sigit Adi Irianto",
-    description: params.headline || "Artificial Intelligence | Cybersecurity // Engineer",
+    description: params.headline || "Artificial Intelligence | Cybersecurity",
     imageUrl: "/opengraph-image",
     imageAlt: "Sigit Adi Irianto",
   })),

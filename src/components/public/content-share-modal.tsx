@@ -72,11 +72,12 @@ export function ContentShareModal({
 
   if (!isOpen || !mounted) return null;
 
-  // Resolve absolute URL
+  // Resolve absolute URL dan bersihkan hash fragment (#) agar share link dan copy text selalu konsisten
+  const cleanUrl = url.replace(/#.*$/, "") || "/";
   const origin = typeof window !== "undefined" ? window.location.origin : "https://sigitadi.id";
-  const absoluteUrl = url.startsWith("http")
-    ? url
-    : `${origin}${url.startsWith("/") ? "" : "/"}${url}`;
+  const absoluteUrl = cleanUrl.startsWith("http")
+    ? cleanUrl
+    : `${origin}${cleanUrl.startsWith("/") ? "" : "/"}${cleanUrl}`;
 
   const finalUrl = customRef.trim()
     ? `${absoluteUrl}${absoluteUrl.includes("?") ? "&" : "?"}ref=${encodeURIComponent(customRef.trim())}`
@@ -148,6 +149,8 @@ export function ContentShareModal({
     }
   };
 
+  const previewImage = thumbnailUrl || "/opengraph-image";
+
   return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs animate-in fade-in duration-200"
@@ -179,11 +182,11 @@ export function ContentShareModal({
 
         {/* Social Card Preview */}
         <div className="rounded-xs overflow-hidden vt-card-inset bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)]">
-          {thumbnailUrl && (
+          {previewImage && (
             <div className="aspect-[1200/630] w-full overflow-hidden bg-muted/40 border-b border-[var(--vt-edge-lo-2)] relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={thumbnailUrl}
+                src={previewImage}
                 alt={title}
                 className="h-full w-full object-cover block"
                 loading="lazy"

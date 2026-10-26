@@ -118,7 +118,7 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
 
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <ShareButton
-              title={language === "en" ? "Tech Articles & Architecture Insights - Sigit Adi Irianto" : "Artikel & Wawasan Teknologi - Sigit Adi Irianto"}
+              title={language === "en" ? "Tech Articles & Architecture Insights: Sigit Adi Irianto" : "Artikel & Wawasan Teknologi: Sigit Adi Irianto"}
               url="/artikel"
               summary={
                 language === "en"
