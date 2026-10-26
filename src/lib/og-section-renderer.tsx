@@ -38,7 +38,7 @@ export async function renderSectionOgElement(options: SectionOgOptions) {
 
   // Avatar resolution untuk profil dan author chip
   const overrideImage = ogConfig && ogConfig.imageUrl !== "/opengraph-image" ? ogConfig.imageUrl : undefined;
-  const resolvedAvatar = await resolveOgImageSrc(overrideImage || profile.avatarUrl || "/uploads/profile-avatar.jpg");
+  const resolvedAvatar = await resolveOgImageSrc(overrideImage || profile.avatarUrl || "/api/media/574c650c-80b1-4167-a752-43c858bd6482");
   const avatarSrc = resolvedAvatar?.src;
   const initial = (profile.name.charAt(0) || "S").toUpperCase();
 
@@ -391,7 +391,7 @@ export async function renderSectionOgElement(options: SectionOgOptions) {
             <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
               {["Architecture", "Next.js", "Security", "AI Systems"].map((tag) => (
                 <div key={tag} style={{ display: "flex", background: "rgba(255, 255, 255, 0.08)", borderRadius: "4px", padding: "3px 8px", fontSize: "11px", color: "#cbd5e1", fontFamily: "monospace" }}>
-                  #{tag}
+                  {tag}
                 </div>
               ))}
             </div>

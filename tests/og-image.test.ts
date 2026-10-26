@@ -92,6 +92,15 @@ describe("resolveOgImageSrc — jalur /api/media/<uuid>", () => {
     getMediaMock.mockResolvedValue({ buffer: BMP, mime: "image/bmp" });
     expect(await resolveOgImageSrc(mediaUrl)).toBeNull();
   });
+
+  it("format modern WEBP dikonversi otomatis ke PNG data URL untuk satori", async () => {
+    const WEBP = Buffer.from("UklGRjoAAABXRUJQVlA4IC4AAACyAgCdASoCAAIALmk0mk0iIiIiIgBoSygABc6WWgAA/veff/0PP8bA//LwYAAA", "base64");
+    getMediaMock.mockResolvedValue({ buffer: WEBP, mime: "image/webp" });
+    const out = await resolveOgImageSrc(mediaUrl);
+    expect(out).not.toBeNull();
+    expect(out!.mime).toBe("image/png");
+    expect(out!.src.startsWith("data:image/png;base64,")).toBe(true);
+  });
 });
 
 describe("resolveOgImageSrc — jalur legacy /uploads/", () => {

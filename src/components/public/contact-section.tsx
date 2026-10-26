@@ -180,8 +180,8 @@ export function ContactSection({ profile }: ContactSectionProps) {
 
           <div className="shrink-0">
             <ShareButton
-              title={language === "en" ? `Contact ${profile?.name || "Sigit Adi Irianto"} - Collaboration & Consultation` : `Hubungi ${profile?.name || "Sigit Adi Irianto"} - Kolaborasi & Konsultasi`}
-              url="/#kontak"
+              title={language === "en" ? `Contact ${profile?.name || "Sigit Adi Irianto"}: Collaboration & Consultation` : `Hubungi ${profile?.name || "Sigit Adi Irianto"}: Kolaborasi & Konsultasi`}
+              url="/kontak"
               summary={
                 language === "en"
                   ? "Get in touch to discuss web applications, system architecture, AI integrations, or professional collaboration opportunities. Send a message directly via email or contact form."

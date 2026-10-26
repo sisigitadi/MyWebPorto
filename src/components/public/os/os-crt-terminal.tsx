@@ -1072,8 +1072,8 @@ export function OSCrtTerminal({
         <ContentShareModal
           isOpen={showShareModal}
           onClose={() => setShowShareModal(false)}
-          title={language === "en" ? `Interactive CRT Terminal SigitOS - ${ownerName}` : `Terminal Interaktif SigitOS CRT - ${ownerName}`}
-          url="/#terminal"
+          title={language === "en" ? `Interactive CRT Terminal SigitOS: ${ownerName}` : `Terminal Interaktif SigitOS CRT: ${ownerName}`}
+          url="/terminal"
           summary={
             language === "en"
               ? "Access an interactive retro CRT web terminal with integrated AI assistant to explore portfolio, tech stack, and systems directly in your browser."

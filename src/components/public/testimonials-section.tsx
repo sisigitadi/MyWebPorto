@@ -69,8 +69,8 @@ export function TestimonialsSection({ testimonials: propTestimonials }: Testimon
 
           <div className="shrink-0">
             <ShareButton
-              title={language === "en" ? "Client Testimonials & Reviews - Sigit Adi Irianto" : "Testimoni & Ulasan Klien - Sigit Adi Irianto"}
-              url="/#testimoni"
+              title={language === "en" ? "Client Testimonials & Reviews: Sigit Adi Irianto" : "Testimoni & Ulasan Klien: Sigit Adi Irianto"}
+              url="/testimoni"
               summary={
                 language === "en"
                   ? "Authentic reviews and testimonials from clients and collaborators regarding satisfaction with web development, code quality, and professional communication."

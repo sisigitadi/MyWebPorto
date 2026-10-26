@@ -69,7 +69,7 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
 
           <div className="flex items-center gap-2 shrink-0">
             <ShareButton
-              title={language === "en" ? "Project Portfolio & Case Studies - Sigit Adi Irianto" : "Katalog Proyek & Portofolio - Sigit Adi Irianto"}
+              title={language === "en" ? "Project Portfolio & Case Studies: Sigit Adi Irianto" : "Katalog Proyek & Portofolio: Sigit Adi Irianto"}
               url="/proyek"
               summary={
                 language === "en"

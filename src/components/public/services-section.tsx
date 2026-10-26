@@ -108,10 +108,10 @@ export function ServicesSection({ services: propServices, profile }: ServicesSec
             <ShareButton
               title={
                 language === "en"
-                  ? `Web Development & AI Services - ${profile.name}`
-                  : `Layanan Pengembangan Web & Solusi AI - ${profile.name}`
+                  ? `Web Development & AI Services: ${profile.name}`
+                  : `Layanan Pengembangan Web & Solusi AI: ${profile.name}`
               }
-              url="/#layanan"
+              url="/layanan"
               summary={
                 language === "en"
                   ? "Professional software engineering services including modern web apps, full-stack Next.js, AI integrations, intelligent automation, and high-performance cloud architecture."

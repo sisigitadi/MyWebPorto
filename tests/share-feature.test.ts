@@ -50,6 +50,19 @@ describe("getAppShareMeta", () => {
       expect(meta.summary).not.toContain("—");
     }
   });
+
+  it("seluruh share URL bersih tanpa tanda pagar (#) untuk copas siap kirim", () => {
+    for (const appId of APP_IDS) {
+      const meta = getAppShareMeta(appId, "id");
+      expect(meta.url).not.toContain("#");
+      expect(meta.url.startsWith("/") || meta.url.startsWith("http")).toBe(true);
+    }
+  });
+
+  it("profil menyertakan headline terbaru Artificial Intelligence | Cybersecurity", () => {
+    const meta = getAppShareMeta("profil", "id");
+    expect(meta.title).toContain("Artificial Intelligence | Cybersecurity");
+  });
 });
 
 describe("buildProductPromoShareText — deskripsi komplit tanpa slice", () => {

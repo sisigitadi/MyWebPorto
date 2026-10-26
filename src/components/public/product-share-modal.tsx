@@ -159,17 +159,15 @@ export function ProductShareModal({ product, isOpen, onClose, isEn = false }: Pr
 
         {/* Product Social Preview */}
         <div className="rounded-xs overflow-hidden vt-card-inset bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)]">
-          {product.thumbnailUrl && (
-            <div className="aspect-[1200/630] w-full overflow-hidden bg-muted/40 border-b border-[var(--vt-edge-lo-2)] relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={product.thumbnailUrl}
-                alt={product.title}
-                className="h-full w-full object-cover block"
-                loading="lazy"
-              />
-            </div>
-          )}
+          <div className="aspect-[1200/630] w-full overflow-hidden bg-muted/40 border-b border-[var(--vt-edge-lo-2)] relative">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={product.thumbnailUrl || "/toko/opengraph-image"}
+              alt={product.title}
+              className="h-full w-full object-cover block"
+              loading="lazy"
+            />
+          </div>
           <div className="p-3 space-y-1">
             <div className="flex items-center justify-between gap-2">
               <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wide truncate">

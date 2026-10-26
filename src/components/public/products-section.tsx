@@ -216,8 +216,8 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
           {/* Quick Actions: Lacak Pesanan, Share & Cart Trigger */}
           <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
             <ShareButton
-              title={language === "en" ? `Sigit Adi Digital Store - ${profile?.name || "Sigit Adi Irianto"}` : `Toko Digital & Tools Developer - ${profile?.name || "Sigit Adi Irianto"}`}
-              url="/#produk"
+              title={language === "en" ? `Sigit Adi Digital Store: ${profile?.name || "Sigit Adi Irianto"}` : `Toko Digital & Tools Developer: ${profile?.name || "Sigit Adi Irianto"}`}
+              url="/toko"
               summary={
                 language === "en"
                   ? "Browse high-quality digital products, Next.js boilerplates, ready-to-use source code, SaaS templates, and developer tools curated by Sigit Adi Irianto."

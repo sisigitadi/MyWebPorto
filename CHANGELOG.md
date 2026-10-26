@@ -4,6 +4,22 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Added & Fixed: Audit & Revisi Open Graph Preview, Tautan Bersih Tanpa '#', dan Dukungan Foto Avatar WebP
+
+- **Standarisasi Tautan Bersih Tanpa Tanda Pagar (`#`) pada Seluruh Share Link (`src/lib/os-apps-meta.ts`, `src/components/public/`)**:
+  - Mengeliminasi fragment anchor (`#layanan`, `#produk`, `#terminal`, `#testimoni`, `#kontak`) pada seluruh tombol share dan metadata OS, digantikan dengan tautan rute bersih (`/layanan`, `/toko`, `/terminal`, `/testimoni`, `/kontak`).
+  - Menambahkan sanitasi otomatis pada `ContentShareModal` untuk menghapus fragment `#...` dari teks copas siap kirim (`shareBroadcastText`) dan URL platform sosial (WhatsApp, Telegram, LinkedIn, Facebook).
+- **Dukungan Penuh Format WebP & AVIF pada Resolver Open Graph (`src/lib/og-image.ts`)**:
+  - Mengintegrasikan konversi otomatis buffer gambar modern (WebP/AVIF) menjadi PNG murni menggunakan library `sharp` sebelum disajikan ke Satori.
+  - Memperbaiki bug senyap di mana avatar terbaru berformat WebP ditolak oleh whitelist Satori dan jatuh ke monogram huruf, memastikan foto avatar asli kini muncul 100% di seluruh kartu OG.
+- **Pembaruan Avatar dan Headline Profil Terbaru**:
+  - Memperbarui headline resmi menjadi `Artificial Intelligence | Cybersecurity` di seluruh data profil lokal, actions, knowledge WhatsApp bot, dan kartu OG.
+  - Memperbarui path avatar default ke aset media terkini (`/api/media/574c650c-80b1-4167-a752-43c858bd6482`) serta menyinkronkan berkas biner ke `data/media/` dan fallback publik `public/uploads/profile-avatar.jpg` & `public/avatar.webp`.
+- **Garansi Fallback Gambar Pratinjau Modal Share**:
+  - `ProductShareModal` dan `ContentShareModal` menjamin pratinjau banner kartu sosial selalu menampilkan gambar (fallback ke kartu OG seksi jika gambar produk/konten tidak tersedia).
+- **Peningkatan Suite Pengujian Unit (`tests/og-image.test.ts`, `tests/share-feature.test.ts`, `tests/og-sections.test.ts`)**:
+  - Menambahkan pengujian otomatis untuk konversi WebP ke PNG, kebersihan URL share tanpa `#`, dan keselarasan headline terbaru (total 49 berkas / 623 tes, 100% lulus).
+
 ### Added & Fixed: Standarisasi Universal Open Graph (OG) Preview, Rich Social Card & Kepatuhan Antislop
 
 - **Standarisasi Metadata Dimensi Kaya Open Graph (`src/app/(public)/proyek/page.tsx`, `src/app/(public)/toko/page.tsx`, `src/app/(public)/artikel/page.tsx`)**:

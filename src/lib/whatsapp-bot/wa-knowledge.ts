@@ -32,7 +32,7 @@ export async function buildWhatsAppBotKnowledge(): Promise<CompiledKnowledgeCont
     await Promise.all([
       getProfile().catch(() => ({
         name: "Sigit Adi Irianto",
-        headline: "Artificial Intelligence | Cybersecurity // Engineer",
+        headline: "Artificial Intelligence | Cybersecurity",
         bio: "Spesialis pengembangan AI dan rekayasa keamanan siber.",
         email: "sigit@sigitadi.id",
         phone: "+6281234567890",
