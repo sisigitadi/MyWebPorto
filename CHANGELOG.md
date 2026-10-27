@@ -4,6 +4,19 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Fixed: Pemulihan Produk Toko, Testimoni Klien Asli, dan Migrasi Thumbnail Proyek ke Endpoint Internal Media
+
+- **Pemulihan Produk Toko (`src/lib/dummy-data.ts`, `data/local-store.json`)**:
+  - Menambahkan produk `Gemini Pro 18 Bulan` (`prod-1789413671752`) ke dalam dataset fallback `DUMMY_PRODUCTS` selaras 1:1 dengan database produksi Supabase.
+  - Memastikan proses static site generation (SSG) pada Vercel menyertakan seluruh 3 produk toko aktif secara lengkap tanpa ada produk yang hilang.
+- **Pemulihan 6 Testimoni Klien Asli & Sanitasi Avatar (`src/lib/dummy-data.ts`, Supabase DB, `data/local-store.json`)**:
+  - Mengembalikan seluruh 6 testimoni klien nyata (Ust. Ahmad Fauzan, Hendra Pratama, Rian Kusuma, Bambang Triatmojo, Dedy Kurniawan, Fajar Nugroho) menggantikan 2 dummy placeholder lama.
+  - Memperbarui URL foto profil avatar klien ke Unsplash resolusi tinggi dan endpoint `/api/media/<uuid>`, mengeliminasi ketergantungan pada domain eksternal `imgix.net` yang kehabisan kuota (HTTP 402).
+  - Memastikan seluruh teks testimoni mematuhi kaidah antislop R-02 (bebas karakter em dash).
+- **Migrasi Mandiri Gambar Proyek dari Imgix ke Endpoint Internal (`src/lib/dummy-data.ts`, `data/local-store.json`)**:
+  - Mengalihkan seluruh URL thumbnail pada 6 proyek (`sentinel-soc`, `promptmatrix-2-0`, `smartcv-web-builder`, `dashboard-halaqah`, `ctf-judge`, `isp-management-portal`) dari URL eksternal `imgix.net` yang mati menjadi endpoint internal `/api/media/<uuid>` yang membaca langsung dari tabel PostgreSQL/media store lokal.
+  - Menghilangkan sepenuhnya insiden gambar rusak/broken thumbnail pada halaman proyek dan beranda.
+
 ### Fixed & Optimized: Mitigasi Limit Vercel Free ISR Writes (Proteksi Kuota 200.000 Writes)
 
 - **Pencegahan Regenerasi Liar pada Beranda (`src/app/(public)/(home)/page.tsx`)**:
