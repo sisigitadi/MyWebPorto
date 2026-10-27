@@ -4,6 +4,18 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Security: Hardening Row-Level Security (RLS) Database Supabase & Isolasi Role PostgREST
+
+- **Mitigasi Kerentanan `rls_disabled_in_public` (Supabase Advisory)**:
+  - Mengaktifkan Row-Level Security penuh (`ENABLE ROW LEVEL SECURITY`) pada seluruh 13 tabel schema publik (`profiles`, `projects`, `services`, `products`, `testimonials`, `articles`, `audit_logs`, `settings`, `settings_history`, `media`, `visitor_hits`, `orders`, `customers`) via migrasi `drizzle/0013_enable_rls.sql`.
+  - Memanggil `.enableRLS()` pada seluruh deklarasi tabel Drizzle di `src/db/schema.ts`.
+- **Pencabutan Hak Akses Role PostgREST (`anon` & `authenticated`)**:
+  - Mencabut seluruh hak akses `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE` dari role `anon` dan `authenticated` pada seluruh tabel, sequence, dan routine di schema `public`.
+  - Menetapkan default privilege pada schema `public` agar pembuatan tabel baru di masa mendatang tidak secara otomatis memberikan akses ke role publik.
+  - Memastikan upaya query langsung oleh pihak ketiga melalui REST API Supabase (`/rest/v1/*`) langsung ditolak dengan `permission denied`, mengamankan data privat pelanggan, pesanan, dan kunci sistem.
+- **Suite Pengujian Keamanan Baru (`tests/database-rls.test.ts`)**:
+  - Menambahkan pengujian otomatis yang memvalidasi deklarasi `.enableRLS()` secara statis (offline) dan memverifikasi integritas `rowsecurity = true` pada 100% tabel live database Supabase.
+
 ### Fixed: Pemulihan Produk Toko, Testimoni Klien Asli, dan Migrasi Thumbnail Proyek ke Endpoint Internal Media
 
 - **Pemulihan Produk Toko (`src/lib/dummy-data.ts`, `data/local-store.json`)**:
