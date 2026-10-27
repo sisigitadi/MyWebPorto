@@ -259,9 +259,11 @@ Jika Anda tetap menggunakan Vercel Free dan ingin menghemat kuota bulanan (mence
 1. **Konfigurasi `vercel.json` (Hemat GB-Hours 50-75%)**:
    - File `vercel.json` di root proyek telah dikonfigurasi untuk menurunkan alokasi memori Serverless Function (dari default 1024MB menjadi 256MB/512MB) serta membatasi durasi timeout execution.
 
-2. **On-Demand Revalidation (Hemat Function Invocations 99%)**:
-   - Rute publik utama menggunakan `revalidate = 86400` (24 jam) sehingga 100% permintaan disajikan langsung dari Edge Cache CDN Vercel.
-   - Server Actions di `src/lib/actions.ts` secara otomatis membersihkan cache secara instan (`revalidatePath`) saat admin memperbarui konten.
+2. **On-Demand Revalidation & Proteksi ISR Writes (Hemat Invocations & Kuota 99.9%)**:
+   - Vercel Free Tier membatasi **200.000 ISR Writes** per siklus billing.
+   - Seluruh rute publik utama (`/`, `/proyek`, `/artikel`, `/toko`) menggunakan `revalidate = 86400` (24 jam) sehingga 100% permintaan dilayani langsung dari Edge Cache CDN Vercel tanpa memicu komputasi berulang.
+   - Server Actions di `src/lib/actions.ts` secara otomatis membersihkan cache secara instan (`revalidatePath`) saat admin memperbarui konten, sehingga data tetap langsung terbarui seketika (*zero-latency update*).
+   - Rute dinamis berbasis slug (`/artikel/[slug]`, `/proyek/[slug]`) dilengkapi `export const dynamicParams = false;` agar permintaan acak dari bot scanner atau URL tidak valid langsung ditolak dengan HTTP 404 murni di CDN Edge tanpa menulis entri liar ke Vercel ISR Data Cache.
 
 3. **Hemat Build Minutes Otomatis (Ignored Build Step)**:
    - Proyek ini telah mengonfigurasi properti `"ignoreCommand": "node scripts/vercel-ignore.mjs"` langsung di dalam `vercel.json`.
