@@ -13,6 +13,8 @@ interface ArticleDetailPageProps {
 
 // Optimasi Vercel Free: cache 24 jam di CDN Edge; pembaruan ditangani on-demand oleh revalidatePath.
 export const revalidate = 86400;
+// Hanya layani slug hasil generateStaticParams; tolak scan bot/URL liar tanpa menulis ke ISR cache
+export const dynamicParams = false;
 
 export async function generateStaticParams() {
   const articles = await getArticles();

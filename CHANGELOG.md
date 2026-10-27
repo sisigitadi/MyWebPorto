@@ -4,6 +4,17 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Fixed & Optimized: Mitigasi Limit Vercel Free ISR Writes (Proteksi Kuota 200.000 Writes)
+
+- **Pencegahan Regenerasi Liar pada Beranda (`src/app/(public)/(home)/page.tsx`)**:
+  - Mengubah durasi revalidasi beranda dari `revalidate = 60` (1 menit) menjadi `revalidate = 86400` (24 jam) untuk menghentikan siklus regenerasi otomatis tak terkendali yang dipicu bot crawler multi-region di edge CDN Vercel.
+  - Pembaruan konten profil, proyek, artikel, dan layanan tetap terjamin 100% instan *on-demand* melalui `revalidatePath("/")` di Server Actions saat admin menyimpan perubahan.
+- **Hardening Rute Dinamis terhadap Bot Probing (`src/app/(public)/artikel/[slug]/page.tsx`, `src/app/(public)/proyek/[slug]/page.tsx`)**:
+  - Menetapkan `export const dynamicParams = false;` pada rute detail artikel dan proyek.
+  - Memastikan permintaan bot/scanner terhadap URL acak yang tidak terdaftar di `generateStaticParams()` langsung dibalas dengan HTTP 404 murni di CDN Edge tanpa mengeksekusi Serverless Function dan tanpa menulis ke ISR Data Cache Vercel.
+- **Penyelarasan Dokumentasi Operasional (`DEPLOYMENT.md`)**:
+  - Memperbarui panduan mitigasi kuota Vercel Hobby Free Tier terkait ambang batas 200.000 ISR Writes dan strategi proteksi cache statis.
+
 ### Added & Fixed: Audit & Revisi Open Graph Preview, Tautan Bersih Tanpa '#', dan Dukungan Foto Avatar WebP
 
 - **Standarisasi Tautan Bersih Tanpa Tanda Pagar (`#`) pada Seluruh Share Link (`src/lib/os-apps-meta.ts`, `src/components/public/`)**:

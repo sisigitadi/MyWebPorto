@@ -13,9 +13,9 @@ import { JsonLdSchema } from "@/components/public/json-ld";
 import { resolveOSApps } from "@/lib/os-apps-config";
 import { draftMode } from "next/headers";
 
-// Revalidasi cepat: cache 60 detik di CDN Edge; pembaruan konten ditangani
-// on-demand secara instan oleh revalidatePath di src/lib/actions.ts saat admin mengedit data.
-export const revalidate = 60;
+// Optimasi Vercel Free: cache 24 jam di CDN Edge; pembaruan konten ditangani
+// on-demand oleh revalidatePath di src/lib/actions.ts saat admin mengedit data.
+export const revalidate = 86400;
 
 // Kanonik root: URL bersih tanpa query. Varian "?lang=" sengaja tidak
 // diiklankan lagi (i18n 100% client-side → HTML-nya identik dengan kanonik;
