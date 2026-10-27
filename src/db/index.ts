@@ -10,7 +10,6 @@ export const isDbConnected = Boolean(
   process.env.DATABASE_URL && process.env.DATABASE_URL.length > 5 && !isBuild
 );
 
-
 declare global {
   var __db_client__: ReturnType<typeof postgres> | undefined;
 }
