@@ -74,7 +74,7 @@ export const profiles = pgTable(
       .defaultNow(),
   },
   (table) => [index("profiles_id_idx").on(table.id)]
-);
+).enableRLS();
 
 /** Proyek / portofolio */
 export const projects = pgTable(
@@ -113,7 +113,7 @@ export const projects = pgTable(
     index("projects_slug_idx").on(table.slug),
     index("projects_published_idx").on(table.published),
   ]
-);
+).enableRLS();
 
 /** Layanan / keahlian yang ditawarkan */
 export const services = pgTable(
@@ -136,7 +136,7 @@ export const services = pgTable(
       .defaultNow(),
   },
   (table) => [index("services_published_idx").on(table.published)]
-);
+).enableRLS();
 
 /** Produk yang ditampilkan sebagai katalog */
 export const products = pgTable(
@@ -176,7 +176,7 @@ export const products = pgTable(
       .defaultNow(),
   },
   (table) => [index("products_published_idx").on(table.published)]
-);
+).enableRLS();
 
 /** Testimoni klien */
 export const testimonials = pgTable(
@@ -202,7 +202,7 @@ export const testimonials = pgTable(
       .defaultNow(),
   },
   (table) => [index("testimonials_published_idx").on(table.published)]
-);
+).enableRLS();
 
 export const articles = pgTable(
   "articles",
@@ -235,7 +235,7 @@ export const articles = pgTable(
     index("articles_slug_idx").on(table.slug),
     index("articles_published_idx").on(table.published),
   ]
-);
+).enableRLS();
 
 /**
  * Audit log admin — siapa mengubah apa dan kapan.
@@ -258,7 +258,7 @@ export const auditLogs = pgTable(
       .defaultNow(),
   },
   (table) => [index("audit_logs_created_idx").on(table.createdAt)]
-);
+).enableRLS();
 
 /**
  * Pengaturan aplikasi key/value — konfigurasi yang diisi dari UI admin tanpa
@@ -279,7 +279,7 @@ export const settings = pgTable(
       .defaultNow(),
   },
   (table) => [index("settings_updated_at_idx").on(table.updatedAt)]
-);
+).enableRLS();
 /**
  * Riwayat snapshot konfigurasi God Mode (Fase 4) — menyimpan versi snapshot
  * settings (os_apps, ui_strings, features) saat dipublikasikan, agar dapat
@@ -303,7 +303,7 @@ export const settingsHistory = pgTable(
     index("settings_history_key_idx").on(table.key),
     index("settings_history_created_idx").on(table.createdAt),
   ]
-);
+).enableRLS();
 
 export type SettingsHistory = typeof settingsHistory.$inferSelect;
 export type NewSettingsHistory = typeof settingsHistory.$inferInsert;
@@ -338,7 +338,7 @@ export const media = pgTable(
       .defaultNow(),
   },
   (table) => [index("media_created_at_idx").on(table.createdAt)]
-);
+).enableRLS();
 
 export type Media = typeof media.$inferSelect;
 export type NewMedia = typeof media.$inferInsert;
@@ -383,7 +383,7 @@ export const visitorHits = pgTable(
     index("visitor_hits_path_idx").on(table.path),
     index("visitor_hits_is_bot_idx").on(table.isBot),
   ]
-);
+).enableRLS();
 
 export type VisitorHit = typeof visitorHits.$inferSelect;
 export type NewVisitorHit = typeof visitorHits.$inferInsert;
@@ -462,7 +462,7 @@ export const orders = pgTable(
     index("orders_created_at_idx").on(table.createdAt),
     index("orders_customer_phone_idx").on(table.customerPhone),
   ]
-);
+).enableRLS();
 
 export type Order = typeof orders.$inferSelect;
 export type NewOrder = typeof orders.$inferInsert;
@@ -499,7 +499,7 @@ export const customers = pgTable(
     index("customers_email_idx").on(table.email),
     index("customers_last_order_idx").on(table.lastOrderAt),
   ]
-);
+).enableRLS();
 
 export type Customer = typeof customers.$inferSelect;
 export type NewCustomer = typeof customers.$inferInsert;

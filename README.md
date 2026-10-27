@@ -202,8 +202,8 @@ src/
     `-- utils.ts           # Utility umum
 
 # Di luar src/:
-drizzle/                   # Migrasi SQL 0000–0012 + meta snapshot
-tests/                     # Unit test Vitest (49 file, 623 test)
+drizzle/                   # Migrasi SQL 0000–0013 + meta snapshot
+tests/                     # Unit test Vitest (50 file, 627 test)
 e2e/                       # E2E Playwright area publik
 scripts/                   # seed.mjs, package-deploy.mjs, dll
 data/                      # Local store: local-store.json, local-settings.json
@@ -212,7 +212,7 @@ deploy_package/            # Hasil `npm run package` (standalone + PM2)
 
 ## Model Data
 
-Skema database utama berada di `src/db/schema.ts` (13 tabel). Migrasi: `drizzle/0000`–`0012`.
+Skema database utama berada di `src/db/schema.ts` (13 tabel). Migrasi: `drizzle/0000`–`0013`.
 
 - `profiles`: data pemilik website, kontak, avatar, skill, statistik, sosial media (GitHub, LinkedIn, Instagram, X, Medium, YouTube, TikTok, Telegram, Facebook, Discord, Slack, Reddit, Portofolio), serta status available for hire. Sosial media tampil hanya jika URL terisi.
 - `projects`: portofolio proyek, slug, summary, deskripsi, gambar, demo, repo, tech stack (array, dikelola via editor chip), featured, published, `publishAt` (jadwal tayang), dan urutan.
@@ -347,7 +347,7 @@ npm run lint            # ESLint (flat config)
 npm run docs:check      # cek dokumentasi vs kode (angka README & daftar env var)
 ```
 
-Unit test Vitest mencakup **49 file / 623 test** (`npx vitest run`): AI engine (TF-IDF), provider & config Cloud AI, daftar model & quota Gemini, validasi env, IndexNow, helper slug & host produk, logika publish/schedule, validasi storage & audit URL media, stok keranjang, builder pesan WhatsApp, unsaved-changes guard, analyzer & remediator SEO/GEO, redaksi-draft & otomasi Redaksi, serta config God Mode (`settings.os_apps`, `ui_strings`, `features`, `settings_history`). Test yang butuh `DATABASE_URL` (audit URL media) otomatis di-skip tanpa DB, jadi CI tanpa DB tetap hijau; test metadata OG sengaja hermetik (fetch di-stub) sehingga tidak menyentuh jaringan. E2E `test:e2e:godmode` memverifikasi utas penuh config → props → DOM. CI (`.github/workflows/ci.yml`) menjalankan **lint + typecheck + unit test + build** otomatis di setiap PR ke `main` — jadikan *required status check* sebelum merge.
+Unit test Vitest mencakup **50 file / 627 test** (`npx vitest run`): AI engine (TF-IDF), provider & config Cloud AI, daftar model & quota Gemini, validasi env, IndexNow, helper slug & host produk, logika publish/schedule, validasi storage & audit URL media, stok keranjang, builder pesan WhatsApp, unsaved-changes guard, analyzer & remediator SEO/GEO, redaksi-draft & otomasi Redaksi, serta config God Mode (`settings.os_apps`, `ui_strings`, `features`, `settings_history`). Test yang butuh `DATABASE_URL` (audit URL media) otomatis di-skip tanpa DB, jadi CI tanpa DB tetap hijau; test metadata OG sengaja hermetik (fetch di-stub) sehingga tidak menyentuh jaringan. E2E `test:e2e:godmode` memverifikasi utas penuh config → props → DOM. CI (`.github/workflows/ci.yml`) menjalankan **lint + typecheck + unit test + build** otomatis di setiap PR ke `main` — jadikan *required status check* sebelum merge.
 
 ### Penjaga drift dokumentasi
 
@@ -428,7 +428,7 @@ npm run package
 npm run docs:sync       # angka tabel/berkas/tes/migrasi di README ikut diperbarui
 ```
 
-Pastikan `DATABASE_URL`, `NEXT_PUBLIC_APP_URL`, Clerk production keys, `ADMIN_CLERK_ID`, dan Formspree sudah benar. Terapkan seluruh migration database (`drizzle/0000`–`0012`, termasuk `0003_product_slugs`, `0004_audit_logs`, `0005_publish_at`, `0006_shop`, `0007_purchase_fields`, `0008_settings`, `0009_narrow_magneto` yang menambah `availability_badge` + `availability_badge_en` ke `profiles`, `0010_tidy_texas_twister` yang membuat tabel `media` (gambar bytea) + `settings_history`, `0011_glamorous_blazing_skull` yang membuat tabel `visitor_hits`, dan `0012_moaning_otto_octavius` yang menambah kolom `region`, `timezone`, `asn`, dan `network` ke `visitor_hits`). Jangan commit `.env`, credential, atau token.
+Pastikan `DATABASE_URL`, `NEXT_PUBLIC_APP_URL`, Clerk production keys, `ADMIN_CLERK_ID`, dan Formspree sudah benar. Terapkan seluruh migration database (`drizzle/0000`–`0013`, termasuk `0003_product_slugs`, `0004_audit_logs`, `0005_publish_at`, `0006_shop`, `0007_purchase_fields`, `0008_settings`, `0009_narrow_magneto` yang menambah `availability_badge` + `availability_badge_en` ke `profiles`, `0010_tidy_texas_twister` yang membuat tabel `media` (gambar bytea) + `settings_history`, `0011_glamorous_blazing_skull` yang membuat tabel `visitor_hits`, `0012_moaning_otto_octavius` yang menambah kolom `region`, `timezone`, `asn`, dan `network` ke `visitor_hits`, serta `0013_enable_rls` yang mengaktifkan Row-Level Security (RLS) pada seluruh 13 tabel publik dan mencabut hak akses role `anon` dan `authenticated`). Jangan commit `.env`, credential, atau token.
 
 ## Verifikasi Setelah Deploy
 
