@@ -787,12 +787,18 @@ export function OSDesktopManager({
       <div className="flex-1 flex overflow-hidden p-1 sm:p-2 md:p-4 gap-1.5 sm:gap-3 relative">
         {/* 0. Ambient Desktop Wallpaper Layer (Latar belakang halus berbasis gambar avatar & palet retro OS) */}
         {profile.avatarUrl && (
-          <div className="absolute inset-0 pointer-events-none select-none overflow-hidden z-0">
+          <div
+            className="absolute inset-0 pointer-events-none select-none overflow-hidden z-0 contain-strict"
+            style={{ contain: "strict", contentVisibility: "auto" }}
+            aria-hidden="true"
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={profile.avatarUrl}
+              src={`${profile.avatarUrl}${profile.avatarUrl.includes("?") ? "&" : "?"}w=480&q=60`}
               alt=""
               aria-hidden="true"
+              width={480}
+              height={480}
               className="w-full h-full object-cover object-center filter blur-xl scale-110 opacity-25 brightness-75 contrast-125"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[var(--vt-desktop)]/80 via-[var(--vt-desktop)]/45 to-[var(--vt-desktop)]/80" />

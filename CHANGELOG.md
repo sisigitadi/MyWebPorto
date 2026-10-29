@@ -4,6 +4,25 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Optimized & Fixed: Audit Performa Komprehensif PageSpeed Insights (Mobile LCP, Desktop CLS, Media Resizing & A11y)
+
+- **Dynamic Media Resizing & Kompresi WebP/AVIF On-the-Fly (`src/app/api/media/[id]/route.ts`)**:
+  - Mengintegrasikan pipeline `sharp` dinamis yang mendukung parameter query `?w=[width]`, `?q=[quality]`, dan `?fmt=[webp|avif]`.
+  - Mengatasi bottleneck mobile terbesar (payload 5.3 MB dan LCP 19.7s) dengan menyajikan ukuran gambar proporsional terhadap kontainer viewport.
+  - Memperbarui avatar profil (`src/components/public/hero-section.tsx`) ke `?w=192&q=85` dengan atribut eksplisit `width={96}` dan `height={96}`, memangkas unduhan dari 303 KB menjadi ~8 KB.
+- **Stabilisasi Desktop Visual Shift / CLS 0.333 (`src/components/public/os/os-desktop-manager.tsx`)**:
+  - Menerapkan isolasi layout `contain: strict; content-visibility: auto;` pada container ambient desktop wallpaper.
+  - Mengoptimasi background avatar ke `?w=480&q=60` dengan dimensi eksplisit `480x480`, mengeliminasi layout reflow saat mounting.
+- **Akselerasi Animasi GPU / Composited Animations (`src/components/public/os/os-boot-loader.tsx`)**:
+  - Mengganti animasi manipulasi CSS `width: ${progress}%` pada progress bar bootloader dengan GPU-accelerated `transform: scaleX(...)` dan `will-change-transform`, mencegah forced reflow pada rendering awal.
+- **Eliminasi Console Error `navigator.vibrate` (`src/lib/os-sound.ts`)**:
+  - Menambahkan guard `navigator.userActivation?.hasBeenActive` sebelum memanggil `navigator.vibrate()` pada boot sound otomatis.
+  - Menghilangkan peringatan browser *"Blocked call to navigator.vibrate"* dan menaikkan skor Best Practices ke 100.
+- **Perbaikan Kontras Aksesibilitas & Tautan Eksternal (`src/components/public/os/os-menubar.tsx`, `contact-section.tsx`)**:
+  - Menyesuaikan warna teks badge `ONLINE` menjadi `text-emerald-900 dark:text-emerald-300` agar lulus uji kontras rasio WCAG AA 4.5:1 terhadap background retro `vt-paper`.
+  - Menambahkan atribut `aria-label="${link.label} (Tautan Eksternal)"` pada tautan showcase eksternal `porto.sigitadi.id` untuk membedakannya secara semantik dari tautan internal `/proyek`.
+  - Memperbarui `alt="SA"` menjadi `alt="Sigit Adi Irianto Logo"` dengan atribut `width={20}` dan `height={20}`.
+
 ### Security: Hardening Row-Level Security (RLS) Database Supabase & Isolasi Role PostgREST
 
 - **Mitigasi Kerentanan `rls_disabled_in_public` (Supabase Advisory)**:

@@ -75,10 +75,15 @@ function tone({ freq, endFreq, dur, type = "square", gain = 0.03, delay = 0 }: T
   osc.stop(t0 + dur + 0.03);
 }
 
-/** Getar haptic lembut pada perangkat sentuh (bila didukung). */
+/** Getar haptic lembut pada perangkat sentuh (bila didukung dan user telah berinteraksi). */
 export function triggerHaptic(duration: number | number[] = 12): void {
   try {
     if (typeof window !== "undefined" && typeof navigator !== "undefined" && "vibrate" in navigator) {
+      // Cegah console warning "Blocked call to navigator.vibrate" jika user belum berinteraksi
+      const nav = navigator as Navigator & { userActivation?: { hasBeenActive?: boolean } };
+      if (nav.userActivation && !nav.userActivation.hasBeenActive) {
+        return;
+      }
       navigator.vibrate(duration);
     }
   } catch {

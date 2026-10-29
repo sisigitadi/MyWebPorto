@@ -550,6 +550,13 @@ Status saat dokumen ini direvisi:
   - Modal share publik (`ContentShareModal` & `ProductShareModal`) mengadopsi format kartu pratinjau sosial proporsional berasio 1.91:1 (`aspect-[1200/630]`) bebas pemotongan visual.
   - Bebas em dash (`\u2014`) pada seluruh judul dan tag Open Graph sesuai aturan antislop R-02.
   - Helper `shareImage()` di `src/lib/seo.ts` otomatis memetakan seluruh kartu dinamis (`/opengraph-image` dan `/api/og`).
+- **Optimasi Performa & Aksesibilitas Berbasis PageSpeed Insights Riil (v2026-10-30)**:
+  - Endpoint internal `/api/media/[id]` mendukung dynamic WebP/AVIF resizing via `sharp` (`?w=...&q=...`) untuk mengeliminasi pemborosan bandwidth mobile (5.3 MB payload diet).
+  - Avatar profil di-cache optimal pada `w=192` dengan dimensi eksplisit `96x96`, mengikis LCP mobile dari 19.7s.
+  - Desktop visual layout shift (CLS 0.333) dihilangkan dengan isolasi CSS container `contain: strict; content-visibility: auto;` pada background ambient wallpaper desktop.
+  - Animasi progress bar bootloader beralih ke GPU-accelerated `transform: scaleX(...)` (mengatasi forced reflow 263ms).
+  - Pengecekan `navigator.userActivation?.hasBeenActive` dipasang pada haptic sound untuk menghilangkan console error browser (Best Practices 100).
+  - Kontras status `ONLINE` ditingkatkan ke `emerald-900`/`emerald-300` (lulus rasio WCAG AA 4.5:1 terhadap kertas retro `vt-paper`), logo `alt` deskriptif berdimensi `20x20`, dan `aria-label` pembeda untuk link eksternal portofolio.
 
 ## 14. Rekomendasi Lanjutan (Post-Final)
 

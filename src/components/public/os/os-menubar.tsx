@@ -52,7 +52,9 @@ export function OSMenubar({ profile }: OSMenubarProps) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/icons/icon-192.png"
-              alt="SA"
+              alt="Sigit Adi Irianto Logo"
+              width={20}
+              height={20}
               className="h-4 w-4 sm:h-5 sm:w-5 rounded-xs object-cover group-hover:scale-110 group-hover:shadow-[0_0_8px_rgba(56,189,248,0.5)] transition-all"
             />
             <span className="font-pixel text-[11px] sm:text-[13px] md:text-sm font-bold tracking-wider text-[var(--vt-ink)] group-hover:text-[var(--vt-ink)]">
@@ -65,7 +67,7 @@ export function OSMenubar({ profile }: OSMenubarProps) {
 
           <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-[var(--vt-paper)] vt-card-inset text-xs font-mono font-bold text-[var(--vt-ink)]">
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_5px_rgba(16,185,129,0.8)]" />
-            <span className="text-[12px] text-emerald-700 dark:text-emerald-400 font-bold">ONLINE</span>
+            <span className="text-[12px] text-emerald-900 dark:text-emerald-300 font-bold">ONLINE</span>
             <span className="text-[11px] text-[var(--vt-ink)] opacity-60">|</span>
             <span className="text-[11px] md:text-xs text-[var(--vt-ink)] font-bold truncate max-w-[150px] xl:max-w-none">
               {profile.name}
