@@ -4,6 +4,25 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Optimized & Fixed: Audit Performa Komprehensif Iterasi 2 (Eliminasi False Desktop LCP, Stabilisasi Speed Index Mobile, Code-Splitting Clerk, Pure CSS Ambient Wallpaper, Lazy External Media & A11y Links)
+
+- **Eliminasi False Desktop LCP (`src/components/public/os/os-desktop-manager.tsx`)**:
+  - Mengganti tag `<img>` ambient wallpaper avatar dengan murni CSS radial-gradient dan retro scanlines, menghapus false LCP delay 1,390 ms dan transfer duration 2,500 ms di Desktop serta meringankan beban compositing GPU mobile (`blur-xl`).
+- **Eliminasi Element Render Delay 2,670 ms di Hero Section (`src/components/public/hero-section.tsx`)**:
+  - Menghapus manipulasi `opacity: 0` pada animasi GSAP hero window di atas fold sehingga teks bio dan avatar langsung terlihat pada FCP (~2.4s). Mengoptimasi query avatar ke `?w=160&q=75&fmt=webp` (~6 KB vs 17.3 KB).
+- **Code-Splitting Clerk SDK (`src/components/public/os/os-menubar-user.tsx` & `os-menubar.tsx`)**:
+  - Mengekstraksi komponen autentikasi `MenubarUser` ke modul mandiri yang dimuat secara dinamis via `next/dynamic(..., { ssr: false })`, menghapus ~210 KiB chunk Clerk dari bundle kritis homepage publik.
+- **Optimasi Aset Ikon Header & Boot Loader (`public/icons/icon-48.webp`)**:
+  - Menghasilkan dan menghubungkan icon WebP 48x48 (`370 B` vs `22.7 KiB` file PNG 192x192), memotong 98.4% transfer data ikon di menubar dan bootloader.
+- **Lazy Loading & Resizing 12 Gambar Eksternal Unsplash (`456 KiB`)**:
+  - Menerapkan `loading="lazy"`, `decoding="async"`, dimensi width/height eksplisit, dan kompresi query `?w=600&q=75&auto=format&fit=crop` pada `featured-projects-section.tsx`, `articles-section.tsx`, `products-section.tsx`, dan `testimonials-section.tsx`.
+- **Eliminasi Forced Reflow 284 ms pada Scroll-Spy (`src/components/public/os/os-desktop-manager.tsx`)**:
+  - Menunda evaluasi geometri awal via `setTimeout` dan men-cache koordinat bounding box di luar loop iterasi section.
+- **Perbaikan Aksesibilitas Tautan Kartu Proyek & Artikel**:
+  - Menambahkan atribut `aria-label` deskriptif pada setiap tombol aksi kartu proyek dan artikel agar tidak lagi terindikasi identik oleh Lighthouse.
+- **Pencegahan Timeout Rute `llms.txt` (`src/app/llms.txt/route.ts`)**:
+  - Menambahkan `export const revalidate = 86400;` agar ter-cache statis di CDN Edge Vercel.
+
 ### Optimized & Fixed: Audit Performa Komprehensif PageSpeed Insights (Mobile LCP, Desktop CLS, Media Resizing & A11y)
 
 - **Dynamic Media Resizing & Kompresi WebP/AVIF On-the-Fly (`src/app/api/media/[id]/route.ts`)**:

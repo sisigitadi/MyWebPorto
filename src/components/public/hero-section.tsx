@@ -27,10 +27,9 @@ export function HeroSection({ profile, profileCards, onOpenContact }: HeroSectio
   useGSAP(
     () => {
       gsap.from(".sigit-hero-window", {
-        y: 35,
-        opacity: 0,
+        y: 20,
         stagger: 0.15,
-        duration: 0.9,
+        duration: 0.7,
         ease: "power3.out",
         clearProps: "all",
       });

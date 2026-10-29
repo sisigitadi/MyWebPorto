@@ -136,8 +136,12 @@ export function TestimonialsSection({ testimonials: propTestimonials }: Testimon
                       {testi.avatarUrl ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
                         <img
-                          src={testi.avatarUrl}
+                          src={testi.avatarUrl ? (testi.avatarUrl.includes("images.unsplash.com") ? `${testi.avatarUrl.split("?")[0]}?w=120&q=75&auto=format&fit=crop` : testi.avatarUrl) : ""}
                           alt={testi.clientName}
+                          loading="lazy"
+                          decoding="async"
+                          width={40}
+                          height={40}
                           className="absolute inset-0 w-full h-full object-cover rounded-xs"
                           onError={(e) => {
                             e.currentTarget.style.display = "none";

@@ -163,7 +163,7 @@ export function OSBootLoader() {
           </div>
           <div className="text-right hidden sm:flex items-center gap-2.5 text-white/90 text-xs">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icons/icon-192.png" alt="SA" className="h-7 w-7 rounded-xs border border-[#37ff9b]/40 object-cover" />
+            <img src="/icons/icon-48.webp" alt="Sigit Adi Irianto Logo" width={28} height={28} className="h-7 w-7 rounded-xs border border-[#37ff9b]/40 object-cover" />
             <div>
               <p className="font-pixel text-amber-400">SIGIT_OS</p>
               <p className="text-[10px] text-muted-foreground">BUILD 1998-PRO</p>

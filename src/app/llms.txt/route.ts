@@ -1,3 +1,5 @@
+export const revalidate = 86400;
+
 import { getArticles, getProducts, getProfile, getProjects, getServices } from "@/lib/actions";
 import { getProductSlug } from "@/lib/product-link";
 import { buildLlmsTxt } from "@/lib/seo";

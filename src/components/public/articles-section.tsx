@@ -339,8 +339,12 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
                           <div className="relative mb-3 overflow-hidden rounded-sm border border-[var(--vt-edge-lo-2)] shadow-inner aspect-[16/9] bg-black">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
-                              src={article.imageUrl}
+                              src={article.imageUrl ? (article.imageUrl.includes("images.unsplash.com") ? `${article.imageUrl.split("?")[0]}?w=600&q=75&auto=format&fit=crop` : article.imageUrl) : ""}
                               alt={title}
+                              loading="lazy"
+                              decoding="async"
+                              width={480}
+                              height={270}
                               className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                             />
                             {article.featured && (
@@ -399,6 +403,7 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
                         <div className="flex items-center">
                           <Link
                             href={`/artikel/${article.slug}`}
+                            aria-label={`${t.articles_read_more}: ${title}`}
                             className="w-full flex items-center justify-between px-3 py-1.5 bg-[var(--vt-card)] border-2 border-t-[var(--vt-edge-hi)] border-l-[var(--vt-edge-hi)] border-r-[var(--vt-edge-lo)] border-b-[var(--vt-edge-lo)] hover:bg-[var(--vt-edge-hi-2)] active:border-t-[var(--vt-edge-lo)] active:border-l-[var(--vt-edge-lo)] active:border-r-[var(--vt-edge-hi-2)] active:border-b-[var(--vt-edge-hi-2)] font-mono text-xs font-bold text-[var(--vt-ink)] group transition-all cursor-pointer"
                           >
                             <span className="flex items-center gap-1.5">
