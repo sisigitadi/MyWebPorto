@@ -77,7 +77,13 @@ export function HeroSection({ profile, profileCards, onOpenContact }: HeroSectio
               <div className="flex flex-row items-center gap-3 sm:gap-5 mb-3 sm:mb-4">
                 <div className="relative w-16 h-16 sm:w-24 sm:h-24 rounded-xs vt-raised p-1 shrink-0 bg-[var(--vt-chrome)] shadow-md">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={profile.avatarUrl} loading="eager" fetchPriority="high" decoding="sync"
+                  <img
+                    src={profile.avatarUrl ? `${profile.avatarUrl}${profile.avatarUrl.includes("?") ? "&" : "?"}w=192&q=85` : ""}
+                    loading="eager"
+                    fetchPriority="high"
+                    decoding="sync"
+                    width={96}
+                    height={96}
                     alt={profile.name}
                     className="w-full h-full object-cover rounded-xs vt-card-inset"
                   />

@@ -344,6 +344,7 @@ export function ContactSection({ profile }: ContactSectionProps) {
                     target="_blank"
                     rel="noopener noreferrer"
                     title={link.label}
+                    aria-label={`${link.label} (Tautan Eksternal)`}
                     className="vt-btn vt-btn-chrome inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold text-[var(--vt-ink)] hover:-translate-y-0.5 transition-all"
                   >
                     {link.icon}

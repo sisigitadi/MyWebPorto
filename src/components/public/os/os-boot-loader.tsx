@@ -238,8 +238,8 @@ export function OSBootLoader() {
           </div>
           <div className="h-4 bg-[#0a140d] border-2 border-[#37ff9b] p-0.5">
             <div
-              className="h-full bg-[#37ff9b] transition-all duration-100 ease-linear shadow-[0_0_10px_#37ff9b]"
-              style={{ width: `${progress}%` }}
+              className="h-full w-full bg-[#37ff9b] origin-left transition-transform duration-100 ease-linear shadow-[0_0_10px_#37ff9b] will-change-transform"
+              style={{ transform: `scaleX(${progress / 100})` }}
             />
           </div>
         </div>
