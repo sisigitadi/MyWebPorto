@@ -421,8 +421,12 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                             {product.thumbnailUrl ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
-                                src={product.thumbnailUrl}
+                                src={product.thumbnailUrl ? (product.thumbnailUrl.includes("images.unsplash.com") ? `${product.thumbnailUrl.split("?")[0]}?w=100&q=75&auto=format&fit=crop` : product.thumbnailUrl) : ""}
                                 alt={title}
+                                loading="lazy"
+                                decoding="async"
+                                width={32}
+                                height={32}
                                 className="h-8 w-8 rounded-xs object-cover border border-border shrink-0 bg-muted"
                               />
                             ) : (
@@ -511,8 +515,12 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={product.thumbnailUrl}
+                          src={product.thumbnailUrl ? (product.thumbnailUrl.includes("images.unsplash.com") ? `${product.thumbnailUrl.split("?")[0]}?w=600&q=75&auto=format&fit=crop` : product.thumbnailUrl) : ""}
                           alt={title}
+                          loading="lazy"
+                          decoding="async"
+                          width={480}
+                          height={300}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
 

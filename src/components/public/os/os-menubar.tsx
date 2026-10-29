@@ -1,13 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { Calendar, Shield, Globe } from "lucide-react";
-import { useUser, UserButton } from "@clerk/nextjs";
+import dynamic from "next/dynamic";
+import { Calendar, Globe } from "lucide-react";
 import { useOSTheme, OSTheme } from "./theme-context";
 import { useTranslation } from "@/lib/i18n";
 import { ProfileData } from "@/lib/dummy-data";
 import { hasClerkPublishableKey } from "@/lib/env";
+
+// Dynamic import for MenubarUser: ensures @clerk/nextjs is code-split away from the initial homepage chunk
+const MenubarUser = dynamic(
+  () => import("./os-menubar-user").then((mod) => mod.MenubarUser),
+  { ssr: false }
+);
 
 interface OSMenubarProps {
   profile: ProfileData;
@@ -51,7 +56,7 @@ export function OSMenubar({ profile }: OSMenubarProps) {
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/icons/icon-192.png"
+              src="/icons/icon-48.webp"
               alt="Sigit Adi Irianto Logo"
               width={20}
               height={20}
@@ -121,54 +126,14 @@ export function OSMenubar({ profile }: OSMenubarProps) {
             title="Tanggal Hari Ini"
           >
             <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary group-hover:scale-110 group-hover:text-emerald-500 transition-all" />
-            {/* Tanggal hanya diisi setelah mount (useEffect di bawah). Literal
-              tanggal statis sebagai fallback SSR menyebabkan hydration
-              mismatch: SSR memakai "13/09/2026", client mengisi tanggal asli
-              → React warning + event handler bisa terputus, terlihat seperti
-              "hang di loading / tidak masuk menu". */}
+            {/* Tanggal hanya diisi setelah mount (useEffect di atas). */}
             <span>{fullDate}</span>
           </div>
 
-          {/* User Button / Admin link — hanya saat Clerk aktif (MenubarUser).
-              UI publik sengaja TIDAK menampilkan pintu masuk login apapun
-              untuk pengunjung belum-login (tombol "Masuk" lama sudah dihapus):
-              halaman utama tidak boleh mengiklankan panel admin. Pemilik
-              masuk dengan membuka /sign-in langsung (bookmark / ketik URL).
-              Setelah login, link Admin + avatar Clerk muncul di sini. */}{" "}
+          {/* User Button / Admin link — dimuat secara lazy saat Clerk aktif */}
           {hasClerkPublishableKey() ? <MenubarUser /> : null}
         </div>
       </div>
     </header>
-  );
-}
-
-/**
- * Bagian autentikasi menubar — hanya dirender saat Clerk aktif. useUser()
- * butuh konteks ClerkProvider; memanggilnya tanpa provider melempar error,
- * jadi hook dipindah ke komponen terpisah yang cuma dimuat saat
- * hasClerkPublishableKey() true (lihat layout.tsx / proxy.ts).
- */
-function MenubarUser() {
-  const { isLoaded, isSignedIn } = useUser();
-  if (!isLoaded || !isSignedIn) return null;
-  return (
-    <div className="flex items-center gap-1.5 ml-1">
-      <Link
-        href="/admin"
-        className="group hidden sm:inline-flex vt-btn vt-btn-chrome px-2 py-0.5 sm:py-1 text-[11px] sm:text-[13px] font-bold text-foreground hover:-translate-y-0.5 transition-all hover:text-amber-500 shadow-sm"
-        title="Masuk ke Panel Admin"
-      >
-        <Shield className="h-3.5 w-3.5 sm:h-4 w-4 text-primary group-hover:scale-110 mr-1 transition-all" />
-        <span>Admin</span>
-      </Link>
-      {/* UserButton (avatar Clerk) disembunyikan di mobile. Sebelumnya
-          blok ini selalu tampil dan menambah ~113px di kanan header,
-          sehingga header overflow horizontal → tanggal "17/09/2026"
-          terpotong dan angka tahun tidak terlihat. Akses admin di
-          mobile tetap bisa lewat /admin langsung. */}
-      <div className="hidden sm:block hover:scale-110 transition-transform">
-        <UserButton />
-      </div>
-    </div>
   );
 }

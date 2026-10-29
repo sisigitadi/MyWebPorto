@@ -557,6 +557,14 @@ Status saat dokumen ini direvisi:
   - Animasi progress bar bootloader beralih ke GPU-accelerated `transform: scaleX(...)` (mengatasi forced reflow 263ms).
   - Pengecekan `navigator.userActivation?.hasBeenActive` dipasang pada haptic sound untuk menghilangkan console error browser (Best Practices 100).
   - Kontras status `ONLINE` ditingkatkan ke `emerald-900`/`emerald-300` (lulus rasio WCAG AA 4.5:1 terhadap kertas retro `vt-paper`), logo `alt` deskriptif berdimensi `20x20`, dan `aria-label` pembeda untuk link eksternal portofolio.
+  - **Optimasi Performa Komprehensif Iterasi 2 (v2026-10-30 - Speed Index & LCP Stabilizer)**:
+  - Eliminasi False Desktop LCP: Ambient wallpaper `<img>` digantikan murni CSS radial-gradient, menghapus delay LCP 1.39s & beban GPU `blur-xl`.
+  - Eliminasi Render Delay Mobile 2.67s: Manipulasi `opacity: 0` dihapus dari animasi GSAP hero section, sehingga FCP = LCP (~2.4s).
+  - Code-splitting Clerk SDK via dynamic import `os-menubar-user.tsx` memangkas ~210 KiB chunk dari initial public bundle.
+  - Ikon menubar & BIOS diganti ke WebP 48x48 (`icon-48.webp`, 370 B vs 22.7 KB PNG).
+  - Seluruh 12 gambar eksternal Unsplash (456 KiB) di bawah fold kini menggunakan `loading="lazy"`, `decoding="async"`, dan auto-compression query params.
+  - Forced reflow 284 ms di scroll-spy dihilangkan dengan caching bounding box dan defer layout update.
+  - Aksesibilitas tautan kartu proyek & artikel dilengkapi `aria-label` pembeda; rute `llms.txt` dicache statis 24 jam.
 
 ## 14. Rekomendasi Lanjutan (Post-Final)
 

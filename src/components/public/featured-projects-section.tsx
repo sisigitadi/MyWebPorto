@@ -125,8 +125,12 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
                     <div className="relative aspect-[16/10] overflow-hidden rounded-xs vt-card-inset bg-muted">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={project.thumbnailUrl}
+                        src={project.thumbnailUrl ? (project.thumbnailUrl.includes("images.unsplash.com") ? `${project.thumbnailUrl.split("?")[0]}?w=600&q=75&auto=format&fit=crop` : project.thumbnailUrl) : ""}
                         alt={title}
+                        loading="lazy"
+                        decoding="async"
+                        width={480}
+                        height={300}
                         className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                       />
                       <span className="absolute top-2 right-2 font-pixel text-[10px] bg-[var(--vt-pink)] text-white px-2 py-0.5 shadow-md font-bold">
@@ -163,6 +167,7 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
                   <div className="pt-3 border-t border-border/80 flex items-center gap-2">
                     <Link
                       href={`/proyek/${project.slug}`}
+                      aria-label={`${t.projects_detail_btn} ${title}`}
                       className="flex-1 vt-btn vt-btn-chrome py-1.5 px-2.5 text-xs font-bold font-mono text-foreground justify-center cursor-pointer inline-flex items-center gap-1"
                     >
                       <span>{t.projects_detail_btn}</span>

@@ -371,16 +371,11 @@ export function OSDesktopManager({
     let rafId = 0;
     const update = () => {
       rafId = 0;
-      // Garis fokus: ~35% tinggi container dari tepi atasnya. Section dianggap
-      // "aktif" bila TEPinya sudah naik melewati garis ini di ruang konten.
-      // Konversi: posisi tepi section di viewport = offsetTop - scrollTop,
-      // jadi syaratnya offsetTop <= scrollTop + focusOffset. (Versi awal
-      // salah membandingkan offsetTop dengan garis viewport tanpa scrollTop
-      // → sisi kanan konstan → label taskbar tidak pernah berganti.)
-      const focusOffset = Math.min(root.clientHeight * 0.35, 220);
+      const rootH = root.clientHeight;
+      const focusOffset = Math.min(rootH * 0.35, 220);
       const children = sectionRefs.current;
+      const rootTop = root.getBoundingClientRect().top;
       let current: AppId | null = null;
-      // Pilih section TERAKHIR yang top-nya sudah melewati garis fokus.
       for (const id of scrollSections) {
         const el = children[id];
         if (!el) continue;
@@ -390,13 +385,11 @@ export function OSDesktopManager({
           break;
         }
       }
-      // Fallback: belum ada yang lewat garis → section pertama yang terlihat.
       if (!current) {
         for (const id of scrollSections) {
           const el = children[id];
           if (!el) continue;
-          const r = el.getBoundingClientRect();
-          if (r.bottom > root.getBoundingClientRect().top) {
+          if (el.getBoundingClientRect().bottom > rootTop) {
             current = id;
             break;
           }
@@ -409,10 +402,14 @@ export function OSDesktopManager({
       if (!rafId) rafId = requestAnimationFrame(update);
     };
 
-    update();
+    // Defer initial layout calculation to prevent forced synchronous reflow on mount
+    const initialTimer = setTimeout(() => {
+      rafId = requestAnimationFrame(update);
+    }, 100);
     root.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll, { passive: true });
     return () => {
+      clearTimeout(initialTimer);
       root.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
       if (rafId) cancelAnimationFrame(rafId);
@@ -785,27 +782,16 @@ export function OSDesktopManager({
   return (
     <div className="flex-1 w-full h-full flex flex-col overflow-hidden relative select-none">
       <div className="flex-1 flex overflow-hidden p-1 sm:p-2 md:p-4 gap-1.5 sm:gap-3 relative">
-        {/* 0. Ambient Desktop Wallpaper Layer (Latar belakang halus berbasis gambar avatar & palet retro OS) */}
-        {profile.avatarUrl && (
-          <div
-            className="absolute inset-0 pointer-events-none select-none overflow-hidden z-0 contain-strict"
-            style={{ contain: "strict", contentVisibility: "auto" }}
-            aria-hidden="true"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`${profile.avatarUrl}${profile.avatarUrl.includes("?") ? "&" : "?"}w=480&q=60`}
-              alt=""
-              aria-hidden="true"
-              width={480}
-              height={480}
-              className="w-full h-full object-cover object-center filter blur-xl scale-110 opacity-25 brightness-75 contrast-125"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[var(--vt-desktop)]/80 via-[var(--vt-desktop)]/45 to-[var(--vt-desktop)]/80" />
-            <div className="absolute inset-0 bg-black/25" />
-            <div className="absolute inset-0 vt-scanlines opacity-15" />
-          </div>
-        )}
+        {/* 0. Ambient Desktop Wallpaper Layer (Latar belakang halus retro OS murni CSS tanpa membebani LCP/GPU) */}
+        <div
+          className="absolute inset-0 pointer-events-none select-none overflow-hidden z-0 contain-strict"
+          style={{ contain: "strict" }}
+          aria-hidden="true"
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--vt-desktop)_0%,_transparent_75%)] opacity-35" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[var(--vt-desktop)]/85 via-transparent to-[var(--vt-desktop)]/85" />
+          <div className="absolute inset-0 vt-scanlines opacity-10" />
+        </div>
 
         {/* Rail Shortcut Ikon Desktop (kiri) */}
         <div className={`flex-col gap-2 shrink-0 z-10 w-24 py-1 ${isMinimized ? "flex" : "hidden lg:flex"}`}>
@@ -863,8 +849,12 @@ export function OSDesktopManager({
                 <div className="relative w-48 h-48 sm:w-60 sm:h-60 md:w-68 md:h-68 lg:w-72 lg:h-72 aspect-square rounded-xs overflow-hidden vt-card-inset bg-black/40 shadow-inner">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={profile.avatarUrl}
+                    src={`${profile.avatarUrl}${profile.avatarUrl.includes("?") ? "&" : "?"}w=320&q=80`}
                     alt={profile.name}
+                    loading="lazy"
+                    decoding="async"
+                    width={288}
+                    height={288}
                     className="w-full h-full object-cover object-top filter brightness-95 contrast-105"
                   />
                   <div className="absolute inset-0 vt-scanlines opacity-20 pointer-events-none" />
