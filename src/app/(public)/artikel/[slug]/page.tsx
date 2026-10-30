@@ -3,6 +3,7 @@ import { getArticles, getProfile } from "@/lib/actions";
 import { resolveFeatures } from "@/lib/features-config";
 import { safeJsonLd } from "@/lib/json-ld";
 import { localeAlternates, shareImage, extractFaqFromContent, buildFaqPageSchema, formatSeoTitle } from "@/lib/seo";
+import { canonicalBaseUrl } from "@/lib/canonical-host";
 import { ArticleDetailContent } from "@/components/public/article-detail-content";
 
 interface ArticleDetailPageProps {
@@ -13,8 +14,8 @@ interface ArticleDetailPageProps {
 
 // Optimasi Vercel Free: cache 24 jam di CDN Edge; pembaruan ditangani on-demand oleh revalidatePath.
 export const revalidate = 86400;
-// Hanya layani slug hasil generateStaticParams; tolak scan bot/URL liar tanpa menulis ke ISR cache
-export const dynamicParams = false;
+// dynamicParams = true memungkinkan artikel baru yang diterbitkan di database tetap dapat diakses publik via ISR on-demand
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
   const articles = await getArticles();
@@ -30,7 +31,7 @@ export async function generateMetadata({ params }: ArticleDetailPageProps) {
   if (!features.enable_articles) return { title: "Artikel Tidak Ditemukan" };
 
   const { slug } = await params;
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+  const baseUrl = canonicalBaseUrl();
   const articles = await getArticles();
   const article = articles.find((a) => a.slug === slug);
 
@@ -82,7 +83,7 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
   if (!features.enable_articles) notFound();
 
   const { slug } = await params;
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+  const baseUrl = canonicalBaseUrl();
   const [articles, profile] = await Promise.all([getArticles(), getProfile()]);
   const article = articles.find((a) => a.slug === slug && a.published);
 

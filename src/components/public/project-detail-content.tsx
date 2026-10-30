@@ -176,7 +176,7 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
                   {t.detail_tech_title}
                 </span>
                 <div className="flex flex-wrap gap-1.5">
-                  {project.techStack.map((tech) => (
+                  {(project.techStack || []).map((tech) => (
                     <span
                       key={tech}
                       className="text-[11px] font-mono px-2 py-0.5 rounded bg-background border border-border text-foreground"

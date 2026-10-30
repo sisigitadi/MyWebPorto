@@ -12,6 +12,7 @@ import { OSDesktopManager } from "@/components/public/os/os-desktop-manager";
 import { JsonLdSchema } from "@/components/public/json-ld";
 import { resolveOSApps } from "@/lib/os-apps-config";
 import { draftMode } from "next/headers";
+import { canonicalBaseUrl } from "@/lib/canonical-host";
 
 // Optimasi Vercel Free: cache 24 jam di CDN Edge; pembaruan konten ditangani
 // on-demand oleh revalidatePath di src/lib/actions.ts saat admin mengedit data.
@@ -26,7 +27,7 @@ export const metadata = {
     absolute: "Sigit Adi Portfolio",
   },
   alternates: {
-    canonical: (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, ""),
+    canonical: canonicalBaseUrl(),
   },
 };
 

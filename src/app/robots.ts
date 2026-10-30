@@ -1,15 +1,19 @@
 import { MetadataRoute } from "next";
+import { canonicalBaseUrl, canonicalHostname } from "@/lib/canonical-host";
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+  const baseUrl = canonicalBaseUrl();
+  const host = canonicalHostname();
 
   return {
     rules: [
       {
         // Catatan: /_next/ sengaja TIDAK diblokir. Situs ini sangat bergantung
         // pada JS (shell OS desktop, window manager, RetroBot) — memblokir
-        // /_next/static/*.js membuat crawler render halaman kosong. Rule bot
-        // khusus di bawah memang tidak memblokirnya; konsistenkan di sini.
+        // /_next/static/*.js membuat crawler render halaman kosong.
+        // Parameter URL lama (seperti ?contactSubject=) sengaja TIDAK didisallow
+        // di sini agar crawler Googlebot dapat menelusuri redirect 301/308 ke URL kanonik
+        // dan segera memvalidasi konsolidasi halaman di Search Console.
         userAgent: "*",
         allow: "/",
         disallow: [
@@ -17,9 +21,6 @@ export default function robots(): MetadataRoute.Robots {
           "/sign-in/",
           "/sign-up/",
           "/api/",
-          "/*?lang=*",
-          "/*?contact*",
-          "/*?*=",
         ],
       },
       {
@@ -40,9 +41,6 @@ export default function robots(): MetadataRoute.Robots {
           "/sign-in/",
           "/sign-up/",
           "/api/",
-          "/*?lang=*",
-          "/*?contact*",
-          "/*?*=",
         ],
       },
       // Search-oriented Generative AI Bots & Copilot
@@ -69,6 +67,6 @@ export default function robots(): MetadataRoute.Robots {
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
-    host: baseUrl,
+    host,
   };
 }

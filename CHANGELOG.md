@@ -4,6 +4,27 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Fixed & Optimized: Audit & Koreksi Komprehensif Google Search Console ("Crawled - currently not indexed" & "Page with redirect") (Iterasi 7)
+
+- **Aktivasi `dynamicParams = true` pada Rute Dinamis (`src/app/(public)/artikel/[slug]/page.tsx` & `src/app/(public)/proyek/[slug]/page.tsx`)**:
+  - Mengubah `export const dynamicParams = true` (sebelumnya terkunci `false` yang memicu 404 pada artikel/proyek baru yang belum termasuk dalam static build params).
+  - Memastikan seluruh konten yang dipublikasikan setelah build atau di database live dapat di-render secara on-demand (ISR/SSR) dan tidak lagi mengembalikan status HTTP 404 ke Googlebot.
+- **Konfigurasi 301 Permanent Redirects untuk URL Warisan yang Terhapus/Berganti Slug (`next.config.ts`)**:
+  - Menambahkan aturan redirect permanen (301) di Next.js config untuk URL sampel yang gagal validasi GSC:
+    - `/artikel/cara-kerja-serangan-ddos-dan-mitigasi` → `/artikel/anatomi-serangan-siber-web-dan-mitigasi` (301 Permanent)
+    - `/artikel/panduan-instalasi-wazuh-siem` → `/proyek/sentinel-soc` (301 Permanent)
+    - `/artikel/optimasi-integrasi-google-gemini-api` → `/artikel/membuat-gambar-di-gemini-panduan-teknis-integrasi-api` (301 Permanent)
+  - Mengeliminasi kegagalan validasi Googlebot yang sebelumnya mendapati respon HTTP 404 pada re-crawl berkala.
+- **Pembersihan `robots.txt` & Kepatuhan Standar RFC 9309 (`src/app/robots.ts`)**:
+  - Menghapus aturan `Disallow: /*?contact*` yang sebelumnya menghalangi Googlebot merayapi dan memverifikasi pengalihan (redirect) dari URL parameter kontak ke `#kontak`.
+  - Memperbaiki direktif `host:` agar menghasilkan format hostname murni tanpa skema protokol (`sigitadi.id`, bukan `https://sigitadi.id`) sesuai standar RFC 9309.
+- **Standardisasi Hostname Kanonikal & Perlindungan Host Produksi (`src/lib/canonical-host.ts` & seluruh halaman)**:
+  - Menyediakan fungsi `canonicalBaseUrl()` yang mengamankan fallback ke `https://sigitadi.id` di lingkungan produksi, mencegah kebocoran URL `localhost` atau `127.0.0.1` ke tag `canonical`, OpenGraph, Twitter card, dan `sitemap.xml`.
+  - Memperbarui `sitemap.ts`, `layout.tsx`, `seo.ts`, serta halaman `artikel/[slug]`, `proyek/[slug]`, dan `toko/[slug]` agar konsisten merujuk ke domain kanonikal resmi.
+- **Sinkronisasi Paritas Penuh 17 Artikel & Normalisasi Tags (`src/lib/dummy-data.ts`, `data/local-store.json`)**:
+  - Memulihkan dan menyinkronkan 17 artikel lengkap (termasuk `membuat-gambar-di-gemini-panduan-teknis-integrasi-api` dan `panduan-ssh-untuk-mengamankan-akses-server`) dengan status `published: true`.
+  - Menormalisasi struktur array `tags: string[]` dan menambahkan proteksi null-safety `techStack` pada seluruh komponen proyek publik (`project-detail-content.tsx`, `featured-projects-section.tsx`, `projects-catalog-content.tsx`), menjamin 100% kelulusan SSG prerender pada seluruh 51 rute.
+
 ### Changed & Streamlined: Unifikasi Penuh 1 Kartu Profil & Perampingan Ekstrem Teks Filter Minimalis (Iterasi 6)
 
 - **Unifikasi Total 1 Kartu Profil Publik (`src/components/public/profile/profile-tabs.tsx`)**:

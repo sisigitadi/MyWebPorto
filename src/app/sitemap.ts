@@ -1,10 +1,11 @@
 import { MetadataRoute } from "next";
 import { getProjects, getArticles, getProducts } from "@/lib/actions";
 import { getProductSlug } from "@/lib/product-link";
+import { canonicalBaseUrl } from "@/lib/canonical-host";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // PENTING: harus sama dengan domain di Vercel env & GSC property (tanpa trailing slash)
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+  const baseUrl = canonicalBaseUrl();
   // image:loc wajib URL absolut (skema + host) — kolom DB menyimpan path relatif /api/media/<id>
   // Catatan XML: '&' query-string (mis. ?q=80&w=800) wajib di-escape jadi '&amp;'
   // karena serializer sitemap Next.js tidak meng-escape otomatis.

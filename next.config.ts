@@ -52,6 +52,26 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Redirect permanen untuk slug legacy yang sebelumnya terindeks di mesin pencari
+  async redirects() {
+    return [
+      {
+        source: "/artikel/cara-kerja-serangan-ddos-dan-mitigasi",
+        destination: "/artikel/anatomi-serangan-siber-web-dan-mitigasi",
+        permanent: true,
+      },
+      {
+        source: "/artikel/panduan-instalasi-wazuh-siem",
+        destination: "/proyek/sentinel-soc",
+        permanent: true,
+      },
+      {
+        source: "/artikel/optimasi-integrasi-google-gemini-api",
+        destination: "/artikel/membuat-gambar-di-gemini-panduan-teknis-integrasi-api",
+        permanent: true,
+      },
+    ];
+  },
   // Security Headers — lihat SECURITY.md §3 untuk mapping OWASP
   async headers() {
     return [

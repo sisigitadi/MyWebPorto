@@ -20,11 +20,24 @@
  * CHANGELOG.
  */
 
+/** Base URL kanonik absolut, dengan guard fallback ke sigitadi.id di production jika env diset ke localhost. */
+export function canonicalBaseUrl(): string {
+  const raw = (process.env.NEXT_PUBLIC_APP_URL || "").trim().replace(/\/+$/, "");
+  if (!raw || (process.env.NODE_ENV === "production" && (raw.includes("localhost") || raw.includes("127.0.0.1")))) {
+    return "https://sigitadi.id";
+  }
+  return raw || "https://sigitadi.id";
+}
+
 /** Host kanonik dari env, mis. `NEXT_PUBLIC_APP_URL=https://sigitadi.id` → `sigitadi.id`. */
 export function canonicalHostname(): string {
-  const raw = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/+$/, "");
+  const raw = canonicalBaseUrl();
   try {
-    return new URL(raw).hostname.toLowerCase();
+    const host = new URL(raw).hostname.toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1") {
+      return process.env.NODE_ENV === "production" ? "sigitadi.id" : host;
+    }
+    return host;
   } catch {
     return "sigitadi.id";
   }
