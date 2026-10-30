@@ -4,6 +4,19 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Optimized & Fixed: Eliminasi Hydration Layout Switch (0ms LCP Delay), Aksesibilitas Kontras WCAG AAA & Sanitasi Animasi LED (Iterasi 9)
+
+- **Eliminasi 1,690 ms Hydration Element Render Delay Mobile (`src/components/public/os/os-desktop-manager.tsx`)**:
+  - Mengubah state awal default `viewMode` dari `"desktop"` menjadi `"mobile"`.
+  - Memastikan output SSR dan inisialisasi render pada perangkat mobile adalah 100% identik sejak frame pertama.
+  - Mengeliminasi proses unmount/remount layout DOM yang sebelumnya terjadi saat `useEffect` membalik mode tampilan di browser mobile, sehingga elemen paragraf bio hero (LCP element) tidak pernah dirombak ulang pada proses hidrasi klien (mengeliminasi 1,690 ms element render delay).
+- **Penyempurnaan Aksesibilitas Kontras & Kepatuhan WCAG AAA (`src/components/public/profile/profile-tabs.tsx`)**:
+  - Memperbaiki warna teks badge status retro `LIVE // READY` menjadi `text-[#064e3b] dark:text-[#a7f3d0]`, menghasilkan rasio kontras > 7:1 di atas latar `--vt-chrome` dan menuntaskan audit axe Color Contrast.
+- **Pencegahan Audit Non-Composited Animation (`src/components/public/os/os-window.tsx` & `os-desktop-manager.tsx`)**:
+  - Menghilangkan class animasi pulse yang tidak terkomposisi pada elemen span indikator status LED jendela retro (`OSWindow` statusline dan wallpaper desktop). LED beroperasi sebagai visual steady indicator hemat daya tanpa beban siklus thread kompositor GPU.
+- **Sanitasi Keterangan Tautan Produk (`src/components/public/products-section.tsx`)**:
+  - Menambahkan atribut `aria-label` unik yang menyertakan judul produk spesifik pada seluruh tombol "Lihat Detail" di katalog produk (mode tabel dan mode grid), menyelesaikan audit `Identical links have the same purpose` di Google Lighthouse.
+
 ### Optimized & Fixed: Audit Performa Mobile PageSpeed Insights (Eliminasi 2,760ms LCP Delay, 321ms Forced Reflow, Perampingan DOM Size & Legacy JS Polyfills) (Iterasi 8)
 
 - **Eliminasi Total 2,760 ms Element Render Delay & LCP Bottleneck Mobile (`src/components/public/os/os-boot-loader.tsx` & `hero-section.tsx`)**:

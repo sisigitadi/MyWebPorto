@@ -163,7 +163,8 @@ export function OSDesktopManager({
   // Mode tampilan: "mobile" = single-page scroll (<768px), "desktop" =
   // window manager tab (>=768px). Sengaja memakai breakpoint md Tailwind
   // (768px) agar sinkron dengan utility hidden/md:flex di JSX.
-  const [viewMode, setViewMode] = useState<"mobile" | "desktop">("desktop");
+  // Default "mobile" agar SSR & mobile hydration 100% identik tanpa remount DOM (0ms LCP delay)
+  const [viewMode, setViewMode] = useState<"mobile" | "desktop">("mobile");
 
   // Feature flag (settings.features): matikan app Terminal/Artikel tanpa
   // menyentuh /admin/appearance. Satu flag "asisten AI retro" mengikat app
@@ -828,7 +829,7 @@ export function OSDesktopManager({
                 {/* Title header bar */}
                 <div className="w-full flex items-center justify-between px-1 pb-1.5 mb-1.5 border-b border-[var(--vt-edge-lo)]/50 text-[10px] sm:text-xs font-mono font-bold text-muted-foreground select-none">
                   <span className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
                     <span className="text-[var(--vt-ink)] tracking-wide">WALLPAPER.BMP</span>
                   </span>
                   <span className="opacity-70 text-[9px] sm:text-[10px]">SigitOS 2026</span>

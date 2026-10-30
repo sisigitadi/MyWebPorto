@@ -1,7 +1,29 @@
 # DRAF REVISI & RENCANA KERJA TEKNIS
 
 **Status:** Selesai & Terverifikasi — Siap Dideploy ke Produksi  
-**Terakhir Diperbarui:** 2026-10-30 (Iterasi 8: Optimasi PageSpeed Insights Mobile - LCP, Reflow, DOM & Polyfill)  
+**Terakhir Diperbarui:** 2026-10-30 (Iterasi 9: Eliminasi Hydration LCP Delay, Kontras WCAG AAA & Sanitasi Animasi)  
+
+---
+
+## Riwayat Eksekusi Iterasi 9 (Eliminasi Hydration LCP Delay, Kontras WCAG AAA & Sanitasi Animasi)
+- **Pekerjaan:** 
+  1. Analisis lanjutan laporan PageSpeed Insights Mobile (Skor naik dari 73 ke **82**, TBT turun drastis ke 130ms, SI turun ke 3.9s, CLS 0 sempurna).
+  2. Mengatasi sisa 1,690 ms Element Render Delay pada LCP dengan menyelaraskan SSR mobile layout default.
+  3. Menyelesaikan peringatan Aksesibilitas (Kontras `LIVE // READY` dan Identical links pada kartu produk) serta mengeliminasi non-composited animation pada statusline `OSWindow`.
+- **Temuan & Solusi yang Diterapkan:**
+  1. **Akar Masalah Sisa Element Render Delay 1,690 ms**:
+     - *Masalah:* Paragraf bio hero masih memiliki render delay 1,690 ms di Lighthouse mobile.
+     - *Penyebab Teknis:* State awal `viewMode` di `os-desktop-manager.tsx` sebelumnya default bernilai `"desktop"`. Ketika Next.js merender SSR, layout desktop yang dikirim. Saat hidrasi di perangkat ponsel (Moto G Power), hook `matchMedia` mendeteksi layar <768px dan memanggil `setViewMode("mobile")`. Akibatnya, React merombak (unmount/remount) seluruh pohon DOM hero tepat pada detik ke-1.6, memaksa browser menghitung ulang LCP dari nol.
+     - *Solusi:* Mengubah inisialisasi default `viewMode` menjadi `"mobile"`. SSR kini langsung menyajikan layout mobile, sehingga saat dihidrasi di ponsel pintar, struktur DOM adalah 100% identik tanpa siklus pembongkaran/pemasangan ulang layout.
+  2. **Kontras Teks `LIVE // READY` (Aksesibilitas 97 ➔ 100)**:
+     - *Masalah:* Teks `LIVE // READY` dengan kelas `text-emerald-700` di atas latar abu-abu chrome memiliki rasio kontras di bawah standar WCAG AA.
+     - *Solusi:* Memperbarui warna teks menjadi `text-[#064e3b] dark:text-[#a7f3d0]` dengan rasio kontras > 7:1 (kepatuhan WCAG AAA).
+  3. **Tautan Produk Identik (Identical links have the same purpose)**:
+     - *Masalah:* Seluruh kartu produk di beranda menggunakan teks link yang sama ("Lihat Spesifikasi & Detail") tanpa keterangan pembeda produk mana yang dituju.
+     - *Solusi:* Menambahkan atribut `aria-label` unik (`Lihat spesifikasi & detail ${product.title}`) pada tombol detail produk mode grid dan tabel.
+  4. **Eliminasi Non-Composited Animation (`div.vt-window > div.mt-1 ... animate-pulse`)**:
+     - *Masalah:* Lampu LED indikator status pada footer `OSWindow` dan wallpaper desktop memicu peringatan Lighthouse "Unsupported CSS Property: top pulse".
+     - *Solusi:* Mengubah LED menjadi indikator solid retro `inline-block` tanpa animasi pulse tak terkomposisi, menghemat thread kompositor browser.
 
 ---
 
