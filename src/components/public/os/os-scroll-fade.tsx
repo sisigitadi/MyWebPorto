@@ -52,7 +52,7 @@ export function ScrollFade({
       aria-hidden="true"
       className="vt-scroll-fade pointer-events-none absolute bottom-0 left-0 right-0 h-8 flex items-end justify-center"
     >
-      <span className="vt-scroll-fade-chevron animate-bounce">▾</span>
+      <span className="vt-scroll-fade-chevron inline-block select-none">▾</span>
     </div>
   );
 }

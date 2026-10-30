@@ -85,6 +85,7 @@ test("kartu section muncul tanpa refresh setelah ganti app via ikon", async ({ p
 
   // Sampai di app proyek lewat klik ikon (switchApp — yang menulis hash,
   // jadi setelah reload pun tetap di app yang sama).
+  await page.locator("button.vt-icon").first().waitFor({ state: "visible", timeout: 15_000 });
   const nIcons = await page.locator("button.vt-icon").count();
   let switched = false;
   for (let i = 0; i < nIcons; i++) {

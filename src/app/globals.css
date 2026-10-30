@@ -861,11 +861,13 @@ body {
 }
 
 .vt-scroll-fade-chevron {
+  display: inline-block;
   font-size: 0.7rem;
   line-height: 1;
   color: var(--vt-blue);
   opacity: 0.85;
   text-shadow: 0 1px 0 var(--vt-edge-hi);
+  pointer-events: none;
 }
 
 /* ========================================================
