@@ -196,3 +196,15 @@
 - ESLint bersih tanpa error maupun warning.
 - Build produksi Next.js 16 berhasil menghasilkan 49 static & SSG routes dengan sukses.
 - Perubahan siap dimerge ke `main` dan dideploy ke Vercel production.
+
+## Iterasi 10 — Terminal CRT Autentik (Inline Prompt, Tab Auto-Completion, Keyboard Shortcuts & Shell Commands) & Tombol Caption Jendela Windows OS
+
+### Status
+- **Cabang Git**: `feat/terminal-inline-input-and-windows-caption-buttons`
+- **Status Pengujian**: Lint 0 error/warning, 50 test files passed (627 tests), Build 51/51 routes static berhasil.
+
+### Ringkasan Pekerjaan
+1. **Terminal Inline Prompt**: Form perintah dipindahkan langsung ke dalam kanvas log CRT di baris berikutnya (`guest@sigitos:~$`), dilengkapi kursor berkedip hijau fosfor, click-to-focus di seluruh layar, auto-scroll dinamis, dan pemindahan tombol TTS ke header toolbar.
+2. **Tab Auto-Completion & Keyboard Shortcuts**: Tab melengkapi perintah, argumen, dan virtual file dengan deteksi kandidat ganda. Shortcuts `Ctrl+L` (clear screen), `Ctrl+C` (abort/SIGINT), `Ctrl+U` (clear line), serta `ArrowUp`/`ArrowDown` (history).
+3. **Perluasan Shell Commands**: Menambahkan perintah `cat`, `cd`, `uname`, `sudo`, `uptime`, `top`, `ping`, `curl`, `cowsay`, `matrix`, dan `exit`.
+4. **Tombol Jendela Windows OS Autentik**: Minimize (`Minus`), Maximize / Restore Down (`Square` / overlapping squares dinamis) dengan ekspansi modal viewport penuh & tombol Esc, Close dengan hover merah khas Windows (`#e81123`), dan pembungkusan Terminal CRT di Desktop Manager dengan titlebar standar.

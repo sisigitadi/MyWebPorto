@@ -4,6 +4,53 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Added & Enhanced: Terminal CRT Autentik (Inline Input, Tab Auto-Completion, Keyboard Shortcuts & Shell Commands) & Tombol Caption Jendela Windows OS (Iterasi 10)
+
+- **Input Teks Inline Autentik di Layar CRT (`src/components/public/os/os-crt-terminal.tsx`)**:
+  - Memindahkan baris form input perintah dari footer luar bawah menjadi baris prompt aktif langsung di dalam kanvas scrollable log (`role="log"`).
+  - Menampilkan shell prompt ala Unix: `guest@sigitos:~# Changelog MyWebPorto
+
+Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
+
+ dengan caret hijau fosfor (`caret-[#37ff9b]`) yang berkedip langsung di baris aktif.
+  - Menambahkan fitur *click-to-focus* di seluruh layar hitam terminal CRT (`terminalBodyRef` click handler) tanpa mengganggu seleksi teks pengguna.
+  - Merelokasi tombol toggle kontrol TTS ke bilah kontrol atas (*top bar actions*), menjaga layar terminal bersih dan murni berorientasi command-line.
+  - Mempertahankan kontrol mikrofon (Voice Input) dan tombol Enter yang ringkas secara inline untuk kenyamanan layar sentuh/mobile.
+- **Fitur Terminal Asli: Tab Auto-Completion & Keyboard Shortcuts (`src/components/public/os/os-crt-terminal.tsx`)**:
+  - Mengimplementasikan **Tab Auto-Completion** cerdas untuk seluruh perintah sistem (`skills`, `projects`, `services`, `articles`, `contact`, `neofetch`, dll.), nama aplikasi (`open <app>`), nama tema (`theme <theme>`), bahasa (`lang <id|en>`), berkas virtual (`cat <file>`), dan topik bantuan (`help <topic>`).
+  - Menampilkan daftar pilihan kandidat di layar shell ketika terdapat lebih dari satu kecocokan perintah (mirip bash/zsh/PowerShell).
+  - Menambahkan pintasan keyboard standar terminal:
+    - `Tab`: Auto-complete perintah dan argumen.
+    - `Ctrl + L`: Membersihkan layar terminal (*clear console*).
+    - `Ctrl + C`: Menginterupsi atau membatalkan baris aktif (mencetak `^C` dan membuka baris prompt baru serta menghentikan inferensi AI yang aktif).
+    - `Ctrl + U`: Menghapus seluruh teks di baris input aktif.
+    - `ArrowUp` / `ArrowDown`: Navigasi riwayat perintah sebelumnya (*command history*).
+- **Perluasan Koleksi Perintah Shell Lengkap (`src/components/public/os/os-crt-terminal.tsx`)**:
+  - `cat <file>` / `type <file>`: Membaca berkas virtual (`readme.txt`, `profil.txt`, `skills.txt`, `proyek.txt`, `layanan.txt`, `kontak.txt`).
+  - `cd <dir>`: Navigasi direktori virtual atau pintasan ke modul aplikasi portofolio.
+  - `uname [-a]`: Menampilkan informasi arsitektur kernel & POSIX SigitOS.
+  - `sudo <cmd>`: Menampilkan pesan keamanan otentik Unix (*"guest is not in the sudoers file. This incident will be reported to Sigit."*).
+  - `uptime`: Menampilkan durasi sistem berjalan dan status beban sesi.
+  - `top` / `htop`: Menampilkan snapshot tabel proses sistem interaktif.
+  - `ping <host>`: Simulasi uji transmisi paket jaringan ICMP dengan latensi ms.
+  - `curl <url>`: Simulasi permintaan HTTP lengkap dengan respon header dan body JSON.
+  - `cowsay <text>`: ASCII art sapi klasik berbicara teks yang dimasukkan.
+  - `matrix`: Efek hujan digital Matrix hijau klasik.
+  - `exit` / `quit`: Mengakhiri sesi terminal dan kembali ke desktop.
+- **Kontrol Jendela (Caption Buttons) Autentik Windows OS (`src/components/public/os/os-window.tsx` & `os-desktop-manager.tsx`)**:
+  - **Minimize (`_` / `Minus`)**: Mengganti ikon panah `Minimize2` menjadi garis horizontal `Minus` khas Windows, dengan suara retro `playOS("minimize")`.
+  - **Maximize / Restore Down (`□` / `⧉`)**:
+    - Ikon dinamis berganti antara kotak tunggal (`Square` / `□`) saat normal dan dua kotak bertumpuk (*Restore Down* `⧉`) saat fullscreen.
+    - Pada `OSWindow`, jendela diekspansi menjadi modal viewport penuh (`fixed inset-2 sm:inset-4 z-50 shadow-2xl`) dengan backdrop overlay redup (`fixed inset-0 bg-black/75 backdrop-blur-xs z-40`).
+    - Menambahkan shortcut tombol `Escape` (`Esc`) untuk restore down saat maximized.
+    - Mendukung double-click pada titlebar untuk toggle maximize/restore persis Windows OS.
+  - **Close (`✕` / `X`)**:
+    - Menerapkan warna hover merah menyala khas Windows OS (`hover:bg-[#e81123] hover:text-white active:bg-[#f1707a]`).
+    - Menutup jendela ke desktop wallpaper dan membunyikan efek suara `playOS("windowClose")`.
+  - **Terminal Titlebar di Desktop Mode**:
+    - Membungkus aplikasi Terminal CRT di Desktop Manager ke dalam titlebar OS standar (`SigitOS_Viewer :: [7/7] terminal.bat`) lengkap dengan tombol Minimize, Maximize/Restore, dan Close yang seragam.
+
+
 ### Optimized & Fixed: Eliminasi Hydration Layout Switch (0ms LCP Delay), Aksesibilitas Kontras WCAG AAA & Sanitasi Animasi LED (Iterasi 9)
 
 - **Eliminasi 1,690 ms Hydration Element Render Delay Mobile (`src/components/public/os/os-desktop-manager.tsx`)**:
