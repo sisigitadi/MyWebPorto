@@ -766,7 +766,7 @@ export default function AdminProfilePage() {
           </div>
         </TabsContent>
 
-        {/* Tab 4: Kartu Profil OS (5 Tab) */}
+        {/* Tab 4: Kartu Profil Terpadu */}
         <TabsContent value="kartu-os">
           <ProfileCardsEditor cards={profileCards} onChange={setProfileCards} />
         </TabsContent>

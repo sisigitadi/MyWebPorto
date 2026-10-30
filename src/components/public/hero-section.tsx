@@ -102,7 +102,7 @@ export function HeroSection({ profile, profileCards, onOpenContact }: HeroSectio
                 {bio}
               </p>
 
-              {/* Stats Grid inside Profile — 3 kolom simetris sejajar presisi dengan 3 tab profil */}
+              {/* Stats Grid inside Profile — Metrik utama portofolio */}
               <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mb-2 w-full">
                 {profile.stats.map((stat, idx) => (
                   <div

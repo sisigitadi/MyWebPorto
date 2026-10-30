@@ -46,8 +46,8 @@ const ARTICLE_CATEGORIES: ArticleCategoryFilter[] = [
   },
   {
     id: "WEB_STACK",
-    labelId: "Web & Full-Stack",
-    labelEn: "Web & Full-Stack",
+    labelId: "Web",
+    labelEn: "Web",
     match: (tags, title, summary) => {
       const kws = ["next.js", "react", "typescript", "architecture", "retro ui", "gsap", "frontend", "web"];
       const text = `${tags.join(" ")} ${title} ${summary}`.toLowerCase();
@@ -56,8 +56,8 @@ const ARTICLE_CATEGORIES: ArticleCategoryFilter[] = [
   },
   {
     id: "AI_AUTOMATION",
-    labelId: "AI & Otomasi",
-    labelEn: "AI & Automation",
+    labelId: "AI",
+    labelEn: "AI",
     match: (tags, title, summary) => {
       const kws = ["ai", "chatgpt", "gemini", "automation", "video production", "content strategy"];
       const text = `${tags.join(" ")} ${title} ${summary}`.toLowerCase();
@@ -66,8 +66,8 @@ const ARTICLE_CATEGORIES: ArticleCategoryFilter[] = [
   },
   {
     id: "SECURITY",
-    labelId: "Keamanan Siber",
-    labelEn: "Cybersecurity",
+    labelId: "Security",
+    labelEn: "Security",
     match: (tags, title, summary) => {
       const kws = ["cybersecurity", "security", "siem", "wazuh", "hardening", "serangan", "mitigasi"];
       const text = `${tags.join(" ")} ${title} ${summary}`.toLowerCase();
@@ -76,8 +76,8 @@ const ARTICLE_CATEGORIES: ArticleCategoryFilter[] = [
   },
   {
     id: "BACKEND_DATA",
-    labelId: "Backend & Cloud",
-    labelEn: "Backend & Cloud",
+    labelId: "Cloud",
+    labelEn: "Cloud",
     match: (tags, title, summary) => {
       const kws = ["backend", "drizzle", "postgresql", "serverless", "cloud", "database", "api"];
       const text = `${tags.join(" ")} ${title} ${summary}`.toLowerCase();
@@ -184,9 +184,7 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
         <div className="mb-6 p-3 bg-[var(--vt-chrome)] border-2 border-t-[var(--vt-edge-hi-2)] border-l-[var(--vt-edge-hi-2)] border-r-[var(--vt-edge-lo)] border-b-[var(--vt-edge-lo)] shadow-[inset_1px_1px_0_var(--vt-edge-hi),inset_-1px_-1px_0_var(--vt-edge-lo)] flex flex-col md:flex-row gap-3 items-center justify-between min-w-0">
           {/* Category Filter Pills (Ringkas, Informatif & Sesuai Konteks) */}
           <div className="flex flex-wrap gap-1.5 w-full md:w-auto items-center min-w-0">
-            <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-[var(--vt-ink)] mr-1 flex items-center gap-1">
-              <Tag className="h-3 w-3" /> {language === "en" ? "Topic:" : "Topik:"}
-            </span>
+            <Tag className="h-3.5 w-3.5 text-muted-foreground mr-0.5 shrink-0" />
             {ARTICLE_CATEGORIES.map((cat) => {
               const isActive = selectedTag === cat.id;
               const label = language === "en" ? cat.labelEn : cat.labelId;
@@ -215,7 +213,7 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
               <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-[var(--vt-ink-mute)] pointer-events-none" />
               <input
                 type="text"
-                placeholder={language === "en" ? "Search articles..." : "Cari artikel..."}
+                placeholder={language === "en" ? "Search..." : "Cari..."}
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);

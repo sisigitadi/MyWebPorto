@@ -1,7 +1,25 @@
 # DRAF REVISI & RENCANA KERJA TEKNIS
 
 **Status:** Selesai & Terverifikasi — Siap Dideploy ke Produksi  
-**Terakhir Diperbarui:** 2026-10-30 (Iterasi 5: Unifikasi Kartu Profil & Penyederhanaan Filter Sesuai Konteks Portofolio)  
+**Terakhir Diperbarui:** 2026-10-30 (Iterasi 6: Unifikasi Menyeluruh 1 Kartu Profil & Perampingan Ekstrem Teks Filter Minimalis)  
+
+---
+
+## Riwayat Eksekusi Iterasi 6 (Unifikasi 1 Kartu Profil & Perampingan Teks Filter Minimalis)
+- **Pekerjaan:** 
+  1. Menuntaskan umpan balik user: mentransformasi kartu profil publik dan panel admin menjadi benar-benar **SATU kartu profil tunggal** yang ringkas, informatif, dan sesuai konteks web portofolio developer (tanpa tumpukan sub-kartu atau bagian 1/2/3 terpisah).
+  2. Memangkas dan merampingkan teks filter di seluruh situs (publik & admin) menjadi minimalis, berbobot, dan to the point tanpa kata pengantar berlebih atau angka kurung yang ramai.
+- **Temuan & Solusi yang Diterapkan:**
+  1. **Unifikasi Penuh Menjadi 1 Kartu Profil Publik (`src/components/public/profile/profile-tabs.tsx`)**:
+     - *Masalah:* Sebelumnya sub-bagian ketersediaan, 4-grid kotak tech stack, dan kolom karir masih tampak seperti 3 kartu terpisah yang ditumpuk.
+     - *Solusi:* Seluruh konten direkayasa ulang menjadi **SATU kartu retro system specification tunggal** (`PROFILE_SPECIFICATION.SYS`). Baris atas menyajikan status langsung (`LIVE // READY`), status ketersediaan, lokasi/zona waktu, dan SLA respon. Konten utama dibagi ke dalam 2 kolom terpadu: Kolom Kiri untuk Arsenal Teknologi (Frontend, Backend, Cloud & Security), Kolom Kanan untuk Lingkup Rekayasa dan sorotan pengalaman utama. Footer menyajikan jaminan SLA konsultasi langsung.
+  2. **Unifikasi Editor Profil Admin Menjadi 1 Kartu Tunggal (`src/components/admin/profile-cards-editor.tsx`)**:
+     - *Masalah:* Panel admin masih memiliki 3 sekat bagian terpisah (`BAGIAN 1`, `BAGIAN 2`, `BAGIAN 3`) yang menyerupai 3 kartu independen.
+     - *Solusi:* Mengeliminasi sekat sub-kartu tersebut menjadi 1 komponen Card terpadu dengan 4 grup field yang mengalir rapi: Grup Ketersediaan & SLA, Grup Lingkup Kolaborasi, Grup Arsenal Stack Teknologi, dan Grup Sorotan Pengalaman, dilengkapi tombol master terjemahan dwibahasa sekali klik.
+  3. **Perampingan & Penyederhanaan Teks Filter Minimalis**:
+     - *Artikel Publik (`articles-section.tsx`)*: Menghapus label teks `"Topik:"` / `"Topic:"` (hanya mempertahankan ikon tag). Menyederhanakan kategori menjadi tag 1 kata: `Semua` | `Web` | `AI` | `Security` | `Cloud` (EN: `All` | `Web` | `AI` | `Security` | `Cloud`). Mengubah placeholder pencarian menjadi `"Cari..."` (EN: `"Search..."`).
+     - *Produk & Toko (`products-section.tsx` & `products-catalog-content.tsx`)*: Menghapus label teks `"Kategori:"` / `"Category:"` (hanya mempertahankan ikon layers). Menghilangkan angka kurung `({count})` dari pill kategori: `Semua` | `Code` | `Tools` | `Layanan` (EN: `All` | `Code` | `Tools` | `Services`). Menyederhanakan dropdown sort menjadi `Terbaru` | `Termurah` | `Tertinggi` (EN: `Latest` | `Lowest` | `Highest`). Mengubah placeholder pencarian menjadi `"Cari..."`.
+     - *Admin Filters (`orders`, `articles`, `products`, `projects`, `testimonials`)*: Memperpendek seluruh tombol status order menjadi `Semua` | `Pending` | `Dibayar` | `Proses` | `Selesai` | `Batal`. Merampingkan seluruh placeholder pencarian tabel admin menjadi `"Cari..."`.
 
 ---
 

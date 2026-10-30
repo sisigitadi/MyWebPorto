@@ -535,7 +535,7 @@ export default function AdminProductsPage() {
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[var(--vt-ink-mute)]" />
           <Input
-            placeholder="Cari produk atau deskripsi..."
+            placeholder="Cari..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-8 text-xs h-9 bg-[var(--vt-paper)] border-[var(--vt-edge-lo-2)]"

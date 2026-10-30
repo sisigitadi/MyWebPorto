@@ -4,6 +4,18 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Changed & Streamlined: Unifikasi Penuh 1 Kartu Profil & Perampingan Ekstrem Teks Filter Minimalis (Iterasi 6)
+
+- **Unifikasi Total 1 Kartu Profil Publik (`src/components/public/profile/profile-tabs.tsx`)**:
+  - Menggabungkan seluruh data kesiapan kerja, status ketersediaan, jaminan SLA, arsenal stack teknologi, lingkup rekayasa, dan sorotan pengalaman ke dalam SATU kartu retro system specification tunggal (`PROFILE_SPECIFICATION.SYS`).
+  - Menghilangkan struktur 3 kartu sub-bagian yang bertumpuk. Mengadopsi tata letak 2 kolom terpadu yang ringkas dan padat informasi tanpa kotak bersarang (nested boxes).
+- **Unifikasi Editor Profil Admin Menjadi 1 Kartu Tunggal (`src/components/admin/profile-cards-editor.tsx`)**:
+  - Mengeliminasi sekat sub-kartu `BAGIAN 1`, `BAGIAN 2`, `BAGIAN 3` menjadi satu komponen Card editor terpadu yang terstruktur dengan grup field yang rapi dan tombol master translate dwibahasa.
+- **Penyederhanaan & Perampingan Teks Filter Minimalis**:
+  - *Artikel Publik*: Mengubah pill menjadi 1 kata: `Semua` | `Web` | `AI` | `Security` | `Cloud` (EN: `All` | `Web` | `AI` | `Security` | `Cloud`). Menghapus teks `"Topik:"` / `"Topic:"` (hanya mempertahankan ikon tag). Placeholder: `"Cari..."`.
+  - *Produk & Toko*: Menghapus teks `"Kategori:"` / `"Category:"` (hanya mempertahankan ikon layers). Menghilangkan kurung angka `({count})` dari pill: `Semua` | `Code` | `Tools` | `Layanan` (EN: `All` | `Code` | `Tools` | `Services`). Sortir: `Terbaru` | `Termurah` | `Tertinggi`. Placeholder: `"Cari..."`.
+  - *Admin Filters*: Memperpendek seluruh tombol status pesanan admin (`Semua`, `Pending`, `Dibayar`, `Proses`, `Selesai`, `Batal`) dan merampingkan seluruh placeholder pencarian admin di seluruh modul (pesanan, artikel, produk, proyek, testimoni) menjadi `"Cari..."`.
+
 ### Changed & Optimized: Unifikasi Kartu Profil & Penyederhanaan Filter Sesuai Konteks Portofolio (Iterasi 5)
 
 - **Unifikasi Kartu Detail Profil Publik (`src/components/public/profile/profile-tabs.tsx` & `hero-section.tsx`)**:

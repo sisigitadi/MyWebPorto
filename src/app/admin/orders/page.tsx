@@ -591,7 +591,7 @@ export default function AdminOrdersPage() {
                 onClick={() => setOrderStatusFilter("all")}
                 className="h-8 text-xs font-mono px-2.5 shrink-0"
               >
-                Semua ({orders.length})
+                Semua
               </Button>
               <Button
                 variant={orderStatusFilter === "pending" ? "default" : "outline"}
@@ -603,7 +603,7 @@ export default function AdminOrdersPage() {
                     : ""
                 }`}
               >
-                Pending ({stats.pendingCount})
+                Pending
               </Button>
               <Button
                 variant={orderStatusFilter === "paid" ? "default" : "outline"}
@@ -611,7 +611,7 @@ export default function AdminOrdersPage() {
                 onClick={() => setOrderStatusFilter("paid")}
                 className="h-8 text-xs font-mono px-2.5 shrink-0"
               >
-                Dibayar ({orders.filter((o) => o.status === "paid").length})
+                Dibayar
               </Button>
               <Button
                 variant={orderStatusFilter === "processing" ? "default" : "outline"}
@@ -619,7 +619,7 @@ export default function AdminOrdersPage() {
                 onClick={() => setOrderStatusFilter("processing")}
                 className="h-8 text-xs font-mono px-2.5 shrink-0"
               >
-                Proses ({orders.filter((o) => o.status === "processing").length})
+                Proses
               </Button>
               <Button
                 variant={orderStatusFilter === "completed" ? "default" : "outline"}
@@ -627,7 +627,7 @@ export default function AdminOrdersPage() {
                 onClick={() => setOrderStatusFilter("completed")}
                 className="h-8 text-xs font-mono px-2.5 shrink-0"
               >
-                Selesai ({stats.completedCount})
+                Selesai
               </Button>
               <Button
                 variant={orderStatusFilter === "cancelled" ? "default" : "outline"}
@@ -635,7 +635,7 @@ export default function AdminOrdersPage() {
                 onClick={() => setOrderStatusFilter("cancelled")}
                 className="h-8 text-xs font-mono px-2.5 shrink-0"
               >
-                Batal ({orders.filter((o) => o.status === "cancelled").length})
+                Batal
               </Button>
             </div>
 
@@ -644,7 +644,7 @@ export default function AdminOrdersPage() {
                 <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[var(--vt-ink-mute)]" />
                 <Input
                   type="text"
-                  placeholder="Cari invoice, nama, WA..."
+                  placeholder="Cari..."
                   value={orderSearch}
                   onChange={(e) => setOrderSearch(e.target.value)}
                   className="pl-8 h-8 text-xs font-mono bg-background"
@@ -1142,7 +1142,7 @@ export default function AdminOrdersPage() {
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[var(--vt-ink-mute)]" />
               <Input
                 type="text"
-                placeholder="Cari nama, WhatsApp, email..."
+                placeholder="Cari..."
                 value={customerSearch}
                 onChange={(e) => setCustomerSearch(e.target.value)}
                 className="pl-8 h-8 text-xs font-mono bg-background"

@@ -433,7 +433,7 @@ export default function AdminTestimonialsPage() {
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari nama, jabatan, atau isi ulasan..."
+            placeholder="Cari..."
             className="pl-9 text-xs h-9"
           />
         </div>
