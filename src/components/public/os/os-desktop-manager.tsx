@@ -564,26 +564,12 @@ export function OSDesktopManager({
 
   // =================== RENDER ===================
 
-  // Sebelum mount + deteksi viewport: render kerangka netral (mencegah
-  // hydration mismatch dan flash konten salah mode).
-  if (!mounted) {
-    return (
-      <div className="flex-1 w-full h-full flex flex-col overflow-hidden relative select-none">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="vt-window px-6 py-4 font-mono text-xs font-bold text-[var(--vt-ink)]">
-            SIGIT_KERNEL :: initializing display ...
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const activeAppItem = apps.find((a) => a.id === activeApp) || apps[0];
 
-  // ===== MODE MOBILE: single-page scroll =====
-  if (viewMode === "mobile") {
-    const activeAppItem = apps.find((a) => a.id === activeApp) || apps[0];
-
-    return (
-      <div className="flex-1 w-full h-full flex flex-col overflow-hidden relative select-none">
+  return (
+    <div className="flex-1 w-full h-full flex flex-col overflow-hidden relative select-none">
+      {/* ===== MODE MOBILE: single-page scroll (<768px, md:hidden) ===== */}
+      <div className="flex-1 w-full h-full flex flex-col overflow-hidden relative select-none md:hidden">
         <div
           ref={bindMobileScroller}
           data-gsap-scroller="mobile"
@@ -602,6 +588,10 @@ export function OSDesktopManager({
                   sectionRefs.current[id] = el;
                 }}
                 className="scroll-mt-1"
+                style={{
+                  contentVisibility: id === "profil" ? "visible" : "auto",
+                  containIntrinsicSize: "1px 600px",
+                }}
               >
                 {id === "profil" && <HeroSection profile={profile} profileCards={profileCards} />}
                 {id === "layanan" && <ServicesSection services={services} profile={profile} />}
@@ -775,23 +765,10 @@ export function OSDesktopManager({
         />
 
       </div>
-    );
-  }
 
-  // ===== MODE DESKTOP: window manager tab (perilaku lama penuh) =====
-  return (
-    <div className="flex-1 w-full h-full flex flex-col overflow-hidden relative select-none">
-      <div className="flex-1 flex overflow-hidden p-1 sm:p-2 md:p-4 gap-1.5 sm:gap-3 relative">
-        {/* 0. Ambient Desktop Wallpaper Layer (Latar belakang halus retro OS murni CSS tanpa membebani LCP/GPU) */}
-        <div
-          className="absolute inset-0 pointer-events-none select-none overflow-hidden z-0 contain-strict"
-          style={{ contain: "strict" }}
-          aria-hidden="true"
-        >
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--vt-desktop)_0%,_transparent_75%)] opacity-35" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[var(--vt-desktop)]/85 via-transparent to-[var(--vt-desktop)]/85" />
-          <div className="absolute inset-0 vt-scanlines opacity-10" />
-        </div>
+      {/* ===== MODE DESKTOP: window manager (>=768px, hidden md:flex) ===== */}
+      <div className="flex-1 w-full h-full hidden md:flex flex-col overflow-hidden relative select-none">
+        <div className="flex-1 flex overflow-hidden p-1 sm:p-2 md:p-4 gap-1.5 sm:gap-3 relative">
 
         {/* Rail Shortcut Ikon Desktop (kiri) */}
         <div className={`flex-col gap-2 shrink-0 z-10 w-24 py-1 ${isMinimized ? "flex" : "hidden lg:flex"}`}>
@@ -1268,6 +1245,7 @@ export function OSDesktopManager({
           isEn={language === "en"}
         />
       )}
+      </div>
     </div>
   );
 }

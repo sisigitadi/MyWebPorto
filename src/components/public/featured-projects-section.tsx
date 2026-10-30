@@ -181,6 +181,7 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
                         rel="nofollow noopener noreferrer"
                         className="vt-btn vt-btn-pink py-1.5 px-3 text-xs font-bold font-mono justify-center"
                         title={language === "en" ? "Run Live Demo" : "Jalankan Demo Langsung"}
+                        aria-label={language === "en" ? `Run ${title} live demo` : `Jalankan demo langsung ${title}`}
                       >
                         <ExternalLink className="h-3 w-3 mr-1" />
                         <span>RUN</span>

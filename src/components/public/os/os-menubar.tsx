@@ -1,18 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import dynamic from "next/dynamic";
 import { Calendar, Globe } from "lucide-react";
 import { useOSTheme, OSTheme } from "./theme-context";
 import { useTranslation } from "@/lib/i18n";
 import { ProfileData } from "@/lib/dummy-data";
-import { hasClerkPublishableKey } from "@/lib/env";
-
-// Dynamic import for MenubarUser: ensures @clerk/nextjs is code-split away from the initial homepage chunk
-const MenubarUser = dynamic(
-  () => import("./os-menubar-user").then((mod) => mod.MenubarUser),
-  { ssr: false }
-);
 
 interface OSMenubarProps {
   profile: ProfileData;
@@ -130,8 +122,6 @@ export function OSMenubar({ profile }: OSMenubarProps) {
             <span>{fullDate}</span>
           </div>
 
-          {/* User Button / Admin link — dimuat secara lazy saat Clerk aktif */}
-          {hasClerkPublishableKey() ? <MenubarUser /> : null}
         </div>
       </div>
     </header>

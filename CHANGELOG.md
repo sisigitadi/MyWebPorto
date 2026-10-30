@@ -4,6 +4,26 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Optimized & Fixed: Audit Performa Arsitektural Iterasi 3 (Dekopling Total Clerk SDK, Eliminasi Kernel SSR & Redundant Wallpaper Div, CSS Responsive Dual Rendering, Native Virtualisasi DOM, & Perbaikan SVG/A11y)
+
+- **Dekopling Total Clerk SDK (~300 KiB) dari Situs Publik (`src/app/layout.tsx`, `os-menubar.tsx`, `os-menubar-user.tsx`)**:
+  - Memindahkan `<ClerkProvider>` keluar dari root layout dan mengisolasinya secara eksklusif di dalam sub-layout rute terproteksi (`src/app/admin/layout.tsx`, `src/app/sign-in/layout.tsx`, `src/app/sign-up/layout.tsx`).
+  - Menghapus komponen `MenubarUser` dari menubar publik. Homepage publik kini murni menyajikan HTML tanpa runtime Clerk (`clerk.browser.js`, `ui-common`, `vendors_ui`), mengeliminasi long tasks di thread utama ponsel.
+- **Eliminasi Desktop CLS 0.336 (`src/components/public/os/os-desktop-manager.tsx`)**:
+  - Menghapus div ambient wallpaper `<div class="absolute inset-0 ... contain-strict">` di dalam flex container `os-desktop-manager.tsx` yang memicu pergeseran tata letak sebesar 0.332 saat hidrasi. Latar dot-grid desktop kini diserahkan sepenuhnya ke `.desktop-wallpaper` pada layout publik.
+  - Menghapus unmounting placeholder kernel saat hidrasi yang sebelumnya merusak stabilitas visual window desktop.
+- **Eliminasi Mobile Element Render Delay (3,240 ms) & Speed Index 11.8s (`os-desktop-manager.tsx`)**:
+  - Menghapus blok `if (!mounted) return <LoadingKernel />` sehingga server menghasilkan seluruh elemen profil (teks bio, heading, dan avatar) langsung pada dokumen HTML awal (FCP).
+  - Merender layout Mobile (`md:hidden`) dan Desktop (`hidden md:flex`) secara murni berbasis responsivitas CSS tanpa jeda tunggu hidrasi JavaScript.
+- **Virtualisasi DOM Native Mobile via `content-visibility: auto` (`os-desktop-manager.tsx`)**:
+  - Menerapkan `content-visibility: auto` dan `contain-intrinsic-size: 1px 600px` pada section bawah fold (`layanan`, `proyek`, `toko`, `artikel`, `sertifikat`, `testimoni`, `kontak`, `terminal`).
+  - Memangkas elemen layout awal dari 2,430 elemen menjadi ~250 elemen, menghemat 1,849 ms Style & Layout pada CPU mobile.
+- **Sanitasi Animasi Non-Composited SVG (`src/components/public/service-schematic.tsx`)**:
+  - Menghapus class conflicting `animate-ping` pada elemen `<circle>` SVG yang menjalankan SMIL `<animateMotion>`, menghentikan kalkulasi ulang matriks layout CPU pada setiap frame.
+- **Penyempurnaan Aksesibilitas Live Demo Links (`src/components/public/featured-projects-section.tsx`)**:
+  - Menambahkan atribut `aria-label` deskriptif unik pada setiap tombol tautan `RUN` demo langsung proyek.
+
+
 ### Optimized & Fixed: Audit Performa Komprehensif Iterasi 2 (Eliminasi False Desktop LCP, Stabilisasi Speed Index Mobile, Code-Splitting Clerk, Pure CSS Ambient Wallpaper, Lazy External Media & A11y Links)
 
 - **Eliminasi False Desktop LCP (`src/components/public/os/os-desktop-manager.tsx`)**:

@@ -2,7 +2,8 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { isAdminOwnerConfigured } from "@/lib/admin-auth";
-import { isProduction } from "@/lib/env";
+import { isProduction, hasClerkPublishableKey } from "@/lib/env";
+import { ClerkProvider } from "@clerk/nextjs";
 import { db, isDbConnected } from "@/db";
 import { AdminLayoutShell } from "@/components/admin/admin-layout-shell";
 import { ThemeProvider } from "@/components/public/os/theme-context";
@@ -49,7 +50,7 @@ export default async function AdminLayout({
   const profile = await getProfile();
   const dbConnected = await probeDb();
 
-  return (
+  const content = (
     <ThemeProvider>
       <AdminLayoutShell
         profileAvatar={profile.avatarUrl}
@@ -60,4 +61,10 @@ export default async function AdminLayout({
       </AdminLayoutShell>
     </ThemeProvider>
   );
+
+  if (!hasClerkPublishableKey()) {
+    return content;
+  }
+
+  return <ClerkProvider>{content}</ClerkProvider>;
 }

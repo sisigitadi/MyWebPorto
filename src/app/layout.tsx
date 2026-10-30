@@ -9,8 +9,6 @@ import {
 } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
-import { ClerkProvider } from "@clerk/nextjs";
-import { hasClerkPublishableKey } from "@/lib/env";
 import { getProfile } from "@/lib/actions";
 import { JsonLdSchema } from "@/components/public/json-ld";
 import { SwRegister } from "@/components/public/sw-register";
@@ -131,18 +129,6 @@ export const viewport: Viewport = {
   themeColor: "#0a0f1e",
 };
 
-/**
- * ClerkProvider hanya saat key valid. Tanpa key (dev lokal tanpa kredensial /
- * CI E2E), SDK Clerk v7 melempar saat inisialisasi → seluruh halaman 500;
- * merender children apa adanya aman: komponen publik yang butuh konteks Clerk
- * (os-menubar) menyembunyikan bagian tersebut, dan /admin fail-closed di
- * proxy.ts. Lihat SECURITY.md.
- */
-function ClerkGate({ children }: { children: React.ReactNode }) {
-  if (!hasClerkPublishableKey()) return <>{children}</>;
-  return <ClerkProvider>{children}</ClerkProvider>;
-}
-
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -151,8 +137,7 @@ export default async function RootLayout({
   const profile = await getProfile();
 
   return (
-    <ClerkGate>
-      <html
+    <html
         lang="id"
         suppressHydrationWarning
         className={`${inter.variable} ${firaCode.variable} ${silkscreen.variable} ${azeretMono.variable} ${spaceGrotesk.variable} ${unbounded.variable}`}
@@ -166,6 +151,5 @@ export default async function RootLayout({
           <SwRegister />
         </body>
       </html>
-    </ClerkGate>
   );
 }
