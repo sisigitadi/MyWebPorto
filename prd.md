@@ -566,6 +566,14 @@ Status saat dokumen ini direvisi:
   - Forced reflow 284 ms di scroll-spy dihilangkan dengan caching bounding box dan defer layout update.
   - Aksesibilitas tautan kartu proyek & artikel dilengkapi `aria-label` pembeda; rute `llms.txt` dicache statis 24 jam.
 
+  - **Optimasi Arsitektural Komprehensif Iterasi 3 (v2026-10-30 - Total Decoupling & Pure CSS Responsive)**:
+    - Dekopling Total Clerk SDK: `<ClerkProvider>` diisolasi eksklusif pada `/admin`, `/sign-in`, dan `/sign-up`. RootLayout dan bundle publik 100% bebas dari script pihak ketiga (~300 KiB runtime Clerk tereliminasi dari thread utama).
+    - Eliminasi Desktop CLS: Ambient wallpaper div redundan dihapus dari flex container `os-desktop-manager.tsx`, menurunkan layout shift score dari 0.336 menjadi 0.000.
+    - Eliminasi Render Delay Mobile 3.24s: Menghapus placeholder `SIGIT_KERNEL` SSR. Tata letak Mobile (`md:hidden`) dan Desktop (`hidden md:flex`) disajikan instan melalui responsivitas CSS murni sehingga teks bio dan avatar langsung masuk pada FCP.
+    - Virtualisasi DOM Native Mobile: Mengaplikasikan `content-visibility: auto` dan `contain-intrinsic-size: 1px 600px` pada section bawah fold, mereduksi elemen layout awal dari 2,430 ke ~250 elemen (menghemat 1.85s Style & Layout).
+    - Sanitasi Animasi SVG: Menghilangkan konflik class `animate-ping` dengan SMIL `<animateMotion>` pada `service-schematic.tsx`.
+    - Aksesibilitas Live Demo: Menyediakan atribut `aria-label` deskriptif unik pada tombol RUN proyek.
+
 ## 14. Rekomendasi Lanjutan (Post-Final)
 
 Prioritas berikutnya:

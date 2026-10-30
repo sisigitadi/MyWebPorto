@@ -179,15 +179,15 @@ export function ServiceSchematic({ service, index }: ServiceSchematicProps) {
             markerEnd={`url(#arrow-${index})`}
           />
 
-          {/* Signal Packet Flow (Animated Dot on hover) */}
-          <circle r="2" fill={config.accentColor} className="animate-ping opacity-75">
+          {/* Signal Packet Flow (Composited SMIL Motion Dot without conflicting CSS animations) */}
+          <circle r="2.5" fill={config.accentColor} opacity="0.85">
             <animateMotion
               path="M 86 31 L 126 31"
               dur="2s"
               repeatCount="indefinite"
             />
           </circle>
-          <circle r="2" fill={config.accentColor} className="animate-ping opacity-75">
+          <circle r="2.5" fill={config.accentColor} opacity="0.85">
             <animateMotion
               path="M 206 31 L 246 31"
               dur="2s"
