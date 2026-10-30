@@ -28,6 +28,8 @@ const INITIAL_LIMIT = 6;
 
 interface ArticlesSectionProps {
   articles: ArticleData[];
+  /** Bila true, terapkan layout rapat & proporsional untuk tampilan di dalam window desktop. */
+  compact?: boolean;
 }
 
 interface ArticleCategoryFilter {
@@ -86,7 +88,7 @@ const ARTICLE_CATEGORIES: ArticleCategoryFilter[] = [
   },
 ];
 
-export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps) {
+export function ArticlesSection({ articles: propArticles, compact = false }: ArticlesSectionProps) {
   const { t, language } = useTranslation();
   const sectionRef = useRef<HTMLElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -145,11 +147,11 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
     <section
       ref={sectionRef}
       id="artikel"
-      className="relative py-12 md:py-20 scroll-mt-14"
+      className={`relative scroll-mt-14 ${compact ? "py-2 sm:py-4" : "py-12 md:py-20"}`}
     >
       <div className="max-w-7xl mx-auto px-2 sm:px-4 mobile-safe-copy">
         {/* Section Header */}
-        <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className={`flex flex-col sm:flex-row sm:items-end justify-between gap-4 ${compact ? "mb-3 sm:mb-4" : "mb-8"}`}>
           <div>
             <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-amber)]">
               <span className="h-2 w-2 rounded-full bg-[var(--vt-amber)] animate-pulse" />

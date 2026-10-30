@@ -19,7 +19,11 @@ if (typeof window !== "undefined") {
 }
 
 interface ContactSectionProps {
-  profile?: ProfileData;
+  profile: ProfileData;
+  /** Bila true, terapkan layout rapat & proporsional untuk tampilan di dalam window desktop. */
+  compact?: boolean;
+  /** Bila true, render formulir langsung tanpa OSWindow wrapper kedua yang redundan. */
+  bare?: boolean;
 }
 
 // Hanya alamat kontak yang DITAMPILKAN ke pengunjung. Formspree mengabaikan
@@ -30,7 +34,7 @@ const CONTACT_RECIPIENT_EMAIL = (process.env.NEXT_PUBLIC_CONTACT_RECIPIENT_EMAIL
 const FORMSPREE_ENDPOINT =
   (process.env.NEXT_PUBLIC_FORMSPREE_ENDPOINT || "https://formspree.io/f/meaqbvpa").trim();
 
-export function ContactSection({ profile }: ContactSectionProps) {
+export function ContactSection({ profile, compact = false, bare = false }: ContactSectionProps) {
   const { t, language } = useTranslation();
   const containerRef = useRef<HTMLElement>(null);
   // Urutan: env > email profil live (Admin -> Profil) > fallback statis.
@@ -156,55 +160,8 @@ export function ContactSection({ profile }: ContactSectionProps) {
     }
   };
 
-  return (
-    <section
-      ref={containerRef}
-      id="kontak"
-      className="relative py-8 md:py-14 scroll-mt-14"
-    >
-      <div className="max-w-4xl mx-auto px-2 sm:px-4">
-        {/* Section Heading */}
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5 font-pixel text-xs text-[var(--vt-blue)]">
-              <span className="h-2 w-2 rounded-full bg-[var(--vt-blue)] animate-pulse" />
-              <span>{t.contact_eyebrow}</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
-              {t.contact_title}
-            </h2>
-            <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] font-bold mt-1 max-w-2xl">
-              {t.contact_subtitle}
-            </p>
-          </div>
-
-          <div className="shrink-0">
-            <ShareButton
-              title={language === "en" ? `Contact ${profile?.name || "Sigit Adi Irianto"}: Collaboration & Consultation` : `Hubungi ${profile?.name || "Sigit Adi Irianto"}: Kolaborasi & Konsultasi`}
-              url="/kontak"
-              summary={
-                language === "en"
-                  ? "Get in touch to discuss web applications, system architecture, AI integrations, or professional collaboration opportunities. Send a message directly via email or contact form."
-                  : "Siap mendiskusikan kebutuhan proyek aplikasi web, arsitektur sistem, integrasi AI, atau peluang kolaborasi profesional. Kirim pesan langsung melalui formulir kontak atau email."
-              }
-              badge={language === "en" ? "CONTACT" : "KONTAK"}
-              thumbnailUrl={`/api/og?section=kontak${language === "en" ? "&lang=en" : ""}`}
-              buttonText={language === "en" ? "Share Contact" : "Bagikan Kontak"}
-              className="vt-btn vt-btn-chrome text-xs font-mono font-bold"
-            />
-          </div>
-        </div>
-
-        {/* Direct Mailer Form Window */}
-        <div className="sigit-contact-window w-full flex flex-col">
-          <OSWindow
-            title={t.contact_mailer_window_title}
-            icon={<Send className="h-3.5 w-3.5 text-[#37ff9b]" />}
-            statusText={t.contact_mailer_window_status}
-            className="w-full flex-1"
-            bodyClassName="p-4 sm:p-6 flex flex-col justify-between"
-          >
-            <form onSubmit={handleMailerSubmit} className="space-y-3.5 font-mono text-xs">
+  const renderMailerForm = () => (
+    <form onSubmit={handleMailerSubmit} className="space-y-3.5 font-mono text-xs">
               <div className="vt-card-inset bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)] p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[var(--vt-ink)]">
                 <div className="flex items-start gap-2 min-w-0">
                   <Mail className="h-4 w-4 text-[var(--vt-blue)] shrink-0 mt-0.5" />
@@ -324,36 +281,109 @@ export function ContactSection({ profile }: ContactSectionProps) {
                 </button>
               </div>
             </form>
-          </OSWindow>
+  );
+
+  const renderSocialChannels = () => (
+    <div className="flex flex-wrap gap-2">
+      {socialLinks.map((link) => (
+        <a
+          key={link.key}
+          href={link.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={link.label}
+          aria-label={`${link.label} (Tautan Eksternal)`}
+          className="vt-btn vt-btn-chrome inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold text-[var(--vt-ink)] hover:-translate-y-0.5 transition-all"
+        >
+          {link.icon}
+          <span>{link.label}</span>
+        </a>
+      ))}
+    </div>
+  );
+
+  return (
+    <section
+      ref={containerRef}
+      id="kontak"
+      className={`relative scroll-mt-14 ${compact ? "py-2 sm:py-4" : "py-8 md:py-14"}`}
+    >
+      <div className="max-w-4xl mx-auto px-2 sm:px-4">
+        {/* Section Heading */}
+        <div className={`flex flex-col sm:flex-row sm:items-end justify-between gap-4 ${compact ? "mb-3 sm:mb-4" : "mb-6"}`}>
+          <div>
+            <div className="flex items-center gap-2 mb-1.5 font-pixel text-xs text-[var(--vt-blue)]">
+              <span className="h-2 w-2 rounded-full bg-[var(--vt-blue)] animate-pulse" />
+              <span>{t.contact_eyebrow}</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
+              {t.contact_title}
+            </h2>
+            <p className="text-xs sm:text-sm font-mono text-[var(--vt-ink)] font-bold mt-1 max-w-2xl">
+              {t.contact_subtitle}
+            </p>
+          </div>
+
+          <div className="shrink-0">
+            <ShareButton
+              title={language === "en" ? `Contact ${profile?.name || "Sigit Adi Irianto"}: Collaboration & Consultation` : `Hubungi ${profile?.name || "Sigit Adi Irianto"}: Kolaborasi & Konsultasi`}
+              url="/kontak"
+              summary={
+                language === "en"
+                  ? "Get in touch to discuss web applications, system architecture, AI integrations, or professional collaboration opportunities. Send a message directly via email or contact form."
+                  : "Siap mendiskusikan kebutuhan proyek aplikasi web, arsitektur sistem, integrasi AI, atau peluang kolaborasi profesional. Kirim pesan langsung melalui formulir kontak atau email."
+              }
+              badge={language === "en" ? "CONTACT" : "KONTAK"}
+              thumbnailUrl={`/api/og?section=kontak${language === "en" ? "&lang=en" : ""}`}
+              buttonText={language === "en" ? "Share Contact" : "Bagikan Kontak"}
+              className="vt-btn vt-btn-chrome text-xs font-mono font-bold"
+            />
+          </div>
         </div>
 
-        {/* Social Channels (conditional) */}
-        {socialLinks.length > 0 && (
-          <div className="sigit-contact-window w-full flex flex-col mt-6">
-            <OSWindow
-              title={t.contact_channels_window_title}
-              icon={<Globe className="h-3.5 w-3.5 text-[#37ff9b]" />}
-              statusText={t.contact_channels_window_status.replace("{count}", String(socialLinks.length))}
-              className="w-full"
-            >
-              <div className="flex flex-wrap gap-2">
-                {socialLinks.map((link) => (
-                  <a
-                    key={link.key}
-                    href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={link.label}
-                    aria-label={`${link.label} (Tautan Eksternal)`}
-                    className="vt-btn vt-btn-chrome inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold text-[var(--vt-ink)] hover:-translate-y-0.5 transition-all"
-                  >
-                    {link.icon}
-                    <span>{link.label}</span>
-                  </a>
-                ))}
+        {/* Direct Mailer Form Window */}
+        {bare ? (
+          <div className="space-y-4">
+            <div className="vt-card-inset bg-[var(--vt-card)] border-2 border-[var(--vt-edge-hi)] p-4 sm:p-6 rounded-xs shadow-md">
+              {renderMailerForm()}
+            </div>
+            {socialLinks.length > 0 && (
+              <div className="vt-card-inset bg-[var(--vt-card)] border-2 border-[var(--vt-edge-hi)] p-3 sm:p-4 rounded-xs shadow-md">
+                <p className="font-pixel text-xs font-bold text-[var(--vt-blue)] mb-2">
+                  {t.contact_channels_window_title}
+                </p>
+                {renderSocialChannels()}
               </div>
-            </OSWindow>
+            )}
           </div>
+        ) : (
+          <>
+            <div className="sigit-contact-window w-full flex flex-col">
+              <OSWindow
+                title={t.contact_mailer_window_title}
+                icon={<Send className="h-3.5 w-3.5 text-[#37ff9b]" />}
+                statusText={t.contact_mailer_window_status}
+                className="w-full flex-1"
+                bodyClassName="p-4 sm:p-6 flex flex-col justify-between"
+              >
+                {renderMailerForm()}
+              </OSWindow>
+            </div>
+
+            {/* Social Channels (conditional) */}
+            {socialLinks.length > 0 && (
+              <div className="sigit-contact-window w-full flex flex-col mt-6">
+                <OSWindow
+                  title={t.contact_channels_window_title}
+                  icon={<Globe className="h-3.5 w-3.5 text-[#37ff9b]" />}
+                  statusText={t.contact_channels_window_status.replace("{count}", String(socialLinks.length))}
+                  className="w-full"
+                >
+                  {renderSocialChannels()}
+                </OSWindow>
+              </div>
+            )}
+          </>
         )}
       </div>
     </section>

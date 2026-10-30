@@ -43,9 +43,11 @@ if (typeof window !== "undefined") {
 interface ProductsSectionProps {
   products: ProductData[];
   profile?: ProfileData;
+  /** Bila true, terapkan layout rapat & proporsional untuk tampilan di dalam window desktop. */
+  compact?: boolean;
 }
 
-export function ProductsSection({ products: propProducts, profile }: ProductsSectionProps) {
+export function ProductsSection({ products: propProducts, profile, compact = false }: ProductsSectionProps) {
   const router = useRouter();
   const { t, language } = useTranslation();
   const { addItem, buyNow, totalCount, setIsOpen } = useCart();
@@ -196,8 +198,8 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
   };
 
   return (
-    <section ref={containerRef} id="produk" className="relative py-8 md:py-14 scroll-mt-14">
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 space-y-6">
+    <section ref={containerRef} id="produk" className={`relative scroll-mt-14 ${compact ? "py-2 sm:py-4" : "py-8 md:py-14"}`}>
+      <div className={`max-w-7xl mx-auto px-2 sm:px-4 ${compact ? "space-y-3 sm:space-y-4" : "space-y-6"}`}>
         {/* Store Header with Floating Cart Access */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border/80 pb-4">
           <div>

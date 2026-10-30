@@ -16,9 +16,11 @@ if (typeof window !== "undefined") {
 
 interface TestimonialsSectionProps {
   testimonials: TestimonialData[];
+  /** Bila true, terapkan layout rapat & proporsional untuk tampilan di dalam window desktop. */
+  compact?: boolean;
 }
 
-export function TestimonialsSection({ testimonials: propTestimonials }: TestimonialsSectionProps) {
+export function TestimonialsSection({ testimonials: propTestimonials, compact = false }: TestimonialsSectionProps) {
   const { t, language } = useTranslation();
   const containerRef = useRef<HTMLElement>(null);
   // Tanpa fallback dummy: tanpa testimoni, tampil empty state jujur
@@ -49,11 +51,11 @@ export function TestimonialsSection({ testimonials: propTestimonials }: Testimon
     <section
       ref={containerRef}
       id="testimoni"
-      className="relative py-12 md:py-20 scroll-mt-14"
+      className={`relative scroll-mt-14 ${compact ? "py-2 sm:py-4" : "py-12 md:py-20"}`}
     >
       <div className="max-w-7xl mx-auto px-2 sm:px-4">
         {/* Section Heading */}
-        <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className={`flex flex-col sm:flex-row sm:items-end justify-between gap-4 ${compact ? "mb-3 sm:mb-4" : "mb-8"}`}>
           <div>
             <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-blue)]">
               <span className="h-2 w-2 rounded-full bg-[var(--vt-blue)] animate-pulse" />

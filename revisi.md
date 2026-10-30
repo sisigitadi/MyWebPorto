@@ -1,7 +1,30 @@
 # DRAF REVISI & RENCANA KERJA TEKNIS
 
 **Status:** Selesai & Terverifikasi — Siap Dideploy ke Produksi  
-**Terakhir Diperbarui:** 2026-10-30 (Iterasi 9: Eliminasi Hydration LCP Delay, Kontras WCAG AAA & Sanitasi Animasi)  
+**Terakhir Diperbarui:** 2026-10-30 (Iterasi 10: Terminal Inline Input, Windows Caption Buttons, Maximize Portal & Proporsionalitas Layout Jendela)  
+
+---
+
+## Riwayat Eksekusi Iterasi 10 (Terminal Inline Input, Windows Caption Buttons & Authentic Maximize Layout)
+- **Pekerjaan:**
+  1. Audit komprehensif keluhan UI/UX: *"jendela besar tidak proporsional layout dengan konten dan tidak membesar menutup layar saat di klik tombol maximize"*.
+  2. Implementasi True Windows OS Maximize pada `OSDesktopManager` (`top: 0`, flush horizontal 100vw, docking di atas taskbar `z-[70]`, tanpa modal backdrop gelap).
+  3. Implementasi Fullscreen Viewport Portal pada `OSWindow` (`fixed inset-0 z-[9999] w-screen h-screen`, eliminasi `max-w-6xl` & padding `p-6`).
+  4. Penataan proporsionalitas layout konten di dalam desktop window: prop `compact` pada 6 section dan prop `bare` pada `HeroSection` & `ContactSection` untuk melenyapkan titlebar ganda.
+  5. Penyelesaian konflik merge branch PR #142 dan integrasi penuh Terminal CRT inline input & Windows caption buttons.
+- **Temuan & Solusi yang Diterapkan:**
+  1. **Akar Masalah Jendela Tidak Membesar Menutup Layar**:
+     - *Masalah:* Menekan tombol maximize pada `OSDesktopManager` tidak menutup layar, dan pada `OSWindow` hanya memunculkan kotak kecil berlatar hitam di tengah layar.
+     - *Penyebab Teknis:*
+       1. Di `OSDesktopManager`, jendela berada di bawah OSMenubar dan memiliki modal backdrop gelap (`bg-black/60`) yang bertingkah seperti lightbox dialog alih-alih window maximize OS.
+       2. Di `OSWindow`, kontainer portal dibatasi kelas `max-w-6xl` dan `p-2 sm:p-4 md:p-6`, sehingga jendela tidak pernah menutup 100% viewport.
+     - *Solusi:*
+       1. Pada `OSDesktopManager`, saat maximized, jendela menggunakan `fixed inset-x-0 top-0 bottom-10 sm:bottom-12 md:bottom-14 z-[60]`. Titlebar menempel di paling atas layar (`top: 0`), menutupi menubar, dan dock di atas taskbar yang dinaikkan ke `z-[70]`. Layer backdrop hitam dihapus.
+       2. Pada `OSWindow`, portal menggunakan `fixed inset-0 z-[9999] w-screen h-screen rounded-none border-0`, mengisi 100% monitor.
+  2. **Akar Masalah Layout Tidak Proporsional dengan Konten**:
+     - *Masalah:* Konten di dalam jendela terasa terhimpit, banyak ruang kosong vertikal di atas, dan terdapat titlebar ganda (jendela di dalam jendela).
+     - *Penyebab Teknis:* Section-section web membawa padding halaman konvensional (`py-12 md:py-20` alias 80px ruang kosong), serta `HeroSection` dan `ContactSection` membungkus ulang konten dengan `OSWindow` kedua di dalam jendela utama `SigitOS_Viewer`.
+     - *Solusi:* Menambahkan prop `compact` pada seluruh section (`py-2 sm:py-4`) serta prop `bare` pada `HeroSection` dan `ContactSection` untuk merender formulir dan detail profil secara langsung tanpa titlebar kedua.
 
 ---
 
