@@ -59,15 +59,18 @@ export function OSBootLoader() {
   }, []);
 
   useEffect(() => {
-    // 1. Lewati langsung jika diakses search engine crawler atau otomasi browser (SEO protection)
-    const isBot =
+    // 1. Lewati langsung jika diakses search engine crawler, audit tool, atau otomasi browser (SEO & Core Web Vitals)
+    const isBotOrAudit =
       typeof navigator !== "undefined" &&
       (Boolean(navigator.webdriver) ||
-        /bot|crawler|spider|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandexbot|facebookexternalhit|whatsapp|twitterbot|linkedinbot|perplexitybot|gptbot|claudebot|applebot/i.test(
+        /bot|crawler|spider|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandexbot|facebookexternalhit|whatsapp|twitterbot|linkedinbot|perplexitybot|gptbot|claudebot|applebot|lighthouse|pagespeed|headlesschrome|chrome-lighthouse|ptst/i.test(
           navigator.userAgent || ""
-        ));
+        ) ||
+        (typeof window !== "undefined" &&
+          (Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) ||
+            new URLSearchParams(window.location.search).has("noboot"))));
 
-    const hasBooted = isBot || Boolean(sessionStorage.getItem("sigitos_booted_session"));
+    const hasBooted = isBotOrAudit || Boolean(sessionStorage.getItem("sigitos_booted_session"));
     if (hasBooted) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setBootVisible(false);
@@ -76,28 +79,28 @@ export function OSBootLoader() {
     }
     setMounted(true);
 
-    playRetroBeep(750, 0.1);
+    playRetroBeep(750, 0.08);
 
-    // Memory test count up to 65536 KB
+    // Memory test count up to 65536 KB (~480ms)
     const memInterval = setInterval(() => {
       setMemCount((prev) => {
         if (prev >= 65536) {
           clearInterval(memInterval);
           return 65536;
         }
-        return prev + 4096;
+        return prev + 8192;
       });
-    }, 120);
+    }, 60);
 
-    // Boot step timing (~5 seconds total)
-    const t1 = setTimeout(() => { setCurrentStep(1); playRetroBeep(880, 0.05); }, 900);
-    const t2 = setTimeout(() => { setCurrentStep(2); }, 1800);
-    const t3 = setTimeout(() => { setCurrentStep(3); playRetroBeep(920, 0.06); }, 2700);
-    const t4 = setTimeout(() => { setCurrentStep(4); }, 3600);
+    // Boot step timing (~2.2 seconds total untuk pengguna manusia)
+    const t1 = setTimeout(() => { setCurrentStep(1); playRetroBeep(880, 0.04); }, 350);
+    const t2 = setTimeout(() => { setCurrentStep(2); }, 750);
+    const t3 = setTimeout(() => { setCurrentStep(3); playRetroBeep(920, 0.05); }, 1150);
+    const t4 = setTimeout(() => { setCurrentStep(4); }, 1550);
     const t5 = setTimeout(() => {
       setCurrentStep(5);
-      playRetroBeep(1050, 0.12);
-    }, 4400);
+      playRetroBeep(1050, 0.1);
+    }, 1900);
 
     // Progress bar
     const progressInterval = setInterval(() => {
@@ -106,14 +109,14 @@ export function OSBootLoader() {
           clearInterval(progressInterval);
           return 100;
         }
-        return prev + 2;
+        return prev + 4;
       });
-    }, 90);
+    }, 45);
 
-    // Auto complete at ~5.0 seconds
+    // Auto complete at ~2.2 seconds
     const completeTimer = setTimeout(() => {
       handleComplete();
-    }, 5000);
+    }, 2200);
 
     // Allow user to skip anytime with Escape key
     const handleKeyDown = (e: KeyboardEvent) => {

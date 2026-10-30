@@ -623,6 +623,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                             href={buildSingleProductWhatsAppUrl(product.customWhatsapp || profile?.phone || '', product, language === "en" ? "en" : "id")}
                             target="_blank"
                             rel="noopener noreferrer nofollow"
+                            aria-label={language === "en" ? `Inquire about ${product.title} on WhatsApp` : `Konsultasi ${product.title} via WhatsApp`}
                             className="vt-btn vt-btn-pink flex-1 min-w-0 py-2 px-2.5 font-bold justify-center items-center gap-1.5 cursor-pointer text-white shadow-xs hover:brightness-110"
                           >
                             <MessageCircle className="h-3.5 w-3.5 shrink-0" />
@@ -660,6 +661,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                                 type="button"
                                 disabled={isOutOfStock}
                                 onClick={() => handleAddToCart(product)}
+                                aria-label={language === "en" ? `Add ${product.title} to shopping cart` : `Tambah ${product.title} ke keranjang belanja`}
                                 className={`vt-btn px-2.5 py-2 font-bold justify-center items-center gap-1 cursor-pointer transition-colors shrink-0 ${
                                   isAdded
                                     ? "bg-emerald-600 text-white font-extrabold"
@@ -681,6 +683,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                                 href={buildSingleProductWhatsAppUrl(product.customWhatsapp || profile?.phone || '', product, language === "en" ? "en" : "id")}
                                 target="_blank"
                                 rel="noopener noreferrer nofollow"
+                                aria-label={language === "en" ? `Ask about ${product.title} on WhatsApp` : `Tanya tentang ${product.title} via WhatsApp`}
                                 className="vt-btn vt-btn-chrome px-2.5 py-2 text-xs font-bold text-foreground justify-center items-center gap-1 group cursor-pointer shrink-0"
                                 title={language === "en" ? "Ask questions on WhatsApp" : "Tanya via WhatsApp"}
                               >
