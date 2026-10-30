@@ -168,11 +168,12 @@ export function ProfileCard({ cards }: ProfileCardProps) {
                   </div>
                   {cards.careerTimeline.slice(0, 1).map((item, idx) => {
                     const role = isEn && item.roleEn ? item.roleEn : item.role;
+                    const company = (isEn && item.companyEn ? item.companyEn : item.company).replace(/—/g, "-");
                     const period = (isEn && item.periodEn ? item.periodEn : item.period).replace(/—/g, "-");
                     return (
                       <div key={item.id || idx} className="text-[11px] leading-tight">
                         <span className="font-bold text-[var(--vt-ink)]">{role}</span>{" "}
-                        <span className="text-primary font-semibold">@ {item.company}</span>{" "}
+                        <span className="text-primary font-semibold">@ {company}</span>{" "}
                         <span className="text-muted-foreground text-[10px]">({period})</span>
                       </div>
                     );

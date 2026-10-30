@@ -18,6 +18,7 @@ export interface CareerItem {
   role: string;
   roleEn?: string | null;
   company: string;
+  companyEn?: string | null;
   description: string;
   descriptionEn?: string | null;
   badges: string[];
@@ -108,6 +109,7 @@ export const DEFAULT_PROFILE_CARDS: ProfileCardsConfig = {
       role: "Lead Full-Stack Developer & AI Architect",
       roleEn: "Lead Full-Stack Developer & AI Architect",
       company: "Independent / SigitOS Tech",
+      companyEn: "Independent / SigitOS Tech",
       description: "Merancang dan membangun aplikasi web production-ready dengan arsitektur Next.js 16, integrasi sistem AI agentic, bot interaktif, dan otomasi workflow digital.",
       descriptionEn: "Designing and engineering production-ready web apps with Next.js 16 architecture, agentic AI integration, interactive bots, and digital workflow automation.",
       badges: ["Next.js", "TypeScript", "Gemini AI", "Drizzle"],
@@ -119,6 +121,7 @@ export const DEFAULT_PROFILE_CARDS: ProfileCardsConfig = {
       role: "Senior Software Engineer",
       roleEn: "Senior Software Engineer",
       company: "Digital Solutions & Tech Consulting",
+      companyEn: "Digital Solutions & Tech Consulting",
       description: "Mengembangkan sistem backend performa tinggi, pipeline integrasi pembayaran, manajemen aset media serverless, dan optimasi query basis data.",
       descriptionEn: "Engineered high-performance backend systems, payment integration pipelines, serverless media management, and relational database query optimization.",
       badges: ["PostgreSQL", "Node.js", "React", "REST API"],
@@ -130,6 +133,7 @@ export const DEFAULT_PROFILE_CARDS: ProfileCardsConfig = {
       role: "Web Application & Security Specialist",
       roleEn: "Web Application & Security Specialist",
       company: "Cyber & Infrastructure Projects",
+      companyEn: "Cyber & Infrastructure Projects",
       description: "Implementasi monitoring keamanan SIEM dengan Wazuh, audit kerentanan aplikasi web, penanganan serangan DDoS, dan pemeliharaan server Linux.",
       descriptionEn: "Implemented Wazuh SIEM security monitoring, web vulnerability audits, DDoS attack mitigation, and hardened Linux infrastructure operations.",
       badges: ["Wazuh SIEM", "Linux", "Security Audit", "Python"],
@@ -263,6 +267,7 @@ export function sanitizeProfileCards(input: unknown): ProfileCardsConfig {
           role: String(item?.role || "Software Engineer"),
           roleEn: item?.roleEn ? String(item.roleEn) : null,
           company: String(item?.company || ""),
+          companyEn: item?.companyEn ? String(item.companyEn) : null,
           description: String(item?.description || ""),
           descriptionEn: item?.descriptionEn ? String(item.descriptionEn) : null,
           badges: Array.isArray(item?.badges) ? item.badges.map(String).filter(Boolean) : [],

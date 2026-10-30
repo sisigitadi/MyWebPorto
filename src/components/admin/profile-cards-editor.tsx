@@ -40,6 +40,7 @@ interface ProfileCardsEditorProps {
 export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps) {
   const [newSkillInputs, setNewSkillInputs] = useState<Record<string, string>>({});
   const [translatingAll, setTranslatingAll] = useState(false);
+  const [translatingCareerIdx, setTranslatingCareerIdx] = useState<number | null>(null);
 
   // ==========================================
   // TECH STACK HANDLERS
@@ -135,6 +136,7 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
       role: "Peran Baru",
       roleEn: "New Role",
       company: "Nama Perusahaan / Proyek",
+      companyEn: "Company / Project Name",
       description: "Deskripsi tanggung jawab dan pencapaian rekayasa...",
       descriptionEn: "Description of responsibilities and achievements...",
       badges: ["Next.js", "TypeScript"],
@@ -147,6 +149,39 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
     onChange({ ...cards, careerTimeline: updated });
   };
 
+  const handleTranslateCareerItem = async (idx: number) => {
+    const item = cards.careerTimeline[idx];
+    if (!item) return;
+    setTranslatingCareerIdx(idx);
+    try {
+      const texts = [
+        item.role || "",
+        item.company || "",
+        item.period || "",
+        item.description || "",
+      ];
+      const res = await translateBatchAction(texts, "id", "en");
+      if (res.success && res.results) {
+        const updated = [...cards.careerTimeline];
+        updated[idx] = {
+          ...updated[idx],
+          roleEn: res.results[0] || updated[idx].roleEn,
+          companyEn: res.results[1] || updated[idx].companyEn,
+          periodEn: res.results[2] || updated[idx].periodEn,
+          descriptionEn: res.results[3] || updated[idx].descriptionEn,
+        };
+        onChange({ ...cards, careerTimeline: updated });
+        toast.success(`Sorotan pengalaman #${idx + 1} berhasil diterjemahkan!`);
+      } else {
+        toast.error("Gagal menerjemahkan sorotan pengalaman.");
+      }
+    } catch {
+      toast.error("Gagal menerjemahkan teks.");
+    } finally {
+      setTranslatingCareerIdx(null);
+    }
+  };
+
   // ==========================================
   // AUTO TRANSLATE HANDLERS
   // ==========================================
@@ -157,6 +192,7 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
         | { type: "tech"; catIdx: number }
         | { type: "career_period"; itemIdx: number }
         | { type: "career_role"; itemIdx: number }
+        | { type: "career_company"; itemIdx: number }
         | { type: "career_desc"; itemIdx: number }
         | { type: "pref_status" }
         | { type: "pref_loc" }
@@ -182,6 +218,10 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
         if (item.role?.trim()) {
           targets.push({ type: "career_role", itemIdx: idx });
           texts.push(item.role);
+        }
+        if (item.company?.trim()) {
+          targets.push({ type: "career_company", itemIdx: idx });
+          texts.push(item.company);
         }
         if (item.description?.trim()) {
           targets.push({ type: "career_desc", itemIdx: idx });
@@ -238,6 +278,9 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
             break;
           case "career_role":
             newCards.careerTimeline[target.itemIdx].roleEn = translated;
+            break;
+          case "career_company":
+            newCards.careerTimeline[target.itemIdx].companyEn = translated;
             break;
           case "career_desc":
             newCards.careerTimeline[target.itemIdx].descriptionEn = translated;
@@ -561,59 +604,133 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
             </Button>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             {cards.careerTimeline.slice(0, 2).map((item, idx) => (
               <div
                 key={item.id || idx}
-                className="p-3 bg-background border border-[var(--vt-edge-lo-2)] rounded-xs space-y-2"
+                className="p-3.5 bg-background border border-[var(--vt-edge-lo-2)] rounded-xs space-y-2.5"
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-primary">Sorotan #{idx + 1}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteCareerItem(idx)}
-                    className="h-6 px-1.5 text-rose-500 hover:text-rose-600"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
+                <div className="flex items-center justify-between border-b border-[var(--vt-edge-lo-2)]/60 pb-1.5">
+                  <span className="text-xs font-bold text-primary flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                    <span>Sorotan #{idx + 1} (Experience Highlight)</span>
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleTranslateCareerItem(idx)}
+                      disabled={translatingCareerIdx === idx}
+                      className="h-6 px-1.5 text-[10px] gap-1 text-primary hover:bg-primary/10 cursor-pointer"
+                    >
+                      {translatingCareerIdx === idx ? (
+                        <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-2.5 w-2.5" />
+                      )}
+                      <span>Terjemahkan Item</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteCareerItem(idx)}
+                      className="h-6 px-1.5 text-rose-500 hover:text-rose-600 cursor-pointer"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <Input
-                    value={item.role}
-                    onChange={(e) => handleUpdateCareerItem(idx, "role", e.target.value)}
-                    placeholder="Peran (ID)"
-                    className="text-xs h-7 font-bold"
-                  />
-                  <Input
-                    value={item.roleEn || ""}
-                    onChange={(e) => handleUpdateCareerItem(idx, "roleEn", e.target.value)}
-                    placeholder="Role (EN)"
-                    className="text-xs h-7 font-bold"
-                  />
-                  <Input
-                    value={item.company}
-                    onChange={(e) => handleUpdateCareerItem(idx, "company", e.target.value)}
-                    placeholder="Perusahaan / Proyek"
-                    className="text-xs h-7"
-                  />
+                {/* Peran / Jabatan (ID & EN) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-semibold text-muted-foreground">Peran / Jabatan (ID)</Label>
+                    <Input
+                      value={item.role}
+                      onChange={(e) => handleUpdateCareerItem(idx, "role", e.target.value)}
+                      placeholder="Contoh: Lead Full-Stack Developer"
+                      className="text-xs h-7 font-bold"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-semibold text-muted-foreground">Role / Title (EN)</Label>
+                    <Input
+                      value={item.roleEn || ""}
+                      onChange={(e) => handleUpdateCareerItem(idx, "roleEn", e.target.value)}
+                      placeholder="e.g. Lead Full-Stack Developer"
+                      className="text-xs h-7 font-bold"
+                    />
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <Input
-                    value={item.period}
-                    onChange={(e) => handleUpdateCareerItem(idx, "period", e.target.value)}
-                    placeholder="Periode (ID, e.g. 2020 - Sekarang)"
-                    className="text-xs h-7"
-                  />
-                  <Input
-                    value={item.periodEn || ""}
-                    onChange={(e) => handleUpdateCareerItem(idx, "periodEn", e.target.value)}
-                    placeholder="Period (EN, e.g. 2020 - Present)"
-                    className="text-xs h-7"
-                  />
+                {/* Perusahaan / Proyek (ID & EN) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-semibold text-muted-foreground">Perusahaan / Proyek (ID)</Label>
+                    <Input
+                      value={item.company}
+                      onChange={(e) => handleUpdateCareerItem(idx, "company", e.target.value)}
+                      placeholder="Contoh: SigitOS Tech"
+                      className="text-xs h-7"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-semibold text-muted-foreground">Company / Project (EN)</Label>
+                    <Input
+                      value={item.companyEn || ""}
+                      onChange={(e) => handleUpdateCareerItem(idx, "companyEn", e.target.value)}
+                      placeholder="e.g. SigitOS Tech"
+                      className="text-xs h-7"
+                    />
+                  </div>
+                </div>
+
+                {/* Periode Waktu (ID & EN) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-semibold text-muted-foreground">Periode Waktu (ID)</Label>
+                    <Input
+                      value={item.period}
+                      onChange={(e) => handleUpdateCareerItem(idx, "period", e.target.value)}
+                      placeholder="Contoh: 2024 — Sekarang"
+                      className="text-xs h-7"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-semibold text-muted-foreground">Time Period (EN)</Label>
+                    <Input
+                      value={item.periodEn || ""}
+                      onChange={(e) => handleUpdateCareerItem(idx, "periodEn", e.target.value)}
+                      placeholder="e.g. 2024 — Present"
+                      className="text-xs h-7"
+                    />
+                  </div>
+                </div>
+
+                {/* Deskripsi Singkat / Ringkasan (ID & EN) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-semibold text-muted-foreground">Deskripsi Pencapaian (ID)</Label>
+                    <Textarea
+                      rows={2}
+                      value={item.description || ""}
+                      onChange={(e) => handleUpdateCareerItem(idx, "description", e.target.value)}
+                      placeholder="Deskripsi singkat tanggung jawab dan teknologi..."
+                      className="text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-semibold text-muted-foreground">Achievement Description (EN)</Label>
+                    <Textarea
+                      rows={2}
+                      value={item.descriptionEn || ""}
+                      onChange={(e) => handleUpdateCareerItem(idx, "descriptionEn", e.target.value)}
+                      placeholder="Brief description of responsibilities and impact..."
+                      className="text-xs"
+                    />
+                  </div>
                 </div>
               </div>
             ))}
