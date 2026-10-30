@@ -12,6 +12,8 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
+## [Unreleased]
+
  dengan caret hijau fosfor (`caret-[#37ff9b]`) yang berkedip langsung di baris aktif.
   - Menambahkan fitur *click-to-focus* di seluruh layar hitam terminal CRT (`terminalBodyRef` click handler) tanpa mengganggu seleksi teks pengguna.
   - Merelokasi tombol toggle kontrol TTS ke bilah kontrol atas (*top bar actions*), menjaga layar terminal bersih dan murni berorientasi command-line.
