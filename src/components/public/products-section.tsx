@@ -477,6 +477,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                             </button>
                             <Link
                               href={productUrl}
+                              aria-label={`${language === "en" ? "View details for" : "Lihat detail"} ${title}`}
                               className="vt-btn vt-btn-chrome px-2 py-1 text-[11px] font-bold inline-flex items-center"
                               title="Lihat Detail"
                             >
@@ -706,6 +707,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                       <div className="flex items-center">
                         <Link
                           href={productUrl}
+                          aria-label={`${language === "en" ? "View full details for" : "Lihat spesifikasi & detail"} ${title}`}
                           className="w-full vt-btn vt-btn-chrome py-1.5 px-3 text-[11px] font-bold text-muted-foreground hover:text-foreground justify-between items-center group flex"
                         >
                           <span>{language === "en" ? "View Full Details" : "Lihat Spesifikasi & Detail"}</span>

@@ -83,8 +83,8 @@ export function ProfileCard({ cards }: ProfileCardProps) {
             <Terminal className="h-3.5 w-3.5 text-primary shrink-0" />
             <span className="truncate">PROFILE_SPECIFICATION.SYS</span>
           </div>
-          <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 shrink-0">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#064e3b] dark:text-[#a7f3d0] shrink-0">
+            <span className="inline-block h-2 w-2 rounded-full bg-emerald-600 dark:bg-emerald-400" />
             <span>LIVE // READY</span>
           </div>
         </div>
