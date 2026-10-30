@@ -8,6 +8,7 @@ import { buildProductSchema } from "@/lib/product-schema";
 import { generateDynamicMetadata, localeAlternates, shareImage } from "@/lib/seo";
 import { SITE_BRAND } from "@/lib/seo-config";
 import { STORE_NAME } from "@/lib/store";
+import { canonicalBaseUrl } from "@/lib/canonical-host";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -15,7 +16,7 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+  const baseUrl = canonicalBaseUrl();
   const products = await getProducts();
   const product = products.find((p) => getProductSlug(p) === slug);
   // Sebelumnya halaman produk tidak mendefinisikan alternates, sehingga
@@ -54,7 +55,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
   const [products, profile] = await Promise.all([getProducts(), getProfile()]);
   const product = products.find((p) => getProductSlug(p) === slug);
   if (!product) notFound();
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+  const baseUrl = canonicalBaseUrl();
   // Structured data produk: tanpa ini halaman ini nol JSON-LD sehingga Google
   // tidak bisa menampilkan kartu produk (nama/harga/stok) di hasil pencarian.
   const productSchema = buildProductSchema({

@@ -4,9 +4,10 @@ import { getArticles } from "@/lib/actions";
 import { resolveFeatures } from "@/lib/features-config";
 import { safeJsonLd } from "@/lib/json-ld";
 import { localeAlternates, shareImage } from "@/lib/seo";
+import { canonicalBaseUrl } from "@/lib/canonical-host";
 import { ArticlesCatalogContent } from "@/components/public/articles-catalog-content";
 
-const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+const baseUrl = canonicalBaseUrl();
 const shareCard = shareImage(
   `${baseUrl}/artikel/opengraph-image`,
   baseUrl,

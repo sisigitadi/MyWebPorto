@@ -12,6 +12,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { getProfile } from "@/lib/actions";
 import { JsonLdSchema } from "@/components/public/json-ld";
 import { SwRegister } from "@/components/public/sw-register";
+import { canonicalBaseUrl } from "@/lib/canonical-host";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -52,7 +53,7 @@ const unbounded = Unbounded({
   display: "swap",
 });
 
-const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+const appUrl = canonicalBaseUrl();
 // Token verifikasi BUKAN rahasia (Google/Bing mempublikasikannya via file
 // statis public/). Env opsional — nilai efektif & override admin diatur di
 // src/lib/seo-config.ts (settings key "seo"), dipasang ke <head> oleh

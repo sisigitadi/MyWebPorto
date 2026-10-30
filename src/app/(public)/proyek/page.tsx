@@ -2,9 +2,10 @@ import { Metadata } from "next";
 import { getProjects } from "@/lib/actions";
 import { safeJsonLd } from "@/lib/json-ld";
 import { localeAlternates, shareImage } from "@/lib/seo";
+import { canonicalBaseUrl } from "@/lib/canonical-host";
 import { ProjectsCatalogContent } from "@/components/public/projects-catalog-content";
 
-const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+const baseUrl = canonicalBaseUrl();
 const shareCard = shareImage(
   `${baseUrl}/proyek/opengraph-image`,
   baseUrl,

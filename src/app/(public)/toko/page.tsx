@@ -2,11 +2,12 @@ import { Metadata } from "next";
 import { getProducts, getProfile } from "@/lib/actions";
 import { safeJsonLd } from "@/lib/json-ld";
 import { localeAlternates, shareImage } from "@/lib/seo";
+import { canonicalBaseUrl } from "@/lib/canonical-host";
 import { STORE_NAME } from "@/lib/store";
 import { getProductSlug } from "@/lib/product-link";
 import { ProductsCatalogContent } from "@/components/public/products-catalog-content";
 
-const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+const baseUrl = canonicalBaseUrl();
 const shareCard = shareImage(
   `${baseUrl}/toko/opengraph-image`,
   baseUrl,

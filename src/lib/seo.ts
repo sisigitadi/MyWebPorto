@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { resolveOgMeta, resolveVerification } from "@/lib/seo-config";
+import { canonicalBaseUrl } from "@/lib/canonical-host";
 
 export interface LlmsEntry {
   title: string;
@@ -202,7 +203,7 @@ export function formatSeoTitle(rawTitle: string, brand = "Sigit Adi Irianto", ma
 
 export async function generateDynamicMetadata(): Promise<Metadata> {
   const profile = await getProfile();
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+  const appUrl = canonicalBaseUrl();
 
   const defaultTitle = "Sigit Adi Portfolio";
   const description = profile.bio;

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getProjects, getProfile } from "@/lib/actions";
 import { safeJsonLd } from "@/lib/json-ld";
 import { localeAlternates, shareImage, extractFaqFromContent, buildFaqPageSchema, formatSeoTitle } from "@/lib/seo";
+import { canonicalBaseUrl } from "@/lib/canonical-host";
 import { ProjectDetailContent } from "@/components/public/project-detail-content";
 
 interface ProjectDetailPageProps {
@@ -12,8 +13,8 @@ interface ProjectDetailPageProps {
 
 // Optimasi Vercel Free: cache 24 jam di CDN Edge; pembaruan ditangani on-demand oleh revalidatePath.
 export const revalidate = 86400;
-// Hanya layani slug hasil generateStaticParams; tolak scan bot/URL liar tanpa menulis ke ISR cache
-export const dynamicParams = false;
+// dynamicParams = true memungkinkan proyek baru yang diterbitkan di database tetap dapat diakses publik via ISR on-demand
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
   const projects = await getProjects();
@@ -22,7 +23,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: ProjectDetailPageProps) {
   const { slug } = await params;
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+  const baseUrl = canonicalBaseUrl();
   const projects = await getProjects();
   const project = projects.find((p) => p.slug === slug);
 
@@ -64,7 +65,7 @@ export async function generateMetadata({ params }: ProjectDetailPageProps) {
 
 export default async function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const { slug } = await params;
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+  const baseUrl = canonicalBaseUrl();
   const [projects, profile] = await Promise.all([getProjects(), getProfile()]);
   const project = projects.find((p) => p.slug === slug && p.published);
 

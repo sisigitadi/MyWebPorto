@@ -1,7 +1,58 @@
 # DRAF REVISI & RENCANA KERJA TEKNIS
 
 **Status:** Selesai & Terverifikasi — Siap Dideploy ke Produksi  
-**Terakhir Diperbarui:** 2026-10-30 (Iterasi 6: Unifikasi Menyeluruh 1 Kartu Profil & Perampingan Ekstrem Teks Filter Minimalis)  
+**Terakhir Diperbarui:** 2026-10-30 (Iterasi 7: Audit & Koreksi Notifikasi Google Search Console - Indexing & Redirects)  
+
+---
+
+## Riwayat Eksekusi Iterasi 7 (Audit & Koreksi Notifikasi Google Search Console)
+- **Pekerjaan:** 
+  1. Audit mendalam dan perbaikan komprehensif atas notifikasi Google Search Console (GSC):
+     - **"Crawled - currently not indexed"** (24 halaman terdampak, Validasi Gagal: Started 10/21/26, Failed 10/24/26).
+     - **"Page with redirect"** (5 halaman terdampak, Validasi Dimulai: Started 10/22/26).
+  2. Identifikasi akar penyebab teknis kegagalan validasi Googlebot, penambahan 301 Permanent Redirects untuk slug warisan, aktivasi `dynamicParams = true`, standardisasi kanonikal, pembersihan `robots.txt`, dan sinkronisasi integritas data portofolio.
+- **Temuan & Solusi yang Diterapkan:**
+  1. **Akar Masalah Kegagalan Validasi GSC ("Validation Failed" 10/24/26)**:
+     - *Masalah:* Validasi GSC gagal karena Googlebot mengambil sampel halaman uji coba dari daftar 24 URL pada 21–24 Oktober 2026:
+       - `https://sigitadi.id/artikel/membuat-gambar-di-gemini-panduan-teknis-integrasi-api` (Last crawled Oct 24)
+       - `https://sigitadi.id/artikel/panduan-ssh-untuk-mengamankan-akses-server` (Last crawled Oct 24)
+       - `https://sigitadi.id/artikel/cara-kerja-serangan-ddos-dan-mitigasi` (Last crawled Oct 23)
+       - `https://sigitadi.id/artikel/panduan-instalasi-wazuh-siem` (Last crawled Oct 21)
+       - `https://sigitadi.id/artikel/optimasi-integrasi-google-gemini-api` (Last crawled Oct 21)
+       Ketika Googlebot merayapi ulang 5 URL tersebut, **seluruhnya mengembalikan HTTP 404 Not Found** di production! Google menganggap perbaikan gagal seketika jika halaman sampel mengembalikan error 404/500.
+     - *Penyebab Teknis 404:* 
+       - Pada Next.js `[slug]/page.tsx`, rute dikonfigurasi dengan `export const dynamicParams = false;`. Pengaturan ini secara paksa menolak (404) setiap slug yang tidak dihasilkan saat proses build statis.
+       - Pada saat build statis, koneksi DB dimatikan (`!isBuild`), sehingga Next.js hanya membaca dari fallback `local-store.json` / `dummy-data.ts`. Dua artikel baru (`membuat-gambar-di-gemini...` dan `panduan-ssh...`) belum disinkronkan ke file lokal atau berstatus `published: false`.
+       - Tiga artikel lama (`cara-kerja-serangan-ddos...`, `panduan-instalasi-wazuh...`, `optimasi-integrasi...`) telah diganti/dihapus tetapi tidak memiliki 301 Permanent Redirect ke URL penggantinya.
+     - *Solusi:*
+       - Mengubah `export const dynamicParams = true;` pada `src/app/(public)/artikel/[slug]/page.tsx` dan `src/app/(public)/proyek/[slug]/page.tsx`.
+       - Mendaftarkan 301 Permanent Redirects pada `next.config.ts`:
+         - `/artikel/cara-kerja-serangan-ddos-dan-mitigasi` → `/artikel/anatomi-serangan-siber-web-dan-mitigasi` (301)
+         - `/artikel/panduan-instalasi-wazuh-siem` → `/proyek/sentinel-soc` (301)
+         - `/artikel/optimasi-integrasi-google-gemini-api` → `/artikel/membuat-gambar-di-gemini-panduan-teknis-integrasi-api` (301)
+       - Menyinkronkan seluruh 17 artikel resmi dari basis data Supabase ke `data/local-store.json` dan `src/lib/dummy-data.ts` dengan status `published: true`.
+  2. **Audit Subdomain pada Properti Domain GSC (7 URL)**:
+     - *Temuan:* Properti Search Console adalah Domain Property (`sigitadi.id`), yang otomatis mencakup seluruh subdomain:
+       - `porto.sigitadi.id` (dan `/ai-engineer.html`): Merupakan repositori GitHub Pages lama yang menduplikat konten portofolio utama.
+       - `prompt.sigitadi.id`, `ctf-judge.sigitadi.id`, `smartcv.sigitadi.id`, `socops.sigitadi.id`, `cdn.sigitadi.id`: Merupakan subdomain web app / tool mandiri atau CDN asset. Untuk SPA/aplikasi interaktif atau folder CDN tanpa artikel teks panjang, status "Crawled - currently not indexed" adalah perilaku wajar algoritma Google (Google memprioritaskan mengindeks halaman konten substantif daripada root landing tools/CDN).
+     - *Rekomendasi:*
+       - Untuk `porto.sigitadi.id`: Pasang redirect CNAME / Cloudflare Page Rule atau tambahkan `<meta name="robots" content="noindex">` di repo GitHub Pages jika ingin menghentikan kanibalisasi SEO.
+       - Untuk subdomain aplikasi (`prompt`, `smartcv`, dll): Dipertahankan apa adanya karena merupakan aplikasi interaktif fungsional.
+  3. **Audit Kategori "Page with redirect" (5 URL)**:
+     - *Temuan:*
+       - `https://www.sigitadi.id/` dialihkan dengan 308/301 ke `https://sigitadi.id/` (Normal canonical enforcement).
+       - `http://sigitadi.id/` dialihkan ke `https://sigitadi.id/` (Normal SSL/TLS enforcement).
+       - URL parameter kontak `https://sigitadi.id/?contactSubject=...` dialihkan ke `https://sigitadi.id/#kontak` via middleware.
+       - Status "Page with redirect" di Google Search Console **bukanlah error**, melainkan laporan bahwa Google mengenali adanya pengalihan dan tidak mengindeks URL sumber pengalihan (melainkan mengindeks URL tujuannya).
+     - *Tindakan Perbaikan Teknis:*
+       - Di `robots.txt`, baris `Disallow: /*?contact*` telah **dihapus**. Sebelumnya Googlebot dilarang merayapi parameter kontak sehingga Google ragu apakah pengalihan tersebut valid. Dengan diizinkan rayap, Googlebot dapat secara tuntas membaca header 308/301 dan mengonfirmasi bahwa halaman kanonikal adalah `https://sigitadi.id/`.
+       - Memperbaiki `host:` pada `robots.txt` menjadi `host: sigitadi.id` (tanpa `https://`) sesuai standar IETF RFC 9309.
+  4. **Panduan Validasi Google Search Console untuk Pengguna Pasca-Deploy**:
+     - *Langkah 1:* Deploy kode terbaru ke server produksi (VPS).
+     - *Langkah 2:* Buka Google Search Console > Halaman (Pages).
+     - *Langkah 3:* Klik baris status **"Crawled - currently not indexed"**, lalu klik tombol **"Validate Fix" (Validasi Perbaikan)**.
+     - *Langkah 4:* Lakukan hal yang sama pada **"Page with redirect"** (klik "See Details" untuk memantau validasi yang sedang berjalan).
+     - Googlebot akan merayapi ulang sampel URL dan mendapati kode status HTTP 200 (untuk artikel/proyek aktif) serta HTTP 301 (untuk URL lama), sehingga validasi akan dinyatakan **Passed (Lulus)**.
 
 ---
 

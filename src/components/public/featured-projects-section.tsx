@@ -152,7 +152,7 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
 
                     {/* Tech Stack Chips */}
                     <div className="flex flex-wrap gap-1.5 pt-1">
-                      {project.techStack.slice(0, 4).map((tech) => (
+                      {(project.techStack || []).slice(0, 4).map((tech) => (
                         <span
                           key={tech}
                           className="vt-card-inset px-2.5 py-0.5 font-mono text-xs font-bold text-[var(--vt-ink)] bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)]"

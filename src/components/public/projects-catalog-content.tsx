@@ -204,7 +204,7 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
                         </p>
 
                         <div className="flex flex-wrap gap-1 pt-1">
-                          {project.techStack.map((tech) => (
+                          {(project.techStack || []).map((tech) => (
                             <span
                               key={tech}
                               className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-muted text-[var(--vt-ink)] border border-border"
