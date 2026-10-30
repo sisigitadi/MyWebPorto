@@ -30,6 +30,62 @@ interface ArticlesSectionProps {
   articles: ArticleData[];
 }
 
+interface ArticleCategoryFilter {
+  id: string;
+  labelId: string;
+  labelEn: string;
+  match: (tags: string[], title: string, summary: string) => boolean;
+}
+
+const ARTICLE_CATEGORIES: ArticleCategoryFilter[] = [
+  {
+    id: "ALL",
+    labelId: "Semua",
+    labelEn: "All",
+    match: () => true,
+  },
+  {
+    id: "WEB_STACK",
+    labelId: "Web",
+    labelEn: "Web",
+    match: (tags, title, summary) => {
+      const kws = ["next.js", "react", "typescript", "architecture", "retro ui", "gsap", "frontend", "web"];
+      const text = `${tags.join(" ")} ${title} ${summary}`.toLowerCase();
+      return kws.some((kw) => text.includes(kw));
+    },
+  },
+  {
+    id: "AI_AUTOMATION",
+    labelId: "AI",
+    labelEn: "AI",
+    match: (tags, title, summary) => {
+      const kws = ["ai", "chatgpt", "gemini", "automation", "video production", "content strategy"];
+      const text = `${tags.join(" ")} ${title} ${summary}`.toLowerCase();
+      return kws.some((kw) => text.includes(kw));
+    },
+  },
+  {
+    id: "SECURITY",
+    labelId: "Security",
+    labelEn: "Security",
+    match: (tags, title, summary) => {
+      const kws = ["cybersecurity", "security", "siem", "wazuh", "hardening", "serangan", "mitigasi"];
+      const text = `${tags.join(" ")} ${title} ${summary}`.toLowerCase();
+      return kws.some((kw) => text.includes(kw));
+    },
+  },
+  {
+    id: "BACKEND_DATA",
+    labelId: "Cloud",
+    labelEn: "Cloud",
+    match: (tags, title, summary) => {
+      const kws = ["backend", "drizzle", "postgresql", "serverless", "cloud", "database", "api"];
+      const text = `${tags.join(" ")} ${title} ${summary}`.toLowerCase();
+      return kws.some((kw) => text.includes(kw));
+    },
+  },
+];
+
 export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps) {
   const { t, language } = useTranslation();
   const sectionRef = useRef<HTMLElement>(null);
@@ -44,28 +100,19 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
   );
   const articles = publishedArticles;
 
-  // Extract all unique tags
-  const allTags = useMemo(() => {
-    const set = new Set<string>();
-    articles.forEach((a) => {
-      a.tags.forEach((tag) => set.add(tag));
-    });
-    return ["ALL", ...Array.from(set)];
-  }, [articles]);
-
-  // Filtered list
+  // Filtered list berbasis 5 domain kategori yang ringkas & terelaborasi
   const filteredArticles = useMemo(() => {
+    const activeCategory = ARTICLE_CATEGORIES.find((c) => c.id === selectedTag) || ARTICLE_CATEGORIES[0];
+
     return articles.filter((article) => {
       const q = searchQuery.toLowerCase();
       const title = (language === "en" && article.titleEn ? article.titleEn : article.title).toLowerCase();
       const summary = (language === "en" && article.summaryEn ? article.summaryEn : (article.summary || "")).toLowerCase();
-      const matchQuery = title.includes(q) || summary.includes(q);
+      const matchQuery = !q || title.includes(q) || summary.includes(q);
 
-      const matchTag =
-        selectedTag === "ALL" ||
-        article.tags.some((tg) => tg.toLowerCase() === selectedTag.toLowerCase());
+      const matchCategory = activeCategory.match(article.tags, title, summary);
 
-      return matchQuery && matchTag;
+      return matchQuery && matchCategory;
     });
   }, [articles, searchQuery, selectedTag, language]);
 
@@ -135,18 +182,17 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
 
         {/* Retro Filter Bar & Toolbar */}
         <div className="mb-6 p-3 bg-[var(--vt-chrome)] border-2 border-t-[var(--vt-edge-hi-2)] border-l-[var(--vt-edge-hi-2)] border-r-[var(--vt-edge-lo)] border-b-[var(--vt-edge-lo)] shadow-[inset_1px_1px_0_var(--vt-edge-hi),inset_-1px_-1px_0_var(--vt-edge-lo)] flex flex-col md:flex-row gap-3 items-center justify-between min-w-0">
-          {/* Tag Chips */}
+          {/* Category Filter Pills (Ringkas, Informatif & Sesuai Konteks) */}
           <div className="flex flex-wrap gap-1.5 w-full md:w-auto items-center min-w-0">
-            <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-[var(--vt-ink)] mr-1 flex items-center gap-1">
-              <Tag className="h-3 w-3" /> Filter:
-            </span>
-            {allTags.map((tag) => {
-              const isActive = selectedTag === tag;
+            <Tag className="h-3.5 w-3.5 text-muted-foreground mr-0.5 shrink-0" />
+            {ARTICLE_CATEGORIES.map((cat) => {
+              const isActive = selectedTag === cat.id;
+              const label = language === "en" ? cat.labelEn : cat.labelId;
               return (
                 <button
-                  key={tag}
+                  key={cat.id}
                   onClick={() => {
-                    setSelectedTag(tag);
+                    setSelectedTag(cat.id);
                     setVisibleCount(INITIAL_LIMIT);
                   }}
                   className={`px-2 py-0.5 text-[11px] font-mono transition-all uppercase cursor-pointer ${
@@ -155,7 +201,7 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
                       : "bg-[var(--vt-card)] text-[var(--vt-ink)] border-2 border-t-[var(--vt-edge-hi)] border-l-[var(--vt-edge-hi)] border-r-[var(--vt-edge-lo)] border-b-[var(--vt-edge-lo)] hover:bg-[var(--vt-edge-hi-2)]"
                   }`}
                 >
-                  {tag}
+                  {label}
                 </button>
               );
             })}
@@ -167,7 +213,7 @@ export function ArticlesSection({ articles: propArticles }: ArticlesSectionProps
               <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-[var(--vt-ink-mute)] pointer-events-none" />
               <input
                 type="text"
-                placeholder={language === "en" ? "Search articles..." : "Cari artikel..."}
+                placeholder={language === "en" ? "Search..." : "Cari..."}
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);

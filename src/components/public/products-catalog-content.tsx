@@ -306,7 +306,7 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={isEn ? "Search digital products..." : "Cari produk digital..."}
+                  placeholder={isEn ? "Search..." : "Cari..."}
                   className="w-full pl-8 pr-3 py-1.5 bg-[var(--vt-paper)] border border-[var(--vt-edge-lo-2)] rounded-xs text-xs outline-none focus:border-primary"
                 />
               </div>
@@ -321,9 +321,9 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
                     onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
                     className="bg-[var(--vt-paper)] border border-[var(--vt-edge-lo-2)] rounded-xs px-2.5 py-1.5 text-xs outline-none font-bold text-[var(--vt-ink)] cursor-pointer"
                   >
-                    <option value="default">{isEn ? "Latest First" : "Urutan Default"}</option>
-                    <option value="price_asc">{isEn ? "Price: Low to High" : "Harga Terendah"}</option>
-                    <option value="price_desc">{isEn ? "Price: High to Low" : "Harga Tertinggi"}</option>
+                    <option value="default">{isEn ? "Latest" : "Terbaru"}</option>
+                    <option value="price_asc">{isEn ? "Lowest" : "Termurah"}</option>
+                    <option value="price_desc">{isEn ? "Highest" : "Tertinggi"}</option>
                   </select>
                 </div>
 
@@ -360,10 +360,7 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
 
             {/* Category Filter Pills */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 vt-scrollbar">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground shrink-0 mr-1 flex items-center gap-1">
-                <Layers className="h-3 w-3" />
-                <span>{isEn ? "Category:" : "Kategori:"}</span>
-              </span>
+              <Layers className="h-3.5 w-3.5 text-muted-foreground mr-0.5 shrink-0" />
 
               <button
                 type="button"
@@ -374,11 +371,22 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
                     : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/60"
                 }`}
               >
-                {isEn ? "All Products" : "Semua Produk"} ({allProducts.length})
+                {isEn ? "All" : "Semua"}
               </button>
 
               {categories.map((cat) => {
-                const count = allProducts.filter((p) => p.category?.toLowerCase() === cat.toLowerCase()).length;
+                const catLower = cat.toLowerCase();
+                const conciseLabel =
+                  catLower.includes("source code") || catLower.includes("template")
+                    ? "Code"
+                    : catLower.includes("akun") || catLower.includes("langganan") || catLower.includes("subscription")
+                    ? isEn
+                      ? "Services"
+                      : "Layanan"
+                    : catLower.includes("tool") || catLower.includes("otomasi")
+                    ? "Tools"
+                    : cat;
+
                 return (
                   <button
                     key={cat}
@@ -390,7 +398,7 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
                         : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/60"
                     }`}
                   >
-                    {cat} ({count})
+                    {conciseLabel}
                   </button>
                 );
               })}

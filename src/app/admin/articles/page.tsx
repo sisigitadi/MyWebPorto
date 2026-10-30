@@ -424,7 +424,7 @@ export default function AdminArticlesPage() {
           <div className="relative w-full sm:w-80">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Cari berdasarkan judul, tag, atau slug..."
+              placeholder="Cari..."
               className="pl-9"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
