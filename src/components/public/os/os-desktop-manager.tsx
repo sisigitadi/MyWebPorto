@@ -16,8 +16,8 @@ import {
   Terminal,
   ChevronRight,
   ArrowUp,
-  Maximize2,
-  Minimize2,
+  Minus,
+  Square,
   Volume2,
   VolumeX,
   X,
@@ -154,6 +154,19 @@ export function OSDesktopManager({
   const [activeApp, setActiveApp] = useState<AppId>("profil");
   const [isMinimized, setIsMinimized] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
+
+  // Keyboard shortcut Esc untuk restore down saat maximized di desktop mode
+  useEffect(() => {
+    if (!isMaximized) return;
+    const handleEscapeWhenMaximized = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        playOS("minimize");
+        setIsMaximized(false);
+      }
+    };
+    window.addEventListener("keydown", handleEscapeWhenMaximized);
+    return () => window.removeEventListener("keydown", handleEscapeWhenMaximized);
+  }, [isMaximized]);
   const [startOpen, setStartOpen] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -879,114 +892,151 @@ export function OSDesktopManager({
         {/* Center: The Active OS Application Window (disembunyikan saat diminimize ke desktop) */}
         {!isMinimized && (
           <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0 z-20">
-            {activeApp === "terminal" ? (
-              <div key="terminal-fullscreen" className="vt-window vt-crt-on flex flex-col h-full">
-                <OSCrtTerminal
-                  ownerName={profile.name}
-                  profile={profile}
-                  services={services}
-                  projects={projects}
-                  articles={articles}
-                  fullscreen
-                />
-              </div>
-            ) : (
+            {/* Modal backdrop saat window dalam mode maximized (fullscreen preview) */}
+            {isMaximized && (
               <div
-                key={activeApp}
-                className={`vt-window flex flex-col h-full vt-crt-on transition-all duration-150 relative ${
-                  isMaximized ? "fixed inset-2 z-50" : "flex-1"
-                }`}
-              >
-                {/* 1. OS Titlebar (double-click = maximize toggle) */}
-                <div
-                  className="vt-titlebar select-none py-1 sm:py-1.5 px-2 sm:px-3 flex items-center justify-between"
-                  onDoubleClick={() => setIsMaximized((v) => !v)}
-                  title={language === "en" ? "Double-click to maximize" : "Klik 2x untuk maximize"}
-                >
-                  <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                    <span className="shrink-0">{currentApp.icon}</span>
-                    <span className="font-mono text-[10px] sm:text-xs font-bold text-white tracking-wide truncate">
-                      <span className="hidden sm:inline">SigitOS_Viewer :: </span>[{currentApp.number}/{apps.length}] {appFilename(currentApp.id, language)}
-                    </span>
-                  </div>
-
-                  {/* Titlebar window controls */}
-                  <div className="flex items-center gap-1 shrink-0 ml-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsShareModalOpen(true)}
-                      className="vt-titlebar-btn hover:bg-primary/30 text-white"
-                      title={language === "en" ? `Share ${appHumanLabel(currentApp.id, language)}` : `Bagikan ${appHumanLabel(currentApp.id, language)}`}
-                      aria-label={language === "en" ? "Share content & link" : "Bagikan tautan & konten"}
-                    >
-                      <Share2 className="h-2.5 w-2.5 text-[#38bdf8]" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        playOS("minimize");
-                        setIsMinimized(true);
-                      }}
-                      className="vt-titlebar-btn"
-                      title="Minimize"
-                      aria-label="Minimize"
-                    >
-                      <Minimize2 className="h-2.5 w-2.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        playOS("maximize");
-                        setIsMaximized(!isMaximized);
-                      }}
-                      className="vt-titlebar-btn"
-                      title={isMaximized ? "Normal" : "Maximize"}
-                      aria-label="Maximize"
-                    >
-                      <Maximize2 className="h-2.5 w-2.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        playOS("minimize");
-                        setIsMinimized(true);
-                      }}
-                      className="vt-titlebar-btn hover:bg-rose-500 hover:text-white"
-                      title="Close to taskbar"
-                      aria-label="Close"
-                    >
-                      <X className="h-2.5 w-2.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* 2. Window Body Canvas (Internal Scroll) */}
-                <div
-                  ref={bindDesktopScroller}
-                  data-gsap-scroller="desktop"
-                  className="flex-1 overflow-y-auto vt-scrollbar bg-[var(--vt-paper)] text-[var(--vt-ink)] p-2 sm:p-3 md:p-6"
-                >
-                  {activeApp === "profil" && <HeroSection profile={profile} profileCards={profileCards} />}
-                  {activeApp === "layanan" && (
-                    <ServicesSection services={services} profile={profile} />
-                  )}
-                  {activeApp === "proyek" && (
-                    <FeaturedProjectsSection projects={projects} />
-                  )}
-                  {activeApp === "toko" && <ProductsSection products={products} profile={profile} />}
-                  {activeApp === "testimoni" && (
-                    <TestimonialsSection testimonials={testimonials} />
-                  )}
-                  {activeApp === "artikel" && (
-                    <ArticlesSection articles={articles} />
-                  )}
-                  {activeApp === "kontak" && <ContactSection profile={profile} />}
-                </div>
-
-                {/* 2b. Continuation signifier: gradien di tepi bawah body window */}
-                <ScrollFade containerRef={scrollContainerRef} />
-              </div>
+                role="presentation"
+                onClick={() => {
+                  playOS("minimize");
+                  setIsMaximized(false);
+                }}
+                className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 animate-in fade-in duration-150"
+              />
             )}
+
+            <div
+              key={activeApp}
+              className={`vt-window flex flex-col h-full vt-crt-on transition-all duration-150 relative ${
+                isMaximized ? "fixed inset-2 z-50 shadow-2xl" : "flex-1"
+              }`}
+            >
+              {/* 1. OS Titlebar (double-click = toggle maximize persis Windows OS) */}
+              <div
+                className="vt-titlebar select-none py-1 sm:py-1.5 px-2 sm:px-3 flex items-center justify-between cursor-default"
+                onDoubleClick={() => {
+                  playOS(isMaximized ? "minimize" : "maximize");
+                  setIsMaximized((v) => !v);
+                }}
+                title={language === "en" ? "Double-click to toggle maximize" : "Klik 2x untuk perbesar/pulihkan"}
+              >
+                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                  <span className="shrink-0">{currentApp.icon}</span>
+                  <span className="font-mono text-[10px] sm:text-xs font-bold text-white tracking-wide truncate">
+                    <span className="hidden sm:inline">SigitOS_Viewer :: </span>[{currentApp.number}/{apps.length}] {appFilename(currentApp.id, language)}
+                  </span>
+                </div>
+
+                {/* Titlebar window controls (Minimize, Maximize/Restore, Close) */}
+                <div className="flex items-center gap-1 shrink-0 ml-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsShareModalOpen(true)}
+                    className="vt-titlebar-btn hover:bg-primary/30 text-white"
+                    title={language === "en" ? `Share ${appHumanLabel(currentApp.id, language)}` : `Bagikan ${appHumanLabel(currentApp.id, language)}`}
+                    aria-label={language === "en" ? "Share content & link" : "Bagikan tautan & konten"}
+                  >
+                    <Share2 className="h-2.5 w-2.5 text-[#38bdf8]" />
+                  </button>
+
+                  {/* 1. Minimize Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playOS("minimize");
+                      setIsMinimized(true);
+                    }}
+                    className="vt-titlebar-btn"
+                    title="Minimize"
+                    aria-label="Minimize window"
+                  >
+                    <Minus className="h-2.5 w-2.5" />
+                  </button>
+
+                  {/* 2. Maximize / Restore Down Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playOS(isMaximized ? "minimize" : "maximize");
+                      setIsMaximized(!isMaximized);
+                    }}
+                    className="vt-titlebar-btn"
+                    title={isMaximized ? "Restore Down" : "Maximize"}
+                    aria-label={isMaximized ? "Restore down window" : "Maximize window"}
+                  >
+                    {isMaximized ? (
+                      <svg
+                        className="h-2.5 w-2.5"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.75"
+                        aria-hidden="true"
+                      >
+                        <rect x="4" y="2" width="9" height="9" />
+                        <polyline points="2,5 2,13 10,13" />
+                      </svg>
+                    ) : (
+                      <Square className="h-2.5 w-2.5" />
+                    )}
+                  </button>
+
+                  {/* 3. Close Button (Authentic Windows red hover #e81123) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playOS("windowClose");
+                      setIsMinimized(true);
+                    }}
+                    className="vt-titlebar-btn hover:bg-[#e81123] hover:text-white active:bg-[#f1707a] transition-colors"
+                    title="Close to desktop"
+                    aria-label="Close window"
+                  >
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* 2. Window Body Canvas */}
+              {activeApp === "terminal" ? (
+                <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-black">
+                  <OSCrtTerminal
+                    ownerName={profile.name}
+                    profile={profile}
+                    services={services}
+                    projects={projects}
+                    articles={articles}
+                    fullscreen
+                  />
+                </div>
+              ) : (
+                <>
+                  <div
+                    ref={bindDesktopScroller}
+                    data-gsap-scroller="desktop"
+                    className="flex-1 overflow-y-auto vt-scrollbar bg-[var(--vt-paper)] text-[var(--vt-ink)] p-2 sm:p-3 md:p-6"
+                  >
+                    {activeApp === "profil" && <HeroSection profile={profile} profileCards={profileCards} />}
+                    {activeApp === "layanan" && (
+                      <ServicesSection services={services} profile={profile} />
+                    )}
+                    {activeApp === "proyek" && (
+                      <FeaturedProjectsSection projects={projects} />
+                    )}
+                    {activeApp === "toko" && <ProductsSection products={products} profile={profile} />}
+                    {activeApp === "testimoni" && (
+                      <TestimonialsSection testimonials={testimonials} />
+                    )}
+                    {activeApp === "artikel" && (
+                      <ArticlesSection articles={articles} />
+                    )}
+                    {activeApp === "kontak" && <ContactSection profile={profile} />}
+                  </div>
+
+                  {/* 2b. Continuation signifier: gradien di tepi bawah body window */}
+                  <ScrollFade containerRef={scrollContainerRef} />
+                </>
+              )}
+            </div>
           </div>
         )}
       </div>

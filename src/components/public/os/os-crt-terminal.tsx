@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   Terminal as TerminalIcon,
   RotateCcw,
@@ -89,6 +89,81 @@ const THEME_ALIASES: Record<string, OSTheme> = {
   code: "vscode",
 };
 
+const ALL_COMMANDS = [
+  "help",
+  "man",
+  "whoami",
+  "date",
+  "time",
+  "echo",
+  "pwd",
+  "ls",
+  "dir",
+  "cat",
+  "type",
+  "cd",
+  "skills",
+  "stack",
+  "projects",
+  "proyek",
+  "services",
+  "layanan",
+  "articles",
+  "artikel",
+  "contact",
+  "kontak",
+  "theme",
+  "lang",
+  "cv",
+  "github",
+  "gh",
+  "email",
+  "mail",
+  "neofetch",
+  "sysinfo",
+  "history",
+  "clear",
+  "cls",
+  "reboot",
+  "restart",
+  "share",
+  "bagikan",
+  "open",
+  "uname",
+  "sudo",
+  "exit",
+  "quit",
+  "uptime",
+  "top",
+  "htop",
+  "ping",
+  "curl",
+  "cowsay",
+  "matrix",
+];
+
+const VIRTUAL_FILES = [
+  "readme.txt",
+  "profil.txt",
+  "skills.txt",
+  "proyek.txt",
+  "layanan.txt",
+  "kontak.txt",
+];
+
+const APP_NAMES = [
+  "profil",
+  "layanan",
+  "proyek",
+  "toko",
+  "testimoni",
+  "artikel",
+  "kontak",
+  "terminal",
+];
+
+const THEME_NAMES = ["retro90s", "dark", "tokyo", "vscode", "random"];
+
 /**
  * Penanda baris placeholder ("sedang memproses..."). Memakai zero-width space
  * (U+200B) bukan teks, karena teksnya diterjemahkan — menyaring berdasarkan
@@ -125,12 +200,6 @@ export function OSCrtTerminal({
     t.terminal_status_boot,
   ]);
 
-  // Sinkronisasi bahasa: baris log statis (banner BIOS, status boot, header
-  // bantuan, dll.) diterjemahkan penuh, tapi karena mereka disimpan di state
-  // (bukan derived), mengganti bahasa tidak mengubahnya. Tanpa effect ini,
-  // teks terminal tetap bahasa lama setelah toggle ID/EN. Baris hasil query
-  // bot sengaja tidak diterjemahkan ulang — jawaban itu sudah dihasilkan dalam
-  // satu bahasa; menerjemahkan teks bebas akan menimbulkan teks campuran.
   const prevBootLogsRef = useRef<string[] | null>(null);
   useEffect(() => {
     const bootLogs = [
@@ -146,7 +215,6 @@ export function OSCrtTerminal({
     const prev = prevBootLogsRef.current;
     prevBootLogsRef.current = bootLogs;
     if (!prev || prev.length !== bootLogs.length) return;
-    // Peta teks bahasa lama → bahasa baru untuk tiap baris statis.
     const translate = new Map<string, string>();
     let changed = false;
     for (let i = 0; i < bootLogs.length; i++) {
@@ -163,6 +231,7 @@ export function OSCrtTerminal({
       })
     );
   }, [t, ownerName]);
+
   const [commandInput, setCommandInput] = useState("");
   const [isInferencing, setIsInferencing] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
@@ -170,30 +239,19 @@ export function OSCrtTerminal({
   const [copied, setCopied] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [cloudOn, setCloudOn] = useState(false);
-  // Label pendek provider aktif (dari registry) — sebelumnya tag cloud terminal
-  // meng-hardcode "Gemini" meski provider efektif bisa openai/anthropic/groq/dll.
   const [cloudProviderLabel, setCloudProviderLabel] = useState("");
-  // Default ON: speaker terminal aktif sejak halaman dimuat. speechSynthesis
-  // tetap butuh gesture pengguna sebelum memutar suara (kebijakan autoplay
-  // browser), tapi speak() hanya dipanggil setelah user mengetik perintah,
-  // jadi gesture tersebut sudah ada.
   const [ttsOn, setTtsOn] = useState(true);
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
+  const terminalBodyRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Bahasa UI terbaru. speak() dipanggil dari dalam setTimeout yang menangkap
-  // versi render lama (stale closure) — tanpa ref, voice bisa tertinggal di
-  // bahasa sebelum toggle ID/EN, terlihat bagi pengguna seperti voice "tertukar".
   const languageRef = useRef(language);
   useEffect(() => {
     languageRef.current = language;
   }, [language]);
 
-  // Cache daftar suara TTS. synth.getVoices() memuat secara asynchronous di
-  // banyak browser (array kosong pada panggilan pertama). Tanpa menunggu event
-  // voiceschanged, pemilihan voice kembali null → browser memakai voice default
-  // (umumnya en-US) → teks Indonesia dibaca dengan voice English.
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -209,10 +267,6 @@ export function OSCrtTerminal({
     };
   }, []);
 
-  // Konteks live untuk engine NLP — dirakit dari props SSR (profil, layanan,
-  // proyek, artikel) yang diterima jendela ini, bukan dari tabel hardcode di
-  // ai-engine.ts. Sehingga jawaban Sigit_Bot selalu sinkron dengan data yang
-  // diatur admin: email/stack/daftar proyek diubah → bot ikut, tanpa redeploy.
   const aiContext = useMemo<EngineContext>(
     () => ({
       ownerName: profile.name,
@@ -252,17 +306,7 @@ export function OSCrtTerminal({
     [profile, services, projects, articles, language],
   );
 
-  // Anti race condition untuk inferensi AI. Setiap query ambil nomor urut;
-  // hanya hasil query TERBARU yang boleh menulis log. Sebelumnya, query
-  // cloud yang lambat (A) bisa selesai setelah query baru (B) sudah menjawab,
-  // lalu menimpa/mengacak urutan output — termasuk menghapus baris placeholder
-  // milik B. Token ini juga dipakai untuk membatalkan setTimeout & TTS saat
-  // unmount.
   const querySeqRef = useRef(0);
-  // Pemilik flag isInferencing. Saat query usang bail-out, ia hanya boleh
-  // mereset flag bila masih jadi pemilik — jika user sudah menjalankan query
-  // lain, query itu yang mengelola flag. Command cepat (mis. "clear") tidak
-  // mengambil alih kepemilikan, jadi tanpa ref ini flag bisa macet true.
   const inferOwnerRef = useRef(0);
   const inferTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -270,18 +314,12 @@ export function OSCrtTerminal({
     if (inferTimeoutRef.current) clearTimeout(inferTimeoutRef.current);
   }, []);
 
-  // Auto-scroll ke baris terakhir. Hanya menggulir KONTAINER LOG-nya sendiri
-  // (role="log" adalah parent dari logEndRef) — BUKAN scrollIntoView.
-  // scrollIntoView menggulir SEMUA leluhur scrollable: di mode section mobile
-  // (terminal kini inline di tengah dokumen), setiap perubahan logs — termasuk
-  // 8 baris boot saat mount — akan menarik seluruh halaman ke section terminal
-  // dan pengguna tidak bisa scroll dengan tenang.
+  // Auto-scroll ke baris prompt terakhir
   useEffect(() => {
     const box = logEndRef.current?.parentElement;
     if (box) box.scrollTop = box.scrollHeight;
   }, [logs]);
 
-  // Tanyakan sekali apakah cloud AI opt-in aktif (default OFF).
   useEffect(() => {
     let cancelled = false;
     getCloudAIStatus()
@@ -303,34 +341,24 @@ export function OSCrtTerminal({
       const synth = window.speechSynthesis;
       synth.cancel();
 
-      // Selaraskan voice dengan bahasa teks yang dibaca (input EN dibalas EN -> baca en-US,
-      // input ID dibalas ID -> baca id-ID), dengan fallback ke bahasa UI aktif.
       const detected = detectLanguage(text, languageRef.current);
       const targetLang = detected === "en" ? "en-US" : "id-ID";
       const langPrefix = targetLang.slice(0, 2).toLowerCase();
       const pickVoice = (): SpeechSynthesisVoice | null => {
         const voices = voicesRef.current.length ? voicesRef.current : synth.getVoices();
         if (!voices.length) return null;
-        // 1) Cocok persis (id-ID / en-US)
         const exact = voices.find(
           (v) => v.lang.replace("_", "-").toLowerCase() === targetLang.toLowerCase()
         );
         if (exact) return exact;
-        // 2) Awalan bahasa (id-*, en-*)
         const prefix = voices.find((v) => v.lang.toLowerCase().startsWith(langPrefix));
         if (prefix) return prefix;
-        // 3) Fallback: voice yang BUKAN bahasa lain — jangan asal pakai voice
-        //    default browser (biasanya en-US) untuk teks Indonesia. Bila tidak
-        //    ada voice bahasa target, kembalikan null dan biarkan utter.lang
-        //    yang menentukan; mesin TTS akan memilih voice yang cocok.
         return null;
       };
 
-      // Bersihkan simbol/penanda agar dibaca sebagai kalimat wajar
       const clean = cleanTextForTTS(text);
       if (!clean) return;
 
-      // Pecah per kalimat — mesin TTS sering memotong teks panjang di tengah
       const chunks = (clean.match(/[^.!?]+[.!?]?/g) ?? [clean])
         .map((s) => s.trim())
         .filter(Boolean)
@@ -339,19 +367,15 @@ export function OSCrtTerminal({
       const voice = pickVoice();
       for (const chunk of chunks) {
         const utter = new SpeechSynthesisUtterance(chunk);
-        // utter.lang wajib diatur PERTAMA: bila voice bahasa target tidak
-        // tersedia di perangkat, browser memakainya untuk memilih pengganti
-        // yang tepat. Tanpa ini, voice default (en-US) dipakai untuk teks ID.
         utter.lang = targetLang;
         if (voice) utter.voice = voice;
-        // Sedikit "robot" tapi tetap jelas: tempo normal, pitch sedikit rendah
         utter.rate = 1;
         utter.pitch = 0.95;
         utter.volume = 1;
-        synth.speak(utter); // antrean speechSynthesis memutar berurutan
+        synth.speak(utter);
       }
     } catch {
-      // TTS opsional — abaikan bila diblokir browser
+      // TTS opsional
     }
   };
 
@@ -492,8 +516,18 @@ export function OSCrtTerminal({
         cv: t.terminal_help_cv,
         github: t.terminal_help_github,
         email: t.terminal_help_email,
+        cat: language === "en" ? "cat <file> - Display content of virtual file (e.g. cat readme.txt)" : "cat <file> - Tampilkan isi file virtual (contoh: cat readme.txt)",
+        cd: language === "en" ? "cd <dir> - Change directory or navigate to app section" : "cd <dir> - Pindah direktori atau navigasi ke section portofolio",
+        uname: language === "en" ? "uname [-a] - Print system and POSIX architecture information" : "uname [-a] - Tampilkan info arsitektur kernel & sistem POSIX",
+        sudo: language === "en" ? "sudo <cmd> - Execute a command as the superuser" : "sudo <cmd> - Jalankan perintah sebagai superuser",
+        uptime: language === "en" ? "uptime - Show how long the system has been running" : "uptime - Tampilkan lama waktu sistem berjalan",
+        top: language === "en" ? "top / htop - Display Linux processes and resource usage" : "top / htop - Tampilkan tabel proses & penggunaan memori sistem",
+        ping: language === "en" ? "ping <host> - Send ICMP network packets" : "ping <host> - Kirim paket jaringan ICMP ke server target",
+        curl: language === "en" ? "curl <url> - Fetch web resource with HTTP headers" : "curl <url> - Ambil resource web lengkap dengan header HTTP",
+        cowsay: language === "en" ? "cowsay <text> - Classic speaking cow ASCII art" : "cowsay <teks> - ASCII art sapi klasik berbicara",
+        matrix: language === "en" ? "matrix - Digital green falling rain effect" : "matrix - Efek hujan digital hijau Matrix klasik",
       };
-      const found = Object.entries(map).find(([k]) => topic === k);
+      const found = Object.entries(map).find(([k]) => topic.toLowerCase() === k);
       if (found) return [found[1]];
       return [t.terminal_help_no_entry.replace("{topic}", topic)];
     }
@@ -502,10 +536,20 @@ export function OSCrtTerminal({
       t.terminal_help_header,
       `  help [cmd]  - ${t.terminal_cmd_help}`,
       `  whoami      - ${t.terminal_cmd_whoami}`,
-      `  date        - ${t.terminal_cmd_date}`,
+      `  date / time - ${t.terminal_cmd_date}`,
       `  echo <txt>  - ${t.terminal_cmd_echo}`,
       `  pwd         - ${t.terminal_cmd_pwd}`,
       `  ls / dir    - ${t.terminal_cmd_ls}`,
+      `  cat <file>  - ${language === "en" ? "Read virtual file (readme.txt, profil.txt, etc.)" : "Baca file virtual (readme.txt, profil.txt, dll.)"}`,
+      `  cd <dir>    - ${language === "en" ? "Navigate to app section (cd proyek, cd layanan)" : "Navigasi ke section (cd proyek, cd layanan)"}`,
+      `  uname [-a]  - ${language === "en" ? "Print system kernel info" : "Tampilkan info kernel & OS"}`,
+      `  uptime      - ${language === "en" ? "System uptime & load average" : "Waktu aktif sistem & status beban"}`,
+      `  top / htop  - ${language === "en" ? "Display active process table" : "Tampilkan daftar proses aktif sistem"}`,
+      `  ping <host> - ${language === "en" ? "Send network ping test" : "Uji konektivitas paket jaringan"}`,
+      `  curl <url>  - ${language === "en" ? "Simulate HTTP request" : "Simulasi permintaan HTTP request"}`,
+      `  sudo <cmd>  - ${language === "en" ? "Execute superuser action" : "Jalankan aksi superuser"}`,
+      `  cowsay <tx> - ${language === "en" ? "ASCII speaking cow" : "Sapi ASCII berbicara"}`,
+      `  matrix      - ${language === "en" ? "Digital rain effect" : "Efek hujan digital Matrix"}`,
       `  skills      - ${t.terminal_cmd_skills}`,
       `  projects    - ${t.terminal_cmd_projects}`,
       `  services    - ${t.terminal_cmd_services}`,
@@ -520,11 +564,108 @@ export function OSCrtTerminal({
       `  neofetch    - ${t.terminal_cmd_neofetch}`,
       `  share       - ${language === "en" ? "Share terminal link & content" : "Bagikan tautan & konten terminal"}`,
       `  history     - ${t.terminal_cmd_history}`,
-      `  clear       - ${t.terminal_cmd_clear}`,
+      `  clear / cls - ${t.terminal_cmd_clear} (Ctrl+L)`,
+      `  exit / quit - ${language === "en" ? "Logout session" : "Tutup sesi terminal"}`,
       `  reboot      - ${t.terminal_cmd_reboot}`,
       t.terminal_help_freeform,
     ];
   };
+
+  const handleAutoCompletion = useCallback(() => {
+    const trimmed = commandInput.trimStart();
+    if (!trimmed) {
+      appendLogs([
+        `guest@sigitos:~$ ${commandInput}`,
+        `[SHELL] Commands: ${ALL_COMMANDS.slice(0, 16).join("  ")} ... (type 'help')`,
+      ]);
+      return;
+    }
+
+    const parts = trimmed.split(/\s+/);
+    if (parts.length === 1 && !commandInput.endsWith(" ")) {
+      const prefix = parts[0].toLowerCase();
+      const matches = ALL_COMMANDS.filter((cmd) => cmd.startsWith(prefix));
+      if (matches.length === 1) {
+        setCommandInput(`${matches[0]} `);
+        playOS("key");
+      } else if (matches.length > 1) {
+        let lcp = prefix;
+        for (let i = prefix.length; ; i++) {
+          const char = matches[0][i];
+          if (!char) break;
+          if (matches.every((m) => m[i] === char)) {
+            lcp += char;
+          } else {
+            break;
+          }
+        }
+        if (lcp.length > prefix.length) {
+          setCommandInput(lcp);
+        } else {
+          appendLogs([
+            `guest@sigitos:~$ ${commandInput}`,
+            matches.join("   "),
+          ]);
+        }
+        playOS("key");
+      }
+      return;
+    }
+
+    const cmd = parts[0].toLowerCase();
+    const argPrefix = parts.length > 1 ? parts[parts.length - 1].toLowerCase() : "";
+    let candidatePool: string[] = [];
+
+    if (cmd === "open") {
+      candidatePool = APP_NAMES;
+    } else if (cmd === "theme") {
+      candidatePool = THEME_NAMES;
+    } else if (cmd === "lang") {
+      candidatePool = ["id", "en"];
+    } else if (cmd === "cat" || cmd === "type") {
+      candidatePool = VIRTUAL_FILES;
+    } else if (cmd === "help" || cmd === "man") {
+      candidatePool = [
+        "skills",
+        "projects",
+        "services",
+        "contact",
+        "open",
+        "theme",
+        "lang",
+        "cv",
+        "github",
+        "email",
+        "cat",
+        "cd",
+        "uname",
+        "sudo",
+        "uptime",
+        "top",
+        "ping",
+        "curl",
+        "cowsay",
+        "matrix",
+      ];
+    } else if (cmd === "cd") {
+      candidatePool = ["profil", "layanan", "proyek", "artikel", "toko", "kontak", "..", "~"];
+    }
+
+    if (candidatePool.length > 0) {
+      const matches = candidatePool.filter((item) => item.toLowerCase().startsWith(argPrefix));
+      if (matches.length === 1) {
+        const newParts = [...parts.slice(0, -1), matches[0]];
+        setCommandInput(newParts.join(" ") + " ");
+        playOS("key");
+      } else if (matches.length > 1) {
+        appendLogs([
+          `guest@sigitos:~$ ${commandInput}`,
+          matches.join("   "),
+        ]);
+        playOS("key");
+      }
+    }
+  }, [commandInput]);
 
   const executeCommandOrQuery = (inputStr: string) => {
     const raw = inputStr.trim();
@@ -544,9 +685,7 @@ export function OSCrtTerminal({
       return;
     }
 
-    if (command === "reboot") {
-      // Bilang boot loader untuk memutar ulang animasi BIOS (reboot sungguhan).
-      sessionStorage.removeItem("sigitos_booted_session");
+    if (command === "reboot" || command === "restart") {
       window.location.reload();
       return;
     }
@@ -563,7 +702,7 @@ export function OSCrtTerminal({
       return;
     }
 
-    if (command === "help") {
+    if (command === "help" || command === "man") {
       appendLogs([...newLogs, ...showHelp(arg.trim() || undefined)]);
       setCommandInput("");
       return;
@@ -598,9 +737,198 @@ export function OSCrtTerminal({
     if (command === "ls" || command === "dir") {
       appendLogs([
         ...newLogs,
-        "profil.exe  layanan.exe  proyek.exe  toko.zip",
-        "testimoni.txt  artikel.doc  kontak.exe  terminal.bat",
+        "profil.exe     layanan.exe    proyek.exe     toko.zip",
+        "testimoni.txt  artikel.doc    kontak.exe     terminal.bat",
+        "readme.txt     skills.txt     profil.txt",
       ]);
+      setCommandInput("");
+      return;
+    }
+
+    if (command === "cat" || command === "type") {
+      const target = (arg || "").trim().toLowerCase();
+      if (!target) {
+        appendLogs([
+          ...newLogs,
+          "Usage: cat <filename> (e.g. cat readme.txt, cat skills.txt, cat profil.txt)",
+        ]);
+        setCommandInput("");
+        return;
+      }
+      if (target === "readme.txt" || target === "readme") {
+        appendLogs([
+          ...newLogs,
+          "============================================================",
+          " SIGITOS INTERACTIVE ENVIRONMENT (v2.4.0-web)",
+          ` Welcome to ${profile.name}'s verified portfolio terminal.`,
+          " Type 'help' for commands, TAB for auto-completion.",
+          " Type 'projects' to view showcase, 'skills' for tech stack.",
+          "============================================================",
+        ]);
+      } else if (target === "profil.txt" || target === "profil" || target === "profile.txt") {
+        appendLogs([
+          ...newLogs,
+          `Name     : ${profile.name}`,
+          `Headline : ${language === "en" ? profile.headlineEn || profile.headline : profile.headline}`,
+          `Location : ${profile.location}`,
+          `Bio      : ${language === "en" ? profile.bioEn || profile.bio : profile.bio}`,
+        ]);
+      } else if (target === "skills.txt" || target === "skills") {
+        appendLogs([...newLogs, ...listSkills()]);
+      } else if (target === "proyek.txt" || target === "projects.txt") {
+        appendLogs([...newLogs, ...listProjects()]);
+      } else if (target === "layanan.txt" || target === "services.txt") {
+        appendLogs([...newLogs, ...listServices()]);
+      } else if (target === "kontak.txt" || target === "contact.txt") {
+        appendLogs([...newLogs, ...listContact()]);
+      } else {
+        appendLogs([
+          ...newLogs,
+          `cat: ${arg}: No such file. Available: ${VIRTUAL_FILES.join(", ")}`,
+        ]);
+      }
+      setCommandInput("");
+      return;
+    }
+
+    if (command === "cd") {
+      const dir = (arg || "").trim().toLowerCase();
+      if (!dir || dir === "~" || dir === "/" || dir === "..") {
+        appendLogs([...newLogs, "C:\\Sigit\\Terminal> Directory set to root."]);
+      } else if (dir === "proyek" || dir === "projects") {
+        appendLogs([...newLogs, "Navigating to /proyek ..."]);
+        switchApp("proyek");
+      } else if (dir === "layanan" || dir === "services") {
+        appendLogs([...newLogs, "Navigating to /layanan ..."]);
+        switchApp("layanan");
+      } else if (dir === "artikel" || dir === "articles") {
+        appendLogs([...newLogs, "Navigating to /artikel ..."]);
+        switchApp("artikel");
+      } else if (dir === "profil" || dir === "profile") {
+        appendLogs([...newLogs, "Navigating to /profil ..."]);
+        switchApp("profil");
+      } else if (dir === "kontak" || dir === "contact") {
+        appendLogs([...newLogs, "Navigating to /kontak ..."]);
+        switchApp("kontak");
+      } else {
+        appendLogs([...newLogs, `cd: no such directory: ${arg}. Try: cd proyek, cd artikel, cd layanan`]);
+      }
+      setCommandInput("");
+      return;
+    }
+
+    if (command === "uname") {
+      appendLogs([
+        ...newLogs,
+        arg.includes("-a")
+          ? "SigitOS 2.4.0-web #42-SMP Fri Oct 30 2026 x86_64 GNU/Linux (Next.js/React POSIX Engine)"
+          : "SigitOS",
+      ]);
+      setCommandInput("");
+      return;
+    }
+
+    if (command === "sudo") {
+      appendLogs([
+        ...newLogs,
+        `[SECURITY ALERT] guest is not in the sudoers file. This incident will be reported to ${profile.name}.`,
+      ]);
+      setCommandInput("");
+      return;
+    }
+
+    if (command === "uptime") {
+      appendLogs([
+        ...newLogs,
+        `${new Date().toLocaleTimeString()} up 42 days, 13:37, 1 user, load average: 0.08, 0.04, 0.01`,
+      ]);
+      setCommandInput("");
+      return;
+    }
+
+    if (command === "top" || command === "htop") {
+      appendLogs([
+        ...newLogs,
+        "Tasks: 5 total, 1 running, 4 sleeping, 0 stopped",
+        "%Cpu(s): 2.4 us, 0.8 sy, 0.0 ni, 96.8 id, 0.0 wa",
+        "MiB Mem :  8192.0 total,  5320.4 free,  2150.2 used",
+        "  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM  COMMAND",
+        "    1 root      20   0   14.2M   4.8M   2.1M S   0.1   0.1  sigitos_kernel",
+        "    2 guest     20   0   48.5M  18.2M   6.4M S   0.3   0.2  web_audio_daemon",
+        "    3 guest     20   0  128.0M  42.1M  12.0M R   1.4   0.5  gemini_nlp_engine",
+        "    4 guest     20   0   32.4M  12.0M   4.2M S   0.1   0.1  xterm_terminal",
+        "    5 guest     20   0   16.0M   6.4M   2.0M S   0.0   0.1  crt_phosphor_fx",
+      ]);
+      setCommandInput("");
+      return;
+    }
+
+    if (command === "ping") {
+      const host = (arg || "sigitadi.id").trim();
+      appendLogs([
+        ...newLogs,
+        `PING ${host} (104.21.58.12): 56 data bytes`,
+        `64 bytes from 104.21.58.12: icmp_seq=1 ttl=58 time=14.2 ms`,
+        `64 bytes from 104.21.58.12: icmp_seq=2 ttl=58 time=12.9 ms`,
+        `64 bytes from 104.21.58.12: icmp_seq=3 ttl=58 time=13.4 ms`,
+        `--- ${host} ping statistics ---`,
+        `3 packets transmitted, 3 received, 0% packet loss, time 2014ms`,
+      ]);
+      setCommandInput("");
+      return;
+    }
+
+    if (command === "curl") {
+      const url = (arg || "https://sigitadi.id/api/status").trim();
+      appendLogs([
+        ...newLogs,
+        `HTTP/2 200 OK`,
+        `date: ${new Date().toUTCString()}`,
+        `content-type: application/json; charset=utf-8`,
+        `server: SigitOS-Edge-CDN`,
+        `x-powered-by: Next.js + RetroBOT`,
+        `{"status": "online", "system": "SigitOS", "target": "${url}"}`,
+      ]);
+      setCommandInput("");
+      return;
+    }
+
+    if (command === "cowsay") {
+      const text = arg.trim() || `Halo dari ${profile.name}!`;
+      const border = "-".repeat(text.length + 2);
+      appendLogs([
+        ...newLogs,
+        ` ${border}`,
+        `< ${text} >`,
+        ` ${border}`,
+        `        \\   ^__^`,
+        `         \\  (oo)\\_______`,
+        `            (__)\\       )\\/`,
+        `                ||----w |`,
+        `                ||     ||`,
+      ]);
+      setCommandInput("");
+      return;
+    }
+
+    if (command === "matrix") {
+      appendLogs([
+        ...newLogs,
+        "[MATRIX SYSTEM INITIALIZED]",
+        "01001000 01100101 01101100 01101100 01101111 00100000 01010111 01101111 01110010 01101100 01100100",
+        "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン",
+        "Wake up, Neo... The Matrix has you.",
+        "Follow the white rabbit. Knock, knock, Neo.",
+      ]);
+      setCommandInput("");
+      return;
+    }
+
+    if (command === "exit" || command === "quit") {
+      appendLogs([...newLogs, "[SESSION] Logging out guest session... Goodbye!"]);
+      setTimeout(() => {
+        switchApp("profil");
+      }, 400);
       setCommandInput("");
       return;
     }
@@ -655,9 +983,6 @@ export function OSCrtTerminal({
       const argLower = arg.toLowerCase();
       if (argLower === "random" || argLower === "acak") {
         const pool: OSTheme[] = ["retro90s", "dark", "tokyo", "vscode"];
-        // Math.random() di sini dieksekusi saat pengguna mengetik perintah
-        // "random"/"acak", bukan saat render; react-hooks v7 tidak bisa
-        // membedakan scope command handler → false positive di-scope-suppress.
         // eslint-disable-next-line react-hooks/purity
         const picked = pool[Math.floor(Math.random() * pool.length)];
         setTheme(picked);
@@ -714,9 +1039,6 @@ export function OSCrtTerminal({
     if (command === "email" || command === "mail") {
       if (profile.email) {
         appendLogs([...newLogs, `Email: ${profile.email}`, t.terminal_email_opening]);
-        // Navigasi mailto: dijalankan dalam command handler pengguna, bukan
-        // saat render; react-hooks v7 tidak bisa membedakan scope handler →
-        // false positive di-scope-suppress.
         // eslint-disable-next-line react-hooks/immutability
         window.location.href = `mailto:${profile.email}`;
       } else {
@@ -741,11 +1063,7 @@ export function OSCrtTerminal({
     // Machine Learning / NLP inference: lokal dulu, cloud bila ragu + opt-in.
     const seq = ++querySeqRef.current;
     inferOwnerRef.current = seq;
-    // Hanya jalanan ini yang masih "aktif". Setelah await apapun, cek ulang:
-    // bila user sudah mengetik query lain, hasil ini usang dan harus dibuang,
-    // bukan ditumpangkan ke output query yang lebih baru.
     const isCurrent = () => querySeqRef.current === seq;
-    // Yg berhak mereset gauge: hanya pemilik flag, bukan query usang.
     const ownsInfer = () => inferOwnerRef.current === seq;
     const done = () => {
       if (ownsInfer()) {
@@ -765,7 +1083,7 @@ export function OSCrtTerminal({
         if (isCurrent()) appendLogs([markPlaceholder(t.terminal_log_cloud)]);
         try {
           const cloud = await askSigitBot(raw, currentLang);
-          if (!isCurrent()) return done(); // query baru sudah mengambil alih
+          if (!isCurrent()) return done();
           if (cloud.source === "cloud") {
             const outputLines = cloud.text.split("\n");
             setLogs((prev) => [
@@ -784,7 +1102,7 @@ export function OSCrtTerminal({
           // jatuh ke jawaban lokal di bawah
         }
       }
-      if (!isCurrent()) return done(); // hasil usang jangan ditumpangkan
+      if (!isCurrent()) return done();
       const outputLines = result.text.split("\n");
       setLogs((prev) => [
         ...prev.filter((l) => !isPlaceholderLine(l)),
@@ -805,6 +1123,41 @@ export function OSCrtTerminal({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // 1. Tab Auto-Completion
+    if (e.key === "Tab") {
+      e.preventDefault();
+      handleAutoCompletion();
+      return;
+    }
+
+    // 2. Ctrl + L: Bersihkan layar console
+    if (e.ctrlKey && (e.key === "l" || e.key === "L")) {
+      e.preventDefault();
+      clearConsole();
+      return;
+    }
+
+    // 3. Ctrl + C: Abort / batalkan baris aktif (SIGINT)
+    if (e.ctrlKey && (e.key === "c" || e.key === "C")) {
+      e.preventDefault();
+      appendLogs([`guest@sigitos:~$ ${commandInput}^C`]);
+      setCommandInput("");
+      setHistoryIndex(-1);
+      if (isInferencing) {
+        querySeqRef.current++;
+        setIsInferencing(false);
+      }
+      return;
+    }
+
+    // 4. Ctrl + U: Hapus baris input saat ini
+    if (e.ctrlKey && (e.key === "u" || e.key === "U")) {
+      e.preventDefault();
+      setCommandInput("");
+      return;
+    }
+
+    // 5. Arrow Up / Down: Riwayat perintah (history)
     if (e.key === "ArrowUp") {
       e.preventDefault();
       if (history.length === 0) return;
@@ -826,6 +1179,12 @@ export function OSCrtTerminal({
     }
   };
 
+  const handleCanvasClick = () => {
+    const selection = window.getSelection();
+    if (selection && selection.toString().length > 0) return;
+    inputRef.current?.focus();
+  };
+
   const handleResetLogs = () => {
     setLogs([
       t.terminal_log_rebooted,
@@ -842,14 +1201,10 @@ export function OSCrtTerminal({
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      // Clipboard ditolak browser — jangan tampilkan status COPIED palsu
+      // Clipboard ditolak browser
     }
   };
 
-  // Label sugesti diterjemahkan, tapi 5 dari 6 adalah nama perintah sungguhan
-  // (parser hanya mengenal "help"/"skills"/"proyek"/…), jadi namanya sama di
-  // kedua bahasa — lihat catatan di i18n.tsx. Hanya pertanyaan bebas yang
-  // diterjemahkan penuh.
   const suggestions = [
     t.terminal_sugg_1,
     t.terminal_sugg_2,
@@ -881,16 +1236,38 @@ export function OSCrtTerminal({
             </span>
           </span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <span className="text-[10px] text-[#37ff9b]/70 font-pixel hidden sm:inline">{t.terminal_baud}</span>
+
+          {/* TTS Toggle Button */}
+          <button
+            type="button"
+            onClick={() => {
+              if (ttsOn) stopSpeaking();
+              setTtsOn((v) => !v);
+            }}
+            className={`flex items-center gap-1 text-[10px] cursor-pointer px-1.5 py-0.5 rounded-2xs border transition-colors ${
+              ttsOn
+                ? "border-sky-400/60 text-sky-300 bg-sky-950/40"
+                : "border-[#37ff9b]/30 text-[#37ff9b]/70 hover:text-[#37ff9b]"
+            }`}
+            title={t.terminal_tts}
+            aria-label={t.terminal_tts}
+            aria-pressed={ttsOn}
+          >
+            {ttsOn ? <Volume2 className="h-2.5 w-2.5 text-sky-300" /> : <VolumeX className="h-2.5 w-2.5 text-muted-foreground" />}
+            <span className="hidden sm:inline">TTS</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setShowShareModal(true)}
             className="hover:text-white transition-colors flex items-center gap-1 text-[10px] cursor-pointer text-[#37ff9b]"
             title={language === "en" ? "Share Terminal & Link" : "Bagikan Tautan & Konten Terminal"}
+            aria-label={language === "en" ? "Share Terminal & Link" : "Bagikan Tautan & Konten Terminal"}
           >
-            <Share2 className="h-2.5 w-2.5 text-primary" />
-            <span>{language === "en" ? "Share" : "Bagikan"}</span>
+            <Share2 className="h-2.5 w-2.5" />
+            <span className="hidden sm:inline">{language === "en" ? "Share" : "Bagikan"}</span>
           </button>
           <button
             type="button"
@@ -962,12 +1339,10 @@ export function OSCrtTerminal({
         ))}
       </div>
 
-      {/* Streaming Log Area */}
-      {/* role="log" + aria-live: output bot terus berubah, tapi tanpa ini
-          screen reader diam saja — pengguna tunanetra tidak pernah mendengar
-          jawaban Sigit_Bot (padahal TTS hanyalah salah satu kanal). aria-busy
-          memberi sinyal "sedang memproses" selama inferensi/cloud call. */}
+      {/* Streaming Log Area with Real Authentic Inline Shell Prompt */}
       <div
+        ref={terminalBodyRef}
+        onClick={handleCanvasClick}
         role="log"
         aria-label={t.terminal_log_label}
         aria-live="polite"
@@ -977,7 +1352,7 @@ export function OSCrtTerminal({
           fullscreen
             ? "flex-1 min-h-0"
             : "h-64 sm:h-72"
-        } overflow-y-auto space-y-1 font-mono text-[11px] leading-relaxed pr-1 border-t border-b border-[#37ff9b]/20 py-2 scrollbar-thin focus:outline-none focus:ring-1 focus:ring-[#37ff9b]/50`}
+        } overflow-y-auto space-y-1 font-mono text-[11px] leading-relaxed pr-1 border-t border-[#37ff9b]/20 py-2.5 scrollbar-thin focus:outline-none focus:ring-1 focus:ring-[#37ff9b]/50 select-text cursor-text`}
       >
         {isInferencing && <span className="sr-only">{t.terminal_log_busy}</span>}
         {logs.map((log, i) => (
@@ -988,11 +1363,12 @@ export function OSCrtTerminal({
                 ? "text-white font-bold"
                 : log.includes("[Sigit_Bot.ai")
                 ? "text-amber-300 font-semibold"
-                // "[AKTIF]" = "[ONLINE]" versi ID — log diterjemahkan sekarang.
                 : log.includes("[OK]") || log.includes("[ONLINE]") || log.includes("[AKTIF]")
                 ? "text-[#37ff9b]"
-                : log.includes("AUTH") || log.includes("NEURAL") || log.includes("SIGIT_BOT")
+                : log.includes("AUTH") || log.includes("NEURAL") || log.includes("SIGIT_BOT") || log.includes("[SECURITY")
                 ? "text-[#ffd400]"
+                : log.includes("[ERR]") || log.includes("incident")
+                ? "text-red-400"
                 : "text-[#37ff9b]/90"
             }`}
           >
@@ -1002,67 +1378,66 @@ export function OSCrtTerminal({
             </span>
           </div>
         ))}
+
+        {/* Real Authentic Inline Shell Prompt Line */}
+        <form
+          onSubmit={handleCommandSubmit}
+          className="flex items-center gap-1.5 pt-1 font-mono text-[11px] leading-relaxed select-text"
+        >
+          <span className="text-[#37ff9b] font-bold select-none shrink-0 flex items-center gap-1">
+            <span className="text-sky-400 font-bold">guest@sigitos</span>
+            <span className="text-[#37ff9b]/70">:</span>
+            <span className="text-[#ffd400]">~</span>
+            <span className="text-[#37ff9b]">$</span>
+          </span>
+
+          <div className="relative flex-1 flex items-center min-w-0">
+            <input
+              ref={inputRef}
+              type="text"
+              value={commandInput}
+              onChange={(e) => setCommandInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={logs.length > 8 ? "" : t.terminal_input_placeholder}
+              aria-label={t.terminal_input_label}
+              autoComplete="off"
+              spellCheck={false}
+              aria-describedby="sigitbot-hint"
+              className="w-full bg-transparent border-0 outline-none text-[#37ff9b] font-mono text-[11px] placeholder:text-[#37ff9b]/35 focus:ring-0 p-0 leading-normal caret-[#37ff9b]"
+            />
+          </div>
+
+          {/* Inline Execution Controls */}
+          <div className="flex items-center gap-1 shrink-0">
+            {speechSupported && (
+              <button
+                type="button"
+                onClick={toggleMic}
+                className={`p-1 rounded-2xs border transition-colors cursor-pointer ${
+                  listening
+                    ? "bg-red-500/20 border-red-500 text-red-400 animate-pulse"
+                    : "border-[#37ff9b]/30 text-[#37ff9b]/60 hover:text-[#37ff9b]"
+                }`}
+                title={t.terminal_voice_input}
+                aria-label={t.terminal_voice_input}
+              >
+                <Mic className="h-2.5 w-2.5" />
+              </button>
+            )}
+            <button
+              type="submit"
+              aria-label={t.terminal_enter}
+              className="vt-btn vt-btn-chrome px-1.5 py-0.5 text-[9px] font-mono font-bold flex items-center gap-1 cursor-pointer text-[#37ff9b]"
+            >
+              <CornerDownLeft className="h-2.5 w-2.5 text-primary" />
+              <span className="hidden xs:inline">{t.terminal_enter}</span>
+            </button>
+          </div>
+        </form>
+
         <div ref={logEndRef} />
       </div>
 
-      {/* Interactive Command Prompt */}
-      <form onSubmit={handleCommandSubmit} className="mt-3 flex items-center gap-2 shrink-0">
-        <span className="text-[#37ff9b] font-bold select-none font-mono shrink-0 flex items-center gap-1">
-          <Bot className="h-3 w-3 text-sky-400" />
-          <span>{t.terminal_prompt}</span>
-        </span>
-        <input
-          type="text"
-          value={commandInput}
-          onChange={(e) => setCommandInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={t.terminal_input_placeholder}
-          aria-label={t.terminal_input_label}
-          autoComplete="off"
-          spellCheck={false}
-          aria-describedby="sigitbot-hint"
-          className="flex-1 bg-transparent border-0 outline-none text-[#37ff9b] font-mono text-xs placeholder:text-[#37ff9b]/40 focus:ring-0 p-0 min-w-0"
-        />
-        {speechSupported && (
-          <button
-            type="button"
-            onClick={toggleMic}
-            className={`shrink-0 p-1.5 rounded-xs border transition-colors cursor-pointer ${
-              listening
-                ? "bg-red-500/20 border-red-500 text-red-400 animate-pulse"
-                : "border-[#37ff9b]/30 text-[#37ff9b]/70 hover:text-[#37ff9b]"
-            }`}
-            title={t.terminal_voice_input}
-            aria-label={t.terminal_voice_input}
-          >
-            <Mic className="h-3 w-3" />
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => {
-            if (ttsOn) stopSpeaking();
-            setTtsOn((v) => !v);
-          }}
-          className={`shrink-0 p-1.5 rounded-xs border transition-colors cursor-pointer ${
-            ttsOn
-              ? "border-sky-400/60 text-sky-300"
-              : "border-[#37ff9b]/30 text-[#37ff9b]/70 hover:text-[#37ff9b]"
-          }`}
-          title={t.terminal_tts}
-          aria-label={t.terminal_tts}
-          aria-pressed={ttsOn}
-        >
-          {ttsOn ? <Volume2 className="h-3 w-3" /> : <VolumeX className="h-3 w-3" />}
-        </button>
-        <button
-          type="submit"
-          className="vt-btn vt-btn-chrome px-3 py-1 text-[10px] font-mono font-bold flex items-center gap-1 cursor-pointer"
-        >
-          <CornerDownLeft className="h-2.5 w-2.5 text-primary" />
-          <span>{t.terminal_enter}</span>
-        </button>
-      </form>
       <p id="sigitbot-hint" className="sr-only">
         {t.terminal_input_hint}
       </p>
