@@ -15,9 +15,11 @@ interface HeroSectionProps {
   profile: ProfileData;
   profileCards?: ProfileCardsConfig;
   onOpenContact?: () => void;
+  /** Bila true, render langsung tanpa wrapper OSWindow ganda (untuk tampilan di dalam OSDesktopManager). */
+  bare?: boolean;
 }
 
-export function HeroSection({ profile, profileCards, onOpenContact }: HeroSectionProps) {
+export function HeroSection({ profile, profileCards, onOpenContact, bare = false }: HeroSectionProps) {
   const { t, language } = useTranslation();
   const heroRef = useRef<HTMLElement>(null);
 
@@ -26,6 +28,7 @@ export function HeroSection({ profile, profileCards, onOpenContact }: HeroSectio
 
   useGSAP(
     () => {
+      if (bare) return;
       // Lewati animasi transform awal pada perangkat mobile untuk mengeliminasi element render delay LCP
       if (typeof window !== "undefined" && window.innerWidth < 768) {
         return;
@@ -41,9 +44,124 @@ export function HeroSection({ profile, profileCards, onOpenContact }: HeroSectio
     { scope: heroRef }
   );
 
-  // Label EN diambil dari field labelEn yang dikelola admin (schema stats).
-  // Bila belum diisi, fallback ke label asli — sama pola dengan services/projects.
+  const renderContent = () => (
+    <div className="flex flex-col justify-between space-y-4 sm:space-y-6">
+      {/* Header inside window */}
+      <div>
+        {/* Availability Badge */}
+        {profile.availableForHire && (
+          <div className="inline-flex items-center gap-2 px-2.5 sm:px-3.5 py-1 sm:py-1.5 mb-3 sm:mb-4 text-[10px] sm:text-xs font-mono font-bold bg-[#032614] text-[#34d399] border-2 border-[#10b981] rounded-xs shadow-md">
+            <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#34d399] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-[#10b981]"></span>
+            </span>
+            <span className="tracking-wide">
+              {(language === "en" && profile.availabilityBadgeEn?.trim())
+                ? profile.availabilityBadgeEn
+                : profile.availabilityBadge?.trim() || t.hero_available_badge}
+            </span>
+          </div>
+        )}
 
+        {/* Name & Beveled Photo Badge */}
+        <div className="flex flex-row items-center gap-3 sm:gap-5 mb-3 sm:mb-4">
+          <div className="relative w-16 h-16 sm:w-24 sm:h-24 rounded-xs vt-raised p-1 shrink-0 bg-[var(--vt-chrome)] shadow-md">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={profile.avatarUrl ? `${profile.avatarUrl}${profile.avatarUrl.includes("?") ? "&" : "?"}w=128&q=75&fmt=webp` : ""}
+              loading="eager"
+              fetchPriority="high"
+              decoding="sync"
+              width={96}
+              height={96}
+              alt={profile.name}
+              className="w-full h-full object-cover rounded-xs vt-card-inset"
+            />
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-3xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
+              {profile.name}
+            </h1>
+            <p className="text-xs sm:text-sm font-mono text-primary font-bold mt-0.5">
+              {headline}
+            </p>
+          </div>
+        </div>
+
+        {/* Bio / Description */}
+        <p className="text-xs sm:text-sm text-[var(--vt-ink)] leading-relaxed font-sans mb-4 sm:mb-5">
+          {bio}
+        </p>
+
+        {/* Stats Grid inside Profile — Metrik utama portofolio */}
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mb-2 w-full">
+          {profile.stats.map((stat, idx) => (
+            <div
+              key={idx}
+              className="vt-card-inset px-1.5 py-2 rounded-xs bg-[var(--vt-chrome)] border border-[var(--vt-edge-lo)] text-center"
+            >
+              <div className="text-xs sm:text-base font-extrabold font-mono text-[var(--vt-ink)] truncate">
+                {stat.value}
+              </div>
+              <div className="text-[8px] sm:text-[10px] font-mono text-muted-foreground uppercase tracking-wider truncate mt-0.5">
+                {language === "en" ? (stat.labelEn || stat.label) : stat.label}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Unified Retro System Specification Card */}
+        <ProfileTabs cards={profileCards || DEFAULT_PROFILE_CARDS} />
+      </div>
+
+      {/* CTA & Location Footer */}
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-2">
+        <Link
+          href="/proyek"
+          onClick={() => {
+            const event = new CustomEvent("switch-os-app", { detail: "proyek" });
+            window.dispatchEvent(event);
+          }}
+          className="vt-btn vt-btn-pink vt-btn-sweep px-4 sm:px-6 py-2 sm:py-2.5 text-xs font-bold uppercase tracking-wider font-mono text-center flex-1 sm:flex-initial inline-flex items-center justify-center gap-1"
+        >
+          <span>{t.hero_cta_portfolio}</span>
+          <ArrowRight className="h-3.5 w-3.5 ml-1 inline" />
+        </Link>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (onOpenContact) {
+              onOpenContact();
+            } else {
+              const event = new CustomEvent("switch-os-app", { detail: "kontak" });
+              window.dispatchEvent(event);
+            }
+          }}
+          className="vt-btn vt-btn-chrome px-4 sm:px-6 py-2 sm:py-2.5 text-xs font-bold uppercase tracking-wider font-mono text-center flex-1 sm:flex-initial flex items-center justify-center gap-1.5 cursor-pointer"
+        >
+          <Mail className="h-3.5 w-3.5 text-primary" />
+          <span>{t.hero_cta_contact}</span>
+        </button>
+
+        <span className="text-[11px] sm:text-xs font-mono font-bold text-[var(--vt-ink)] w-full sm:w-auto sm:ml-auto flex items-center justify-center sm:justify-start gap-1 pt-1 sm:pt-0">
+          <MapPin className="h-3.5 w-3.5 text-primary" />
+          <span>{profile.location}</span>
+        </span>
+      </div>
+    </div>
+  );
+
+  // Bila bare === true (ditampilkan di dalam OSDesktopManager), render langsung tanpa wrapper OSWindow ganda
+  if (bare) {
+    return (
+      <div className="w-full max-w-5xl mx-auto py-2 sm:py-4">
+        {renderContent()}
+      </div>
+    );
+  }
+
+  // Tampilan Standar (Mobile / Single Page Flow)
   return (
     <section
       id="hero"
@@ -51,7 +169,6 @@ export function HeroSection({ profile, profileCards, onOpenContact }: HeroSectio
       className="relative pt-4 pb-10 md:pt-8 md:pb-14 overflow-hidden"
     >
       <div className="max-w-5xl mx-auto px-2 sm:px-4">
-        {/* Profile Window (Sigit_Profile.exe) */}
         <div className="sigit-hero-window w-full flex flex-col">
           <OSWindow
             title="Sigit_Profile.exe // Developer Details"
@@ -59,112 +176,7 @@ export function HeroSection({ profile, profileCards, onOpenContact }: HeroSectio
             className="h-full"
             bodyClassName="flex flex-col justify-between space-y-4 sm:space-y-6 p-4 sm:p-6"
           >
-            {/* Header inside window */}
-            <div>
-              {/* Availability Badge */}
-              {profile.availableForHire && (
-                <div className="inline-flex items-center gap-2 px-2.5 sm:px-3.5 py-1 sm:py-1.5 mb-3 sm:mb-4 text-[10px] sm:text-xs font-mono font-bold bg-[#032614] text-[#34d399] border-2 border-[#10b981] rounded-xs shadow-md">
-                  <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#34d399] opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-[#10b981]"></span>
-                  </span>
-                  <span className="tracking-wide">
-                    {(language === "en" && profile.availabilityBadgeEn?.trim())
-                      ? profile.availabilityBadgeEn
-                      : profile.availabilityBadge?.trim() || t.hero_available_badge}
-                  </span>
-                </div>
-              )}
-
-              {/* Name & Beveled Photo Badge */}
-              <div className="flex flex-row items-center gap-3 sm:gap-5 mb-3 sm:mb-4">
-                <div className="relative w-16 h-16 sm:w-24 sm:h-24 rounded-xs vt-raised p-1 shrink-0 bg-[var(--vt-chrome)] shadow-md">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={profile.avatarUrl ? `${profile.avatarUrl}${profile.avatarUrl.includes("?") ? "&" : "?"}w=128&q=75&fmt=webp` : ""}
-                    loading="eager"
-                    fetchPriority="high"
-                    decoding="sync"
-                    width={96}
-                    height={96}
-                    alt={profile.name}
-                    className="w-full h-full object-cover rounded-xs vt-card-inset"
-                  />
-                </div>
-                <div>
-                  <h1 className="text-xl sm:text-3xl font-extrabold font-display tracking-tight text-[var(--vt-ink)]">
-                    {profile.name}
-                  </h1>
-                  <p className="text-xs sm:text-sm font-mono text-primary font-bold mt-0.5">
-                    {headline}
-                  </p>
-                </div>
-              </div>
-
-              {/* Bio / Description */}
-              <p className="text-xs sm:text-sm text-[var(--vt-ink)] leading-relaxed font-sans mb-4 sm:mb-5">
-                {bio}
-              </p>
-
-              {/* Stats Grid inside Profile — Metrik utama portofolio */}
-              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mb-2 w-full">
-                {profile.stats.map((stat, idx) => (
-                  <div
-                    key={idx}
-                    className="vt-card-inset px-1.5 py-2 rounded-xs bg-[var(--vt-chrome)] border border-[var(--vt-edge-lo)] text-center"
-                  >
-                    <div className="text-xs sm:text-base font-extrabold font-mono text-[var(--vt-ink)] truncate">
-                      {stat.value}
-                    </div>
-                    <div className="text-[8px] sm:text-[10px] font-mono text-muted-foreground uppercase tracking-wider truncate mt-0.5">
-                      {language === "en" ? (stat.labelEn || stat.label) : stat.label}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Unified Retro System Specification Card */}
-              <ProfileTabs cards={profileCards || DEFAULT_PROFILE_CARDS} />
-            </div>
-
-            {/* CTA & Location Footer */}
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-2">
-              <Link
-                href="/proyek"
-                onClick={() => {
-                  const event = new CustomEvent("switch-os-app", { detail: "proyek" });
-                  window.dispatchEvent(event);
-                }}
-                className="vt-btn vt-btn-pink vt-btn-sweep px-4 sm:px-6 py-2 sm:py-2.5 text-xs font-bold uppercase tracking-wider font-mono text-center flex-1 sm:flex-initial inline-flex items-center justify-center gap-1"
-              >
-                <span>{t.hero_cta_portfolio}</span>
-                <ArrowRight className="h-3.5 w-3.5 ml-1 inline" />
-              </Link>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (onOpenContact) {
-                    onOpenContact();
-                  } else {
-                    // Event ini ditangani lintas-mode oleh os-desktop-manager:
-                    // desktop → buka window Kontak, mobile → smooth scroll ke
-                    // section kontak di ujung halaman.
-                    const event = new CustomEvent("switch-os-app", { detail: "kontak" });
-                    window.dispatchEvent(event);
-                  }
-                }}
-                className="vt-btn vt-btn-chrome px-4 sm:px-6 py-2 sm:py-2.5 text-xs font-bold uppercase tracking-wider font-mono text-center flex-1 sm:flex-initial flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <Mail className="h-3.5 w-3.5 text-primary" />
-                <span>{t.hero_cta_contact}</span>
-              </button>
-
-              <span className="text-[11px] sm:text-xs font-mono font-bold text-[var(--vt-ink)] w-full sm:w-auto sm:ml-auto flex items-center justify-center sm:justify-start gap-1 pt-1 sm:pt-0">
-                <MapPin className="h-3.5 w-3.5 text-primary" />
-                <span>{profile.location}</span>
-              </span>
-            </div>
+            {renderContent()}
           </OSWindow>
         </div>
       </div>

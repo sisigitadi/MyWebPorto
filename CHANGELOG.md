@@ -4,17 +4,32 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Fixed & Optimized: Maximize Autentik Windows OS & Proporsionalitas Layout Jendela Desktop
+
+- **Autentik Maximize Menutup Layar Layaknya Windows OS (src/components/public/os/os-desktop-manager.tsx & os-window.tsx)**:
+  - **Desktop Manager Window Maximize**: Menekan tombol maximize (□) atau double-click pada titlebar kini mengekspansi jendela aktif ke seluruh layar kerja desktop (ixed inset-x-0 top-0 bottom-10 sm:bottom-12 md:bottom-14 z-[60] overflow-hidden).
+    - *Top Flush*: Titlebar jendela menempel di paling atas layar (	op: 0), menutupi menubar atas sehingga titlebar jendela menjadi header utama layaknya Windows OS.
+    - *Bottom Docking*: Bagian bawah jendela menempel tepat di atas Taskbar Windows, menjaga tombol Start, tab window aktif, dan jam online tetap terlihat dan dapat diakses (z-[70]).
+    - *Full Horizontal Fill*: Jendela mengisi 100% lebar viewport dari ujung kiri ke ujung kanan tanpa celah atau border rounded (ounded-none border-0 shadow-none).
+    - *Eliminasi Modal Backdrop Gelap*: Menghilangkan layer backdrop hitam (g-black/60) yang sebelumnya membuat maximize terasa seperti modal dialog, menggantikannya dengan kanvas kerja OS yang murni dan bersih.
+  - **In-Page OSWindow Maximize via Portal**:
+    - Jendela kartu (Service_01.exe, Project_01.exe, dll.) kini diekspansi 100% penuh menutup layar menggunakan React Portal (createPortal(..., document.body)) dengan kelas ixed inset-0 z-[9999] w-screen h-screen rounded-none border-0.
+    - Menghilangkan pembatasan lebar max-w-6xl dan padding margin p-6, menjamin jendela membesar penuh dari sudut ke sudut.
+    - Titlebar fullscreen dilengkapi tombol *Restore Down* (⧉), double-click to restore, serta shortcut keyboard Escape (Esc).
+- **Layout Proporsional Tanpa Ruang Kosong Vertikal Berlebih & Eliminasi Window-in-Window Ganda**:
+  - **Eliminasi Window-in-Window**:
+    - HeroSection mendukung prop are={true}: saat berada di dalam OSDesktopManager, profil dirender bersih tanpa dibungkus jendela kedua Sigit_Profile.exe.
+    - ContactSection mendukung prop are={true}: formulir kontak dirender langsung di dalam kontainer beveled yang rapi tanpa dibungkus jendela kedua Direct_Mailer.exe.
+  - **Prop compact pada Seluruh Section Publik**:
+    - Mengimplementasikan prop compact?: boolean pada ServicesSection, FeaturedProjectsSection, ProductsSection, ArticlesSection, TestimonialsSection, dan ContactSection.
+    - Mengganti jarak vertikal halaman website panjang (py-12 md:py-20) menjadi jarak rapat aplikasi desktop (py-2 sm:py-4), memastikan judul dan konten utama langsung tampak proporsional tanpa harus menggulir jauh ke bawah.
+
+
 ### Added & Enhanced: Terminal CRT Autentik (Inline Input, Tab Auto-Completion, Keyboard Shortcuts & Shell Commands) & Tombol Caption Jendela Windows OS (Iterasi 10)
 
 - **Input Teks Inline Autentik di Layar CRT (`src/components/public/os/os-crt-terminal.tsx`)**:
   - Memindahkan baris form input perintah dari footer luar bawah menjadi baris prompt aktif langsung di dalam kanvas scrollable log (`role="log"`).
-  - Menampilkan shell prompt ala Unix: `guest@sigitos:~# Changelog MyWebPorto
-
-Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
-
-## [Unreleased]
-
- dengan caret hijau fosfor (`caret-[#37ff9b]`) yang berkedip langsung di baris aktif.
+  - Menampilkan shell prompt ala Unix: guest@sigitos:~$ dengan caret hijau fosfor (caret-[#37ff9b]) yang berkedip langsung di baris aktif.
   - Menambahkan fitur *click-to-focus* di seluruh layar hitam terminal CRT (`terminalBodyRef` click handler) tanpa mengganggu seleksi teks pengguna.
   - Merelokasi tombol toggle kontrol TTS ke bilah kontrol atas (*top bar actions*), menjaga layar terminal bersih dan murni berorientasi command-line.
   - Mempertahankan kontrol mikrofon (Voice Input) dan tombol Enter yang ringkas secara inline untuk kenyamanan layar sentuh/mobile.
