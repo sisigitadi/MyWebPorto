@@ -74,5 +74,10 @@
     "source-map-js": "^1.2.2",
     "brace-expansion": "^1.1.21",
     "braces": "^3.0.3"
-  }
+  },
+  "browserslist": [
+    "defaults and fully supports es6-module",
+    "> 0.5%",
+    "not dead"
+  ]
 }

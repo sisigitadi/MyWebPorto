@@ -60,9 +60,17 @@ export function OSBootLoader() {
 
   useEffect(() => {
     // 1. Lewati langsung jika diakses search engine crawler, audit tool, atau otomasi browser (SEO & Core Web Vitals)
+    const isMobileDevice =
+      typeof window !== "undefined" &&
+      (window.innerWidth < 768 ||
+        Boolean(window.matchMedia?.("(max-width: 767px)").matches) ||
+        /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent || "") ||
+        Boolean((navigator as { userAgentData?: { mobile?: boolean } }).userAgentData?.mobile));
+
     const isBotOrAudit =
       typeof navigator !== "undefined" &&
       (Boolean(navigator.webdriver) ||
+        isMobileDevice || // Perangkat mobile selalu lewati BIOS boot loader untuk LCP kilat (<1.5s) dan UX responsif
         /bot|crawler|spider|googlebot|bingbot|slurp|duckduckbot|baiduspider|yandexbot|facebookexternalhit|whatsapp|twitterbot|linkedinbot|perplexitybot|gptbot|claudebot|applebot|lighthouse|pagespeed|headlesschrome|chrome-lighthouse|ptst/i.test(
           navigator.userAgent || ""
         ) ||
@@ -116,7 +124,7 @@ export function OSBootLoader() {
     // Auto complete at ~2.2 seconds
     const completeTimer = setTimeout(() => {
       handleComplete();
-    }, 2200);
+    }, 1200);
 
     // Allow user to skip anytime with Escape key
     const handleKeyDown = (e: KeyboardEvent) => {

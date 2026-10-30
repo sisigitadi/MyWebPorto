@@ -1,7 +1,32 @@
 # DRAF REVISI & RENCANA KERJA TEKNIS
 
 **Status:** Selesai & Terverifikasi — Siap Dideploy ke Produksi  
-**Terakhir Diperbarui:** 2026-10-30 (Iterasi 7: Audit & Koreksi Notifikasi Google Search Console - Indexing & Redirects)  
+**Terakhir Diperbarui:** 2026-10-30 (Iterasi 8: Optimasi PageSpeed Insights Mobile - LCP, Reflow, DOM & Polyfill)  
+
+---
+
+## Riwayat Eksekusi Iterasi 8 (Optimasi PageSpeed Insights Mobile: LCP, Reflow, DOM & Polyfill)
+- **Pekerjaan:** 
+  1. Analisis menyeluruh laporan audit PageSpeed Insights Mobile (Skor Performa 73, FCP 1.5s, LCP 4.4s, TBT 280ms, SI 6.3s, DOM Size 2,426 elemen, Forced Reflow 321ms, Legacy JS 17.4 KiB).
+  2. Eliminasi 2,760 ms Element Render Delay pada elemen hero LCP dengan membypass BIOS boot loader pada mobile.
+  3. Eliminasi 321 ms forced reflow pada scroll-spy mobile dan optimalisasi DOM size serta polyfill bundle.
+- **Temuan & Solusi yang Diterapkan:**
+  1. **Akar Masalah LCP 4.4s & Element Render Delay 2,760 ms**:
+     - *Masalah:* Paragraf bio hero diidentifikasi sebagai elemen LCP, namun mengalami keterlambatan render 2,760 ms.
+     - *Penyebab Teknis:* Overlay retro BIOS boot loader (`z-[9999]`) menutupi layar selama 2.2 detik + 0.6 detik transisi fade (= 2.8 detik). Pada PageSpeed Insights (emulasi Moto G Power), user-agent meniru ponsel Android asli sehingga deteksi regex audit tidak terpicu, menyebabkan overlay hitam menutupi layar dan menunda LCP hingga 4.4s.
+     - *Solusi:* Memperbarui `os-boot-loader.tsx` agar secara otomatis mendeteksi perangkat mobile (`window.innerWidth < 768`, mobile user agent, dan `userAgentData.mobile`) dan **melewati boot screen seketika** (0 delay). Pada mobile, hero section kini langsung terlihat pada millisecond 0 saat FCP (1.5s). Durasi boot desktop juga dipadatkan menjadi 1.2s. Pada `hero-section.tsx`, animasi GSAP transform awal diabaikan pada mobile untuk memastikan kalkulasi LCP langsung difinalisasi tanpa settling delay.
+  2. **Akar Masalah Forced Reflow 321 ms**:
+     - *Masalah:* Lighthouse mencatat total waktu reflow 321 ms yang didominasi oleh chunk aplikasi klien (`2-qp9eaqm-roc.js 306 ms`).
+     - *Penyebab Teknis:* Pada `os-desktop-manager.tsx`, terdapat `initialTimer = setTimeout(..., 100)` yang mengeksekusi fungsi `update()` 100ms setelah mount. Fungsi tersebut membaca `root.clientHeight`, lalu `root.getBoundingClientRect().top`, dan mengeksekusi loop `el.getBoundingClientRect().bottom` pada seluruh section saat browser sedang sibuk mem-parse script.
+     - *Solusi:* Menghapus timer forced layout mount (karena saat awal buka, `activeApp` sudah berstatus `"profil"` dan `scrollTop === 0`). Pada scroll listener, kalkulasi `getBoundingClientRect()` dalam loop dihapus dan digantikan pengecekan `offsetTop` pasif dan short-circuit instan pada puncak halaman.
+  3. **Akar Masalah DOM Size (2,426 elemen)**:
+     - *Masalah:* Total simpul DOM mencapai 2,426 elemen dengan anak terbanyak pada daftar `<ul>` berisi 17 artikel.
+     - *Penyebab Teknis:* Komponen SEO SSR fallback (`sr-only`) di `home/page.tsx` merender ulang seluruh daftar 17 artikel, 6 proyek, 6 layanan, dan 6 testimoni secara lengkap di dalam DOM tersembunyi, menduplikasi konten yang sudah dirender di dalam `OSDesktopManager`.
+     - *Solusi:* Merampingkan kontainer `sr-only` menjadi ringkasan semantik yang bersih (`<h1>`, bio, dan tautan navigasi langsung ke `/artikel`, `/proyek`, `/toko`), menghapus duplikasi ratusan node DOM tak perlu. Selain itu, menambahkan CSS `[content-visibility:auto] [contain-intrinsic-size:auto_500px]` pada section mobile di bawah lipatan (below-the-fold) agar browser menunda rendering elemen yang belum terlihat di layar.
+  4. **Akar Masalah Legacy JavaScript (17.4 KiB Wasted Polyfills)**:
+     - *Masalah:* Lighthouse mendeteksi polyfill usang untuk fitur ECMAScript Baseline (`Array.prototype.at`, `flat`, `flatMap`, `Object.fromEntries`, `Object.hasOwn`, `trimStart`, `trimEnd`).
+     - *Penyebab Teknis:* `tsconfig.json` sebelumnya menargetkan `ES2017`, sehingga transpiler Next.js secara otomatis menyuntikkan polyfill untuk seluruh fitur ES2019-ES2022.
+     - *Solusi:* Mengubah compiler target menjadi `ES2022` di `tsconfig.json` dan menambahkan konfigurasi modern `browserslist` di `package.json`.
 
 ---
 
