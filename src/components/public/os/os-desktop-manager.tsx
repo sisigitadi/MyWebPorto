@@ -594,14 +594,14 @@ export function OSDesktopManager({
           className="flex-1 overflow-y-auto vt-scrollbar overscroll-contain relative bg-[var(--vt-paper)] text-[var(--vt-ink)]"
         >
           <div className="p-1.5 space-y-1.5">
-            {scrollSections.map((id) => (
+            {scrollSections.map((id, idx) => (
               <section
                 key={id}
                 data-app-id={id}
                 ref={(el) => {
                   sectionRefs.current[id] = el;
                 }}
-                className="scroll-mt-1"
+                className={`scroll-mt-1 ${idx > 0 ? "[content-visibility:auto] [contain-intrinsic-size:auto_500px]" : ""}`}
               >
                 {id === "profil" && <HeroSection profile={profile} profileCards={profileCards} />}
                 {id === "layanan" && <ServicesSection services={services} profile={profile} />}

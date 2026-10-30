@@ -26,6 +26,10 @@ export function HeroSection({ profile, profileCards, onOpenContact }: HeroSectio
 
   useGSAP(
     () => {
+      // Lewati animasi transform awal pada perangkat mobile untuk mengeliminasi element render delay LCP
+      if (typeof window !== "undefined" && window.innerWidth < 768) {
+        return;
+      }
       gsap.from(".sigit-hero-window", {
         y: 20,
         stagger: 0.15,
