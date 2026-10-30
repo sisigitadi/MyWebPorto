@@ -428,7 +428,7 @@ export default function AdminProjectsPage() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Cari judul proyek atau deskripsi..."
+            placeholder="Cari judul atau ringkasan..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-8 text-xs h-9"

@@ -293,7 +293,7 @@ export default function AdminProfilePage() {
             Sosial Media & Foto
           </TabsTrigger>
           <TabsTrigger value="kartu-os" className="text-xs">
-            Kartu Profil OS (3 Tab)
+            Kartu Profil Portofolio
           </TabsTrigger>
         </TabsList>
 

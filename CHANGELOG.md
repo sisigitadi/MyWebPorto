@@ -4,6 +4,24 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Changed & Optimized: Unifikasi Kartu Profil & Penyederhanaan Filter Sesuai Konteks Portofolio (Iterasi 5)
+
+- **Unifikasi Kartu Detail Profil Publik (`src/components/public/profile/profile-tabs.tsx` & `hero-section.tsx`)**:
+  - Mengeliminasi 3 tab terpisah (`01_AVAILABILITY.CFG`, `02_TIMELINE.LOG`, `03_SPECS.SYS`) yang sebelumnya menyembunyikan informasi penting di balik klik dan memakan ruang vertikal.
+  - Mengelaborasikan seluruh data ke dalam satu kontainer spesifikasi sistem retro beveled (`SYSTEM_SPEC :: PROFILE_SPECIFICATION.SYS`) yang padat, bernilai sinyal tinggi, dan langsung terlihat tanpa klik:
+    1. *Live Availability & SLA:* Status kesiapan kerja real-time, zona waktu remote, dan jaminan respon SLA (< 2 Jam Kerja).
+    2. *Core Arsenal & Tech Stack:* 4 kategori keahlian terstruktur (Bahasa & Pondasi, Frontend & UI, Backend & Cloud, Keamanan & AI) dengan chip badge yang padat dan terorganisir.
+    3. *Rekam Jejak & Lingkup Kolaborasi:* Tata letak 2 kolom seimbang merangkum milestone pengalaman rekayasa utama serta ruang lingkup kolaborasi teknis.
+- **Unifikasi Pengaturan Profil di Admin Panel (`src/components/admin/profile-cards-editor.tsx` & `src/app/admin/profile/page.tsx`)**:
+  - Menghapus 3 sub-tab (*01 Preferensi*, *02 Karir*, *03 Stack*) dari editor kartu profil admin dan menyatukannya ke dalam satu alur form terpadu berurutan dengan pemisah bagian yang jelas.
+  - Mengganti label tab navigasi admin menjadi "Kartu Profil Portofolio" dan menyatukan tombol terjemahan dwibahasa master ("Terjemahkan Seluruh Kartu Profil").
+- **Penyederhanaan & Elaborasi Filter Artikel Publik (`src/components/public/articles-section.tsx`)**:
+  - Mengonsolidasikan 15–20 tag sempit yang berantakan menjadi 5 pilar domain rekayasa utama yang ringkas dan relevan: `Semua` (All), `Web & Full-Stack`, `AI & Otomasi`, `Keamanan Siber`, dan `Backend & Cloud`.
+- **Perampingan Teks Filter Produk & Toko (`src/components/public/products-section.tsx` & `products-catalog-content.tsx`)**:
+  - Menyederhanakan teks dropdown sortir ("Terbaru", "Termurah", "Tertinggi"), merampingkan nama pill kategori ("Semua", "Source Code", "Layanan", "Tools & AI"), dan mempersingkat placeholder pencarian.
+- **Perampingan Filter Status Pesanan Admin (`src/app/admin/orders/page.tsx`) & Placeholder Admin**:
+  - Merampingkan tombol status pesanan admin (`Semua`, `Pending`, `Dibayar`, `Proses`, `Selesai`, `Batal`) dan merapikan placeholder pencarian admin di katalog proyek, artikel, dan produk.
+
 ### Optimized & Fixed: Audit Performa Arsitektural Iterasi 4 (Bypass BIOS Boot Loader untuk Audit Mesin & Bot, Eliminasi Non-Composited Chevron, Optimasi Payload Avatar, & Aksesibilitas WhatsApp Produk)
 
 - **Bypass BIOS Boot Loader untuk Audit Mesin & Bot (`src/components/public/os/os-boot-loader.tsx`)**:

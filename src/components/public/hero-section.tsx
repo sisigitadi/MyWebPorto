@@ -119,7 +119,7 @@ export function HeroSection({ profile, profileCards, onOpenContact }: HeroSectio
                 ))}
               </div>
 
-              {/* 3 Retro System Properties Tabs */}
+              {/* Unified Retro System Specification Card */}
               <ProfileTabs cards={profileCards || DEFAULT_PROFILE_CARDS} />
             </div>
 

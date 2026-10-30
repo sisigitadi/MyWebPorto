@@ -603,7 +603,7 @@ export default function AdminOrdersPage() {
                     : ""
                 }`}
               >
-                Menunggu ({stats.pendingCount})
+                Pending ({stats.pendingCount})
               </Button>
               <Button
                 variant={orderStatusFilter === "paid" ? "default" : "outline"}
@@ -619,7 +619,7 @@ export default function AdminOrdersPage() {
                 onClick={() => setOrderStatusFilter("processing")}
                 className="h-8 text-xs font-mono px-2.5 shrink-0"
               >
-                Diproses ({orders.filter((o) => o.status === "processing").length})
+                Proses ({orders.filter((o) => o.status === "processing").length})
               </Button>
               <Button
                 variant={orderStatusFilter === "completed" ? "default" : "outline"}
@@ -635,7 +635,7 @@ export default function AdminOrdersPage() {
                 onClick={() => setOrderStatusFilter("cancelled")}
                 className="h-8 text-xs font-mono px-2.5 shrink-0"
               >
-                Dibatalkan ({orders.filter((o) => o.status === "cancelled").length})
+                Batal ({orders.filter((o) => o.status === "cancelled").length})
               </Button>
             </div>
 

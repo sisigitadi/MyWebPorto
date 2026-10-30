@@ -271,7 +271,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={language === "en" ? "Search digital products..." : "Cari produk digital..."}
+                placeholder={language === "en" ? "Search products..." : "Cari produk..."}
                 className="w-full pl-8 pr-3 py-1.5 bg-[var(--vt-paper)] border border-[var(--vt-edge-lo-2)] rounded-xs text-xs outline-none focus:border-primary"
               />
             </div>
@@ -289,9 +289,9 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                   }}
                   className="bg-[var(--vt-paper)] border border-[var(--vt-edge-lo-2)] rounded-xs px-2.5 py-1.5 text-xs outline-none font-bold text-[var(--vt-ink)] cursor-pointer"
                 >
-                  <option value="default">{language === "en" ? "Latest First" : "Urutan Default"}</option>
-                  <option value="price_asc">{language === "en" ? "Price: Low to High" : "Harga Terendah"}</option>
-                  <option value="price_desc">{language === "en" ? "Price: High to Low" : "Harga Tertinggi"}</option>
+                  <option value="default">{language === "en" ? "Latest" : "Terbaru"}</option>
+                  <option value="price_asc">{language === "en" ? "Lowest Price" : "Termurah"}</option>
+                  <option value="price_desc">{language === "en" ? "Highest Price" : "Tertinggi"}</option>
                 </select>
               </div>
 
@@ -346,11 +346,23 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                   : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/60"
               }`}
             >
-              {language === "en" ? "All Products" : "Semua Produk"} ({allProducts.length})
+              {language === "en" ? "All" : "Semua"} ({allProducts.length})
             </button>
 
             {categories.map((cat) => {
               const count = allProducts.filter((p) => p.category?.toLowerCase() === cat.toLowerCase()).length;
+              const catLower = cat.toLowerCase();
+              const conciseLabel =
+                catLower.includes("source code") || catLower.includes("template")
+                  ? "Source Code"
+                  : catLower.includes("akun") || catLower.includes("langganan") || catLower.includes("subscription")
+                  ? language === "en"
+                    ? "Services"
+                    : "Layanan"
+                  : catLower.includes("tool") || catLower.includes("otomasi")
+                  ? "Tools & AI"
+                  : cat;
+
               return (
                 <button
                   key={cat}
@@ -365,7 +377,7 @@ export function ProductsSection({ products: propProducts, profile }: ProductsSec
                       : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/60"
                   }`}
                 >
-                  {cat} ({count})
+                  {conciseLabel} ({count})
                 </button>
               );
             })}

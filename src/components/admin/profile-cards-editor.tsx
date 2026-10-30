@@ -2,12 +2,10 @@
 
 import React, { useState } from "react";
 import {
-  Cpu,
   Clock,
   Sliders,
   Plus,
   Trash2,
-  Check,
   Sparkles,
   Loader2,
   Globe,
@@ -26,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+// Tabs removed - unified single-card editor
 import {
   ProfileCardsConfig,
   TechCategory,
@@ -39,7 +37,7 @@ interface ProfileCardsEditorProps {
 }
 
 export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps) {
-  const [subTab, setSubTab] = useState("preferences");
+  // Unified profile card editor state
   const [newSkillInputs, setNewSkillInputs] = useState<Record<string, string>>({});
   const [newBadgeInputs, setNewBadgeInputs] = useState<Record<string, string>>({});
 
@@ -444,7 +442,7 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
       });
 
       onChange(newCards);
-      toast.success("Berhasil menerjemahkan seluruh 3 kartu profil ke bahasa Inggris!");
+      toast.success("Berhasil menerjemahkan seluruh konten kartu profil ke bahasa Inggris!");
     } catch (err: unknown) {
       toast.error("Gagal menerjemahkan teks", {
         description: err instanceof Error ? err.message : "Terjadi kesalahan koneksi",
@@ -459,10 +457,10 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
       <CardHeader>
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <Sliders className="h-4 w-4 text-primary" />
-          <span>Pengaturan Kartu Detail Profil OS (Sigit_Profile.exe)</span>
+          <span>Pengaturan Kartu Detail Profil Portofolio (Sigit_Profile.exe)</span>
         </CardTitle>
         <CardDescription className="text-xs">
-          Kelola konten 3 kartu detail (Availability, Timeline, Specs) yang ditampilkan pada tab dialog retro di jendela profil pengunjung.
+          Kelola konten kartu profil terpadu (Kesiapan Kerja, Rekam Jejak, dan Arsenal Stack) yang disajikan ringkas dan informatif di jendela profil pengunjung.
         </CardDescription>
       </CardHeader>
 
@@ -472,7 +470,7 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Globe className="h-4 w-4 text-primary shrink-0" />
             <span>
-              <strong>Dukungan Dwibahasa (ID -&gt; EN):</strong> Terjemahkan konten 3 kartu otomatis ke bahasa Inggris sekali klik, atau gunakan tombol terjemahkan per kartu/item di bawah.
+              <strong>Dukungan Dwibahasa (ID -&gt; EN):</strong> Terjemahkan konten kartu profil otomatis ke bahasa Inggris sekali klik, atau gunakan tombol terjemahkan per bagian/item di bawah.
             </span>
           </div>
           <Button
@@ -489,31 +487,16 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
               <Sparkles className="h-3.5 w-3.5 text-primary" />
             )}
             <span>
-              {translatingAll ? "Menerjemahkan Semua..." : "Terjemahkan Seluruh Kartu (3 Kartu)"}
+              {translatingAll ? "Menerjemahkan Semua..." : "Terjemahkan Seluruh Kartu Profil"}
             </span>
           </Button>
         </div>
 
-        <Tabs value={subTab} onValueChange={setSubTab} className="space-y-4">
-          <TabsList className="grid grid-cols-3 h-auto p-1 bg-muted/60 border border-[var(--vt-edge-lo-2)]">
-            <TabsTrigger value="preferences" className="text-xs gap-1.5 py-1.5">
-              <Check className="h-3.5 w-3.5 text-emerald-500" />
-              <span>01 Preferensi</span>
-            </TabsTrigger>
-            <TabsTrigger value="career" className="text-xs gap-1.5 py-1.5">
-              <Clock className="h-3.5 w-3.5 text-amber-500" />
-              <span>02 Karir</span>
-            </TabsTrigger>
-            <TabsTrigger value="tech" className="text-xs gap-1.5 py-1.5">
-              <Cpu className="h-3.5 w-3.5 text-primary" />
-              <span>03 Stack</span>
-            </TabsTrigger>
-          </TabsList>
-
+        <div className="space-y-8">
           {/* ====================================================
-              SUB-TAB 1: WORK PREFERENCES & SLA
+              BAGIAN 1: PREFERENSI KERJA, STATUS & JAMINAN SLA
               ==================================================== */}
-          <TabsContent value="preferences" className="space-y-4 pt-2">
+          <section className="space-y-4 pt-2">
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="text-xs font-bold text-foreground">
@@ -688,12 +671,12 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
                 </div>
               </div>
             </div>
-          </TabsContent>
+          </section>
 
           {/* ====================================================
-              SUB-TAB 2: CAREER TIMELINE
+              BAGIAN 2: REKAM JEJAK KARIR & MILESTONES
               ==================================================== */}
-          <TabsContent value="career" className="space-y-4 pt-2">
+          <section className="space-y-4 pt-6 border-t-2 border-[var(--vt-edge-lo-2)]">
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="text-xs font-bold text-foreground">
@@ -912,12 +895,12 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
                 </div>
               ))}
             </div>
-          </TabsContent>
+          </section>
 
           {/* ====================================================
-              SUB-TAB 3: TECH STACK
+              BAGIAN 3: ARSENAL STACK TEKNOLOGI
               ==================================================== */}
-          <TabsContent value="tech" className="space-y-4 pt-2">
+          <section className="space-y-4 pt-6 border-t-2 border-[var(--vt-edge-lo-2)]">
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-xs font-bold text-foreground block">
@@ -1047,8 +1030,8 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
                 </div>
               ))}
             </div>
-          </TabsContent>
-        </Tabs>
+          </section>
+        </div>
       </CardContent>
     </Card>
   );
