@@ -17,9 +17,14 @@ if (typeof window !== "undefined") {
 
 interface FeaturedProjectsSectionProps {
   projects: ProjectData[];
+  /** Bila true, terapkan layout rapat & proporsional untuk tampilan di dalam window desktop. */
+  compact?: boolean;
 }
 
-export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionProps) {
+export function FeaturedProjectsSection({
+  projects,
+  compact = false,
+}: FeaturedProjectsSectionProps) {
   const { t, language } = useTranslation();
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -51,11 +56,11 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
     <section
       ref={sectionRef}
       id="proyek"
-      className="relative py-6 md:py-10 scroll-mt-14"
+      className={`relative scroll-mt-14 ${compact ? "py-2 sm:py-4" : "py-6 md:py-10"}`}
     >
       <div className="max-w-7xl mx-auto px-2 sm:px-4">
         {/* Explorer Address Bar Banner */}
-        <div className="vt-raised p-2.5 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+        <div className={`vt-raised p-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono ${compact ? "mb-3 sm:mb-4" : "mb-8"}`}>
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <span className="text-xs font-bold text-[var(--vt-ink)] font-pixel shrink-0">{language === "en" ? "ADDRESS:" : "ALAMAT:"}</span>
             <div className="vt-card-inset flex-1 min-w-0 px-2.5 py-1 bg-background text-[var(--vt-ink)] font-mono text-xs font-bold truncate select-all flex items-center gap-1.5">
@@ -85,7 +90,7 @@ export function FeaturedProjectsSection({ projects }: FeaturedProjectsSectionPro
         </div>
 
         {/* Section Heading */}
-        <div className="mb-8">
+        <div className={compact ? "mb-3 sm:mb-4" : "mb-8"}>
           <div className="flex items-center gap-2 mb-2 font-pixel text-xs text-[var(--vt-blue)]">
             <span className="h-2 w-2 rounded-full bg-[var(--vt-blue)] animate-pulse" />
             <span>{t.projects_badge}</span>

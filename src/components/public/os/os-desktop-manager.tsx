@@ -795,9 +795,10 @@ export function OSDesktopManager({
   // ===== MODE DESKTOP: window manager tab (perilaku lama penuh) =====
   return (
     <div className="flex-1 w-full h-full flex flex-col overflow-hidden relative select-none">
-      <div className="flex-1 flex overflow-hidden p-1 sm:p-2 md:p-4 gap-1.5 sm:gap-3 relative">
+      <div className={`flex-1 flex overflow-hidden relative transition-all duration-150 ${isMaximized ? "p-0 gap-0" : "p-1 sm:p-2 md:p-3 gap-1.5 sm:gap-3"}`}>
+
         {/* Rail Shortcut Ikon Desktop (kiri) */}
-        <div className={`flex-col gap-2 shrink-0 z-10 w-24 py-1 ${isMinimized ? "flex" : "hidden lg:flex"}`}>
+        <div className={`flex-col gap-2 shrink-0 z-10 w-24 py-1 ${isMaximized ? "hidden" : isMinimized ? "flex" : "hidden lg:flex"}`}>
           {apps.map((app) => (
             <button
               key={app.id}
@@ -891,24 +892,10 @@ export function OSDesktopManager({
 
         {/* Center: The Active OS Application Window (disembunyikan saat diminimize ke desktop) */}
         {!isMinimized && (
-          <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0 z-20">
-            {/* Modal backdrop saat window dalam mode maximized (fullscreen preview) */}
-            {isMaximized && (
-              <div
-                role="presentation"
-                onClick={() => {
-                  playOS("minimize");
-                  setIsMaximized(false);
-                }}
-                className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 animate-in fade-in duration-150"
-              />
-            )}
-
+          <div className={`flex flex-col min-w-0 ${isMaximized ? "fixed inset-x-0 top-0 bottom-10 sm:bottom-12 md:bottom-14 z-[60] overflow-hidden bg-[var(--vt-window-bg,var(--vt-chrome))]" : "flex-1 h-full relative z-20 overflow-hidden"}`}>
             <div
               key={activeApp}
-              className={`vt-window flex flex-col h-full vt-crt-on transition-all duration-150 relative ${
-                isMaximized ? "fixed inset-2 z-50 shadow-2xl" : "flex-1"
-              }`}
+              className={`vt-window flex flex-col h-full vt-crt-on transition-all duration-150 ${isMaximized ? "w-full h-full rounded-none border-0 shadow-none" : "flex-1 rounded-xs shadow-2xl"}`}
             >
               {/* 1. OS Titlebar (double-click = toggle maximize persis Windows OS) */}
               <div
@@ -1015,21 +1002,21 @@ export function OSDesktopManager({
                     data-gsap-scroller="desktop"
                     className="flex-1 overflow-y-auto vt-scrollbar bg-[var(--vt-paper)] text-[var(--vt-ink)] p-2 sm:p-3 md:p-6"
                   >
-                    {activeApp === "profil" && <HeroSection profile={profile} profileCards={profileCards} />}
+                    {activeApp === "profil" && <HeroSection profile={profile} profileCards={profileCards} bare />}
                     {activeApp === "layanan" && (
-                      <ServicesSection services={services} profile={profile} />
+                      <ServicesSection services={services} profile={profile} compact />
                     )}
                     {activeApp === "proyek" && (
-                      <FeaturedProjectsSection projects={projects} />
+                      <FeaturedProjectsSection projects={projects} compact />
                     )}
-                    {activeApp === "toko" && <ProductsSection products={products} profile={profile} />}
+                    {activeApp === "toko" && <ProductsSection products={products} profile={profile} compact />}
                     {activeApp === "testimoni" && (
-                      <TestimonialsSection testimonials={testimonials} />
+                      <TestimonialsSection testimonials={testimonials} compact />
                     )}
                     {activeApp === "artikel" && (
-                      <ArticlesSection articles={articles} />
+                      <ArticlesSection articles={articles} compact />
                     )}
-                    {activeApp === "kontak" && <ContactSection profile={profile} />}
+                    {activeApp === "kontak" && <ContactSection profile={profile} compact bare />}
                   </div>
 
                   {/* 2b. Continuation signifier: gradien di tepi bawah body window */}
@@ -1215,7 +1202,7 @@ export function OSDesktopManager({
       )}
 
       {/* Bottom Taskbar (Windows 95/98 Classic OS Taskbar) */}
-      <div className="vt-taskbar h-10 sm:h-12 md:h-14 px-1.5 sm:px-3 md:px-4 flex items-center justify-between gap-1 border-t-2 border-border select-none z-30 shrink-0 overflow-hidden">
+      <div className="vt-taskbar h-10 sm:h-12 md:h-14 px-1.5 sm:px-3 md:px-4 flex items-center justify-between gap-1 border-t-2 border-border select-none z-[70] shrink-0 overflow-hidden">
         {/* Left Side: Start Button + Separator + Open Windows Tabs */}
         <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0 overflow-hidden">
           {/* 1. Classic Start Button */}
