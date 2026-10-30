@@ -11,6 +11,7 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
   - Menghilangkan struktur 3 kartu sub-bagian yang bertumpuk. Mengadopsi tata letak 2 kolom terpadu yang ringkas dan padat informasi tanpa kotak bersarang (nested boxes).
 - **Unifikasi Editor Profil Admin Menjadi 1 Kartu Tunggal (`src/components/admin/profile-cards-editor.tsx`)**:
   - Mengeliminasi sekat sub-kartu `BAGIAN 1`, `BAGIAN 2`, `BAGIAN 3` menjadi satu komponen Card editor terpadu yang terstruktur dengan grup field yang rapi dan tombol master translate dwibahasa.
+  - Menjadikan seluruh isian Sorotan Pengalaman (Experience Highlight) 100% dwibahasa lengkap dengan label dan input berpasangan (Peran ID/EN, Perusahaan ID/EN, Periode ID/EN, dan Deskripsi ID/EN) serta tombol terjemahan per-item sekali klik.
 - **Penyederhanaan & Perampingan Teks Filter Minimalis**:
   - *Artikel Publik*: Mengubah pill menjadi 1 kata: `Semua` | `Web` | `AI` | `Security` | `Cloud` (EN: `All` | `Web` | `AI` | `Security` | `Cloud`). Menghapus teks `"Topik:"` / `"Topic:"` (hanya mempertahankan ikon tag). Placeholder: `"Cari..."`.
   - *Produk & Toko*: Menghapus teks `"Kategori:"` / `"Category:"` (hanya mempertahankan ikon layers). Menghilangkan kurung angka `({count})` dari pill: `Semua` | `Code` | `Tools` | `Layanan` (EN: `All` | `Code` | `Tools` | `Services`). Sortir: `Terbaru` | `Termurah` | `Tertinggi`. Placeholder: `"Cari..."`.

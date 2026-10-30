@@ -52,6 +52,7 @@ describe("profile-cards-meta & sanitizer", () => {
           role: "Principal Architect",
           roleEn: "Principal Architect",
           company: "Acme Corp",
+          companyEn: "Acme Corp International",
           description: "Led architecture",
           descriptionEn: "Led architecture",
           badges: ["Rust", "K8s"],
@@ -94,6 +95,7 @@ describe("profile-cards-meta & sanitizer", () => {
     const sanitized = sanitizeProfileCards(custom);
     expect(sanitized.techStack[0].items).toEqual(["Rust", "Go"]);
     expect(sanitized.careerTimeline[0].company).toBe("Acme Corp");
+    expect(sanitized.careerTimeline[0].companyEn).toBe("Acme Corp International");
     expect(sanitized.workPreferences.responseTimeSla).toBe("< 1 Jam");
     expect(sanitized.workPreferences.slaDescription).toBe("Respon cepat 1 jam");
     expect(sanitized.credentials[0].badgeText).toBe("CHAMPION");
