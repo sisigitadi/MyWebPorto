@@ -1,7 +1,30 @@
 # DRAF REVISI & RENCANA KERJA TEKNIS
 
 **Status:** Selesai & Terverifikasi — Siap Dideploy ke Produksi  
-**Terakhir Diperbarui:** 2026-10-30 (Iterasi 10: Terminal Inline Input, Windows Caption Buttons, Maximize Portal & Proporsionalitas Layout Jendela)  
+**Terakhir Diperbarui:** 2026-11-01 (Iterasi 11: Resolusi Rute & Header Preview Open Graph (OG) Share Proyek, Toko, dan Artikel)
+
+---
+
+## Riwayat Eksekusi Iterasi 11 (Resolusi Rute & Header Preview Open Graph (OG) Share Proyek, Toko, dan Artikel)
+- **Pekerjaan:**
+  1. Audit komprehensif atas laporan gambar OG preview kartu share sosial dan modal preview yang tidak muncul pada bagian Proyek, Toko/Produk, dan Artikel.
+  2. Implementasi Next.js `beforeFiles` rewrites pada `next.config.ts` untuk memetakan rute statis unhashed `/proyek/opengraph-image`, `/toko/opengraph-image`, dan `/artikel/opengraph-image` ke endpoint dinamis `/api/og?section=...`.
+  3. Mengonfigurasi header `Cross-Origin-Resource-Policy: cross-origin` dan caching publik pada `next.config.ts` untuk `/api/og`, `/opengraph-image`, dan rute subsegmen hashed `/:path*/:slug(opengraph-image.*)` agar crawler media sosial (WhatsApp, Facebook, Twitter/X, Telegram, LinkedIn) tidak diblokir oleh isolasi origin.
+  4. Menambahkan dukungan parameter format `fmt=png` dan `fmt=jpeg`/`jpg` serta fallback otomatis User-Agent crawler sosial di `/api/media/[id]` ketika format asli gambar adalah WebP.
+  5. Memperkuat resiliensi kartu preview di `ContentShareModal` dan `ProductShareModal` dengan penanganan `onError` dan fallback ke gambar OG default.
+  6. Menambahkan pengujian hermetis di `tests/og-scrape-headers.test.ts` dan mock database pada `tests/og-detail-metadata.test.ts`.
+- **Temuan & Solusi yang Diterapkan:**
+  1. **Akar Masalah Tabrakan Dynamic Route Hashed vs Unhashed di Next.js App Router**:
+     - *Masalah:* Saat pengguna membagikan tautan katalog proyek, toko, atau artikel, gambar preview kartu share menghasilkan status HTTP 404.
+     - *Penyebab Teknis:* Next.js App Router secara otomatis memberi akhiran hash pada subsegmen `opengraph-image.tsx` (misal `/proyek/opengraph-image-tz1819`). Ketika URL unhashed `/proyek/opengraph-image` diakses, rute tersebut jatuh ke dynamic route `app/(public)/proyek/[slug]/page.tsx` dengan slug "opengraph-image" yang tidak ada di database, memicu `notFound()`.
+     - *Solusi:* Mendaftarkan rewrite `beforeFiles` di `next.config.ts` yang mengalihkan URL unhashed langsung ke `/api/og?section=...`, menyajikan kartu grafis PNG 1200x630 yang valid.
+  2. **Akar Masalah Pemblokiran Scraper oleh Header CORP**:
+     - *Masalah:* Preview gambar muncul di aplikasi yang mengabaikan CORP seperti Telegram, tetapi tidak muncul di WhatsApp dan Facebook.
+     - *Penyebab Teknis:* Aturan global `/(.*)` menyetel `Cross-Origin-Resource-Policy: same-origin`. Scraper eksternal mengunduh gambar dari domain berbeda sehingga diblokir browser/crawler.
+     - *Solusi:* Menyetel `Cross-Origin-Resource-Policy: cross-origin` secara spesifik pada `/api/og`, `/opengraph-image`, dan `/:path*/:slug(opengraph-image.*)`.
+  3. **Akar Masalah In-App Modal Preview Tanpa Fallback**:
+     - *Masalah:* Ikon gambar rusak (broken image) muncul di dalam modal bagikan jika tautan media gagal dimuat atau belum ada thumbnail.
+     - *Solusi:* Menambahkan event `onError` pada elemen gambar di modal dengan fallback ke gambar default tanpa memicu cascading render.
 
 ---
 

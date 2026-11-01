@@ -49,6 +49,7 @@ export function ContentShareModal({
   const [copiedText, setCopiedText] = useState(false);
   const [customRef] = useState("");
   const [showQr, setShowQr] = useState(false);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
   // Body scroll lock
   useEffect(() => {
@@ -149,7 +150,8 @@ export function ContentShareModal({
     }
   };
 
-  const previewImage = thumbnailUrl || "/opengraph-image";
+  const basePreview = thumbnailUrl || "/opengraph-image";
+  const previewImage = failedSrc === basePreview ? "/opengraph-image" : basePreview;
 
   return createPortal(
     <div
@@ -190,6 +192,11 @@ export function ContentShareModal({
                 alt={title}
                 className="h-full w-full object-cover block"
                 loading="lazy"
+                onError={() => {
+                  if (previewImage !== "/opengraph-image") {
+                    setFailedSrc(previewImage);
+                  }
+                }}
               />
             </div>
           )}

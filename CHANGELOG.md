@@ -4,6 +4,20 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Fixed: Resolusi Rute & Header Preview Open Graph (OG) Share Proyek, Toko, dan Artikel
+
+- **Next.js Rewrites Resolusi Otomatis Gambar OG Section (`next.config.ts`)**:
+  - Menambahkan rewrite `beforeFiles` untuk rute `/proyek/opengraph-image`, `/toko/opengraph-image`, dan `/artikel/opengraph-image` yang dipetakan secara stabil ke `/api/og?section=...`.
+  - Mencegah error 404 akibat tabrakan rute dinamis `[slug]` pada segmen katalog dan halaman proyek, toko, serta artikel.
+- **Kelonggaran Header CORP & Optimasi Cache Scraper (`next.config.ts`)**:
+  - Mengonfigurasi `Cross-Origin-Resource-Policy: cross-origin` dan `Cache-Control: public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800` untuk `/api/og`, `/opengraph-image`, dan `/:path*opengraph-image:sub*`.
+  - Memastikan crawler medsos (WhatsApp, Facebook, Twitter/X, Telegram, LinkedIn) dapat mengambil kartu gambar preview tanpa terblokir isolasi `same-origin`.
+- **Dukungan Format Fleksibel & Scraper Compatibility di `/api/media/[id]` (`src/app/api/media/[id]/route.ts`)**:
+  - Menambahkan konversi on-the-fly untuk parameter format `fmt=png` dan `fmt=jpeg`/`jpg`.
+  - Menangani User-Agent scraper sosial (WhatsAppbot / facebookexternalhit) secara otomatis dengan menyajikan format JPEG/PNG ramah-preview pengganti WebP.
+- **Resiliensi Fallback Gambar pada Modal Bagikan (`content-share-modal.tsx` & `product-share-modal.tsx`)**:
+  - Menambahkan penanganan `onError` dan sinkronisasi state `imgSrc` agar bila terjadi gangguan koneksi atau thumbnail tidak tersedia, modal otomatis beralih ke kartu OG default tanpa menampilkan ikon gambar rusak.
+
 ### Fixed & Optimized: Maximize Autentik Windows OS & Proporsionalitas Layout Jendela Desktop
 
 - **Autentik Maximize Menutup Layar Layaknya Windows OS (src/components/public/os/os-desktop-manager.tsx & os-window.tsx)**:

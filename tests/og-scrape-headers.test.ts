@@ -93,6 +93,24 @@ describe("Cross-Origin-Resource-Policy untuk gambar media", () => {
       "public, max-age=31536000, immutable",
     );
   });
+
+  it("/api/og dan /opengraph-image dilepas dari CORP strict agar preview share medsos muncul", async () => {
+    const rules = await headerRules();
+    expect(valueFor(rules, "/api/og", "Cross-Origin-Resource-Policy")).toBe("cross-origin");
+    expect(valueFor(rules, "/opengraph-image", "Cross-Origin-Resource-Policy")).toBe("cross-origin");
+    expect(valueFor(rules, "/:path*/:slug(opengraph-image.*)", "Cross-Origin-Resource-Policy")).toBe("cross-origin");
+    expect(valueFor(rules, "/api/og", "Cache-Control")).toContain("public");
+  });
+
+  it("next.config rewrites memetakan /proyek, /toko, /artikel opengraph-image ke /api/og", async () => {
+    const rewritesFn = nextConfig.rewrites;
+    expect(typeof rewritesFn).toBe("function");
+    const rewrites = await (rewritesFn as () => Promise<{ beforeFiles: { source: string; destination: string }[] }>)();
+    const beforeFiles = rewrites.beforeFiles || [];
+    expect(beforeFiles.find((r) => r.source === "/proyek/opengraph-image")?.destination).toBe("/api/og?section=proyek");
+    expect(beforeFiles.find((r) => r.source === "/toko/opengraph-image")?.destination).toBe("/api/og?section=toko");
+    expect(beforeFiles.find((r) => r.source === "/artikel/opengraph-image")?.destination).toBe("/api/og?section=artikel");
+  });
 });
 
 describe("shareImage — kelengkapan metadata untuk scraper sosial", () => {
