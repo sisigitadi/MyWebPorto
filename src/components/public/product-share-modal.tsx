@@ -46,6 +46,9 @@ export function ProductShareModal({ product, isOpen, onClose, isEn = false }: Pr
   const [copiedBroadcast, setCopiedBroadcast] = useState(false);
   const [customRef, setCustomRef] = useState("");
   const [showQr, setShowQr] = useState(false);
+  const [failedThumb, setFailedThumb] = useState<string | null>(null);
+  const baseThumb = product.thumbnailUrl || "/toko/opengraph-image";
+  const previewThumb = failedThumb === baseThumb ? "/api/og?section=toko" : baseThumb;
 
   // Body scroll lock
   useEffect(() => {
@@ -162,10 +165,15 @@ export function ProductShareModal({ product, isOpen, onClose, isEn = false }: Pr
           <div className="aspect-[1200/630] w-full overflow-hidden bg-muted/40 border-b border-[var(--vt-edge-lo-2)] relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={product.thumbnailUrl || "/toko/opengraph-image"}
+              src={previewThumb}
               alt={product.title}
               className="h-full w-full object-cover block"
               loading="lazy"
+              onError={() => {
+                if (previewThumb !== "/api/og?section=toko") {
+                  setFailedThumb(previewThumb);
+                }
+              }}
             />
           </div>
           <div className="p-3 space-y-1">

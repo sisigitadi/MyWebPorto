@@ -72,6 +72,25 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Rewrite otomatis untuk endpoint OG image section agar selalu merender kartu grafis retro autentik 1200x630 via /api/og
+  async rewrites() {
+    return {
+      beforeFiles: [
+        {
+          source: "/proyek/opengraph-image",
+          destination: "/api/og?section=proyek",
+        },
+        {
+          source: "/toko/opengraph-image",
+          destination: "/api/og?section=toko",
+        },
+        {
+          source: "/artikel/opengraph-image",
+          destination: "/api/og?section=artikel",
+        },
+      ],
+    };
+  },
   // Security Headers — lihat SECURITY.md §3 untuk mapping OWASP
   async headers() {
     return [
@@ -208,6 +227,45 @@ const nextConfig: NextConfig = {
       // di WhatsApp dan platform lain. Nilai cross-origin aman di sini
       // karena berkasnya sudah publik lewat og:image dan immutable, jadi
       // tidak ada data sensitif yang bisa bocor.
+      {
+        source: "/api/og",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
+          },
+          {
+            key: "Cross-Origin-Resource-Policy",
+            value: "cross-origin",
+          },
+        ],
+      },
+      {
+        source: "/opengraph-image",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
+          },
+          {
+            key: "Cross-Origin-Resource-Policy",
+            value: "cross-origin",
+          },
+        ],
+      },
+      {
+        source: "/:path*/:slug(opengraph-image.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800",
+          },
+          {
+            key: "Cross-Origin-Resource-Policy",
+            value: "cross-origin",
+          },
+        ],
+      },
       {
         source: "/api/media/:path*",
         headers: [

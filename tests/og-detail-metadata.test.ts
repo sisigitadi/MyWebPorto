@@ -22,6 +22,10 @@ vi.mock("@/components/public/project-detail-content", () => ({
 vi.mock("@/components/public/product-detail-content", () => ({
   ProductDetailContent: () => null,
 }));
+vi.mock("@/lib/order-actions", () => ({
+  getOrderByInvoice: vi.fn(),
+  getStoreConfig: vi.fn(),
+}));
 vi.mock("@/lib/features-config", () => ({
   resolveFeatures: vi.fn(async () => ({
     enable_articles: true,

@@ -45,8 +45,11 @@ export async function GET(
   const qualityParam = url.searchParams.get("q");
   const formatParam = url.searchParams.get("fmt");
 
-  // Jika tidak meminta resize, format sudah WebP, dan tidak ada param quality, kirim langsung
-  if (!widthParam && !qualityParam && !formatParam && row.mime === "image/webp") {
+  const userAgent = req.headers.get("user-agent") || "";
+  const isSocialCrawler = /whatsapp|facebookexternalhit|meta-externalagent/i.test(userAgent);
+
+  // Jika tidak meminta resize, format sudah WebP, bukan scraper medsos, dan tidak ada param quality, kirim langsung
+  if (!widthParam && !qualityParam && !formatParam && !isSocialCrawler && row.mime === "image/webp") {
     return new NextResponse(new Uint8Array(row.buffer), {
       status: 200,
       headers: {
@@ -73,6 +76,15 @@ export async function GET(
     if (formatParam === "avif") {
       targetMime = "image/avif";
       outputBuffer = await pipeline.avif({ quality }).toBuffer();
+    } else if (formatParam === "png") {
+      targetMime = "image/png";
+      outputBuffer = await pipeline.png().toBuffer();
+    } else if (formatParam === "jpeg" || formatParam === "jpg") {
+      targetMime = "image/jpeg";
+      outputBuffer = await pipeline.jpeg({ quality }).toBuffer();
+    } else if (isSocialCrawler) {
+      targetMime = "image/jpeg";
+      outputBuffer = await pipeline.jpeg({ quality }).toBuffer();
     } else {
       targetMime = "image/webp";
       outputBuffer = await pipeline.webp({ quality }).toBuffer();
