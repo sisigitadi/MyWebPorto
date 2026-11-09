@@ -4,6 +4,29 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Fixed & Optimized: Resolusi Komprehensif Audit Indexing Google Search Console & Optimasi Build Edge/SEO
+
+- **Prerendering SSG / ISR untuk Seluruh Detail Produk Toko (`src/app/(public)/toko/[slug]/page.tsx`)**:
+  - Menambahkan `generateStaticParams()` yang mengambil seluruh produk aktif saat build time untuk di-render menjadi HTML statis di Edge CDN Vercel.
+  - Menambahkan `export const revalidate = 86400;` (ISR harian) dan `export const dynamicParams = true;` agar halaman produk memiliki paritas arsitektur dengan artikel dan proyek, memecahkan masalah bot terhenti di *"Discovered - currently not indexed"*.
+- **Kejujuran & Dinamisasi Timestamp `lastModified` Sitemap (`src/app/sitemap.ts`, `actions.ts`, `dummy-data.ts`)**:
+  - Menghitung `lastModified` secara dinamis dari timestamp rujukan riil (`updatedAt` / `createdAt`) pada artikel, proyek, dan produk.
+  - Halaman katalog (`/artikel`, `/proyek`, `/toko`) dan beranda (`/`) kini melaporkan tanggal modifikasi konten terbaru, menghemat crawl budget bot dan memberi sinyal segar saat ada posting baru tanpa memalsukan `new Date()` harian.
+- **Pembersihan Otomatis Parameter `?lang=id` di Client-Side (`src/lib/i18n.tsx`)**:
+  - `writeUrlLang` kini otomatis membuang parameter `?lang=id` dari URL address bar saat pengunjung beralih kembali ke Bahasa Indonesia (default bahasa kanonikal).
+  - Mengeliminasi pembentukan URL varian duplikat (`/?lang=id` dan sub-halaman) yang sebelumnya dilaporkan Google Search Console sebagai "Blocked by robots.txt" atau "Alternate page with proper canonical tag".
+- **Harmonisasi Skema JSON-LD Schema.org (`src/components/public/json-ld.tsx`)**:
+  - Menyelaraskan atribut `inLanguage` pada `ProfilePage` dan `WebSite` menjadi `["id-ID", "en-US"]`, sesuai dengan bahasa kanonikal dan alternate situs.
+- **Pembersihan Aset Font Web Tidak Terpakai (`src/app/layout.tsx`)**:
+  - Menghapus impor font Google `Fira_Code` dan CSS variable `--font-fira-code` yang tidak digunakan di styling Tailwind (`Azeret_Mono` digunakan sebagai pengganti), mengurangi ukuran bundle dan mempercepat Core Web Vitals (FCP/LCP).
+- **Penguatan SSR Crawlability & Internal Links Distribution (`src/app/(public)/(home)/page.tsx`)**:
+  - Memperluas fallback aksesibilitas dan SEO (`sr-only`) di beranda utama untuk menyertakan daftar semantik lengkap seluruh artikel, proyek, dan produk yang berstatus publikasi aktif.
+  - Memberikan sinyal distribusi PageRank dan penemuan tautan internal (internal linking hierarchy) langsung dari level root domain tanpa bergantung pada eksekusi scroll JavaScript desktop manager, secara proaktif mempercepat akselerasi halaman "Discovered - currently not indexed" dan "Crawled - currently not indexed".
+- **Verifikasi Status GSC "Page with redirect" & Validasi Rekayasa Konsolidasi**:
+  - Mengklarifikasi bahwa status "Validation Failed" pada "Page with redirect" terjadi karena validasi manual dipicu pada URL pengalihan permanen (HTTP 308) yang memang dirancang untuk mengalirkan otoritas link ke kanonikal (`www.` → apex, `http:` → `https:`, dan `/?contactSubject=...` → `/#kontak`). Sesuai spesifikasi Google Search Central, pengalihan permanen yang benar tidak perlu di-request validasi fix.
+- **Suite Pengujian Unit Kanonikal & Alternates (`tests/seo.test.ts`)**:
+  - Menambahkan pengujian otomatis untuk memverifikasi bahwa helper `localeAlternates` selalu menghasilkan kanonikal bersih bebas parameter query (`?lang=`, `?contactSubject=`) dan fragment hash.
+
 ### Fixed: Resolusi Rute & Header Preview Open Graph (OG) Share Proyek, Toko, dan Artikel
 
 - **Next.js Rewrites Resolusi Otomatis Gambar OG Section (`next.config.ts`)**:

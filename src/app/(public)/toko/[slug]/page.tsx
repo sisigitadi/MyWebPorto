@@ -14,6 +14,16 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+// Optimasi Vercel Free: cache 24 jam di CDN Edge; pembaruan ditangani on-demand oleh revalidatePath.
+export const revalidate = 86400;
+// dynamicParams = true memungkinkan produk baru yang diterbitkan di database tetap dapat diakses publik via ISR on-demand
+export const dynamicParams = true;
+
+export async function generateStaticParams() {
+  const products = await getProducts();
+  return products.map((p) => ({ slug: getProductSlug(p) }));
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const baseUrl = canonicalBaseUrl();

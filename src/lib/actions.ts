@@ -685,6 +685,7 @@ const getProjectsInternal = cache(async (includeScheduled: boolean): Promise<Pro
         publishAt: p.publishAt ? p.publishAt.toISOString() : null,
         order: p.order ?? 0,
         createdAt: p.createdAt ? p.createdAt.toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+        updatedAt: p.updatedAt ? p.updatedAt.toISOString() : undefined,
       }
       })
     );
@@ -1308,6 +1309,8 @@ const getProductsInternal = cache(async (): Promise<ProductData[]> => {
       referralCode: p.referralCode?.trim() || null,
       published: p.published ?? true,
       order: p.order ?? 0,
+      updatedAt: p.updatedAt ? p.updatedAt.toISOString() : undefined,
+      createdAt: p.createdAt ? p.createdAt.toISOString() : undefined,
     }));
   } catch (error) {
     console.warn("Database query getProducts gagal, menggunakan data lokal:", error);

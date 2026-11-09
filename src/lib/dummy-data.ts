@@ -56,6 +56,7 @@ export interface ProjectData {
   publishAt?: string | null;
   order?: number;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface ServiceData {
@@ -95,6 +96,8 @@ export interface ProductData {
   referralCode?: string | null;
   published: boolean;
   order?: number;
+  updatedAt?: string;
+  createdAt?: string;
 }
 
 export interface TestimonialData {
