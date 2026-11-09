@@ -370,11 +370,17 @@ function readUrlLang(): Language | null {
 function writeUrlLang(lang: Language) {
   if (typeof window === "undefined") return;
   const url = new URL(window.location.href);
-  if (url.searchParams.get(URL_PARAM) === lang) return; // tidak ada perubahan
-  // Pertahankan param & hash lain; replaceState (bukan pushState) agar toggle
-  // bahasa tidak mengisi history — tombol Kembali tetap ke halaman sebelumnya.
-  url.searchParams.set(URL_PARAM, lang);
-  window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  if (lang === "id") {
+    // Bahasa Indonesia adalah default kanonikal; bersihkan query param agar URL tetap murni
+    if (!url.searchParams.has(URL_PARAM)) return;
+    url.searchParams.delete(URL_PARAM);
+  } else {
+    if (url.searchParams.get(URL_PARAM) === lang) return; // tidak ada perubahan
+    url.searchParams.set(URL_PARAM, lang);
+  }
+  const search = url.searchParams.toString();
+  const newUrl = `${url.pathname}${search ? `?${search}` : ""}${url.hash}`;
+  window.history.replaceState(null, "", newUrl);
 }
 
 interface LanguageContextType {

@@ -11,6 +11,7 @@ import { resolveProfileCards } from "@/lib/profile-cards-config";
 import { OSDesktopManager } from "@/components/public/os/os-desktop-manager";
 import { JsonLdSchema } from "@/components/public/json-ld";
 import { resolveOSApps } from "@/lib/os-apps-config";
+import { getProductSlug } from "@/lib/product-link";
 import { draftMode } from "next/headers";
 import { canonicalBaseUrl } from "@/lib/canonical-host";
 
@@ -72,6 +73,45 @@ export default async function HomePage() {
           <Link href="/artikel">Artikel & Publikasi Teknik</Link>
           <Link href="/toko">Produk & Template Digital</Link>
         </nav>
+        <section aria-label="Daftar Publikasi Artikel Teknik">
+          <h2>Artikel & Catatan Rekayasa Software</h2>
+          <ul>
+            {articles
+              .filter((a) => a.published)
+              .map((a) => (
+                <li key={a.id}>
+                  <Link href={`/artikel/${a.slug}`}>{a.title}</Link>
+                  {a.summary && <p>{a.summary}</p>}
+                </li>
+              ))}
+          </ul>
+        </section>
+        <section aria-label="Daftar Portofolio Proyek Terkurasi">
+          <h2>Portofolio Proyek Rekayasa</h2>
+          <ul>
+            {projects
+              .filter((p) => p.published)
+              .map((p) => (
+                <li key={p.id}>
+                  <Link href={`/proyek/${p.slug}`}>{p.title}</Link>
+                  {p.summary && <p>{p.summary}</p>}
+                </li>
+              ))}
+          </ul>
+        </section>
+        <section aria-label="Daftar Produk Digital dan Template">
+          <h2>Produk Digital & Source Code Siap Pakai</h2>
+          <ul>
+            {products
+              .filter((p) => p.published)
+              .map((p) => (
+                <li key={p.id}>
+                  <Link href={`/toko/${getProductSlug(p)}`}>{p.title}</Link>
+                  {p.description && <p>{p.description.slice(0, 160)}</p>}
+                </li>
+              ))}
+          </ul>
+        </section>
       </div>
 
       {/* True Single-Page Retro Desktop Window Manager */}

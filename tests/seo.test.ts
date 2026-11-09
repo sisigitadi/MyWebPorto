@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { absoluteImageUrl, buildLlmsTxt, formatSeoTitle } from "@/lib/seo";
+import { absoluteImageUrl, buildLlmsTxt, formatSeoTitle, localeAlternates } from "@/lib/seo";
 
 describe("buildLlmsTxt", () => {
   it("menyusun markdown profil + katalog dengan link kanonis", () => {
@@ -127,6 +127,33 @@ describe("formatSeoTitle (optimasi batas panjang title SEO)", () => {
     );
     expect(title.length).toBeLessThanOrEqual(60);
     expect(title).toContain("| Sigit Adi");
+  });
+});
+
+describe("localeAlternates (kebersihan kanonikal dari query dan fragment)", () => {
+  it("membersihkan query parameter ?lang=id dan ?lang=en", () => {
+    expect(localeAlternates("https://sigitadi.id/?lang=id")).toEqual({
+      canonical: "https://sigitadi.id/",
+    });
+    expect(localeAlternates("https://sigitadi.id/artikel/tips?lang=en")).toEqual({
+      canonical: "https://sigitadi.id/artikel/tips",
+    });
+  });
+
+  it("membersihkan query parameter form kontak lama", () => {
+    expect(
+      localeAlternates(
+        "https://sigitadi.id/?contactSubject=Project+Discussion&contactBody=Hello"
+      )
+    ).toEqual({
+      canonical: "https://sigitadi.id/",
+    });
+  });
+
+  it("membersihkan anchor fragment", () => {
+    expect(localeAlternates("https://sigitadi.id/#kontak")).toEqual({
+      canonical: "https://sigitadi.id/",
+    });
   });
 });
 
