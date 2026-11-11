@@ -36,6 +36,7 @@ export async function GET(
         "Content-Type": row.mime,
         "Cache-Control": "public, max-age=31536000, immutable",
         "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox",
       },
     });
   }
@@ -64,7 +65,7 @@ export async function GET(
     const width = widthParam ? Math.min(Math.max(parseInt(widthParam, 10) || 0, 16), 2560) : undefined;
     const quality = qualityParam ? Math.min(Math.max(parseInt(qualityParam, 10) || 80, 20), 100) : 80;
 
-    let pipeline = sharp(Buffer.from(row.buffer));
+    let pipeline = sharp(Buffer.from(row.buffer), { animated: true });
 
     if (width && width > 0) {
       pipeline = pipeline.resize({ width, withoutEnlargement: true });

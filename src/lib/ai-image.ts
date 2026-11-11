@@ -6,12 +6,11 @@
  * Kesalahan yang paling sering terjadi di sini adalah gambar hasil AI yang
  * memuat teks acak (huruf gibberish) — itu dicegah lewat prompt.
  *
- * Model dicek langsung ke ListModels (probe 2026-10-05, key aktif):
- *   gemini-3.1-flash-lite-image, gemini-3.1-flash-image,
- *   gemini-3-pro-image, gemini-3.1-flash-image-preview,
- *   gemini-3-pro-image-preview, gemini-2.5-flash-image
+ * Model dicek langsung ke ListModels (probe 2026-11-11, key aktif):
+ *   gemini-3.1-flash-lite-image, gemini-nano-banana-2.1,
+ *   gemini-3.1-flash-image, gemini-3-pro-image
  * → `IMAGE_MODEL_FALLBACKS` memakai urutan paling murah/cepat ke paling
- *whomois, bukan urutan alfabet.
+ * tinggi kualitasnya, bukan urutan alfabet.
  *
  * Kontrak: TIDAK PERNAH throw. Semua kegagalan dikembalikan sebagai
  * `{ ok: false, error }` supaya pemanggil (server action) tidak perlu
@@ -20,9 +19,10 @@
 
 import { isPlaceholderKey } from "@/lib/env";
 
-/** Urutan fallback: flash-lite → flash → pro (murah & cepat dulu). */
+/** Urutan fallback: flash-lite → nano-banana-2.1 → flash → pro (murah & cepat dulu). */
 export const IMAGE_MODEL_FALLBACKS: readonly string[] = [
   "gemini-3.1-flash-lite-image",
+  "gemini-nano-banana-2.1",
   "gemini-3.1-flash-image",
   "gemini-3-pro-image",
 ];

@@ -25,7 +25,6 @@ import {
 } from "lucide-react";
 import { useCart, formatIdr, CustomerOrderInfo } from "@/lib/cart-context";
 import {
-  formatUsd,
   parseLegacyBankInfo,
   normalizeBankAccounts,
 } from "@/lib/whatsapp-order";
@@ -308,7 +307,7 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
           imageUrl: it.product.thumbnailUrl || null,
         })),
         totalAmount,
-        currency: isEn ? "USD" : "IDR",
+        currency: "IDR",
         paymentMethod: customer.paymentMethod,
         referralCode,
       });
@@ -357,7 +356,7 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
             icon={<ShoppingCart className="h-3.5 w-3.5 text-[#ffd400]" />}
             statusText={
               step === "cart"
-                ? `Total: ${isEn ? formatUsd(totalAmount) : formatIdr(totalAmount)} // Ready for checkout`
+                ? `Total: ${formatIdr(totalAmount)} // Ready for checkout`
                 : step === "checkout"
                 ? channel === "whatsapp"
                   ? `${storeName(isEn).toUpperCase()} // SECURE MANUAL CHECKOUT`
@@ -447,8 +446,8 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
                         const title = isEn && product.titleEn ? product.titleEn : product.title;
                         const subtotal = (product.priceAmount || 0) * quantity;
                         const priceText = product.priceAmount
-                          ? isEn
-                            ? formatUsd(subtotal)
+                          ? isEn && product.priceLabelEn
+                            ? `${formatIdr(subtotal)} (${product.priceLabelEn})`
                             : formatIdr(subtotal)
                           : isEn
                           ? product.priceLabelEn || product.priceFormatted
@@ -516,9 +515,7 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
                         <span className="font-bold">{isEn ? "Total Amount:" : "Total Estimasi:"}</span>
                         <span className="font-extrabold text-sm text-emerald-600 dark:text-emerald-400 font-pixel">
                           {totalAmount > 0
-                            ? isEn
-                              ? formatUsd(totalAmount)
-                              : formatIdr(totalAmount)
+                            ? formatIdr(totalAmount)
                             : isEn
                             ? "Custom Quote"
                             : "Sesuai Penawaran"}
@@ -601,9 +598,7 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
                   </span>
                   <span className="font-extrabold text-emerald-600 dark:text-emerald-400 font-pixel">
                     {totalAmount > 0
-                      ? isEn
-                        ? formatUsd(totalAmount)
-                        : formatIdr(totalAmount)
+                      ? formatIdr(totalAmount)
                       : isEn
                       ? "Custom Quote"
                       : "Sesuai Penawaran"}

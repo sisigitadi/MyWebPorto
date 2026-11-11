@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { absoluteImageUrl, buildLlmsTxt, formatSeoTitle, localeAlternates } from "@/lib/seo";
+import {
+  absoluteImageUrl,
+  buildLlmsTxt,
+  extractFaqFromContent,
+  formatSeoTitle,
+  localeAlternates,
+} from "@/lib/seo";
 
 describe("buildLlmsTxt", () => {
   it("menyusun markdown profil + katalog dengan link kanonis", () => {
@@ -156,4 +162,29 @@ describe("localeAlternates (kebersihan kanonikal dari query dan fragment)", () =
     });
   });
 });
+
+describe("extractFaqFromContent", () => {
+  it("berhenti sebelum heading H2 berikutnya (mis. ## Kesimpulan) agar tidak bocor ke jawaban FAQ terakhir", () => {
+    const md = [
+      "## Pertanyaan Umum (FAQ)",
+      "",
+      "### Apakah sistem ini aman?",
+      "Ya, sistem menggunakan enkripsi berlapis dan validasi skema ketat di sisi server.",
+      "",
+      "### Berapa latensi rata-rata?",
+      "Latensi rata-rata berada di bawah 50 milidetik untuk setiap permintaan transaksi.",
+      "",
+      "## Kesimpulan",
+      "",
+      "Paragraf kesimpulan ini tidak boleh masuk ke dalam jawaban FAQ terakhir.",
+    ].join("\n");
+
+    const faqs = extractFaqFromContent(md);
+    expect(faqs).toHaveLength(2);
+    expect(faqs[1].question).toBe("Berapa latensi rata-rata?");
+    expect(faqs[1].answer).not.toContain("Kesimpulan");
+    expect(faqs[1].answer).not.toContain("Paragraf kesimpulan");
+  });
+});
+
 

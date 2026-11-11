@@ -20,20 +20,39 @@ const isVercel = Boolean(process.env.VERCEL);
 const DATA_DIR = isVercel ? path.join("/tmp", "my-web-porto-data") : path.join(process.cwd(), "data");
 const LOCAL_FILE = path.join(DATA_DIR, "local-settings.json");
 
+function unwrapDoubleEncodedJson(val: unknown): unknown {
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if (
+      (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+      (trimmed.startsWith("[") && trimmed.endsWith("]"))
+    ) {
+      try {
+        return JSON.parse(trimmed);
+      } catch {
+        return val;
+      }
+    }
+  }
+  return val;
+}
+
 async function fetchSettingRaw(key: string): Promise<unknown> {
   if (isDbConnected) {
     try {
       const rows = await db.select().from(settings).where(eq(settings.key, key)).limit(1);
-      if (rows.length && rows[0].value !== undefined) return rows[0].value ?? null;
+      if (rows.length && rows[0].value !== undefined) {
+        return unwrapDoubleEncodedJson(rows[0].value ?? null);
+      }
     } catch (dbErr) {
       console.warn(`getSetting: DB query gagal untuk "${key}", beralih ke fallback lokal:`, dbErr);
     }
   }
   const parsed = readLocal();
-  return parsed?.[key] ?? null;
+  return unwrapDoubleEncodedJson(parsed?.[key] ?? null);
 }
 
-const getSettingInternal = cache(fetchSettingRaw);
+const getRequestSettingsCache = cache(() => new Map<string, unknown>());
 
 /** Baca satu pengaturan (ter-parse), atau null bila tidak ada / gagal. Ter-memoize per-request. */
 export async function getSetting<T>(key: string): Promise<T | null> {
@@ -42,7 +61,12 @@ export async function getSetting<T>(key: string): Promise<T | null> {
       const val = await fetchSettingRaw(key);
       return (val as T) ?? null;
     }
-    const val = await getSettingInternal(key);
+    const reqCache = getRequestSettingsCache();
+    if (reqCache.has(key)) {
+      return (reqCache.get(key) as T) ?? null;
+    }
+    const val = await fetchSettingRaw(key);
+    reqCache.set(key, val ?? null);
     return (val as T) ?? null;
   } catch (err) {
     console.warn(`Gagal membaca setting "${key}":`, err);
@@ -53,10 +77,19 @@ export async function getSetting<T>(key: string): Promise<T | null> {
 /** Tulis satu pengaturan (upsert). Dual-Persistence: selalu tulis ke file lokal dan DB. */
 export async function setSetting(key: string, value: unknown): Promise<void> {
   try {
+    const normalizedValue = unwrapDoubleEncodedJson(value);
+    if (process.env.NODE_ENV !== "test" && !process.env.VITEST) {
+      try {
+        getRequestSettingsCache().set(key, normalizedValue ?? null);
+      } catch {
+        // Di luar konteks request React
+      }
+    }
+
     // 1. Selalu tulis ke file lokal terlebih dahulu
     try {
       const parsed = readLocal() || {};
-      parsed[key] = value;
+      parsed[key] = normalizedValue;
       ensureDir();
       fs.writeFileSync(LOCAL_FILE, JSON.stringify(parsed, null, 2), "utf-8");
       try {
@@ -74,8 +107,8 @@ export async function setSetting(key: string, value: unknown): Promise<void> {
       try {
         await db
           .insert(settings)
-          .values({ key, value })
-          .onConflictDoUpdate({ target: settings.key, set: { value, updatedAt: new Date() } });
+          .values({ key, value: normalizedValue })
+          .onConflictDoUpdate({ target: settings.key, set: { value: normalizedValue, updatedAt: new Date() } });
       } catch (dbErr) {
         console.warn(`setSetting: Database offline untuk "${key}", tersimpan di fallback lokal:`, dbErr);
       }
@@ -88,6 +121,13 @@ export async function setSetting(key: string, value: unknown): Promise<void> {
 /** Hapus satu pengaturan. Berguna untuk membuang draf saat publish / discard. */
 export async function deleteSetting(key: string): Promise<void> {
   try {
+    if (process.env.NODE_ENV !== "test" && !process.env.VITEST) {
+      try {
+        getRequestSettingsCache().set(key, null);
+      } catch {
+        // Di luar konteks request React
+      }
+    }
     const parsed = readLocal();
     if (parsed && key in parsed) {
       delete parsed[key];

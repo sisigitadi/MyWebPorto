@@ -29,14 +29,14 @@ describe("listCloudModels", () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       OK({
         models: [
-          { name: "models/gemini-2.5-flash", supportedGenerationMethods: ["generateContent"] },
-          { name: "models/text-embedding-004", supportedGenerationMethods: ["embedContent"] },
-          { name: "models/gemini-2.5-pro", supportedGenerationMethods: ["generateContent"] },
+          { name: "models/gemini-3.8-flash", supportedGenerationMethods: ["generateContent"] },
+          { name: "models/gemini-embedding-001", supportedGenerationMethods: ["embedContent"] },
+          { name: "models/gemini-4-argon", supportedGenerationMethods: ["generateContent"] },
         ],
       })
     );
     const r = await listCloudModels("gemini", "AIzaFake", "");
-    expect(r.models).toEqual(["gemini-2.5-flash", "gemini-2.5-pro"]);
+    expect(r.models).toEqual(["gemini-3.8-flash", "gemini-4-argon"]);
     // Endpoint Gemini tetap (baseUrl diabaikan), key di-query string.
     expect(fetchMock.mock.calls[0][0]).toContain("generativelanguage.googleapis.com");
     expect(fetchMock.mock.calls[0][0]).toContain("key=AIzaFake");
@@ -45,10 +45,10 @@ describe("listCloudModels", () => {
 
   it("openai: GET {baseUrl}/models dengan Authorization Bearer", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      OK({ data: [{ id: "gpt-4o-mini" }, { id: "deepseek-chat" }] })
+      OK({ data: [{ id: "gpt-6-luna" }, { id: "deepseek-chat" }] })
     );
     const r = await listCloudModels("openai", "sk-fake", "https://api.deepseek.com/v1/");
-    expect(r.models).toEqual(["deepseek-chat", "gpt-4o-mini"]);
+    expect(r.models).toEqual(["deepseek-chat", "gpt-6-luna"]);
     const [url, init] = fetchMock.mock.calls[0];
     // Trailing slash dipotong sebelum /models.
     expect(String(url)).toBe("https://api.deepseek.com/v1/models");
@@ -60,13 +60,13 @@ describe("listCloudModels", () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       OK({
         data: [
-          { id: "claude-3-5-sonnet-20241022" },
-          { id: "claude-3-5-haiku-20241022" },
+          { id: "claude-sonnet-5.5" },
+          { id: "claude-haiku-5.5" },
         ],
       })
     );
     const r = await listCloudModels("anthropic", "TEST_ANTHROPIC_KEY_FIXTURE", "https://api.anthropic.com/v1");
-    expect(r.models).toEqual(["claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022"]);
+    expect(r.models).toEqual(["claude-haiku-5.5", "claude-sonnet-5.5"]);
     const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toBe("https://api.anthropic.com/v1/models");
     const headers = init?.headers as Record<string, string>;

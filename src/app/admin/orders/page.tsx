@@ -437,7 +437,7 @@ export default function AdminOrdersPage() {
       `Halo kak ${cust.name || "Pelanggan"}, salam hangat dari Sigit Adi (https://sigitadi.id/)!`,
       "",
       "Terima kasih telah menjadi bagian dari pelanggan kami. Kami memiliki penawaran dan pembaruan produk terbaru yang mungkin menarik untuk Anda:",
-      "https://sigitadi.id/products",
+      "https://sigitadi.id/toko",
       "",
       "Jika ada kebutuhan produk digital atau pengembangan proyek baru, kami siap membantu dengan senang hati!",
     ].join("\n");

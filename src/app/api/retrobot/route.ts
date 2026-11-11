@@ -22,7 +22,6 @@ const POST_WINDOW_MS = 5 * 60_000;
 const MAX_BODY_BYTES = 10_000;
 const MAX_INPUT_CHARS = 500;
 const MAX_HISTORY = 4; // pasang user+assistant terakhir
-const BASE_CONFIDENCE_THRESHOLD = 0.55; // sama dengan askSigitBot
 
 // Streaming butuh Node runtime (ReadableStream fetch), bukan Edge.
 export const runtime = "nodejs";
@@ -284,12 +283,7 @@ export async function POST(req: NextRequest) {
         );
       };
 
-      // Selaras dengan Terminal (askSigitBot di actions.ts):
-      // Bila query cocok dengan intent lokal (confidence >= BASE_CONFIDENCE_THRESHOLD)
-      // ATAU cloud AI tidak aktif / unconfigured, layani langsung via mesin inferensi
-      // lokal (cepat, anti-halu, dan 100% selaras bahasa input pengguna).
-      // Hanya eskalasi ke cloud bila confidence lokal rendah (< 0.55) dan cloud aktif.
-      if (local.confidence >= BASE_CONFIDENCE_THRESHOLD || !cloudEnabled) {
+      if (!cloudEnabled) {
         emit("meta", {
           source: "local",
           model: "tfidf-local",
@@ -342,7 +336,11 @@ export async function POST(req: NextRequest) {
         const style = getApiStyle(cloudCfg.provider);
         if (style === "openai-chat") {
           // Satu-satunya gaya yang menyediakan SSE OpenAI-compatible.
-          const upstream = submitToOpenAIStream(messages, { config: cloudCfg });
+          const budget = getAnswerStyleBudget(cloudCfg.answerStyle);
+          const upstream = submitToOpenAIStream(messages, {
+            config: cloudCfg,
+            maxTokens: budget.tokens,
+          });
           const reader = upstream.getReader();
           const decoder = new TextDecoder();
           let buffer = "";

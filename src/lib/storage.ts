@@ -79,19 +79,10 @@ export function matchesImageSignature(buffer: Buffer, mime: string): boolean {
 
 /** Sanitasi SVG untuk menangkal serangan XSS berbasis script/event inline */
 export function isSafeSvg(buffer: Buffer): boolean {
-  const content = buffer.toString("utf8").toLowerCase();
-  const dangerousPatterns = [
-    "<script",
-    "javascript:",
-    "onload=",
-    "onerror=",
-    "onclick=",
-    "onmouseover=",
-    "<iframe",
-    "<object",
-    "<embed",
-  ];
-  return !dangerousPatterns.some((pattern) => content.includes(pattern));
+  const content = buffer.toString("utf8");
+  const dangerousRegex =
+    /<\s*(script|iframe|object|embed|foreignobject|applet|meta|link)\b|\bon[a-z]+\s*=|javascript\s*:|vbscript\s*:|data\s*:\s*text\/html/i;
+  return !dangerousRegex.test(content);
 }
 
 export interface ValidatedImage {

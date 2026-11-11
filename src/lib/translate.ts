@@ -267,19 +267,23 @@ async function translateChunkSingle(
   from: string = "id",
   to: string = "en"
 ): Promise<string> {
+  const leadMatch = chunk.match(/^\s*/);
+  const trailMatch = chunk.match(/\s*$/);
+  const leadingWs = leadMatch ? leadMatch[0] : "";
+  const trailingWs = trailMatch ? trailMatch[0] : "";
   const trimmed = chunk.trim();
   if (!trimmed) return chunk;
 
   // 1. Google Translate
   const googleRes = await translateViaGoogle(trimmed, from, to);
   if (googleRes && googleRes.trim() && !isTranslationErrorPayload(googleRes)) {
-    return googleRes;
+    return `${leadingWs}${googleRes.trim()}${trailingWs}`;
   }
 
   // 2. MyMemory Fallback
   const myMemoryRes = await translateViaMyMemory(trimmed, from, to);
   if (myMemoryRes && myMemoryRes.trim() && !isTranslationErrorPayload(myMemoryRes)) {
-    return myMemoryRes;
+    return `${leadingWs}${myMemoryRes.trim()}${trailingWs}`;
   }
 
   // Jika semua gagal untuk chunk ini, kembalikan chunk asli
@@ -295,6 +299,11 @@ async function translateWithCloudAI(
   to: string
 ): Promise<string | null> {
   try {
+    // Jika teks sangat panjang (> 16.000 karakter), hindari single-shot agar tidak terpotong batas output token model
+    if (text.length > 16000) {
+      return null;
+    }
+
     const cfg = await resolveCloudAIConfig();
     if (cfg.provider === "off" || isPlaceholderKey(cfg.apiKey)) {
       return null;
@@ -319,7 +328,7 @@ async function translateWithCloudAI(
       { role: "user" as const, content: userPrompt },
     ];
 
-    const maxTokens = Math.min(4096, Math.max(1024, Math.ceil(text.length / 2)));
+    const maxTokens = Math.min(8192, Math.max(1024, Math.ceil(text.length / 2)));
     const maxChars = Math.max(6000, text.length * 2);
 
     let result: { success: boolean; text: string } | null = null;

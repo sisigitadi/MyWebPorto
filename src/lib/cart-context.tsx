@@ -118,7 +118,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (isOutOfStock(product)) return false;
     const maxStock = maxStockFor(product);
     if (maxStock <= 0) return false;
-    setItems([{ product, quantity: 1 }]);
+    setItems((prev) => {
+      const existingIdx = prev.findIndex((i) => i.product.id === product.id);
+      if (existingIdx >= 0) {
+        const updated = [...prev];
+        updated[existingIdx] = {
+          ...updated[existingIdx],
+          product,
+          quantity: Math.min(Math.max(1, updated[existingIdx].quantity), maxStock),
+        };
+        return updated;
+      }
+      return [...prev, { product, quantity: 1 }];
+    });
     setInitialStep("checkout");
     setIsOpen(true);
     return true;

@@ -411,7 +411,7 @@ function scoreIntent(tokens: string[], rawInput: string, def: IntentDef): number
     } else {
       // Fuzzy substring matching for Indonesian inflections (e.g. "berkontak", "keahliannya")
       for (const kw of def.keywords) {
-        if (kw.length >= 4 && (token.includes(kw) || kw.includes(token))) {
+        if (kw.length >= 4 && token.length >= 4 && (token.includes(kw) || kw.includes(token))) {
           score += 0.5;
           break;
         }

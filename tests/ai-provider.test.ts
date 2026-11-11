@@ -438,6 +438,7 @@ describe("getGeminiFallbackModels", () => {
     const list = getGeminiFallbackModels("gemini-flash-lite-latest");
     // Model sehat ada di daftar...
     expect(list).toContain("gemini-3.5-flash-lite");
+    expect(list).toContain("gemini-3.8-flash");
     expect(list).toContain("gemini-3.7-flash");
     // ...dan model pensiun TIDAK (404 pasti, bukan transient 429).
     expect(list).not.toContain("gemini-2.5-flash");

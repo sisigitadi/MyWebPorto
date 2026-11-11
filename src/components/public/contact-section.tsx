@@ -63,24 +63,26 @@ export function ContactSection({ profile, compact = false, bare = false }: Conta
     // varian duplikat homepage akan terlihat "sah" bagi Google.
     const subject = sessionStorage.getItem("contactSubject");
     const body = sessionStorage.getItem("contactBody");
-    if (!subject && !body) return;
+    if (subject || body) {
+      sessionStorage.removeItem("contactSubject");
+      sessionStorage.removeItem("contactBody");
 
-    sessionStorage.removeItem("contactSubject");
-    sessionStorage.removeItem("contactBody");
-
-    // One-shot handoff dari navigasi (sessionStorage) ke state form: baca
-    // sekali lalu hapus. useSyncExternalStore tidak cocok karena getSnapshot
-    // harus murni (tidak boleh menghapus sessionStorage).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setFormData((current) => ({
-      ...current,
-      subject: subject || current.subject,
-      message: body || current.message,
-    }));
+      // One-shot handoff dari navigasi (sessionStorage) ke state form: baca
+      // sekali lalu hapus. useSyncExternalStore tidak cocok karena getSnapshot
+      // harus murni (tidak boleh menghapus sessionStorage).
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFormData((current) => ({
+        ...current,
+        subject: subject || current.subject,
+        message: body || current.message,
+      }));
+    }
 
     const handlePrefillEvent = (e: Event) => {
       const custom = e as CustomEvent<{ subject?: string; message?: string }>;
       if (custom.detail) {
+        sessionStorage.removeItem("contactSubject");
+        sessionStorage.removeItem("contactBody");
         setFormData((current) => ({
           ...current,
           subject: custom.detail.subject || current.subject,

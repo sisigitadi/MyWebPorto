@@ -1,12 +1,13 @@
 export const revalidate = 86400;
 
 import { getArticles, getProducts, getProfile, getProjects, getServices } from "@/lib/actions";
+import { canonicalBaseUrl } from "@/lib/canonical-host";
 import { getProductSlug } from "@/lib/product-link";
 import { buildLlmsTxt } from "@/lib/seo";
 
 /** llms.txt dinamis untuk AI crawler — GET /llms.txt (diizinkan di robots.ts). */
 export async function GET() {
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+  const baseUrl = canonicalBaseUrl();
   try {
     const [profile, services, projects, articles, products] = await Promise.all([
       getProfile(),

@@ -113,7 +113,16 @@ async function resolveLegacyUpload(relativeUrl: string): Promise<ResolvedOgImage
 
 async function resolveRemoteUrl(url: string): Promise<ResolvedOgImage | null> {
   try {
-    const res = await fetch(url);
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+      return null;
+    }
+    const res = await Promise.race([
+      fetch(url),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("OG remote image fetch timeout")), 4_000)
+      ),
+    ]);
     if (!res.ok) {
       console.warn("resolveOgImage: remote fetch gagal:", url, res.status);
       return null;

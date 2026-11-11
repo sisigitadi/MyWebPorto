@@ -1,8 +1,9 @@
 import { getArticles } from "@/lib/actions";
+import { canonicalBaseUrl } from "@/lib/canonical-host";
 
 /** RSS 2.0 artikel publik — GET /feed.xml (max 20 terbaru). */
 export async function GET() {
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+  const baseUrl = canonicalBaseUrl();
   const escapeXml = (s: string) =>
     s
       .replace(/&/g, "&amp;")

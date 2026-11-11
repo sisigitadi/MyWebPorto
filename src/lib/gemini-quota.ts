@@ -24,24 +24,34 @@
 
 /** Batas default free-tier (per menit / per hari) per keluarga model. */
 const DEFAULT_GEMINI_FREE_LIMITS: Record<string, { rpm: number; rpd: number }> = {
-  // Audit 2026-10-05: keluarga 2.x/1.5 sudah pensiun (404) — entri tetap
+  // Audit 2026-11-11: keluarga 2.x/1.5 sudah pensiun (404) — entri tetap
   // dipertahankan untuk prefix-matching varian preview lama & request historis.
-  // Model 3.x sehat; flash-lite paling longgar (alias -latest), flash biasa
-  // lebih ketat. Angka konservatif: 429 pertama mengoreksi otomatis (learned
-  // limits menimpa default).
-  "gemini-3.5-flash": { rpm: 10, rpd: 250 },
-  "gemini-3.5-flash-lite": { rpm: 15, rpd: 1500 },
+  // Model 3.x & 4.x aktif; flash-lite paling longgar (alias -latest), flash biasa
+  // menengah, dan seri 4 / pro memiliki batas lebih ketat. Angka konservatif:
+  // 429 pertama mengoreksi otomatis (learned limits menimpa default).
+  "gemini-4-carbon": { rpm: 5, rpd: 50 },
+  "gemini-4-argon": { rpm: 5, rpd: 50 },
+  "gemini-3.8-flash": { rpm: 10, rpd: 250 },
+  "gemini-3.8-flash-lite-tts": { rpm: 15, rpd: 1500 },
+  "gemini-3.8-flash-tts": { rpm: 10, rpd: 250 },
   "gemini-3.7-flash": { rpm: 10, rpd: 250 },
   "gemini-3.6-flash": { rpm: 10, rpd: 250 },
+  "gemini-3.5-flash": { rpm: 10, rpd: 250 },
+  "gemini-3.5-flash-lite": { rpm: 15, rpd: 1500 },
+  "gemini-3.1-pro-preview": { rpm: 5, rpd: 50 },
   "gemini-3.1-flash-lite": { rpm: 15, rpd: 1500 },
   "gemini-3-flash-preview": { rpm: 10, rpd: 250 },
+  "gemini-omni-1.2-flash": { rpm: 10, rpd: 250 },
+  "gemini-omni-1.1-flash": { rpm: 10, rpd: 250 },
+  "gemini-omni-flash-preview": { rpm: 10, rpd: 250 },
   "gemini-flash-lite-latest": { rpm: 15, rpd: 1500 },
+  "gemini-flash-latest": { rpm: 15, rpd: 1500 },
+  "gemini-pro-latest": { rpm: 5, rpd: 50 },
   "gemini-2.5-flash": { rpm: 10, rpd: 250 },
   "gemini-2.5-pro": { rpm: 5, rpd: 50 },
   "gemini-2.0-flash": { rpm: 15, rpd: 1500 },
   "gemini-1.5-flash": { rpm: 15, rpd: 1500 },
   "gemini-1.5-pro": { rpm: 2, rpd: 50 },
-  "gemini-flash-latest": { rpm: 15, rpd: 1500 },
 };
 
 /** Bila model tidak cocok tabel manapun (mis. varian preview/fresh). */
