@@ -4,6 +4,46 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Updated & Enhanced: Audit & Pembaruan Seluruh Model AI ke Versi Terbaru & Aktif (Multi-Provider 2026)
+
+- **Standarisasi & Pembaruan Default Model di 9 Provider Cloud AI (`src/lib/ai-providers.ts`, `.env.example`, `src/components/admin/cloud-ai-config-form.tsx`)**:
+  - **Google Gemini**: Menambahkan `gemini-flash-lite-latest` dan `gemini-3.8-flash` di puncak rantai fallback teks; memperbarui tabel kuota (`src/lib/gemini-quota.ts`) dengan keluarga model terbaru (`gemini-4-carbon`, `gemini-4-argon`, `gemini-3.8-flash`, `gemini-3.1-pro-preview`, `gemini-omni-1.2-flash`, `gemini-3-flash-preview`, `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`).
+  - **Gemini Image Generation (`src/lib/ai-image.ts`)**: Menambahkan `gemini-nano-banana-2.1` sebagai model utama di atas `gemini-3.1-flash-image-preview` dan `gemini-2.5-flash-image`.
+  - **OpenAI (`src/lib/ai-openai.ts`, `src/lib/ai-providers.ts`)**: Memperbarui default model dari `gpt-4o-mini` ke `gpt-6-luna` (dengan dukungan keluarga `gpt-6-solaris`, `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`, `o3`, `o4-mini`).
+  - **Anthropic Claude (`src/lib/ai-anthropic.ts`, `src/lib/ai-providers.ts`)**: Memperbarui default model dari `claude-3-5-haiku-latest` ke `claude-haiku-5.5` (dengan dukungan `claude-opus-5.5`, `claude-sonnet-5.5`, `claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5`).
+  - **OpenRouter (`src/lib/ai-providers.ts`)**: Memperbarui default model ke `google/gemini-3.8-flash`.
+  - **xAI Grok (`src/lib/ai-providers.ts`)**: Memperbarui default model dari `grok-2-latest` ke `grok-4.7`.
+  - **Groq, DeepSeek, Together AI, Mistral**: Memperbarui label, hint, dan fallback katalog model statis (`src/lib/ai-models.ts`) untuk mendukung `deepseek-v4.1`, `Qwen/Qwen3.8-72B-Instruct-Turbo`, `llama-3.3-70b-versatile`, `openai/gpt-oss-120b`, dan `mistral-small-latest` khi endpoint `/models` tidak mengembalikan daftar (mis. Anthropic).
+- **Sinkronisasi Narasi Artikel & Proyek Portofolio (`src/lib/dummy-data.ts`, `data/local-store.json`, Database Live)**:
+  - Memperbarui referensi model AI pada artikel teknis dan deskripsi proyek (`PromptMatrix 2.0`) ke generasi model aktif terbaru.
+
+### Security, Fixed & Optimized: Full Codebase & Database Audit Remediation (Phases 1–5)
+
+- **Perbaikan God Mode Draft & Stale Request Cache (`src/lib/actions.ts`, `src/lib/settings.ts`, `features-config.ts`, `ui-strings-config.ts`, `os-apps-config.ts`)**:
+  - Memperbaiki bug di mana perubahan form God Mode yang belum disimpan tertimpa nilai live saat menekan tombol *Simpan Draf* (`C-01`).
+  - Mengganti `React.cache` pada `src/lib/settings.ts` dengan cache per-request berbasis `Map` yang langsung diperbarui saat `setSetting`/`deleteSetting` dipanggil dan otomatis membuka pembungkusan JSON string ganda (*double-encoded JSON*) (`C-02`, `DB-02`).
+- **Idempotensi Migrasi RLS PostgreSQL (`drizzle/0013_enable_rls.sql`)**:
+  - Menambahkan guard `ADD COLUMN IF NOT EXISTS`, `CREATE TABLE IF NOT EXISTS` untuk tabel `orders` & `customers`, serta pengecekan eksistensi role `PUBLIC` di blok `DO $$` agar migrasi RLS aman dijalankan ulang di seluruh environment (`C-03`).
+- **Hardening Keamanan Toko, Keranjang, & Server Actions (`src/lib/order-actions.ts`, `src/components/public/cart-dialog.tsx`, `src/lib/actions.ts`, `src/lib/audit.ts`)**:
+  - Validasi harga dan ketersediaan stok murni di sisi server saat pembuatan pesanan, pengurangan stok atomik di dalam transaksi DB, dan pembatasan laju (*rate-limiting*) pembuatan order per IP (`C-04`).
+  - Penyamaran data pribadi (PII masking untuk nomor WhatsApp & email) pada pencocokan parsial invoice publik di `getOrderByInvoice`, verifikasi *magic bytes* gambar pada `uploadPaymentProof`, serta penundaan akumulasi `customers.totalSpent` hingga pesanan berstatus dibayar/selesai (`H-03`).
+  - Penyelarasan format mata uang IDR/USD pada dialog keranjang & checkout (`M-04`).
+  - Penambahan guard `verifyAdmin()` pada opsi `includeScheduled` di `getProjects`/`getArticles` serta `getPendingOrdersCount()`, dan penghapusan direktif `"use server"` dari modul internal `src/lib/audit.ts` (`H-02`).
+- **Hardening Media SVG, Animasi WebP/AVIF, & OG Image (`src/lib/storage.ts`, `src/app/api/media/[id]/route.ts`, `src/lib/og-image.ts`)**:
+  - Sanitasi berlapis berkas SVG terhadap elemen berbahaya (`<foreignObject>`, `<use>`, `<iframe/embed/object>`, event handler `on*`, dan URI `javascript:`/`data:text/html`) disertai header `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox` (`H-04`).
+  - Dukungan frame animasi penuh (`{ animated: true }`) pada pemrosesan `sharp` untuk GIF/WebP/AVIF (`L-01`).
+  - Batas waktu (*timeout*) 4 detik dan validasi protokol `http(s)` pada pengambilan avatar eksternal di generator OG Image (`M-04`).
+- **Perbaikan Escalation Cloud AI, Presipitasi System Prompt, & WhatsApp Bot (`src/app/api/retrobot/route.ts`, `src/lib/ai-provider.ts`, `src/lib/ai-openai.ts`, `src/lib/ai-anthropic.ts`, `src/lib/whatsapp-bot/`)**:
+  - Memastikan RetroBot dan Terminal meneruskan kueri ke Cloud AI saat provider aktif meskipun mesin TF-IDF lokal mengembalikan fallback generik (`H-05`).
+  - Menjaga pesan `role: "system"` agar tidak terpotong oleh `.slice(-9)` pada riwayat percakapan panjang (`H-06`) dan mempertahankan `auditLogs` pada penyimpanan lokal (`H-07`).
+  - Memperbaiki bug auto-reconnect saat `stopWhatsAppBot()` dipanggil secara manual (`C-06`), memfilter event pesan non-`notify`, dan memperbaiki placeholder inline code pada formatter WhatsApp (`H-08`).
+- **Perbaikan Ekstraksi FAQ JSON-LD, URL Kanonikal, & UX SigitOS (`src/lib/seo.ts`, `contact-section.tsx`, `os-window.tsx`, `os-desktop-manager.tsx`, `products-section.tsx`, `cart-context.tsx`, `translate.ts`)**:
+  - Menghentikan regex ekstraksi FAQ JSON-LD tepat sebelum heading H2 berikutnya (`## Kesimpulan`) (`H-09`) dan menyeragamkan `canonicalBaseUrl()` di `llms.txt`, `feed.xml`, dan `indexnow.ts`.
+  - Memperbaiki prefill parameter `?contactSubject` & `?contactBody` dari URL dan event custom di `ContactSection` (`H-01`).
+  - Menambahkan dukungan drag jendela via layar sentuh (*Pointer Events* + klem batas viewport) (`M-01`), sinkronisasi filter kategori katalog produk dengan URL, debouncing penyimpanan `localStorage` keranjang (`M-02`), kamus stemmer Bahasa Indonesia untuk AI lokal, serta *concurrency limiter* pada batch terjemahan admin (`M-03`).
+- **Pembersihan & Remediasi Database Produksi Live (`data/local-store.json` & PostgreSQL)**:
+  - Menghapus 9 baris media yatim (*orphaned media*, penghematan `~3,53 MB`), memperbarui nomor WhatsApp admin & profil ke `6285117616631`, menonaktifkan metode pembayaran bank placeholder yang belum terisi, membuka pembungkusan JSON ganda di tabel `settings`, dan melengkapi terjemahan Bahasa Inggris (`content_en`) pada artikel & produk yang kosong.
+
 ### Fixed & Optimized: Resolusi Komprehensif Audit Indexing Google Search Console & Optimasi Build Edge/SEO
 
 - **Prerendering SSG / ISR untuk Seluruh Detail Produk Toko (`src/app/(public)/toko/[slug]/page.tsx`)**:

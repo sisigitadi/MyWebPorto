@@ -8,6 +8,7 @@
  * Jangan import dari komponen client.
  */
 
+import { canonicalBaseUrl } from "@/lib/canonical-host";
 import { isPlaceholderKey } from "@/lib/env";
 import { resolveSeoConfig } from "@/lib/seo-config";
 
@@ -20,7 +21,7 @@ import { resolveSeoConfig } from "@/lib/seo-config";
  * efektif karena file /{key}.txt dilayani dinamis oleh app/[indexnowKey].
  */
 export function getIndexNowBaseUrl(): string {
-  return (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+  return canonicalBaseUrl();
 }
 
 export async function getIndexNowKey(): Promise<string> {

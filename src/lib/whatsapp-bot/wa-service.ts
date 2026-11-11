@@ -21,6 +21,8 @@ interface GlobalWABotContainer {
   state: WABotState;
   socket: unknown | null;
   isStarting: boolean;
+  manualStop?: boolean;
+  reconnectTimer?: ReturnType<typeof setTimeout> | null;
 }
 
 const g = globalThis as unknown as { __waBotContainer?: GlobalWABotContainer };
@@ -68,6 +70,11 @@ export async function startWABot(): Promise<{ success: boolean; message: string 
     return { success: true, message: "Bot sedang dalam proses menghubungkan..." };
   }
 
+  if (container.reconnectTimer) {
+    clearTimeout(container.reconnectTimer);
+    container.reconnectTimer = null;
+  }
+  container.manualStop = false;
   container.isStarting = true;
   updateState({ status: "CONNECTING", error: null });
 
@@ -126,7 +133,8 @@ export async function startWABot(): Promise<{ success: boolean; message: string 
         container.isStarting = false;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const statusCode = (lastDisconnect?.error as any)?.output?.statusCode;
-        const shouldReconnect = statusCode !== DisconnectReason?.loggedOut;
+        const shouldReconnect =
+          !container.manualStop && statusCode !== DisconnectReason?.loggedOut;
 
         console.log("[wa-service] Koneksi ditutup, status code:", statusCode);
 
@@ -148,12 +156,18 @@ export async function startWABot(): Promise<{ success: boolean; message: string 
           updateState({
             status: "DISCONNECTED",
             qrCodeDataUrl: null,
-            error: lastDisconnect?.error?.message || "Koneksi terputus.",
+            error: container.manualStop
+              ? null
+              : lastDisconnect?.error?.message || "Koneksi terputus.",
           });
           if (shouldReconnect) {
             console.log("[wa-service] Mencoba rekoneksi dalam 5 detik...");
-            setTimeout(() => {
-              startWABot().catch(console.error);
+            if (container.reconnectTimer) clearTimeout(container.reconnectTimer);
+            container.reconnectTimer = setTimeout(() => {
+              container.reconnectTimer = null;
+              if (!container.manualStop) {
+                startWABot().catch(console.error);
+              }
             }, 5000);
           }
         }
@@ -179,6 +193,7 @@ export async function startWABot(): Promise<{ success: boolean; message: string 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     sock.ev.on("messages.upsert", async (m: any) => {
       try {
+        if (m.type && m.type !== "notify") return;
         if (!m.messages || !Array.isArray(m.messages) || m.messages.length === 0) return;
 
         const normalizeContent = baileys.normalizeMessageContent || ((msgObj: unknown) => msgObj);
@@ -321,11 +336,16 @@ export async function startWABot(): Promise<{ success: boolean; message: string 
 
 export async function stopWABot(): Promise<{ success: boolean; message: string }> {
   try {
+    container.manualStop = true;
+    if (container.reconnectTimer) {
+      clearTimeout(container.reconnectTimer);
+      container.reconnectTimer = null;
+    }
     if (container.socket) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const s = container.socket as any;
-      s.end?.(new Error("Admin stopped bot"));
       container.socket = null;
+      s.end?.(new Error("Admin stopped bot"));
     }
     container.isStarting = false;
     updateState({

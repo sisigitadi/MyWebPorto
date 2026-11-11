@@ -19,7 +19,7 @@ interface OSWindowProps {
 }
 
 // React 18+ idiom untuk cek ketersediaan DOM klien tanpa trigger cascading render
-const subscribeNoop = () => () => {};
+const subscribeNoop = () => () => { };
 const getClientTrue = () => true;
 const getClientFalse = () => false;
 
@@ -38,17 +38,29 @@ export function OSWindow({
   const [isMaximized, setIsMaximized] = useState(false);
   const isMounted = useSyncExternalStore(subscribeNoop, getClientTrue, getClientFalse);
 
+  const renderIcon = () => {
+    if (!icon) return null;
+    if (React.isValidElement(icon)) return icon;
+    if (typeof icon === "function" || (typeof icon === "object" && icon !== null && "$$typeof" in icon)) {
+      const IconComp = icon as LucideIcon;
+      return <IconComp className="h-3.5 w-3.5" />;
+    }
+    return null;
+  };
+
   // Keyboard shortcut Esc untuk restore down saat maximized
   useEffect(() => {
     if (!isMaximized) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
         playOS("minimize");
         setIsMaximized(false);
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [isMaximized]);
 
   // Mode Maximized: Teleport via React Portal ke document.body
@@ -64,7 +76,10 @@ export function OSWindow({
 
         {/* True Native Fullscreen Window Portal ke document.body (100% Menutup Layar) */}
         {createPortal(
-          <div className="fixed inset-0 z-[9999] flex flex-col w-screen h-screen bg-[var(--vt-window-bg,var(--vt-chrome))] animate-in fade-in duration-150 overflow-hidden select-none">
+          <div
+            data-os-window-maximized="true"
+            className="fixed inset-0 z-[9999] flex flex-col w-screen h-screen bg-[var(--vt-window-bg,var(--vt-chrome))] animate-in fade-in duration-150 overflow-hidden select-none"
+          >
             {/* Jendela Fullscreen Maksimal */}
             <div
               id={id ? `${id}-maximized` : undefined}
@@ -82,7 +97,7 @@ export function OSWindow({
                 <div className="flex items-center gap-2 min-w-0">
                   {icon && (
                     <span className="shrink-0 flex items-center justify-center text-white/90">
-                      {React.isValidElement(icon) ? icon : null}
+                      {renderIcon()}
                     </span>
                   )}
                   <span className="font-mono text-xs font-semibold tracking-wide text-white truncate">
@@ -97,6 +112,7 @@ export function OSWindow({
                     onClick={() => {
                       playOS("minimize");
                       setIsMaximized(false);
+                      setIsMinimized(true);
                     }}
                     className="vt-titlebar-btn"
                     title="Minimize"
@@ -180,6 +196,7 @@ export function OSWindow({
         className="vt-titlebar select-none cursor-default"
         onDoubleClick={() => {
           playOS("maximize");
+          setIsMinimized(false);
           setIsMaximized(true);
         }}
         title="Klik 2x untuk perbesar penuh"
@@ -187,7 +204,7 @@ export function OSWindow({
         <div className="flex items-center gap-2 min-w-0">
           {icon && (
             <span className="shrink-0 flex items-center justify-center text-white/90">
-              {React.isValidElement(icon) ? icon : null}
+              {renderIcon()}
             </span>
           )}
           <span className="font-mono text-xs font-semibold tracking-wide text-white truncate">
@@ -216,6 +233,7 @@ export function OSWindow({
             type="button"
             onClick={() => {
               playOS("maximize");
+              setIsMinimized(false);
               setIsMaximized(true);
             }}
             className="vt-titlebar-btn"

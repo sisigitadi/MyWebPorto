@@ -77,9 +77,9 @@ describe("resolveCloudAIConfig (fallback env)", () => {
   it("membaca provider + key + model dari env (gemini)", async () => {
     process.env.AI_PROVIDER = "gemini";
     process.env.GEMINI_API_KEY = "AIzaRealKey123";
-    process.env.AI_MODEL = "gemini-2.0-flash";
+    process.env.AI_MODEL = "gemini-3.8-flash";
     const cfg = await resolveCloudAIConfig();
-    expect(cfg).toMatchObject({ provider: "gemini", apiKey: "AIzaRealKey123", model: "gemini-2.0-flash" });
+    expect(cfg).toMatchObject({ provider: "gemini", apiKey: "AIzaRealKey123", model: "gemini-3.8-flash" });
   });
 
   it("openai memakai model & base URL ubahan", async () => {
@@ -101,12 +101,12 @@ describe("resolveCloudAIConfig (fallback env)", () => {
   it("anthropic membaca key/model/base URL dari env-nya sendiri", async () => {
     process.env.AI_PROVIDER = "anthropic";
     process.env.ANTHROPIC_API_KEY = "TEST_ANTHROPIC_KEY_FIXTURE";
-    process.env.ANTHROPIC_MODEL = "claude-3-5-sonnet-20241022";
+    process.env.ANTHROPIC_MODEL = "claude-sonnet-5.5";
     process.env.ANTHROPIC_BASE_URL = "https://api.anthropic.com/v1/";
     const cfg = await resolveCloudAIConfig();
     expect(cfg.provider).toBe("anthropic");
     expect(cfg.apiKey).toBe("TEST_ANTHROPIC_KEY_FIXTURE");
-    expect(cfg.model).toBe("claude-3-5-sonnet-20241022");
+    expect(cfg.model).toBe("claude-sonnet-5.5");
     // Trailing slash selalu dipotong.
     expect(cfg.baseUrl).toBe("https://api.anthropic.com/v1");
   });
@@ -152,11 +152,11 @@ describe("saveCloudAIConfig (validasi + prioritas admin)", () => {
   });
 
   it("apiKey kosong = pertahankan key yang sudah tersimpan", async () => {
-    await saveCloudAIConfig({ provider: "gemini", apiKey: "AIzaKeepMe123456", model: "gemini-2.5-flash" });
+    await saveCloudAIConfig({ provider: "gemini", apiKey: "AIzaKeepMe123456", model: "gemini-3.5-flash-lite" });
     // Ganti model tanpa mengetik ulang key rahasia.
-    await saveCloudAIConfig({ provider: "gemini", apiKey: "", model: "gemini-2.0-flash" });
+    await saveCloudAIConfig({ provider: "gemini", apiKey: "", model: "gemini-3.8-flash" });
     const cfg = await resolveCloudAIConfig();
-    expect(cfg.model).toBe("gemini-2.0-flash");
+    expect(cfg.model).toBe("gemini-3.8-flash");
     expect(cfg.apiKey).toBe("AIzaKeepMe123456");
   });
   it("provider openai (custom) boleh menyimpan model non-gpt — mis. gemini-* di relay", async () => {
@@ -182,7 +182,7 @@ describe("saveCloudAIConfig (validasi + prioritas admin)", () => {
     await saveCloudAIConfig({
       provider: "anthropic",
       apiKey: "TEST_ANTHROPIC_KEY_FIXTURE",
-      model: "claude-3-5-haiku-latest",
+      model: "claude-haiku-5.5",
     });
     expect((await resolveCloudAIConfig()).provider).toBe("anthropic");
 
@@ -199,7 +199,7 @@ describe("saveCloudAIConfig (validasi + prioritas admin)", () => {
     await saveCloudAIConfig({
       provider: "gemini",
       apiKey: "AIzaRealKey1234567890",
-      model: "gemini-2.5-flash",
+      model: "gemini-3.8-flash",
       systemPrompt: "Kamu adalah Sigit_Bot. Jawab ramah dalam Bahasa Indonesia.",
       answerStyle: "detailed",
     });

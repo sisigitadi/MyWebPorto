@@ -71,7 +71,7 @@ export async function resolveFeatures(options?: { preview?: boolean }): Promise<
  * yang tidak dikirim. Untuk boolean flag ini sederhana dan benar — tidak ada
  * partial-stale (berbeda dari merge per-key string di Fase 2).
  */
-export async function saveFeatures(input: unknown): Promise<Features> {
+export function validateFeatures(input: unknown): Features {
   if (!input || typeof input !== "object") {
     throw new Error("Input feature flag tidak valid: bukan object.");
   }
@@ -97,6 +97,11 @@ export async function saveFeatures(input: unknown): Promise<Features> {
     out[key] = raw;
   }
 
+  return out;
+}
+
+export async function saveFeatures(input: unknown): Promise<Features> {
+  const out = validateFeatures(input);
   await setSetting(SETTING_KEY, out);
   return out;
 }

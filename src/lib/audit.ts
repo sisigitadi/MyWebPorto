@@ -1,5 +1,3 @@
-"use server";
-
 import fs from "fs";
 import path from "path";
 import { desc } from "drizzle-orm";

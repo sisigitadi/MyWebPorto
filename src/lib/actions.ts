@@ -56,14 +56,15 @@ import { submitToOpenAI } from "@/lib/ai-openai";
 import { submitToAnthropic } from "@/lib/ai-anthropic";
 import { getApiStyle } from "@/lib/ai-providers";
 import { listCloudModels } from "@/lib/ai-models";
-import { saveOSApps, resolveOSApps } from "@/lib/os-apps-config";
+import { saveOSApps, resolveOSApps, validateOSApps } from "@/lib/os-apps-config";
 import type { OSAppConfig } from "@/lib/os-apps-meta";
-import { resolveFeatures, saveFeatures, describeFeatures } from "@/lib/features-config";
+import { resolveFeatures, saveFeatures, describeFeatures, validateFeatures } from "@/lib/features-config";
 import type { Features } from "@/lib/features-meta";
 import {
   resolveUIStrings,
   saveUIStrings,
   describeUIStrings,
+  validateUIStrings,
   type UIStrings,
 } from "@/lib/ui-strings-config";
 import { rateLimit, cleanupRateLimits } from "@/lib/rate-limit";
@@ -118,6 +119,7 @@ interface LocalStoreData {
   products: ProductData[];
   testimonials: TestimonialData[];
   articles: ArticleData[];
+  auditLogs?: unknown[];
 }
 
 function ensureStoreExists(): void {
@@ -393,7 +395,7 @@ const getProfileInternal = cache(async (): Promise<ProfileData> => {
           bioEn: "I help individuals, MSMEs and institutions build digitalization needs that are safe, reliable and easy to use.",
           avatarUrl: "/api/media/574c650c-80b1-4167-a752-43c858bd6482",
           email: "x@sigitadi.id",
-          phone: "6281234567890",
+          phone: "6285117616631",
           location: "Jakarta, Indonesia",
           cvUrl: null,
           paymentQrUrl: null,
@@ -402,7 +404,7 @@ const getProfileInternal = cache(async (): Promise<ProfileData> => {
           availabilityBadge: null,
           availabilityBadgeEn: null,
           skills: [
-            "Next.js 15",
+            "Next.js 16",
             "React 19",
             "TypeScript",
             "Tailwind CSS",
@@ -657,36 +659,36 @@ const getProjectsInternal = cache(async (includeScheduled: boolean): Promise<Pro
     }
     return visible(
       list.map((p) => {
-      const summaryId =
-        (p.summary && p.summary.trim()) ||
-        p.description.slice(0, 120) + (p.description.length > 120 ? "..." : "");
-      const rawSummaryEn =
-        (p.summaryEn && p.summaryEn.trim()) ||
-        (p.descriptionEn
-          ? p.descriptionEn.slice(0, 120) + (p.descriptionEn.length > 120 ? "..." : "")
-          : null);
-      const summaryEn = rawSummaryEn && !isTranslationErrorPayload(rawSummaryEn) ? rawSummaryEn : null;
+        const summaryId =
+          (p.summary && p.summary.trim()) ||
+          p.description.slice(0, 120) + (p.description.length > 120 ? "..." : "");
+        const rawSummaryEn =
+          (p.summaryEn && p.summaryEn.trim()) ||
+          (p.descriptionEn
+            ? p.descriptionEn.slice(0, 120) + (p.descriptionEn.length > 120 ? "..." : "")
+            : null);
+        const summaryEn = rawSummaryEn && !isTranslationErrorPayload(rawSummaryEn) ? rawSummaryEn : null;
 
-      return {
-        id: p.id,
-        title: p.title,
-        titleEn: p.titleEn && !isTranslationErrorPayload(p.titleEn) ? p.titleEn : null,
-        slug: p.slug,
-        summary: summaryId,
-        summaryEn: summaryEn,
-        description: p.description,
-        descriptionEn: p.descriptionEn && !isTranslationErrorPayload(p.descriptionEn) ? p.descriptionEn : null,
-        thumbnailUrl: p.imageUrl?.trim() || "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=800&auto=format&fit=crop",
-        techStack: (p.techStacks as string[]) || [],
-        demoUrl: p.demoUrl || undefined,
-        repoUrl: p.repoUrl || undefined,
-        featured: p.featured,
-        published: p.published ?? true,
-        publishAt: p.publishAt ? p.publishAt.toISOString() : null,
-        order: p.order ?? 0,
-        createdAt: p.createdAt ? p.createdAt.toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
-        updatedAt: p.updatedAt ? p.updatedAt.toISOString() : undefined,
-      }
+        return {
+          id: p.id,
+          title: p.title,
+          titleEn: p.titleEn && !isTranslationErrorPayload(p.titleEn) ? p.titleEn : null,
+          slug: p.slug,
+          summary: summaryId,
+          summaryEn: summaryEn,
+          description: p.description,
+          descriptionEn: p.descriptionEn && !isTranslationErrorPayload(p.descriptionEn) ? p.descriptionEn : null,
+          thumbnailUrl: p.imageUrl?.trim() || "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=800&auto=format&fit=crop",
+          techStack: (p.techStacks as string[]) || [],
+          demoUrl: p.demoUrl || undefined,
+          repoUrl: p.repoUrl || undefined,
+          featured: p.featured,
+          published: p.published ?? true,
+          publishAt: p.publishAt ? p.publishAt.toISOString() : null,
+          order: p.order ?? 0,
+          createdAt: p.createdAt ? p.createdAt.toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+          updatedAt: p.updatedAt ? p.updatedAt.toISOString() : undefined,
+        }
       })
     );
   } catch (error) {
@@ -705,6 +707,9 @@ const getProjectsInternal = cache(async (includeScheduled: boolean): Promise<Pro
 export async function getProjects(
   opts: { includeScheduled?: boolean } = {}
 ): Promise<ProjectData[]> {
+  if (opts.includeScheduled) {
+    await verifyAdmin();
+  }
   return getProjectsInternal(Boolean(opts.includeScheduled));
 }
 
@@ -1930,22 +1935,22 @@ const getArticlesInternal = cache(async (
 
     return visible(
       list.map((a) => ({
-      id: a.id,
-      slug: a.slug,
-      title: a.title,
-      titleEn: a.titleEn && !isTranslationErrorPayload(a.titleEn) ? a.titleEn : null,
-      summary: a.summary || null,
-      summaryEn: a.summaryEn && !isTranslationErrorPayload(a.summaryEn) ? a.summaryEn : null,
-      content: a.content,
-      contentEn: a.contentEn && !isTranslationErrorPayload(a.contentEn) ? a.contentEn : null,
-      imageUrl: a.imageUrl || null,
-      tags: (Array.isArray(a.tags) ? a.tags : []) as string[],
-      featured: a.featured,
-      published: a.published,
-      publishAt: a.publishAt ? a.publishAt.toISOString() : null,
-      order: a.order,
-      createdAt: a.createdAt ? a.createdAt.toISOString() : new Date().toISOString(),
-      updatedAt: a.updatedAt ? a.updatedAt.toISOString() : undefined,
+        id: a.id,
+        slug: a.slug,
+        title: a.title,
+        titleEn: a.titleEn && !isTranslationErrorPayload(a.titleEn) ? a.titleEn : null,
+        summary: a.summary || null,
+        summaryEn: a.summaryEn && !isTranslationErrorPayload(a.summaryEn) ? a.summaryEn : null,
+        content: a.content,
+        contentEn: a.contentEn && !isTranslationErrorPayload(a.contentEn) ? a.contentEn : null,
+        imageUrl: a.imageUrl || null,
+        tags: (Array.isArray(a.tags) ? a.tags : []) as string[],
+        featured: a.featured,
+        published: a.published,
+        publishAt: a.publishAt ? a.publishAt.toISOString() : null,
+        order: a.order,
+        createdAt: a.createdAt ? a.createdAt.toISOString() : new Date().toISOString(),
+        updatedAt: a.updatedAt ? a.updatedAt.toISOString() : undefined,
       }))
     );
   } catch (error) {
@@ -1964,6 +1969,9 @@ const getArticlesInternal = cache(async (
 export async function getArticles(
   opts: { includeScheduled?: boolean } = {}
 ): Promise<ArticleData[]> {
+  if (opts.includeScheduled) {
+    await verifyAdmin();
+  }
   return getArticlesInternal(Boolean(opts.includeScheduled));
 }
 
@@ -2255,7 +2263,6 @@ export async function reorderArticles(items: { id: string; order: number }[]) {
 // prompt hanya berisi katalog publik. BUKAN verifyAdmin — bot dipakai pengunjung.
 const AIBOT_LIMIT = 10;
 const AIBOT_WINDOW_MS = 5 * 60_000;
-const AIBOT_CONFIDENCE_THRESHOLD = 0.55;
 
 async function aibotIp(): Promise<string> {
   try {
@@ -2487,7 +2494,7 @@ export async function askSigitBot(
   const local = queryAIEngine(cleanInput, ctx, lang);
   // Config efektif (pengaturan admin > env) — resolve sekali untuk kedua cek.
   const cloudCfg = await resolveCloudAIConfig();
-  if (local.confidence >= AIBOT_CONFIDENCE_THRESHOLD || cloudCfg.provider === "off" || isPlaceholderKey(cloudCfg.apiKey)) {
+  if (cloudCfg.provider === "off" || isPlaceholderKey(cloudCfg.apiKey)) {
     return { ...local, source: "local" };
   }
 
@@ -2720,17 +2727,18 @@ export async function saveGodModeDraftAction(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   await verifyAdmin();
   try {
+    let normalized: unknown;
     if (key === "features") {
-      await saveFeatures(input);
+      normalized = validateFeatures(input);
     } else if (key === "ui_strings") {
-      await saveUIStrings(input);
+      normalized = validateUIStrings(input);
     } else if (key === "os_apps") {
-      await saveOSApps(input as OSAppConfig[]);
+      normalized = validateOSApps(input as OSAppConfig[]);
     } else {
       throw new Error(`Kategori God Mode "${key}" tidak dikenal.`);
     }
 
-    await setSetting(`${key}:draft`, input);
+    await setSetting(`${key}:draft`, normalized);
 
     await logAudit({
       action: "draft",
