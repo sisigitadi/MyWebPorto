@@ -29,6 +29,7 @@ import { OSWindow } from "@/components/public/os/os-window";
 import { useCart, buildSingleProductWhatsAppUrl } from "@/lib/cart-context";
 import { buildFreelanceOpsBriefWhatsAppUrl } from "@/lib/whatsapp-order";
 import { storeName, platformLabelFromUrl } from "@/lib/store";
+import { getProductSlug } from "@/lib/product-link";
 import { ProductShareModal } from "@/components/public/product-share-modal";
 import { getStoreConfig, StoreConfig } from "@/lib/order-actions";
 import { toast } from "sonner";
@@ -38,9 +39,14 @@ import { useGSAP } from "@gsap/react";
 interface ProductDetailContentProps {
   product: ProductData;
   profile?: ProfileData;
+  relatedProducts?: ProductData[];
 }
 
-export function ProductDetailContent({ product, profile }: ProductDetailContentProps) {
+export function ProductDetailContent({
+  product,
+  profile,
+  relatedProducts = [],
+}: ProductDetailContentProps) {
   const { language } = useTranslation();
   const { addItem, buyNow, totalCount, setIsOpen } = useCart();
 
@@ -487,6 +493,43 @@ export function ProductDetailContent({ product, profile }: ProductDetailContentP
             </div>
           </div>
         </OSWindow>
+
+        {/* Related Products from Store (Internal Linking) */}
+        {relatedProducts.length > 0 && (
+          <div className="pt-2 space-y-3">
+            <h3 className="text-sm font-mono font-bold text-foreground flex items-center gap-2 border-b border-border/60 pb-2">
+              <Package className="h-4 w-4 text-primary" />
+              <span>{isEn ? "Other Digital Products" : "Produk Digital Lainnya"}</span>
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {relatedProducts.slice(0, 3).map((rel) => {
+                const relTitle = isEn && rel.titleEn ? rel.titleEn : rel.title;
+                const relDesc = isEn && rel.descriptionEn ? rel.descriptionEn : rel.description;
+                const relPrice = isEn && rel.priceLabelEn ? rel.priceLabelEn : rel.priceFormatted;
+                return (
+                  <Link
+                    key={rel.id}
+                    href={`/toko/${getProductSlug(rel)}`}
+                    className="group flex flex-col justify-between p-3 rounded bg-muted/30 border border-border hover:border-primary transition-all"
+                  >
+                    <div>
+                      <span className="text-xs font-mono font-bold text-primary group-hover:underline block truncate">
+                        {relTitle}
+                      </span>
+                      <p className="text-[11px] font-mono text-muted-foreground line-clamp-2 mt-1">
+                        {relDesc}
+                      </p>
+                    </div>
+                    <div className="pt-2 mt-2 border-t border-border/40 flex items-center justify-between text-[11px] font-mono font-bold">
+                      <span className="text-foreground">{relPrice}</span>
+                      <span className="text-primary group-hover:translate-x-0.5 transition-transform">→</span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Sticky Floating Mobile Buy Dock */}

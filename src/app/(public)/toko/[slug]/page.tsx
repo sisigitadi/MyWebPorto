@@ -66,6 +66,11 @@ export default async function ProductDetailPage({ params }: PageProps) {
   const product = products.find((p) => getProductSlug(p) === slug);
   if (!product) notFound();
   const baseUrl = canonicalBaseUrl();
+
+  const otherProducts = products
+    .filter((p) => p.id !== product.id && p.published)
+    .slice(0, 3);
+
   // Structured data produk: tanpa ini halaman ini nol JSON-LD sehingga Google
   // tidak bisa menampilkan kartu produk (nama/harga/stok) di hasil pencarian.
   const productSchema = buildProductSchema({
@@ -81,7 +86,11 @@ export default async function ProductDetailPage({ params }: PageProps) {
         dangerouslySetInnerHTML={{ __html: safeJsonLd(productSchema) }}
       />
       <div className="flex-1 min-h-0 w-full overflow-y-auto vt-scrollbar">
-        <ProductDetailContent product={product} profile={profile} />
+        <ProductDetailContent
+          product={product}
+          profile={profile}
+          relatedProducts={otherProducts}
+        />
       </div>
     </>
   );

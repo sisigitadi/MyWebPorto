@@ -4,6 +4,14 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Enhanced: Penguatan Internal Linking Mesh (Topic Cluster) Proyek, Artikel, & Toko
+
+- **Internal Linking Lintas-Entitas pada Detail Proyek (`src/app/(public)/proyek/[slug]/page.tsx` & `project-detail-content.tsx`)**:
+  - Menambahkan seksi *"Proyek Terkait Lainnya"* yang menghubungkan setiap studi kasus proyek dengan proyek lain berdasarkan kesamaan stack teknologi dan status featured.
+  - Menambahkan seksi *"Artikel & Studi Kasus Terkait"* yang menautkan proyek ke artikel teknis terkait (misal *Sentinel SOC* terhubung dengan artikel keamanan dan server hardening), menciptakan aliran internal PageRank antar-domain.
+- **Internal Linking Lintas-Produk pada Detail Toko (`src/app/(public)/toko/[slug]/page.tsx` & `product-detail-content.tsx`)**:
+  - Menambahkan seksi *"Produk Digital Lainnya"* pada setiap halaman detail produk toko, mengeliminasi isolasi halaman dan memperkuat distribusi crawl budget internal.
+
 ### Fixed & Optimized: Resolusi Audit GSC "Alternate Page with Proper Canonical Tag" & Konsolidasi Redirect 308 (src/proxy.ts)
 
 - **Konsolidasi Server-Side 308 Redirect untuk `?lang=id` (`src/proxy.ts`)**:
