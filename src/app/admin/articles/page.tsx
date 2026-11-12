@@ -651,7 +651,7 @@ export default function AdminArticlesPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-7 text-xs gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+                className="h-9 sm:h-7 text-xs gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
                 onClick={handleAutoTranslateToEn}
                 disabled={isTranslating}
               >

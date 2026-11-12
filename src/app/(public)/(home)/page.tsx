@@ -60,7 +60,7 @@ export default async function HomePage() {
       <div className="sr-only" aria-label="Sitemap Konten & Ringkasan Portofolio">
         <header>
           {/* h1 = heading utama dokumen ini untuk aksesibilitas & crawler */}
-          <h1>{profile.name} — {profile.headline}</h1>
+          <h1>{profile.name} | {profile.headline}</h1>
           <p>{profile.bio}</p>
           <address>
             <p>Lokasi: {profile.location}</p>

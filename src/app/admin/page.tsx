@@ -392,7 +392,7 @@ export default async function AdminDashboardPage() {
                         {project.summary}
                       </p>
                     </div>
-                    <Button asChild variant="ghost" size="sm" className="h-7 text-xs px-2 text-muted-foreground hover:text-foreground shrink-0">
+                    <Button asChild variant="ghost" size="sm" className="h-9 sm:h-7 text-xs px-2.5 sm:px-2 text-muted-foreground hover:text-foreground shrink-0">
                       <Link href={`/proyek/${project.slug}`} target="_blank">
                         <Eye className="h-3.5 w-3.5 mr-1" />
                         Pratinjau
