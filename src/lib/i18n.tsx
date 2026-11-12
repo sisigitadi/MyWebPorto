@@ -118,6 +118,8 @@ export interface Translations {
   detail_cta_repo: string;
   detail_not_found_title: string;
   detail_not_found_desc: string;
+  detail_related_projects_title: string;
+  detail_related_articles_title: string;
   date_locale: string;
 
   // Products Section

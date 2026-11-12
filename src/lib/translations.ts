@@ -109,6 +109,8 @@ export const translations: Record<Language, Translations> = {
     detail_not_found_title: "Proyek Tidak Ditemukan",
     detail_not_found_desc:
       "Proyek yang Anda cari belum dipublikasikan atau URL tidak sesuai.",
+    detail_related_projects_title: "Proyek Terkait Lainnya",
+    detail_related_articles_title: "Artikel & Studi Kasus Terkait",
     date_locale: "id-ID",
 
     // Products Section
@@ -463,6 +465,8 @@ export const translations: Record<Language, Translations> = {
     detail_not_found_title: "Project Not Found",
     detail_not_found_desc:
       "The project you are looking for has not been published or the URL is invalid.",
+    detail_related_projects_title: "More Related Projects",
+    detail_related_articles_title: "Related Articles & Case Studies",
     date_locale: "en-US",
 
     // Products Section

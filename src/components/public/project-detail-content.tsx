@@ -2,7 +2,7 @@
 
 import React, { useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, Calendar, Mail, Terminal, Monitor } from "lucide-react";
+import { ArrowLeft, ExternalLink, Calendar, Mail, Terminal, Monitor, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useTranslation } from "@/lib/i18n";
@@ -53,9 +53,32 @@ interface ProjectDetailContentProps {
     name: string;
     email: string;
   };
+  relatedProjects?: Array<{
+    id: string;
+    slug: string;
+    title: string;
+    titleEn?: string | null;
+    summary: string;
+    summaryEn?: string | null;
+    thumbnailUrl: string;
+    techStack: string[];
+  }>;
+  relatedArticles?: Array<{
+    id: string;
+    slug: string;
+    title: string;
+    titleEn?: string | null;
+    summary?: string | null;
+    summaryEn?: string | null;
+  }>;
 }
 
-export function ProjectDetailContent({ project, profile }: ProjectDetailContentProps) {
+export function ProjectDetailContent({
+  project,
+  profile,
+  relatedProjects = [],
+  relatedArticles = [],
+}: ProjectDetailContentProps) {
   const { t, language } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -239,6 +262,82 @@ export function ProjectDetailContent({ project, profile }: ProjectDetailContentP
                 </p>
               </div>
             </div>
+
+            {/* Related Projects (Internal Linking Mesh) */}
+            {relatedProjects.length > 0 && (
+              <div className="pt-4 space-y-3">
+                <h3 className="text-sm font-mono font-bold text-foreground flex items-center gap-2 border-b border-border/60 pb-2">
+                  <Terminal className="h-4 w-4 text-primary" />
+                  <span>{t.detail_related_projects_title}</span>
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {relatedProjects.slice(0, 3).map((rel) => {
+                    const relTitle = isEnglish && rel.titleEn ? rel.titleEn : rel.title;
+                    const relSummary = isEnglish && rel.summaryEn ? rel.summaryEn : rel.summary;
+                    return (
+                      <Link
+                        key={rel.id}
+                        href={`/proyek/${rel.slug}`}
+                        className="group flex flex-col justify-between p-3 rounded bg-muted/30 border border-border hover:border-primary transition-all"
+                      >
+                        <div>
+                          <span className="text-xs font-mono font-bold text-primary group-hover:underline block truncate">
+                            {relTitle}
+                          </span>
+                          <p className="text-[11px] font-mono text-muted-foreground line-clamp-2 mt-1">
+                            {relSummary}
+                          </p>
+                        </div>
+                        {rel.techStack && rel.techStack.length > 0 && (
+                          <div className="flex flex-wrap gap-1 pt-2 mt-2 border-t border-border/40">
+                            {rel.techStack.slice(0, 2).map((stack) => (
+                              <span
+                                key={stack}
+                                className="text-[9px] font-mono font-bold px-1 py-0.5 rounded bg-background/80 text-muted-foreground border border-border/60"
+                              >
+                                {stack}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Related Technical Articles (Cross-Section Internal Links) */}
+            {relatedArticles.length > 0 && (
+              <div className="pt-2 space-y-3">
+                <h3 className="text-sm font-mono font-bold text-foreground flex items-center gap-2 border-b border-border/60 pb-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <span>{t.detail_related_articles_title}</span>
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {relatedArticles.slice(0, 2).map((art) => {
+                    const artTitle = isEnglish && art.titleEn ? art.titleEn : art.title;
+                    const artSummary = isEnglish && art.summaryEn ? art.summaryEn : art.summary;
+                    return (
+                      <Link
+                        key={art.id}
+                        href={`/artikel/${art.slug}`}
+                        className="group block p-3 rounded bg-muted/30 border border-border hover:border-primary transition-all"
+                      >
+                        <span className="text-xs font-mono font-bold text-primary group-hover:underline block truncate">
+                          {artTitle}
+                        </span>
+                        {artSummary && (
+                          <p className="text-[11px] font-mono text-muted-foreground line-clamp-2 mt-1">
+                            {artSummary}
+                          </p>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <Separator className="my-6" />
 
