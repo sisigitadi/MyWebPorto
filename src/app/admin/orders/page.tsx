@@ -97,27 +97,27 @@ const STATUS_CONFIG: Record<
 > = {
   pending: {
     label: "Menunggu",
-    badgeClass: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30",
+    badgeClass: "bg-amber-500/15 text-amber-800 dark:text-amber-300 font-semibold border-amber-500/40",
     icon: Clock,
   },
   paid: {
     label: "Dibayar",
-    badgeClass: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30",
+    badgeClass: "bg-blue-500/15 text-blue-800 dark:text-blue-300 font-semibold border-blue-500/40",
     icon: CreditCard,
   },
   processing: {
     label: "Diproses",
-    badgeClass: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border-indigo-500/30",
+    badgeClass: "bg-indigo-500/15 text-indigo-800 dark:text-indigo-300 font-semibold border-indigo-500/40",
     icon: Truck,
   },
   completed: {
     label: "Selesai",
-    badgeClass: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
+    badgeClass: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 font-semibold border-emerald-500/40",
     icon: CheckCircle2,
   },
   cancelled: {
     label: "Dibatalkan",
-    badgeClass: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30",
+    badgeClass: "bg-rose-500/15 text-rose-800 dark:text-rose-300 font-semibold border-rose-500/40",
     icon: XCircle,
   },
 };
@@ -437,7 +437,7 @@ export default function AdminOrdersPage() {
       `Halo kak ${cust.name || "Pelanggan"}, salam hangat dari Sigit Adi (https://sigitadi.id/)!`,
       "",
       "Terima kasih telah menjadi bagian dari pelanggan kami. Kami memiliki penawaran dan pembaruan produk terbaru yang mungkin menarik untuk Anda:",
-      "https://sigitadi.id/products",
+      "https://sigitadi.id/toko",
       "",
       "Jika ada kebutuhan produk digital atau pengembangan proyek baru, kami siap membantu dengan senang hati!",
     ].join("\n");
@@ -758,9 +758,9 @@ export default function AdminOrdersPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => openDetailModal(order)}
-                          className="flex-1 h-7 text-xs font-mono gap-1"
+                          className="flex-1 h-9 sm:h-7 text-xs font-mono gap-1"
                         >
-                          <Eye className="h-3 w-3" />
+                          <Eye className="h-3.5 w-3.5" />
                           <span>Detail</span>
                         </Button>
                         <DropdownMenu>
@@ -768,9 +768,9 @@ export default function AdminOrdersPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="flex-1 h-7 text-xs font-mono gap-1 text-emerald-600"
+                              className="flex-1 h-9 sm:h-7 text-xs font-mono gap-1 text-emerald-800 dark:text-emerald-300 font-semibold"
                             >
-                              <MessageCircle className="h-3 w-3" />
+                              <MessageCircle className="h-3.5 w-3.5" />
                               <span>Follow Up WA</span>
                             </Button>
                           </DropdownMenuTrigger>
@@ -1002,7 +1002,7 @@ export default function AdminOrdersPage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => openDetailModal(order)}
-                                className="h-7 px-2 text-xs font-mono gap-1"
+                                className="h-9 sm:h-7 px-2.5 sm:px-2 text-xs font-mono gap-1"
                                 title="Lihat Detail & Perbarui Status"
                               >
                                 <Eye className="h-3.5 w-3.5" />
@@ -1015,7 +1015,7 @@ export default function AdminOrdersPage() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-7 px-2 text-xs font-mono gap-1 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700"
+                                    className="h-9 sm:h-7 px-2.5 sm:px-2 text-xs font-mono gap-1 text-emerald-800 dark:text-emerald-300 font-semibold hover:text-emerald-900"
                                     title="Follow-Up WhatsApp"
                                   >
                                     <MessageCircle className="h-3.5 w-3.5" />
@@ -1115,7 +1115,7 @@ export default function AdminOrdersPage() {
                                   setOrderToDelete(order);
                                   setDeleteAlertOpen(true);
                                 }}
-                                className="h-7 w-7 p-0 text-[var(--vt-ink-mute)] hover:text-rose-600"
+                                className="h-9 w-9 sm:h-7 sm:w-7 p-0 text-[var(--vt-ink-mute)] hover:text-rose-600"
                                 title="Hapus Pesanan"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -1261,7 +1261,7 @@ export default function AdminOrdersPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => handleOpenPromoChat(cust)}
-                              className="h-7 text-xs font-mono gap-1 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700"
+                              className="h-9 sm:h-7 px-2.5 sm:px-2 text-xs font-mono gap-1 text-emerald-800 dark:text-emerald-300 font-semibold hover:text-emerald-900"
                             >
                               <MessageCircle className="h-3 w-3" />
                               <span>Chat Promo</span>

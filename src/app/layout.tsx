@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import {
   Inter,
-  Fira_Code,
   Silkscreen,
   Azeret_Mono,
   Space_Grotesk,
@@ -17,12 +16,6 @@ import { canonicalBaseUrl } from "@/lib/canonical-host";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
-  display: "swap",
-});
-
-const firaCode = Fira_Code({
-  subsets: ["latin"],
-  variable: "--font-fira-code",
   display: "swap",
 });
 
@@ -141,7 +134,7 @@ export default async function RootLayout({
     <html
         lang="id"
         suppressHydrationWarning
-        className={`${inter.variable} ${firaCode.variable} ${silkscreen.variable} ${azeretMono.variable} ${spaceGrotesk.variable} ${unbounded.variable}`}
+        className={`${inter.variable} ${silkscreen.variable} ${azeretMono.variable} ${spaceGrotesk.variable} ${unbounded.variable}`}
       >
         <head>
           <JsonLdSchema profile={profile} />

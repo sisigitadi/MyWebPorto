@@ -5,6 +5,7 @@ import {
   findDirectFAQMatch,
 } from "@/lib/whatsapp-bot/wa-knowledge";
 import { generateWhatsAppReply } from "@/lib/whatsapp-bot/wa-engine";
+import { formatForWhatsApp } from "@/lib/whatsapp-bot/wa-formatter";
 
 // Mock database and action calls for deterministic unit testing
 vi.mock("@/lib/actions", () => ({
@@ -157,5 +158,13 @@ describe("WhatsApp Bot Knowledge Engine", () => {
     expect(res).toBeDefined();
     expect(res.reply).toBeTruthy();
     expect(["faq", "cloud", "local"]).toContain(res.source);
+  });
+
+  it("formatForWhatsApp mempertahankan beberapa inline code pada baris yang sama tanpa korupsi placeholder", () => {
+    const formatted = formatForWhatsApp("Jalankan `npm install` lalu `npm run dev` di terminal.");
+    expect(formatted).toContain("`npm install`");
+    expect(formatted).toContain("`npm run dev`");
+    expect(formatted).not.toContain("INLINECODE");
+    expect(formatted).not.toContain("INLINE_CODE");
   });
 });

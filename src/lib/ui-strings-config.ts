@@ -96,7 +96,7 @@ export async function resolveUIStrings(options?: { preview?: boolean }): Promise
  * (server action pemanggil menangkap & menampilkan pesannya). Verifikasi
  * identitas admin tetap tanggung jawab server action (verifyAdmin).
  */
-export async function saveUIStrings(input: unknown): Promise<void> {
+export function validateUIStrings(input: unknown): UIStringsOverlay {
   if (!input || typeof input !== "object") {
     throw new Error("Input teks UI tidak valid: bukan object.");
   }
@@ -139,6 +139,11 @@ export async function saveUIStrings(input: unknown): Promise<void> {
     }
   }
 
+  return out;
+}
+
+export async function saveUIStrings(input: unknown): Promise<void> {
+  const out = validateUIStrings(input);
   await setSetting(SETTING_KEY, out);
 }
 

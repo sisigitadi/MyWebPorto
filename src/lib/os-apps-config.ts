@@ -107,7 +107,7 @@ export async function resolveOSApps(options?: { preview?: boolean }): Promise<Re
  * (server action pemanggil menangkap & menampilkan pesannya). Verifikasi
  * identitas admin tetap tanggung jawab server action (verifyAdmin).
  */
-export async function saveOSApps(input: OSAppConfig[]): Promise<void> {
+export function validateOSApps(input: OSAppConfig[]): OSAppConfig[] {
   const raw = Array.isArray(input) ? input : [];
 
   // Id asing ditolak dulu dengan pesan jelas (beda dari normalize() yang
@@ -145,6 +145,11 @@ export async function saveOSApps(input: OSAppConfig[]): Promise<void> {
     throw new Error("Minimal satu app harus aktif — pengunjung butuh satu jendela untuk bernavigasi.");
   }
 
+  return normalized;
+}
+
+export async function saveOSApps(input: OSAppConfig[]): Promise<void> {
+  const normalized = validateOSApps(input);
   await setSetting(SETTING_KEY, normalized);
 }
 

@@ -14,6 +14,16 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+// Optimasi Vercel Free: cache 24 jam di CDN Edge; pembaruan ditangani on-demand oleh revalidatePath.
+export const revalidate = 86400;
+// dynamicParams = true memungkinkan produk baru yang diterbitkan di database tetap dapat diakses publik via ISR on-demand
+export const dynamicParams = true;
+
+export async function generateStaticParams() {
+  const products = await getProducts();
+  return products.map((p) => ({ slug: getProductSlug(p) }));
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const baseUrl = canonicalBaseUrl();
@@ -56,6 +66,11 @@ export default async function ProductDetailPage({ params }: PageProps) {
   const product = products.find((p) => getProductSlug(p) === slug);
   if (!product) notFound();
   const baseUrl = canonicalBaseUrl();
+
+  const otherProducts = products
+    .filter((p) => p.id !== product.id && p.published)
+    .slice(0, 3);
+
   // Structured data produk: tanpa ini halaman ini nol JSON-LD sehingga Google
   // tidak bisa menampilkan kartu produk (nama/harga/stok) di hasil pencarian.
   const productSchema = buildProductSchema({
@@ -71,7 +86,11 @@ export default async function ProductDetailPage({ params }: PageProps) {
         dangerouslySetInnerHTML={{ __html: safeJsonLd(productSchema) }}
       />
       <div className="flex-1 min-h-0 w-full overflow-y-auto vt-scrollbar">
-        <ProductDetailContent product={product} profile={profile} />
+        <ProductDetailContent
+          product={product}
+          profile={profile}
+          relatedProducts={otherProducts}
+        />
       </div>
     </>
   );

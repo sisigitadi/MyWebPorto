@@ -13,7 +13,7 @@
  * Env (semua server-side, TIDAK boleh prefix NEXT_PUBLIC_):
  *   ANTHROPIC_API_KEY   — key rahasia (console.anthropic.com)
  *   ANTHROPIC_BASE_URL  — default https://api.anthropic.com/v1
- *   ANTHROPIC_MODEL     — default claude-3-5-haiku-latest
+ *   ANTHROPIC_MODEL     — default claude-haiku-5.5
  */
 
 import { isPlaceholderKey } from "@/lib/env";
@@ -58,7 +58,7 @@ function anthropicKey(cfg?: ResolvedCloudAIConfig): string {
 function anthropicModel(cfg?: ResolvedCloudAIConfig): string {
   return (
     cfg?.model ||
-    (process.env.ANTHROPIC_MODEL || "claude-3-5-haiku-latest").trim()
+    (process.env.ANTHROPIC_MODEL || "claude-haiku-5.5").trim()
   );
 }
 
@@ -87,7 +87,12 @@ function buildPayload(
 ): AnthropicPayload {
   let system = "";
   const raw: ChatMessage[] =
-    typeof prompt === "string" ? [{ role: "user", content: prompt }] : prompt.slice(-9);
+    typeof prompt === "string"
+      ? [{ role: "user", content: prompt }]
+      : [
+          ...prompt.filter((m) => m.role === "system"),
+          ...prompt.filter((m) => m.role !== "system").slice(-9),
+        ];
 
   const conversation: { role: "user" | "assistant"; content: string }[] = [];
   for (const m of raw) {

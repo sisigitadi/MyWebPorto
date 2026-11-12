@@ -28,6 +28,8 @@ export function buildLlmsTxt(input: {
   products?: LlmsEntry[];
 }): string {
   const { baseUrl, profile, services, projects, articles, products } = input;
+  const cleanSummary = (s?: string | null) =>
+    s ? s.replace(/\s+/g, " ").trim().slice(0, 240) : "";
   const lines: string[] = [
     `# ${profile.name}`,
     "",
@@ -43,13 +45,19 @@ export function buildLlmsTxt(input: {
     "",
     ...projects
       .slice(0, 20)
-      .map((p) => `- [${p.title}](${baseUrl}/proyek/${p.slug})${p.summary ? `: ${p.summary}` : ""}`),
+      .map((p) => {
+        const sum = cleanSummary(p.summary);
+        return `- [${p.title}](${baseUrl}/proyek/${p.slug})${sum ? `: ${sum}` : ""}`;
+      }),
     "",
     "## Artikel",
     "",
     ...articles
       .slice(0, 20)
-      .map((a) => `- [${a.title}](${baseUrl}/artikel/${a.slug})${a.summary ? `: ${a.summary}` : ""}`),
+      .map((a) => {
+        const sum = cleanSummary(a.summary);
+        return `- [${a.title}](${baseUrl}/artikel/${a.slug})${sum ? `: ${sum}` : ""}`;
+      }),
     "",
     ...(products && products.length > 0
       ? [
@@ -57,7 +65,10 @@ export function buildLlmsTxt(input: {
           "",
           ...products
             .slice(0, 20)
-            .map((p) => `- [${p.title}](${baseUrl}/toko/${p.slug})${p.summary ? `: ${p.summary}` : ""}`),
+            .map((p) => {
+              const sum = cleanSummary(p.summary);
+              return `- [${p.title}](${baseUrl}/toko/${p.slug})${sum ? `: ${sum}` : ""}`;
+            }),
         ]
       : []),
     "",
@@ -311,7 +322,8 @@ export function extractFaqFromContent(text?: string | null): FaqItem[] {
   const faqSectionMatch = text.split(/^##\s+(?:Pertanyaan Umum|Frequently Asked Questions)[^\n]*/m);
   if (faqSectionMatch.length < 2) return [];
 
-  const faqBody = faqSectionMatch[1];
+  // Berhenti pada heading H2 berikutnya (mis. "## Kesimpulan") agar tidak ikut masuk ke jawaban FAQ terakhir
+  const faqBody = faqSectionMatch[1].split(/^##\s+/m)[0];
   const qBlocks = faqBody.split(/^###\s+/m).filter(Boolean);
   const results: FaqItem[] = [];
 

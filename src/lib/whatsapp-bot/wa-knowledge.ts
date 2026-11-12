@@ -35,7 +35,7 @@ export async function buildWhatsAppBotKnowledge(): Promise<CompiledKnowledgeCont
         headline: "Artificial Intelligence | Cybersecurity",
         bio: "Spesialis pengembangan AI dan rekayasa keamanan siber.",
         email: "sigit@sigitadi.id",
-        phone: "+6281234567890",
+        phone: "+6285117616631",
         location: "Indonesia",
         skills: ["AI Engineering", "Cybersecurity", "Fullstack Web", "Next.js"],
       })),

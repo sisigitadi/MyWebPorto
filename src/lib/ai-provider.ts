@@ -258,15 +258,17 @@ export interface CloudAIResult {
  * dicoba lebih dulu.
  */
 const DEFAULT_GEMINI_FALLBACK_MODELS = [
-  // Urut sehat-di-depan. Audit 2026-10-05 (probe ListModels + generateContent):
-  // 3.5-flash-lite/3.7-flash/3.6-flash/3.1-flash-lite/3-flash-preview 200 OK;
-  // 3.5-flash & flash-latest 200 OK lalu 429 (quota habis karena probing,
-  // bukan pensiun); 3.8-flash 429 (hidup, tapi free-tier habis). Keluarga
-  // 2.x/1.5 SUDAH PASTI 404 ("no longer available") sehingga dikeluarkan
-  // total — loop retry melompati 404 (lihat bawah), tapi membuang request ke
-  // model yang tak akan pernah berhasil hanya memperlambat cadangan pertama
-  // yang sehat. gemini-flash-latest adalah alias ke model flash terbaru.
+  // Urut sehat-di-depan. Audit 2026-11-11 (probe ListModels + generateContent):
+  // gemini-3.5-flash-lite, gemini-flash-lite-latest, gemini-3.8-flash,
+  // gemini-3.7-flash, gemini-3.6-flash, gemini-3.1-flash-lite,
+  // gemini-flash-latest, gemini-3-flash-preview, dan gemini-3.5-flash semuanya
+  // aktif (HTTP 200 OK). Keluarga 2.x/1.5 SUDAH PASTI 404 ("no longer available")
+  // sehingga dikeluarkan total — loop retry melompati 404 (lihat bawah), tapi
+  // membuang request ke model yang tak akan pernah berhasil hanya memperlambat
+  // cadangan pertama yang sehat.
   "gemini-3.5-flash-lite",
+  "gemini-flash-lite-latest",
+  "gemini-3.8-flash",
   "gemini-3.7-flash",
   "gemini-3.6-flash",
   "gemini-3.1-flash-lite",
@@ -431,13 +433,13 @@ export async function submitToGeminiMessages(
   const maxOutputTokens = options.maxOutputTokens ?? 300;
   const maxChars = options.maxChars ?? 2000;
 
-  let systemText = "";
+  const systemText = messages
+    .filter((m) => m.role === "system")
+    .map((m) => m.content)
+    .filter(Boolean)
+    .join("\n\n");
   const contents: { role: "user" | "model"; parts: { text: string }[] }[] = [];
-  for (const m of messages.slice(-9)) {
-    if (m.role === "system") {
-      systemText = [systemText, m.content].filter(Boolean).join("\n\n");
-      continue;
-    }
+  for (const m of messages.filter((m) => m.role !== "system").slice(-9)) {
     const role: "user" | "model" = m.role === "assistant" ? "model" : "user";
     const last = contents[contents.length - 1];
     if (last && last.role === role) {

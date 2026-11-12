@@ -31,7 +31,7 @@ export default async function AdminAppearancePage() {
           <Palette className="h-5 w-5 text-primary" /> Tampilan &amp; Aplikasi OS
         </h1>
         <p className="text-sm text-muted-foreground">
-          God Mode — atur aplikasi SigitOS yang ditampilkan ke pengunjung dan
+          God Mode: atur aplikasi SigitOS yang ditampilkan ke pengunjung dan
           urutannya, tanpa menyentuh kode atau redeploy.
         </p>
       </div>
@@ -44,7 +44,7 @@ export default async function AdminAppearancePage() {
           <CardDescription className="flex items-center gap-2 flex-wrap">
             Centang untuk menampilkan, gunakan tombol panah untuk mengatur urutan.
             <Badge variant={source === "admin" ? "secondary" : "outline"}>
-              {source === "admin" ? `${activeCount}/${apps.length} aktif · sudah disimpan` : "belum diatur — pakai default"}
+              {source === "admin" ? `${activeCount}/${apps.length} aktif · sudah disimpan` : "belum diatur (pakai default)"}
             </Badge>
           </CardDescription>
         </CardHeader>
@@ -62,14 +62,14 @@ export default async function AdminAppearancePage() {
         <CardContent className="space-y-1.5 text-sm text-muted-foreground">
           <p>
             <span className="font-semibold text-foreground">Bisa:</span> status
-            aktif tiap aplikasi (centang) dan urutannya — dipakai di taskbar,
+            aktif tiap aplikasi (centang) dan urutannya: dipakai di taskbar,
             sidebar ikon desktop, Start Menu, command palette (Ctrl+K), jalan
-            pintas angka 1–8, dan urutan section mode mobile.
+            pintas angka 1-8, dan urutan section mode mobile.
           </p>
           <p>
             <span className="font-semibold text-foreground">Belum bisa:</span>{" "}
             ikon, warna, nama file (Profil.exe dst.), dan teks di dalam tiap
-            aplikasi — bagian editor teks menyusul di fase berikutnya.
+            aplikasi: bagian editor teks menyusul di fase berikutnya.
           </p>
           <p>
             <span className="font-semibold text-foreground">Pengaman:</span>{" "}

@@ -21,31 +21,57 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // tag" (duplikat yang boros crawl budget). "?lang=" tetap berfungsi sebagai
   // deep-link/toggle.
 
-  // lastModified SENGAJA dihilangkan untuk route statis. Sebelumnya semua
-  // route memakai `new Date()`, sehingga setiap sitemap yang di-fetch menandai
-  // SELURUH URL sebagai baru diubah — Google menganggap semua halaman berubah
-  // tiap hari dan boros crawl budget untuk membongkar perubahan
-  // yang tidak ada. Route statis juga tidak punya `changeFrequency` harian
-  // yang jujur: `/artikel` berubah saat ada artikel baru, bukan tiap hari.
+  // Dapatkan timestamp terbaru dari koleksi konten untuk 'lastModified' jujur
+  // pada halaman katalog (/artikel, /proyek, /toko) dan homepage (/).
+  // Ini mencegah sinyal palsu 'new Date()' harian sekaligus memberi tahu Googlebot
+  // secara presisi kapan konten baru diterbitkan atau diperbarui.
+  const getLatestTimestamp = (
+    items: Array<{ updatedAt?: string | null; createdAt?: string | null }>
+  ): Date | undefined => {
+    let latestMs: number | undefined;
+    for (const item of items) {
+      const raw = item.updatedAt || item.createdAt;
+      if (!raw) continue;
+      const ms = new Date(raw).getTime();
+      if (!Number.isNaN(ms)) {
+        if (!latestMs || ms > latestMs) latestMs = ms;
+      }
+    }
+    return latestMs ? new Date(latestMs) : undefined;
+  };
+
+  const latestProjectDate = getLatestTimestamp(projects.filter((p) => p.published));
+  const latestArticleDate = getLatestTimestamp(articles.filter((a) => a.published));
+  const latestProductDate = getLatestTimestamp(products.filter((p) => p.published));
+
+  const allTimestamps = [latestProjectDate, latestArticleDate, latestProductDate]
+    .filter((d): d is Date => Boolean(d))
+    .map((d) => d.getTime());
+  const latestGlobalDate = allTimestamps.length > 0 ? new Date(Math.max(...allTimestamps)) : undefined;
+
   const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: `${baseUrl}/`,
+      lastModified: latestGlobalDate,
       changeFrequency: "daily" as const,
       priority: 1.0,
       images: [`${baseUrl}/opengraph-image`],
     },
     {
       url: `${baseUrl}/proyek`,
+      lastModified: latestProjectDate,
       changeFrequency: "weekly" as const,
       priority: 0.9,
     },
     {
       url: `${baseUrl}/artikel`,
+      lastModified: latestArticleDate,
       changeFrequency: "weekly" as const,
       priority: 0.9,
     },
     {
       url: `${baseUrl}/toko`,
+      lastModified: latestProductDate,
       changeFrequency: "weekly" as const,
       priority: 0.9,
     },
@@ -55,7 +81,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .filter((p) => p.published)
     .map((p) => ({
       url: `${baseUrl}/proyek/${p.slug}`,
-      lastModified: new Date(p.createdAt || Date.now()),
+      lastModified: new Date(p.updatedAt || p.createdAt || Date.now()),
       changeFrequency: "weekly" as const,
       priority: p.featured ? 0.85 : 0.75,
       images: p.thumbnailUrl ? [toAbsoluteImageUrl(p.thumbnailUrl)] : undefined,
@@ -71,12 +97,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       images: a.imageUrl ? [toAbsoluteImageUrl(a.imageUrl)] : undefined,
     }));
 
-  // Produk juga tanpa lastModified — `ProductData` tidak membawa tanggal
-  // perubahan, jadi mengarang `new Date()` hanya menghasilkan sinyal palsu.
   const productRoutes: MetadataRoute.Sitemap = products
     .filter((p) => p.published)
     .map((p) => ({
       url: `${baseUrl}/toko/${getProductSlug(p)}`,
+      lastModified: p.updatedAt || p.createdAt ? new Date(p.updatedAt || p.createdAt!) : undefined,
       changeFrequency: "monthly" as const,
       priority: 0.7,
       images: p.thumbnailUrl ? [toAbsoluteImageUrl(p.thumbnailUrl)] : undefined,

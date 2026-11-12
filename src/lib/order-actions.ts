@@ -2,14 +2,16 @@
 
 import { db, isDbConnected } from "@/db";
 import * as schema from "@/db/schema";
-import { eq, desc, sql, and, or, ilike } from "drizzle-orm";
+import { eq, desc, sql, and, or, ilike, inArray } from "drizzle-orm";
+import { headers } from "next/headers";
 import { verifyAdmin } from "@/lib/admin-auth";
 import { sanitizeError } from "@/lib/error-utils";
 import { logAudit } from "@/lib/audit";
 import { getProfile } from "@/lib/actions";
 import { parseLegacyBankInfo, normalizeBankAccounts, type BankAccountItem } from "@/lib/whatsapp-order";
 import { CreateOrderInputSchema, type CreateOrderInput } from "@/lib/validations";
-import { putMedia } from "@/lib/storage";
+import { matchesImageSignature, putMedia } from "@/lib/storage";
+import { rateLimit, cleanupRateLimits } from "@/lib/rate-limit";
 
 export type { BankAccountItem, CreateOrderInput };
 
@@ -199,15 +201,75 @@ export async function saveStoreConfig(data: Partial<StoreConfig>) {
 }
 
 // ==========================================
-// ORDER CREATION
+// ORDER CREATION & SECURITY HELPERS
 // ==========================================
 
+const ORDER_RATE_LIMIT = 10;
+const ORDER_RATE_WINDOW_MS = 5 * 60_000;
+const INVOICE_ALPHANUM = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+
+async function orderClientIp(): Promise<string> {
+  try {
+    const h = await headers();
+    const fwd = h.get("x-forwarded-for");
+    if (fwd) return fwd.split(",")[0].trim();
+    return h.get("x-real-ip") || "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+function generateInvoiceSuffix(len = 4): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(len));
+  return Array.from(bytes, (b) => INVOICE_ALPHANUM[b % INVOICE_ALPHANUM.length]).join("");
+}
+
+function maskPhone(phone: string): string {
+  const trimmed = (phone || "").trim();
+  if (trimmed.length <= 6) return "***";
+  return `${trimmed.slice(0, 4)}****${trimmed.slice(-3)}`;
+}
+
+function maskEmail(email: string | null | undefined): string | null {
+  if (!email) return null;
+  const trimmed = email.trim();
+  const atIdx = trimmed.indexOf("@");
+  if (atIdx <= 1) return `***${trimmed.slice(Math.max(0, atIdx))}`;
+  return `${trimmed.slice(0, 2)}***${trimmed.slice(atIdx)}`;
+}
+
+function maskAddress(address: string | null | undefined): string | null {
+  if (!address) return null;
+  const trimmed = address.trim();
+  if (trimmed.length <= 8) return "***";
+  return `${trimmed.slice(0, 6)}...`;
+}
+
+function maskPublicOrderPii(order: schema.Order): schema.Order {
+  return {
+    ...order,
+    customerPhone: maskPhone(order.customerPhone),
+    customerEmail: maskEmail(order.customerEmail),
+    customerAddress: maskAddress(order.customerAddress),
+    adminNotes: null,
+  };
+}
 
 /**
  * Menyimpan pesanan baru ke tabel orders dan meng-upsert data pembeli ke tabel customers.
  */
 export async function createOrder(input: CreateOrderInput) {
   try {
+    const ip = await orderClientIp();
+    const rl = rateLimit(`create-order:${ip}`, ORDER_RATE_LIMIT, ORDER_RATE_WINDOW_MS);
+    cleanupRateLimits();
+    if (!rl.allowed) {
+      return {
+        success: false,
+        error: "Terlalu banyak permintaan pembuatan pesanan. Silakan tunggu beberapa menit.",
+      };
+    }
+
     const parsed = CreateOrderInputSchema.safeParse(input);
     if (!parsed.success) {
       return {
@@ -222,7 +284,7 @@ export async function createOrder(input: CreateOrderInput) {
     const mm = String(now.getMonth() + 1).padStart(2, "0");
     const yyyy = now.getFullYear();
     const dateStr = `${dd}${mm}${yyyy}`;
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const randomSuffix = generateInvoiceSuffix(4);
     const invoiceNumber = `INV-${dateStr}-${randomSuffix}`;
     const cleanPhone = data.customerPhone.replace(/\D/g, "");
 
@@ -235,29 +297,95 @@ export async function createOrder(input: CreateOrderInput) {
       };
     }
 
-    // 1. Simpan pesanan
-    const [insertedOrder] = await db
-      .insert(schema.orders)
-      .values({
-        invoiceNumber,
-        customerName: data.customerName.trim(),
-        customerPhone: data.customerPhone.trim(),
-        customerEmail: data.customerEmail?.trim() || null,
-        customerAddress: data.customerAddress?.trim() || null,
-        customerNotes: data.customerNotes?.trim() || null,
-        items: data.items,
-        totalAmount: data.totalAmount,
-        currency: data.currency,
-        paymentMethod: data.paymentMethod,
-        paymentProofUrl: data.paymentProofUrl?.trim() || null,
-        status: "pending",
-        referralCode: data.referralCode?.trim() || null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning();
+    // Validasi harga, ketersediaan, & stok langsung dari tabel products di server
+    const requestedProductIds = Array.from(new Set(data.items.map((it) => it.productId)));
+    const dbProducts = await db
+      .select()
+      .from(schema.products)
+      .where(inArray(schema.products.id, requestedProductIds));
+    const productMap = new Map(dbProducts.map((p) => [p.id, p]));
 
-    // 2. Upsert ke tabel customers untuk keperluan promosi/retensi
+    const authoritativeItems: schema.Order["items"] = [];
+    for (const item of data.items) {
+      const dbProd = productMap.get(item.productId);
+      if (!dbProd || !dbProd.published) {
+        return {
+          success: false,
+          error: `Produk "${item.title}" tidak ditemukan atau sedang tidak tersedia.`,
+        };
+      }
+      if (dbProd.stock !== null && dbProd.stock !== undefined && dbProd.stock < item.quantity) {
+        return {
+          success: false,
+          error:
+            dbProd.stock <= 0
+              ? `Stok untuk produk "${dbProd.title}" sudah habis.`
+              : `Stok untuk produk "${dbProd.title}" hanya tersisa ${dbProd.stock}.`,
+        };
+      }
+      const authoritativePrice = typeof dbProd.priceAmount === "number" && dbProd.priceAmount >= 0 ? dbProd.priceAmount : 0;
+      authoritativeItems.push({
+        productId: dbProd.id,
+        title: dbProd.title,
+        titleEn: dbProd.titleEn || item.titleEn || null,
+        price: authoritativePrice,
+        quantity: item.quantity,
+        subtotal: authoritativePrice * item.quantity,
+        imageUrl: dbProd.imageUrl || item.imageUrl || null,
+      });
+    }
+
+    const authoritativeTotal = authoritativeItems.reduce((sum, it) => sum + it.subtotal, 0);
+
+    // 1. Simpan pesanan & kurangi stok produk terbatas secara atomik
+    const insertedOrder = await db.transaction(async (tx) => {
+      for (const item of authoritativeItems) {
+        const dbProd = productMap.get(item.productId);
+        if (dbProd && dbProd.stock !== null && dbProd.stock !== undefined) {
+          const updatedStock = await tx
+            .update(schema.products)
+            .set({
+              stock: sql`${schema.products.stock} - ${item.quantity}`,
+              updatedAt: now,
+            })
+            .where(
+              and(
+                eq(schema.products.id, item.productId),
+                sql`${schema.products.stock} >= ${item.quantity}`
+              )
+            )
+            .returning({ id: schema.products.id });
+          if (updatedStock.length === 0) {
+            throw new Error(`Stok untuk produk "${dbProd.title}" tidak mencukupi.`);
+          }
+        }
+      }
+
+      const [created] = await tx
+        .insert(schema.orders)
+        .values({
+          invoiceNumber,
+          customerName: data.customerName.trim(),
+          customerPhone: data.customerPhone.trim(),
+          customerEmail: data.customerEmail?.trim() || null,
+          customerAddress: data.customerAddress?.trim() || null,
+          customerNotes: data.customerNotes?.trim() || null,
+          items: authoritativeItems,
+          totalAmount: authoritativeTotal,
+          currency: "IDR",
+          paymentMethod: data.paymentMethod,
+          paymentProofUrl: data.paymentProofUrl?.trim() || null,
+          status: "pending",
+          referralCode: data.referralCode?.trim() || null,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+
+      return created;
+    });
+
+    // 2. Upsert ke tabel customers untuk keperluan promosi/retensi (totalSpent hanya bertambah saat pesanan dibayar)
     try {
       if (cleanPhone) {
         const existingCust = await db.query.customers.findFirst({
@@ -268,7 +396,7 @@ export async function createOrder(input: CreateOrderInput) {
         if (!newTags.includes("Pelanggan Baru") && !existingCust) {
           newTags.push("Pelanggan Baru");
         }
-        if (data.currency === "USD" && !newTags.includes("Pembeli Internasional")) {
+        if (data.paymentMethod === "paypal" && !newTags.includes("Pembeli Internasional")) {
           newTags.push("Pembeli Internasional");
         }
         if (data.paymentMethod === "freelanceops" && !newTags.includes("Klien Jasa Proyek")) {
@@ -286,7 +414,6 @@ export async function createOrder(input: CreateOrderInput) {
               email: data.customerEmail?.trim() || existingCust.email,
               address: data.customerAddress?.trim() || existingCust.address,
               totalOrders: existingCust.totalOrders + 1,
-              totalSpent: existingCust.totalSpent + data.totalAmount,
               lastOrderAt: now,
               tags: newTags,
               updatedAt: now,
@@ -299,7 +426,7 @@ export async function createOrder(input: CreateOrderInput) {
             email: data.customerEmail?.trim() || null,
             address: data.customerAddress?.trim() || null,
             totalOrders: 1,
-            totalSpent: data.totalAmount,
+            totalSpent: 0,
             lastOrderAt: now,
             tags: newTags,
             createdAt: now,
@@ -310,6 +437,11 @@ export async function createOrder(input: CreateOrderInput) {
     } catch (custErr) {
       console.warn("[order-actions] upsert customer gagal (non-fatal):", custErr);
     }
+
+    revalidatePath("/");
+    revalidatePath("/toko");
+    revalidatePath("/admin/orders");
+    revalidatePath("/admin/customers");
 
     return {
       success: true,
@@ -383,9 +515,9 @@ export async function getOrderByInvoice(invoiceNumber: string) {
   if (!isDbConnected || !invoiceNumber) return null;
   try {
     const row = await db.query.orders.findFirst({
-      where: eq(schema.orders.invoiceNumber, invoiceNumber.trim()),
+      where: eq(schema.orders.invoiceNumber, invoiceNumber.trim().toUpperCase()),
     });
-    return row || null;
+    return row ? maskPublicOrderPii(row) : null;
   } catch (err) {
     console.error("[order-actions] getOrderByInvoice error:", err);
     return null;
@@ -415,6 +547,13 @@ export async function updateOrderStatus(
       return { success: false, error: "Pesanan tidak ditemukan" };
     }
 
+    const wasPaid =
+      existing.status === "paid" ||
+      existing.status === "processing" ||
+      existing.status === "completed";
+    const isNowPaid =
+      status === "paid" || status === "processing" || status === "completed";
+
     await db
       .update(schema.orders)
       .set({
@@ -425,12 +564,34 @@ export async function updateOrderStatus(
       })
       .where(eq(schema.orders.id, orderId));
 
+    // Akumulasikan totalSpent pelanggan saat pesanan berubah menjadi terbayar
+    if (!wasPaid && isNowPaid && existing.totalAmount > 0) {
+      const cleanPhone = existing.customerPhone.replace(/\D/g, "");
+      if (cleanPhone) {
+        try {
+          await db
+            .update(schema.customers)
+            .set({
+              totalSpent: sql`${schema.customers.totalSpent} + ${existing.totalAmount}`,
+              updatedAt: new Date(),
+            })
+            .where(eq(schema.customers.phone, cleanPhone));
+        } catch (custErr) {
+          console.warn("[order-actions] update totalSpent gagal:", custErr);
+        }
+      }
+    }
+
     await logAudit({
       action: "UPDATE",
       entity: "ORDER",
       entityId: orderId,
       detail: `Mengubah status pesanan ${existing.invoiceNumber} -> ${status.toUpperCase()}`,
     });
+
+    revalidatePath("/admin/orders");
+    revalidatePath("/admin/customers");
+    revalidatePath(`/order/${existing.invoiceNumber}`);
 
     return { success: true, message: `Status pesanan berhasil diubah menjadi ${status}!` };
   } catch (err) {
@@ -444,6 +605,7 @@ export async function updateOrderStatus(
 export async function getPendingOrdersCount(): Promise<number> {
   if (!isDbConnected) return 0;
   try {
+    await verifyAdmin();
     const rows = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(schema.orders)
@@ -515,6 +677,9 @@ export async function deleteOrder(orderId: string) {
       detail: `Menghapus pesanan ${existing.invoiceNumber}`,
     });
 
+    revalidatePath("/admin/orders");
+    revalidatePath(`/order/${existing.invoiceNumber}`);
+
     return { success: true, message: `Pesanan ${existing.invoiceNumber} berhasil dihapus!` };
   } catch (err) {
     return { success: false, error: sanitizeError(err) };
@@ -526,6 +691,16 @@ export async function deleteOrder(orderId: string) {
  */
 export async function uploadPaymentProof(invoiceNumber: string, formData: FormData) {
   try {
+    const ip = await orderClientIp();
+    const rl = rateLimit(`upload-proof:${ip}`, ORDER_RATE_LIMIT, ORDER_RATE_WINDOW_MS);
+    cleanupRateLimits();
+    if (!rl.allowed) {
+      return {
+        success: false,
+        error: "Terlalu banyak percobaan unggah bukti pembayaran. Silakan tunggu beberapa menit.",
+      };
+    }
+
     const file = formData.get("file") as File | null;
     if (!file || file.size === 0) {
       return { success: false, error: "File bukti pembayaran tidak ditemukan." };
@@ -540,6 +715,7 @@ export async function uploadPaymentProof(invoiceNumber: string, formData: FormDa
     if (!allowedMimes.includes(file.type)) {
       return { success: false, error: "Format file harus berupa gambar (JPG, PNG, atau WEBP)." };
     }
+    const normalizedMime = file.type === "image/jpg" ? "image/jpeg" : file.type;
 
     if (!isDbConnected) {
       return {
@@ -550,15 +726,18 @@ export async function uploadPaymentProof(invoiceNumber: string, formData: FormDa
     }
 
     const order = await db.query.orders.findFirst({
-      where: eq(schema.orders.invoiceNumber, invoiceNumber.trim()),
+      where: eq(schema.orders.invoiceNumber, invoiceNumber.trim().toUpperCase()),
     });
 
     if (!order) {
       return { success: false, error: "Pesanan dengan nomor invoice tersebut tidak ditemukan." };
     }
 
-    if (order.status === "cancelled") {
-      return { success: false, error: "Pesanan ini sudah dibatalkan dan tidak dapat menerima bukti pembayaran." };
+    if (order.status !== "pending") {
+      return {
+        success: false,
+        error: "Bukti pembayaran hanya dapat diunggah atau diganti untuk pesanan yang masih berstatus menunggu pembayaran.",
+      };
     }
 
     const storeConfig = await getStoreConfig();
@@ -571,9 +750,15 @@ export async function uploadPaymentProof(invoiceNumber: string, formData: FormDa
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    if (!matchesImageSignature(buffer, normalizedMime)) {
+      return {
+        success: false,
+        error: "Isi file gambar tidak valid atau tidak sesuai dengan format JPG/PNG/WEBP.",
+      };
+    }
     const fileName = file.name || `proof-${order.invoiceNumber}.jpg`;
 
-    const res = await putMedia(fileName, buffer, file.type);
+    const res = await putMedia(fileName, buffer, normalizedMime);
     if (!res.ok) {
       return { success: false, error: res.error || "Gagal menyimpan file bukti pembayaran." };
     }

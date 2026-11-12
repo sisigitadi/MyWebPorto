@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getProjects, getProfile } from "@/lib/actions";
+import { getProjects, getProfile, getArticles } from "@/lib/actions";
 import { safeJsonLd } from "@/lib/json-ld";
 import { localeAlternates, shareImage, extractFaqFromContent, buildFaqPageSchema, formatSeoTitle } from "@/lib/seo";
 import { canonicalBaseUrl } from "@/lib/canonical-host";
@@ -66,7 +66,11 @@ export async function generateMetadata({ params }: ProjectDetailPageProps) {
 export default async function ProjectDetailPage({ params }: ProjectDetailPageProps) {
   const { slug } = await params;
   const baseUrl = canonicalBaseUrl();
-  const [projects, profile] = await Promise.all([getProjects(), getProfile()]);
+  const [projects, profile, articles] = await Promise.all([
+    getProjects(),
+    getProfile(),
+    getArticles(),
+  ]);
   const project = projects.find((p) => p.slug === slug && p.published);
 
   if (!project) {
@@ -74,6 +78,39 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
   }
 
   const pageUrl = `${baseUrl}/proyek/${project.slug}`;
+
+  // Proyek terkait berdasarkan kesamaan tech stack & featured
+  const currentStack = new Set((project.techStack || []).map((s) => s.toLowerCase()));
+  const relatedProjects = projects
+    .filter((p) => p.id !== project.id && p.published)
+    .map((p) => {
+      let score = 0;
+      if (p.featured) score += 2;
+      for (const st of p.techStack || []) {
+        if (currentStack.has(st.toLowerCase())) score += 3;
+      }
+      return { p, score };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .map((item) => item.p);
+
+  // Artikel teknis terkait (cross-linking proyek -> artikel)
+  const relatedArticles = articles
+    .filter((a) => a.published)
+    .map((a) => {
+      let score = 0;
+      const aTags = (a.tags || []).map((t) => t.toLowerCase());
+      for (const t of aTags) {
+        if (currentStack.has(t)) score += 3;
+        if (project.title.toLowerCase().includes(t)) score += 2;
+      }
+      return { a, score };
+    })
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 2)
+    .map((item) => item.a);
 
   const breadcrumbSchema = {
     "@context": "https://schema.org",
@@ -174,7 +211,12 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
         />
       )}
       <div className="flex-1 min-h-0 w-full overflow-y-auto vt-scrollbar">
-        <ProjectDetailContent project={project} profile={profile} />
+        <ProjectDetailContent
+          project={project}
+          profile={profile}
+          relatedProjects={relatedProjects}
+          relatedArticles={relatedArticles}
+        />
       </div>
     </>
   );

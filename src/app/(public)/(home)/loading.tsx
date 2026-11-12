@@ -68,7 +68,7 @@ export default function HomeLoading() {
           </div>
 
           <p className="font-mono text-[10px] text-[var(--vt-ink)] opacity-70">
-            Mohon tunggu — mengambil data dari disk C:\ ...
+            Mohon tunggu: mengambil data dari disk C:\ ...
           </p>
         </div>
       </div>

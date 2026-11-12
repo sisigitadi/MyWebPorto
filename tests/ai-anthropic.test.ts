@@ -11,7 +11,7 @@ import type { ResolvedCloudAIConfig } from "@/lib/cloud-ai-config";
 const CFG: ResolvedCloudAIConfig = {
   provider: "anthropic",
   apiKey: "TEST_ANTHROPIC_KEY_FIXTURE",
-  model: "claude-3-5-haiku-latest",
+  model: "claude-haiku-5.5",
   baseUrl: "https://api.anthropic.com/v1",
   systemPrompt: "",
   answerStyle: "concise",
@@ -72,7 +72,7 @@ describe("submitToAnthropic", () => {
       { config: CFG }
     );
     const body = lastBody(fetchMock);
-    expect(body.model).toBe("claude-3-5-haiku-latest");
+    expect(body.model).toBe("claude-haiku-5.5");
     expect(body.max_tokens).toBe(300); // default hemat jawaban bot
     expect(body.system).toBe("Persona X.");
     expect(body.messages).toEqual([{ role: "user", content: "halo" }]);

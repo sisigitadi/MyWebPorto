@@ -149,7 +149,9 @@ export function ProductsSection({ products: propProducts, profile, compact = fal
         const matchesQuery =
           !q ||
           p.title.toLowerCase().includes(q) ||
+          (p.titleEn && p.titleEn.toLowerCase().includes(q)) ||
           p.description.toLowerCase().includes(q) ||
+          (p.descriptionEn && p.descriptionEn.toLowerCase().includes(q)) ||
           (p.category && p.category.toLowerCase().includes(q));
         return matchesCategory && matchesQuery;
       })

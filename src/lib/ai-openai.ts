@@ -10,7 +10,7 @@
  *   AI_PROVIDER=openai        — opt-in
  *   OPENAI_API_KEY            — key rahasia
  *   OPENAI_BASE_URL           — default https://api.openai.com/v1
- *   OPENAI_MODEL              — default gpt-4o-mini
+ *   OPENAI_MODEL              — default gpt-6-luna
  */
 
 import { isPlaceholderKey } from "@/lib/env";
@@ -43,7 +43,7 @@ export function getOpenAIBaseUrl(): string {
 
 /** Model yang dipakai; default hemat untuk portofolio. */
 export function getOpenAIModel(): string {
-  return (process.env.OPENAI_MODEL || "gpt-4o-mini").trim();
+  return (process.env.OPENAI_MODEL || "gpt-6-luna").trim();
 }
 
 /** True bila AI_PROVIDER=openai DAN key terisi non-placeholder. */
@@ -151,7 +151,10 @@ export async function submitToOpenAI(
           },
           { role: "user", content: prompt.slice(0, maxChars) },
         ]
-      : prompt.slice(-9);
+      : [
+          ...prompt.filter((m) => m.role === "system"),
+          ...prompt.filter((m) => m.role !== "system").slice(-9),
+        ];
 
   try {
     const response = await fetch(`${baseUrl}/chat/completions`, {
@@ -232,8 +235,11 @@ export function submitToOpenAIStream(
           body: JSON.stringify({
             model,
             // System prompt selalu di depan; riwayat percakapan menyusul.
-            messages: messages.slice(-9),
-            max_tokens: 300,
+            messages: [
+              ...messages.filter((m) => m.role === "system"),
+              ...messages.filter((m) => m.role !== "system").slice(-9),
+            ],
+            max_tokens: options.maxTokens ?? 300,
             temperature: 0.4,
             stream: true,
           }),

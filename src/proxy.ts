@@ -23,7 +23,7 @@ const isAdminRoute = (req: NextRequest): boolean => req.nextUrl.pathname.startsW
  * di-redirect permanen (308) ke URL bersih supaya link equity terkonsolidasi
  * dan varian duplikat segera keluar dari indeks.
  */
-function consolidateContactPrefill(req: NextRequest): NextResponse | null {
+export function consolidateContactPrefill(req: NextRequest): NextResponse | null {
   const { searchParams } = req.nextUrl;
   if (!searchParams.has("contactSubject") && !searchParams.has("contactBody")) {
     return null;
@@ -32,11 +32,33 @@ function consolidateContactPrefill(req: NextRequest): NextResponse | null {
   const url = req.nextUrl.clone();
   url.searchParams.delete("contactSubject");
   url.searchParams.delete("contactBody");
+  if (url.searchParams.get("lang") === "id") {
+    url.searchParams.delete("lang");
+  }
   // Fragment (#…) tidak dikirim ke server; sematkan #kontak agar pendaratan
   // varian lama tetap scroll ke form, seperti perilaku tombol aslinya. Query
-  // lain (mis. ?lang=) dipertahankan.
+  // lain (mis. ?lang=en) dipertahankan.
   url.hash = "kontak";
   return NextResponse.redirect(url, 308);
+}
+
+/**
+ * Redirect permanen (308) parameter ?lang=id ke URL kanonik bersih.
+ *
+ * Bahasa Indonesia adalah default kanonikal seluruh situs (domain .id).
+ * Varian URL dengan query ?lang=id adalah 100% redundan dan menciptakan
+ * duplikasi crawl di Google Search Console ("Alternate page with proper
+ * canonical tag"). Mengarahkan secara permanen (308) ke URL bersih menjamin
+ * link equity terkonsolidasi penuh ke kanonikal tanpa membebani crawl budget.
+ */
+export function consolidateLangQuery(req: NextRequest): NextResponse | null {
+  const { searchParams } = req.nextUrl;
+  if (searchParams.get("lang") === "id") {
+    const url = req.nextUrl.clone();
+    url.searchParams.delete("lang");
+    return NextResponse.redirect(url, 308);
+  }
+  return null;
 }
 
 /**
@@ -52,7 +74,7 @@ function consolidateContactPrefill(req: NextRequest): NextResponse | null {
  * baru (sama prinsipnya dengan konsolidasi pre-fill kontak di atas). Tabel
  * path→anchor ada di `src/lib/section-redirects.ts` (murni, teruji unit).
  */
-function consolidateSectionPaths(req: NextRequest): NextResponse | null {
+export function consolidateSectionPaths(req: NextRequest): NextResponse | null {
   const anchor = resolveSectionRedirect(req.nextUrl.pathname);
   if (!anchor) {
     return null;
@@ -60,6 +82,9 @@ function consolidateSectionPaths(req: NextRequest): NextResponse | null {
 
   const url = req.nextUrl.clone();
   url.pathname = "/";
+  if (url.searchParams.get("lang") === "id") {
+    url.searchParams.delete("lang");
+  }
   // anchor berbentuk "#layanan"; NextResponse.redirect mempertahankan fragment
   // di header Location. Query lain (mis. ?lang=en) dipertahankan — toggle
   // bahasa client-side tetap bekerja.
@@ -98,7 +123,10 @@ export function consolidateHostAlias(req: NextRequest): NextResponse | null {
 
 function proxyWithoutClerk(req: NextRequest): NextResponse {
   const seoRedirect =
-    consolidateHostAlias(req) ?? consolidateSectionPaths(req) ?? consolidateContactPrefill(req);
+    consolidateHostAlias(req) ??
+    consolidateSectionPaths(req) ??
+    consolidateContactPrefill(req) ??
+    consolidateLangQuery(req);
   if (seoRedirect) return seoRedirect;
 
   if (isAdminRoute(req) && isProduction()) {
@@ -112,7 +140,10 @@ function proxyWithoutClerk(req: NextRequest): NextResponse {
 
 const clerkProxy = clerkMiddleware(async (auth, req) => {
   const seoRedirect =
-    consolidateHostAlias(req) ?? consolidateSectionPaths(req) ?? consolidateContactPrefill(req);
+    consolidateHostAlias(req) ??
+    consolidateSectionPaths(req) ??
+    consolidateContactPrefill(req) ??
+    consolidateLangQuery(req);
   if (seoRedirect) return seoRedirect;
 
   if (isAdminRoute(req)) {

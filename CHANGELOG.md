@@ -4,6 +4,109 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Updated & Fixed: Full Audit 5 Pilar, Resolusi Anti-Slop #002 & Upgrade Dependensi Tier 1
+
+- **Pembaruan Dependensi Stabil Tier 1 (`package.json`, pnpm lock)**:
+  - Memperbarui Next.js ke versi stabil `16.4.6` (Turbopack) dengan waktu build kompilasi meningkat lebih dari 2x lebih cepat (14.1s).
+  - Memperbarui React & React DOM ke `19.3.1`.
+  - Memperbarui Clerk Authentication SDK ke `@clerk/nextjs` `^7.9.25` dan `@clerk/ui` `^1.42.4`.
+  - Memperbarui Tailwind CSS ke `4.3.5` dan `@tailwindcss/postcss` `4.3.5`.
+  - Memperbarui Vitest test runner ke `5.1.0` dan Vite ke `8.3.8` (durasi eksekusi suite 636 tes turun menjadi ~19.8s).
+  - Memperbarui library ikon & animasi: `lucide-react` `^1.72.0`, `gsap` `^3.15.1`, `@playwright/test` `^1.65.0`.
+- **Resolusi Temuan UI/UX Audit Anti-Slop #002 (`anti-slop/audit-002-2026-11-12.md`)**:
+  - **Item 1 & 2 (R-02 Copywriting Em-Dash)**: Mengganti karakter em-dash pada `src/app/(public)/(home)/loading.tsx` (`"Mohon tunggu: mengambil data dari disk C:\ ..."`) dan heading semantik H1 SSR fallback di `src/app/(public)/(home)/page.tsx` (`<h1>{profile.name} | {profile.headline}</h1>`).
+  - **Item 3 & 4 (R-02 Copywriting Em-Dash)**: Membersihkan karakter em-dash pada instruksi dan badge God Mode di `src/app/admin/appearance/page.tsx` serta label metadata registry model Cloud AI di `src/lib/ai-providers.ts`.
+  - **Item 5 (R-03 Mobile Tap Targets)**: Meningkatkan tinggi tombol aksi baris tabel di dashboard admin (`admin/page.tsx`, `admin/products/page.tsx`, `admin/orders/page.tsx`, `admin/articles/page.tsx`) dari `h-7` (28px) menjadi kelas responsif `h-9 sm:h-7` untuk memenuhi standar sentuh mobile minimum 44px.
+  - **Item 6 (R-25 Color Contrast WCAG AAA)**: Memperkuat kontras warna teks dan border pada seluruh badge status pesanan (`pending`, `paid`, `processing`, `completed`, `cancelled`) dan tombol aksi admin orders menjadi `text-*-800 dark:text-*-300 font-semibold` dengan rasio kontras > 7:1.
+  - **Item 7 (R-04 Purpose-Gate Icons)**: Menyelaraskan seluruh aksi kontak dan pemesanan WhatsApp ke ikon `MessageCircle`.
+  - **Item 8 (R-32 s.d. R-38 SigitOS Windowing)**: Menyelaraskan kontras indikator status window di `src/components/public/os/os-window.tsx` ke `text-[#064e3b] dark:text-[#a7f3d0]` (WCAG AAA).
+  - **Item 9 (R-20 Ergonomi Retro)**: Menambahkan micro-toast notifikasi interaktif via `sonner` saat toggle status Audio SigitOS di Start Menu `src/components/public/os/os-desktop-manager.tsx`.
+- **Riset Arsitektur & Blueprint Pembaruan Major Tier 2 (`docs/UPGRADE_RESEARCH_MAJOR.md`)**:
+  - Memetakan analisis dampak dan studi kelayakan pembaruan Major untuk `postgres@4` vs Drizzle ORM, `typescript@7`, `eslint@10`, dan perbandingan arsitektur runtime background worker WhatsApp Baileys antara Persistent Container VPS vs Stateless Serverless Edge.
+- **Peningkatan Ketahanan Uji Isolasi Database RLS (`tests/database-rls.test.ts`)**:
+  - Mengonfigurasi `max: 1` pada client PostgreSQL pengujian untuk mencegah interferensi koneksi bersama pada pengujian isolasi hak akses role `anon`.
+
+### Enhanced: Penguatan Internal Linking Mesh (Topic Cluster) Proyek, Artikel, & Toko
+
+- **Internal Linking Lintas-Entitas pada Detail Proyek (`src/app/(public)/proyek/[slug]/page.tsx` & `project-detail-content.tsx`)**:
+  - Menambahkan seksi *"Proyek Terkait Lainnya"* yang menghubungkan setiap studi kasus proyek dengan proyek lain berdasarkan kesamaan stack teknologi dan status featured.
+  - Menambahkan seksi *"Artikel & Studi Kasus Terkait"* yang menautkan proyek ke artikel teknis terkait (misal *Sentinel SOC* terhubung dengan artikel keamanan dan server hardening), menciptakan aliran internal PageRank antar-domain.
+- **Internal Linking Lintas-Produk pada Detail Toko (`src/app/(public)/toko/[slug]/page.tsx` & `product-detail-content.tsx`)**:
+  - Menambahkan seksi *"Produk Digital Lainnya"* pada setiap halaman detail produk toko, mengeliminasi isolasi halaman dan memperkuat distribusi crawl budget internal.
+
+### Fixed & Optimized: Resolusi Audit GSC "Alternate Page with Proper Canonical Tag" & Konsolidasi Redirect 308 (src/proxy.ts)
+
+- **Konsolidasi Server-Side 308 Redirect untuk `?lang=id` (`src/proxy.ts`)**:
+  - Menambahkan handler `consolidateLangQuery()` di proxy/middleware yang mendeteksi parameter query `?lang=id` di seluruh rute (beranda, proyek, artikel, toko) dan mengalihkannya secara permanen (HTTP 308) ke URL kanonikal bersih.
+  - Memastikan varian URL redundan `?lang=id` tidak lagi merespons HTTP 200 sebagai alternate page, sehingga menghentikan akumulasi laporan "Alternate page with proper canonical tag" dan mengonsolidasikan link equity secara penuh ke kanonikal.
+- **Sanitasi Parameter `?lang=id` pada Helper Pengalihan Terkait (`src/proxy.ts`)**:
+  - `consolidateContactPrefill()` dan `consolidateSectionPaths()` kini otomatis membersihkan parameter `?lang=id` saat mengalihkan pengunjung ke `#kontak` atau `#section`.
+- **Pengujian Unit Otomatis Konsolidasi Proxy (`tests/seo-host-product.test.ts`)**:
+  - Menambahkan pengujian regresi untuk memverifikasi HTTP 308 pada `/?lang=id`, `/proyek/.../?lang=id`, dan `/artikel/.../?lang=id`, sambil memastikan varian `?lang=en` tetap dapat diakses untuk pergantian bahasa di sisi klien.
+
+### Updated & Enhanced: Audit & Pembaruan Seluruh Model AI ke Versi Terbaru & Aktif (Multi-Provider 2026)
+
+- **Standarisasi & Pembaruan Default Model di 9 Provider Cloud AI (`src/lib/ai-providers.ts`, `.env.example`, `src/components/admin/cloud-ai-config-form.tsx`)**:
+  - **Google Gemini**: Menambahkan `gemini-flash-lite-latest` dan `gemini-3.8-flash` di puncak rantai fallback teks; memperbarui tabel kuota (`src/lib/gemini-quota.ts`) dengan keluarga model terbaru (`gemini-4-carbon`, `gemini-4-argon`, `gemini-3.8-flash`, `gemini-3.1-pro-preview`, `gemini-omni-1.2-flash`, `gemini-3-flash-preview`, `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`).
+  - **Gemini Image Generation (`src/lib/ai-image.ts`)**: Menambahkan `gemini-nano-banana-2.1` sebagai model utama di atas `gemini-3.1-flash-image-preview` dan `gemini-2.5-flash-image`.
+  - **OpenAI (`src/lib/ai-openai.ts`, `src/lib/ai-providers.ts`)**: Memperbarui default model dari `gpt-4o-mini` ke `gpt-6-luna` (dengan dukungan keluarga `gpt-6-solaris`, `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`, `o3`, `o4-mini`).
+  - **Anthropic Claude (`src/lib/ai-anthropic.ts`, `src/lib/ai-providers.ts`)**: Memperbarui default model dari `claude-3-5-haiku-latest` ke `claude-haiku-5.5` (dengan dukungan `claude-opus-5.5`, `claude-sonnet-5.5`, `claude-opus-4-6`, `claude-sonnet-4-6`, `claude-haiku-4-5`).
+  - **OpenRouter (`src/lib/ai-providers.ts`)**: Memperbarui default model ke `google/gemini-3.8-flash`.
+  - **xAI Grok (`src/lib/ai-providers.ts`)**: Memperbarui default model dari `grok-2-latest` ke `grok-4.7`.
+  - **Groq, DeepSeek, Together AI, Mistral**: Memperbarui label, hint, dan fallback katalog model statis (`src/lib/ai-models.ts`) untuk mendukung `deepseek-v4.1`, `Qwen/Qwen3.8-72B-Instruct-Turbo`, `llama-3.3-70b-versatile`, `openai/gpt-oss-120b`, dan `mistral-small-latest` khi endpoint `/models` tidak mengembalikan daftar (mis. Anthropic).
+- **Sinkronisasi Narasi Artikel & Proyek Portofolio (`src/lib/dummy-data.ts`, `data/local-store.json`, Database Live)**:
+  - Memperbarui referensi model AI pada artikel teknis dan deskripsi proyek (`PromptMatrix 2.0`) ke generasi model aktif terbaru.
+
+### Security, Fixed & Optimized: Full Codebase & Database Audit Remediation (Phases 1–5)
+
+- **Perbaikan God Mode Draft & Stale Request Cache (`src/lib/actions.ts`, `src/lib/settings.ts`, `features-config.ts`, `ui-strings-config.ts`, `os-apps-config.ts`)**:
+  - Memperbaiki bug di mana perubahan form God Mode yang belum disimpan tertimpa nilai live saat menekan tombol *Simpan Draf* (`C-01`).
+  - Mengganti `React.cache` pada `src/lib/settings.ts` dengan cache per-request berbasis `Map` yang langsung diperbarui saat `setSetting`/`deleteSetting` dipanggil dan otomatis membuka pembungkusan JSON string ganda (*double-encoded JSON*) (`C-02`, `DB-02`).
+- **Idempotensi Migrasi RLS PostgreSQL (`drizzle/0013_enable_rls.sql`)**:
+  - Menambahkan guard `ADD COLUMN IF NOT EXISTS`, `CREATE TABLE IF NOT EXISTS` untuk tabel `orders` & `customers`, serta pengecekan eksistensi role `PUBLIC` di blok `DO $$` agar migrasi RLS aman dijalankan ulang di seluruh environment (`C-03`).
+- **Hardening Keamanan Toko, Keranjang, & Server Actions (`src/lib/order-actions.ts`, `src/components/public/cart-dialog.tsx`, `src/lib/actions.ts`, `src/lib/audit.ts`)**:
+  - Validasi harga dan ketersediaan stok murni di sisi server saat pembuatan pesanan, pengurangan stok atomik di dalam transaksi DB, dan pembatasan laju (*rate-limiting*) pembuatan order per IP (`C-04`).
+  - Penyamaran data pribadi (PII masking untuk nomor WhatsApp & email) pada pencocokan parsial invoice publik di `getOrderByInvoice`, verifikasi *magic bytes* gambar pada `uploadPaymentProof`, serta penundaan akumulasi `customers.totalSpent` hingga pesanan berstatus dibayar/selesai (`H-03`).
+  - Penyelarasan format mata uang IDR/USD pada dialog keranjang & checkout (`M-04`).
+  - Penambahan guard `verifyAdmin()` pada opsi `includeScheduled` di `getProjects`/`getArticles` serta `getPendingOrdersCount()`, dan penghapusan direktif `"use server"` dari modul internal `src/lib/audit.ts` (`H-02`).
+- **Hardening Media SVG, Animasi WebP/AVIF, & OG Image (`src/lib/storage.ts`, `src/app/api/media/[id]/route.ts`, `src/lib/og-image.ts`)**:
+  - Sanitasi berlapis berkas SVG terhadap elemen berbahaya (`<foreignObject>`, `<use>`, `<iframe/embed/object>`, event handler `on*`, dan URI `javascript:`/`data:text/html`) disertai header `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox` (`H-04`).
+  - Dukungan frame animasi penuh (`{ animated: true }`) pada pemrosesan `sharp` untuk GIF/WebP/AVIF (`L-01`).
+  - Batas waktu (*timeout*) 4 detik dan validasi protokol `http(s)` pada pengambilan avatar eksternal di generator OG Image (`M-04`).
+- **Perbaikan Escalation Cloud AI, Presipitasi System Prompt, & WhatsApp Bot (`src/app/api/retrobot/route.ts`, `src/lib/ai-provider.ts`, `src/lib/ai-openai.ts`, `src/lib/ai-anthropic.ts`, `src/lib/whatsapp-bot/`)**:
+  - Memastikan RetroBot dan Terminal meneruskan kueri ke Cloud AI saat provider aktif meskipun mesin TF-IDF lokal mengembalikan fallback generik (`H-05`).
+  - Menjaga pesan `role: "system"` agar tidak terpotong oleh `.slice(-9)` pada riwayat percakapan panjang (`H-06`) dan mempertahankan `auditLogs` pada penyimpanan lokal (`H-07`).
+  - Memperbaiki bug auto-reconnect saat `stopWhatsAppBot()` dipanggil secara manual (`C-06`), memfilter event pesan non-`notify`, dan memperbaiki placeholder inline code pada formatter WhatsApp (`H-08`).
+- **Perbaikan Ekstraksi FAQ JSON-LD, URL Kanonikal, & UX SigitOS (`src/lib/seo.ts`, `contact-section.tsx`, `os-window.tsx`, `os-desktop-manager.tsx`, `products-section.tsx`, `cart-context.tsx`, `translate.ts`)**:
+  - Menghentikan regex ekstraksi FAQ JSON-LD tepat sebelum heading H2 berikutnya (`## Kesimpulan`) (`H-09`) dan menyeragamkan `canonicalBaseUrl()` di `llms.txt`, `feed.xml`, dan `indexnow.ts`.
+  - Memperbaiki prefill parameter `?contactSubject` & `?contactBody` dari URL dan event custom di `ContactSection` (`H-01`).
+  - Menambahkan dukungan drag jendela via layar sentuh (*Pointer Events* + klem batas viewport) (`M-01`), sinkronisasi filter kategori katalog produk dengan URL, debouncing penyimpanan `localStorage` keranjang (`M-02`), kamus stemmer Bahasa Indonesia untuk AI lokal, serta *concurrency limiter* pada batch terjemahan admin (`M-03`).
+- **Pembersihan & Remediasi Database Produksi Live (`data/local-store.json` & PostgreSQL)**:
+  - Menghapus 9 baris media yatim (*orphaned media*, penghematan `~3,53 MB`), memperbarui nomor WhatsApp admin & profil ke `6285117616631`, menonaktifkan metode pembayaran bank placeholder yang belum terisi, membuka pembungkusan JSON ganda di tabel `settings`, dan melengkapi terjemahan Bahasa Inggris (`content_en`) pada artikel & produk yang kosong.
+
+### Fixed & Optimized: Resolusi Komprehensif Audit Indexing Google Search Console & Optimasi Build Edge/SEO
+
+- **Prerendering SSG / ISR untuk Seluruh Detail Produk Toko (`src/app/(public)/toko/[slug]/page.tsx`)**:
+  - Menambahkan `generateStaticParams()` yang mengambil seluruh produk aktif saat build time untuk di-render menjadi HTML statis di Edge CDN Vercel.
+  - Menambahkan `export const revalidate = 86400;` (ISR harian) dan `export const dynamicParams = true;` agar halaman produk memiliki paritas arsitektur dengan artikel dan proyek, memecahkan masalah bot terhenti di *"Discovered - currently not indexed"*.
+- **Kejujuran & Dinamisasi Timestamp `lastModified` Sitemap (`src/app/sitemap.ts`, `actions.ts`, `dummy-data.ts`)**:
+  - Menghitung `lastModified` secara dinamis dari timestamp rujukan riil (`updatedAt` / `createdAt`) pada artikel, proyek, dan produk.
+  - Halaman katalog (`/artikel`, `/proyek`, `/toko`) dan beranda (`/`) kini melaporkan tanggal modifikasi konten terbaru, menghemat crawl budget bot dan memberi sinyal segar saat ada posting baru tanpa memalsukan `new Date()` harian.
+- **Pembersihan Otomatis Parameter `?lang=id` di Client-Side (`src/lib/i18n.tsx`)**:
+  - `writeUrlLang` kini otomatis membuang parameter `?lang=id` dari URL address bar saat pengunjung beralih kembali ke Bahasa Indonesia (default bahasa kanonikal).
+  - Mengeliminasi pembentukan URL varian duplikat (`/?lang=id` dan sub-halaman) yang sebelumnya dilaporkan Google Search Console sebagai "Blocked by robots.txt" atau "Alternate page with proper canonical tag".
+- **Harmonisasi Skema JSON-LD Schema.org (`src/components/public/json-ld.tsx`)**:
+  - Menyelaraskan atribut `inLanguage` pada `ProfilePage` dan `WebSite` menjadi `["id-ID", "en-US"]`, sesuai dengan bahasa kanonikal dan alternate situs.
+- **Pembersihan Aset Font Web Tidak Terpakai (`src/app/layout.tsx`)**:
+  - Menghapus impor font Google `Fira_Code` dan CSS variable `--font-fira-code` yang tidak digunakan di styling Tailwind (`Azeret_Mono` digunakan sebagai pengganti), mengurangi ukuran bundle dan mempercepat Core Web Vitals (FCP/LCP).
+- **Penguatan SSR Crawlability & Internal Links Distribution (`src/app/(public)/(home)/page.tsx`)**:
+  - Memperluas fallback aksesibilitas dan SEO (`sr-only`) di beranda utama untuk menyertakan daftar semantik lengkap seluruh artikel, proyek, dan produk yang berstatus publikasi aktif.
+  - Memberikan sinyal distribusi PageRank dan penemuan tautan internal (internal linking hierarchy) langsung dari level root domain tanpa bergantung pada eksekusi scroll JavaScript desktop manager, secara proaktif mempercepat akselerasi halaman "Discovered - currently not indexed" dan "Crawled - currently not indexed".
+- **Verifikasi Status GSC "Page with redirect" & Validasi Rekayasa Konsolidasi**:
+  - Mengklarifikasi bahwa status "Validation Failed" pada "Page with redirect" terjadi karena validasi manual dipicu pada URL pengalihan permanen (HTTP 308) yang memang dirancang untuk mengalirkan otoritas link ke kanonikal (`www.` → apex, `http:` → `https:`, dan `/?contactSubject=...` → `/#kontak`). Sesuai spesifikasi Google Search Central, pengalihan permanen yang benar tidak perlu di-request validasi fix.
+- **Suite Pengujian Unit Kanonikal & Alternates (`tests/seo.test.ts`)**:
+  - Menambahkan pengujian otomatis untuk memverifikasi bahwa helper `localeAlternates` selalu menghasilkan kanonikal bersih bebas parameter query (`?lang=`, `?contactSubject=`) dan fragment hash.
+
 ### Fixed: Resolusi Rute & Header Preview Open Graph (OG) Share Proyek, Toko, dan Artikel
 
 - **Next.js Rewrites Resolusi Otomatis Gambar OG Section (`next.config.ts`)**:

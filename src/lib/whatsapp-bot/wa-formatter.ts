@@ -17,13 +17,13 @@ export function formatForWhatsApp(text: string): string {
   const codeBlocks: string[] = [];
   res = res.replace(/```[\s\S]*?```/g, (match) => {
     codeBlocks.push(match);
-    return `__CODE_BLOCK_${codeBlocks.length - 1}__`;
+    return `\u0000CODEBLOCK${codeBlocks.length - 1}\u0000`;
   });
 
   const inlineCodes: string[] = [];
   res = res.replace(/`[^`\n]+`/g, (match) => {
     inlineCodes.push(match);
-    return `__INLINE_CODE_${inlineCodes.length - 1}__`;
+    return `\u0000INLINECODE${inlineCodes.length - 1}\u0000`;
   });
 
   // 2. Konversi heading markdown (### Heading / ## Heading / # Heading) -> *Heading*
@@ -40,13 +40,13 @@ export function formatForWhatsApp(text: string): string {
   res = res.replace(/^[\s]*[-*]\s+/gm, "• ");
 
   // 6. Kembalikan blok kode dan inline code
-  res = res.replace(/__INLINE_CODE_(\d+)__/g, (_, idx) => {
+  res = res.replace(/\u0000INLINECODE(\d+)\u0000/g, (_, idx) => {
     const code = inlineCodes[Number(idx)] || "";
     // WhatsApp mendukung inline monospace dengan ``` atau `
     return code;
   });
 
-  res = res.replace(/__CODE_BLOCK_(\d+)__/g, (_, idx) => {
+  res = res.replace(/\u0000CODEBLOCK(\d+)\u0000/g, (_, idx) => {
     return codeBlocks[Number(idx)] || "";
   });
 

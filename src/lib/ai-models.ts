@@ -8,7 +8,7 @@
  * Endpoint:
  *   - openai-compatible: GET {baseUrl}/models  → { data: [{ id }] }
  *   - gemini:            GET https://generativelanguage.googleapis.com/v1beta/models
- *                         → { models: [{ name: "models/gemini-2.5-flash",
+ *                         → { models: [{ name: "models/gemini-3.8-flash",
  *                            supportedGenerationMethods: ["generateContent"] }] }
  *
  * Tidak pernah throw: gagal → { error } yang ditampilkan di form.

@@ -27,13 +27,13 @@ export interface StoreConfig {
 }
 
 export const DEFAULT_STORE_CONFIG: StoreConfig = {
-  adminWhatsapp: "",
+  adminWhatsapp: "6285117616631",
   bankAccounts: [],
   qrisImageUrl: "",
   qrisMerchantName: "",
   paymentMethods: {
     qris: true,
-    bank: true,
+    bank: false,
     paypal: true,
     wa_direct: true,
   },

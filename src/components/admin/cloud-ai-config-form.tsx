@@ -83,7 +83,7 @@ export function CloudAIConfigForm({ initial }: CloudAIConfigFormProps) {
     ? `${initial.maskedKey} — kosongkan untuk tetap`
     : providerMeta.keyPlaceholder;
   const modelPlaceholder =
-    providerMeta.defaultModel || (needsBaseUrl ? "gpt-4o-mini" : "gemini-2.5-flash");
+    providerMeta.defaultModel || (needsBaseUrl ? "gpt-6-luna" : "gemini-flash-lite-latest");
 
   /**
    * Ambi daftar model dari provider memakai key & base URL yang sedang di form
@@ -119,7 +119,7 @@ export function CloudAIConfigForm({ initial }: CloudAIConfigFormProps) {
           const stillThere = res.models.find((m) => m.toLowerCase() === current);
           if (!stillThere) {
             const preferred =
-              res.models.find((m) => /flash|mini|lite|small|haiku/i.test(m)) ||
+              res.models.find((m) => /flash|mini|lite|small|haiku|luna/i.test(m)) ||
               res.models[0];
             setModel(preferred);
           }
