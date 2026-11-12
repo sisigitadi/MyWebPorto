@@ -207,4 +207,57 @@ describe("wiring proxy — alias host benar-benar di-redirect", () => {
     // Preview Vercel & localhost tidak ikut tersentuh.
     expect(consolidateHostAlias(new NextRequest("http://localhost:51371/proyek"))).toBeNull();
   });
+
+  it("308 redirect ?lang=id ke URL kanonik bersih", async () => {
+    const { consolidateLangQuery } = await import("@/proxy");
+    const { NextRequest } = await import("next/server");
+
+    // Homepage
+    const home = consolidateLangQuery(new NextRequest("https://sigitadi.id/?lang=id"));
+    expect(home?.status).toBe(308);
+    expect(home?.headers.get("location")).toBe("https://sigitadi.id/");
+
+    // Proyek
+    const project = consolidateLangQuery(
+      new NextRequest("https://sigitadi.id/proyek/promptmatrix-2-0?lang=id")
+    );
+    expect(project?.status).toBe(308);
+    expect(project?.headers.get("location")).toBe(
+      "https://sigitadi.id/proyek/promptmatrix-2-0"
+    );
+
+    // Artikel
+    const article = consolidateLangQuery(
+      new NextRequest("https://sigitadi.id/artikel/tips-freelance-developer-pemula?lang=id")
+    );
+    expect(article?.status).toBe(308);
+    expect(article?.headers.get("location")).toBe(
+      "https://sigitadi.id/artikel/tips-freelance-developer-pemula"
+    );
+
+    // Mempertahankan query lain selain lang=id
+    const withOther = consolidateLangQuery(
+      new NextRequest("https://sigitadi.id/proyek?lang=id&sort=date")
+    );
+    expect(withOther?.status).toBe(308);
+    expect(withOther?.headers.get("location")).toBe("https://sigitadi.id/proyek?sort=date");
+
+    // lang=en TIDAK di-redirect server-side agar toggle i18n client tetap jalan
+    expect(
+      consolidateLangQuery(new NextRequest("https://sigitadi.id/proyek?lang=en"))
+    ).toBeNull();
+  });
+
+  it("308 redirect ?contactSubject ke #kontak dan membuang ?lang=id", async () => {
+    const { consolidateContactPrefill } = await import("@/proxy");
+    const { NextRequest } = await import("next/server");
+
+    const contact = consolidateContactPrefill(
+      new NextRequest(
+        "https://sigitadi.id/?contactSubject=Diskusi+Proyek&contactBody=Halo&lang=id"
+      )
+    );
+    expect(contact?.status).toBe(308);
+    expect(contact?.headers.get("location")).toBe("https://sigitadi.id/#kontak");
+  });
 });

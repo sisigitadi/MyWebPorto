@@ -4,6 +4,16 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Fixed & Optimized: Resolusi Audit GSC "Alternate Page with Proper Canonical Tag" & Konsolidasi Redirect 308 (src/proxy.ts)
+
+- **Konsolidasi Server-Side 308 Redirect untuk `?lang=id` (`src/proxy.ts`)**:
+  - Menambahkan handler `consolidateLangQuery()` di proxy/middleware yang mendeteksi parameter query `?lang=id` di seluruh rute (beranda, proyek, artikel, toko) dan mengalihkannya secara permanen (HTTP 308) ke URL kanonikal bersih.
+  - Memastikan varian URL redundan `?lang=id` tidak lagi merespons HTTP 200 sebagai alternate page, sehingga menghentikan akumulasi laporan "Alternate page with proper canonical tag" dan mengonsolidasikan link equity secara penuh ke kanonikal.
+- **Sanitasi Parameter `?lang=id` pada Helper Pengalihan Terkait (`src/proxy.ts`)**:
+  - `consolidateContactPrefill()` dan `consolidateSectionPaths()` kini otomatis membersihkan parameter `?lang=id` saat mengalihkan pengunjung ke `#kontak` atau `#section`.
+- **Pengujian Unit Otomatis Konsolidasi Proxy (`tests/seo-host-product.test.ts`)**:
+  - Menambahkan pengujian regresi untuk memverifikasi HTTP 308 pada `/?lang=id`, `/proyek/.../?lang=id`, dan `/artikel/.../?lang=id`, sambil memastikan varian `?lang=en` tetap dapat diakses untuk pergantian bahasa di sisi klien.
+
 ### Updated & Enhanced: Audit & Pembaruan Seluruh Model AI ke Versi Terbaru & Aktif (Multi-Provider 2026)
 
 - **Standarisasi & Pembaruan Default Model di 9 Provider Cloud AI (`src/lib/ai-providers.ts`, `.env.example`, `src/components/admin/cloud-ai-config-form.tsx`)**:
