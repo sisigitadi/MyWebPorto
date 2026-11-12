@@ -626,12 +626,12 @@ export default function AdminProductsPage() {
                       setPromoProduct(product);
                       setPromoOpen(true);
                     }}
-                    className="h-7 px-2 text-xs text-primary gap-1 shrink-0"
+                    className="h-9 sm:h-7 px-2.5 sm:px-2 text-xs text-primary gap-1 shrink-0"
                   >
                     <Share2 className="h-3.5 w-3.5" />
                     <span className="hidden xs:inline">Bagikan</span>
                   </Button>
-                  <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                  <Button asChild variant="ghost" size="sm" className="h-9 sm:h-7 px-2.5 sm:px-2 text-xs gap-1">
                     <Link href={`/toko/${getProductSlug(product)}`} target="_blank">
                       <Globe className="h-3.5 w-3.5" />
                       <span>Lihat</span>
@@ -641,7 +641,7 @@ export default function AdminProductsPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => openEditDialog(product)}
-                    className="h-7 px-2 text-xs gap-1"
+                    className="h-9 sm:h-7 px-2.5 sm:px-2 text-xs gap-1"
                   >
                     <Pencil className="h-3.5 w-3.5" />
                     <span>Edit</span>
@@ -650,7 +650,7 @@ export default function AdminProductsPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => openDeleteConfirmation(product)}
-                    className="h-7 px-2 text-xs text-red-500 hover:text-red-700"
+                    className="h-9 sm:h-7 px-2.5 sm:px-2 text-xs text-red-500 hover:text-red-700"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -949,7 +949,7 @@ export default function AdminProductsPage() {
                     size="sm"
                     onClick={handleAutoTranslateToEn}
                     disabled={translating || (!formTitle && !formDescription)}
-                    className="h-7 text-xs gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
+                    className="h-9 sm:h-7 text-xs gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
                   >
                     {translating ? (
                       <Loader2 className="h-3 w-3 animate-spin" />

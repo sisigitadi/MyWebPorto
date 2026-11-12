@@ -53,7 +53,7 @@ export interface ProviderMeta {
 const PROVIDER_METAS: Record<CloudProvider, ProviderMeta> = {
   off: {
     id: "off",
-    label: "OFF — 100% lokal (TF-IDF)",
+    label: "OFF [100% lokal (TF-IDF)]",
     shortLabel: "Lokal",
     hint: "Default. Nol egress, tidak butuh key, jawaban tetap masuk akal untuk pertanyaan katalog.",
     apiStyle: "off",
@@ -84,7 +84,7 @@ const PROVIDER_METAS: Record<CloudProvider, ProviderMeta> = {
   },
   openai: {
     id: "openai",
-    label: "OpenAI-compatible — custom (OpenAI / Ollama / lainnya)",
+    label: "OpenAI-compatible: custom (OpenAI / Ollama / lainnya)",
     shortLabel: "OpenAI-compatible",
     hint: "Endpoint /v1/chat/completions apapun (gpt-6-luna, gpt-6.1-sol, gpt-6-astra). Untuk Ollama pakai http://localhost:11434/v1.",
     apiStyle: "openai-chat",

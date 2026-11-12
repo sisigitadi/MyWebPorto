@@ -4,6 +4,28 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Updated & Fixed: Full Audit 5 Pilar, Resolusi Anti-Slop #002 & Upgrade Dependensi Tier 1
+
+- **Pembaruan Dependensi Stabil Tier 1 (`package.json`, pnpm lock)**:
+  - Memperbarui Next.js ke versi stabil `16.4.6` (Turbopack) dengan waktu build kompilasi meningkat lebih dari 2x lebih cepat (14.1s).
+  - Memperbarui React & React DOM ke `19.3.1`.
+  - Memperbarui Clerk Authentication SDK ke `@clerk/nextjs` `^7.9.25` dan `@clerk/ui` `^1.42.4`.
+  - Memperbarui Tailwind CSS ke `4.3.5` dan `@tailwindcss/postcss` `4.3.5`.
+  - Memperbarui Vitest test runner ke `5.1.0` dan Vite ke `8.3.8` (durasi eksekusi suite 636 tes turun menjadi ~19.8s).
+  - Memperbarui library ikon & animasi: `lucide-react` `^1.72.0`, `gsap` `^3.15.1`, `@playwright/test` `^1.65.0`.
+- **Resolusi Temuan UI/UX Audit Anti-Slop #002 (`anti-slop/audit-002-2026-11-12.md`)**:
+  - **Item 1 & 2 (R-02 Copywriting Em-Dash)**: Mengganti karakter em-dash pada `src/app/(public)/(home)/loading.tsx` (`"Mohon tunggu: mengambil data dari disk C:\ ..."`) dan heading semantik H1 SSR fallback di `src/app/(public)/(home)/page.tsx` (`<h1>{profile.name} | {profile.headline}</h1>`).
+  - **Item 3 & 4 (R-02 Copywriting Em-Dash)**: Membersihkan karakter em-dash pada instruksi dan badge God Mode di `src/app/admin/appearance/page.tsx` serta label metadata registry model Cloud AI di `src/lib/ai-providers.ts`.
+  - **Item 5 (R-03 Mobile Tap Targets)**: Meningkatkan tinggi tombol aksi baris tabel di dashboard admin (`admin/page.tsx`, `admin/products/page.tsx`, `admin/orders/page.tsx`, `admin/articles/page.tsx`) dari `h-7` (28px) menjadi kelas responsif `h-9 sm:h-7` untuk memenuhi standar sentuh mobile minimum 44px.
+  - **Item 6 (R-25 Color Contrast WCAG AAA)**: Memperkuat kontras warna teks dan border pada seluruh badge status pesanan (`pending`, `paid`, `processing`, `completed`, `cancelled`) dan tombol aksi admin orders menjadi `text-*-800 dark:text-*-300 font-semibold` dengan rasio kontras > 7:1.
+  - **Item 7 (R-04 Purpose-Gate Icons)**: Menyelaraskan seluruh aksi kontak dan pemesanan WhatsApp ke ikon `MessageCircle`.
+  - **Item 8 (R-32 s.d. R-38 SigitOS Windowing)**: Menyelaraskan kontras indikator status window di `src/components/public/os/os-window.tsx` ke `text-[#064e3b] dark:text-[#a7f3d0]` (WCAG AAA).
+  - **Item 9 (R-20 Ergonomi Retro)**: Menambahkan micro-toast notifikasi interaktif via `sonner` saat toggle status Audio SigitOS di Start Menu `src/components/public/os/os-desktop-manager.tsx`.
+- **Riset Arsitektur & Blueprint Pembaruan Major Tier 2 (`docs/UPGRADE_RESEARCH_MAJOR.md`)**:
+  - Memetakan analisis dampak dan studi kelayakan pembaruan Major untuk `postgres@4` vs Drizzle ORM, `typescript@7`, `eslint@10`, dan perbandingan arsitektur runtime background worker WhatsApp Baileys antara Persistent Container VPS vs Stateless Serverless Edge.
+- **Peningkatan Ketahanan Uji Isolasi Database RLS (`tests/database-rls.test.ts`)**:
+  - Mengonfigurasi `max: 1` pada client PostgreSQL pengujian untuk mencegah interferensi koneksi bersama pada pengujian isolasi hak akses role `anon`.
+
 ### Enhanced: Penguatan Internal Linking Mesh (Topic Cluster) Proyek, Artikel, & Toko
 
 - **Internal Linking Lintas-Entitas pada Detail Proyek (`src/app/(public)/proyek/[slug]/page.tsx` & `project-detail-content.tsx`)**:

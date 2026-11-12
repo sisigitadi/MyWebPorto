@@ -35,6 +35,7 @@ import { ContentShareModal } from "@/components/public/content-share-modal";
 import { useOSTheme, OSTheme } from "./theme-context";
 import { useFeature } from "@/lib/features-context";
 import { playOS } from "@/lib/os-sound";
+import { toast } from "sonner";
 import { HeroSection } from "@/components/public/hero-section";
 import { ServicesSection } from "@/components/public/services-section";
 import { FeaturedProjectsSection } from "@/components/public/featured-projects-section";
@@ -1137,6 +1138,9 @@ export function OSDesktopManager({
                 onClick={() => {
                   const next = !soundOn;
                   setSoundOn(next);
+                  toast(next ? (language === "en" ? "Retro Audio: Enabled" : "Audio SigitOS: Aktif") : (language === "en" ? "Retro Audio: Muted" : "Audio SigitOS: Senyap"), {
+                    duration: 1800,
+                  });
                   try {
                     window.localStorage?.setItem("sigitos_sound", next ? "on" : "off");
                   } catch {
@@ -1416,7 +1420,18 @@ function StartMenuMobile({
           {/* Sound Toggle */}
           <button
             type="button"
-            onClick={() => setSoundOn(!soundOn)}
+            onClick={() => {
+              const next = !soundOn;
+              setSoundOn(next);
+              toast(next ? (language === "en" ? "Retro Audio: Enabled" : "Audio SigitOS: Aktif") : (language === "en" ? "Retro Audio: Muted" : "Audio SigitOS: Senyap"), {
+                duration: 1800,
+              });
+              try {
+                window.localStorage?.setItem("sigitos_sound", next ? "on" : "off");
+              } catch {
+                // abaikan bila storage diblokir
+              }
+            }}
             className="w-full flex items-center justify-between px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors text-left font-bold cursor-pointer"
           >
             <div className="flex items-center gap-2">

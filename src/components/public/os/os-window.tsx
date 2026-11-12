@@ -171,7 +171,7 @@ export function OSWindow({
               {statusText && (
                 <div className="px-3 py-1.5 bg-[var(--vt-card)] border-t-2 border-[var(--vt-edge-lo-2)] flex items-center justify-between text-xs font-mono font-bold text-[var(--vt-ink)] select-none shrink-0">
                   <span className="truncate tracking-tight">{statusText}</span>
-                  <span className="shrink-0 flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-400 text-xs">
+                  <span className="shrink-0 flex items-center gap-1.5 font-bold text-[#064e3b] dark:text-[#a7f3d0] text-xs">
                     <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
                     <span>READY // FULLSCREEN</span>
                   </span>
@@ -273,7 +273,7 @@ export function OSWindow({
       {!isMinimized && statusText && (
         <div className="mt-1 px-3 py-1.5 bg-[var(--vt-card)] border-t-2 border-[var(--vt-edge-lo-2)] flex items-center justify-between text-xs font-mono font-bold text-[var(--vt-ink)] select-none shrink-0">
           <span className="truncate tracking-tight">{statusText}</span>
-          <span className="shrink-0 flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-400 text-xs">
+          <span className="shrink-0 flex items-center gap-1.5 font-bold text-[#064e3b] dark:text-[#a7f3d0] text-xs">
             <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
             <span>READY</span>
           </span>
