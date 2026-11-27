@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { recordVisitorHit, VISITOR_ANALYTICS_ENABLED } from "@/lib/visitor-analytics";
+import { rateLimit, cleanupRateLimits } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
-// In-memory rate limiting: maksimal 15 permintaan per menit per IP
-const ipRateLimit = new Map<string, { count: number; resetAt: number }>();
+function extractClientIp(headers: Headers): string {
+  const cfIp = headers.get("cf-connecting-ip");
+  if (cfIp && cfIp.trim()) return cfIp.trim();
+  const realIp = headers.get("x-real-ip");
+  if (realIp && realIp.trim()) return realIp.trim();
+  const forwarded = headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0].trim() || "127.0.0.1";
+  return "127.0.0.1";
+}
 
 export async function POST(req: NextRequest) {
   if (!VISITOR_ANALYTICS_ENABLED) {
@@ -15,28 +23,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const forwarded = req.headers.get("x-forwarded-for");
-    const ip = forwarded ? forwarded.split(",")[0].trim() : "127.0.0.1";
-    const now = Date.now();
-    const rate = ipRateLimit.get(ip);
+    const ip = extractClientIp(req.headers);
+    const rl = rateLimit(`visitor-hit:${ip}`, 15, 60_000);
+    cleanupRateLimits();
 
-    if (rate && now < rate.resetAt) {
-      if (rate.count >= 15) {
-        return NextResponse.json(
-          { ok: true, rateLimited: true },
-          { status: 200, headers: { "Cache-Control": "no-store" } }
-        );
-      }
-      rate.count++;
-    } else {
-      ipRateLimit.set(ip, { count: 1, resetAt: now + 60000 });
-    }
-
-    // Pembersihan berkala jika map terlalu besar
-    if (ipRateLimit.size > 2000) {
-      for (const [k, v] of ipRateLimit.entries()) {
-        if (now >= v.resetAt) ipRateLimit.delete(k);
-      }
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { ok: true, rateLimited: true },
+        { status: 200, headers: { "Cache-Control": "no-store" } }
+      );
     }
 
     let payload = {};

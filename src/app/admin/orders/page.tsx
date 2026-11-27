@@ -25,6 +25,8 @@ import {
   CreditCard,
   DollarSign,
   Briefcase,
+  ShieldCheck,
+  ZoomIn,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -73,6 +75,7 @@ import {
   getOrders,
   updateOrderStatus,
   deleteOrder,
+  expireStalePendingOrders,
   getCustomers,
   getStoreConfig,
   StoreConfig,
@@ -155,8 +158,11 @@ export default function AdminOrdersPage() {
   const [editProjectUrl, setEditProjectUrl] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  // Copy helper state
+  // Copy & Quick Verify helpers
   const [copiedInvoice, setCopiedInvoice] = useState<string | null>(null);
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [expiringStale, setExpiringStale] = useState(false);
+  const [proofZoomUrl, setProofZoomUrl] = useState<string | null>(null);
 
   // Initial Data Fetch
   const loadData = async () => {
@@ -293,6 +299,48 @@ export default function AdminOrdersPage() {
       toast.error("Terjadi kesalahan saat menyimpan pesanan");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Quick 1-click Verify Payment & Open WhatsApp Confirmation
+  const handleQuickVerifyAndWa = async (order: Order) => {
+    setVerifyingId(order.id);
+    try {
+      const res = await updateOrderStatus(order.id, "paid", order.adminNotes || undefined, order.projectUrl || undefined);
+      if (res.success) {
+        toast.success(`Pesanan ${order.invoiceNumber} ditandai Lunas! Membuka WhatsApp...`);
+        setOrders((prev) =>
+          prev.map((o) => (o.id === order.id ? { ...o, status: "paid", updatedAt: new Date() } : o))
+        );
+        const waUrl = buildFollowUpVerifiedUrl(order.customerPhone, order.invoiceNumber, order.customerName);
+        window.open(waUrl, "_blank");
+      } else {
+        toast.error(res.error || "Gagal memverifikasi pembayaran");
+      }
+    } catch {
+      toast.error("Terjadi kesalahan saat verifikasi pesanan");
+    } finally {
+      setVerifyingId(null);
+    }
+  };
+
+  // Auto-cancel pending orders older than 24h without payment proof
+  const handleExpireStale = async () => {
+    setExpiringStale(true);
+    try {
+      const res = await expireStalePendingOrders(24);
+      if (res.success) {
+        toast.success(res.message);
+        if (res.expiredCount > 0) {
+          await loadData();
+        }
+      } else {
+        toast.error(res.error || "Gagal membersihkan pesanan kedaluwarsa");
+      }
+    } catch {
+      toast.error("Gagal memproses pembersihan pesanan");
+    } finally {
+      setExpiringStale(false);
     }
   };
 
@@ -479,6 +527,18 @@ export default function AdminOrdersPage() {
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
             <span>Muat Ulang</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExpireStale}
+            disabled={expiringStale || isLoading}
+            className="h-9 font-mono text-xs gap-1.5"
+            title="Batalkan otomatis order pending >24 jam tanpa bukti bayar & kembalikan stok"
+          >
+            <Clock className={`h-3.5 w-3.5 ${expiringStale ? "animate-spin" : ""}`} />
+            <span className="hidden sm:inline">Bersihkan Kedaluwarsa</span>
+            <span className="sm:hidden">Kedaluwarsa</span>
           </Button>
           <Button
             variant="outline"
@@ -753,12 +813,25 @@ export default function AdminOrdersPage() {
                         ))}
                       </div>
 
-                      <div className="flex items-center gap-2 pt-1 border-t border-border/50">
+                      <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-border/50">
+                        {order.status === "pending" && order.paymentProofUrl && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleQuickVerifyAndWa(order)}
+                            disabled={verifyingId === order.id}
+                            className="w-full min-h-[44px] h-9 text-xs font-mono gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                          >
+                            <ShieldCheck className="h-3.5 w-3.5" />
+                            <span>
+                              {verifyingId === order.id ? "Memverifikasi..." : "Verifikasi Lunas & Kirim WA"}
+                            </span>
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => openDetailModal(order)}
-                          className="flex-1 h-9 sm:h-7 text-xs font-mono gap-1"
+                          className="flex-1 min-h-[44px] h-9 sm:h-7 text-xs font-mono gap-1"
                         >
                           <Eye className="h-3.5 w-3.5" />
                           <span>Detail</span>
@@ -974,12 +1047,15 @@ export default function AdminOrdersPage() {
                               {PAYMENT_METHOD_LABELS[order.paymentMethod] || order.paymentMethod}
                             </div>
                             {order.paymentProofUrl && (
-                              <Badge
-                                variant="secondary"
-                                className="text-[9px] h-3.5 px-1 font-mono bg-blue-500/10 text-blue-600 dark:text-blue-400 mt-1"
+                              <button
+                                type="button"
+                                onClick={() => setProofZoomUrl(order.paymentProofUrl)}
+                                className="mt-1 inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 hover:bg-blue-500/25 cursor-pointer"
+                                title="Klik untuk pratinjau bukti bayar"
                               >
-                                Ada Bukti Transfer
-                              </Badge>
+                                <ZoomIn className="h-2.5 w-2.5" />
+                                <span>Bukti Bayar</span>
+                              </button>
                             )}
                           </TableCell>
 
@@ -997,6 +1073,18 @@ export default function AdminOrdersPage() {
                           {/* Actions */}
                           <TableCell className="text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1">
+                              {order.status === "pending" && order.paymentProofUrl && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleQuickVerifyAndWa(order)}
+                                  disabled={verifyingId === order.id}
+                                  className="h-9 sm:h-7 px-2 text-[11px] font-mono gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                                  title="Verifikasi Lunas 1-Klik & Buka Template WA"
+                                >
+                                  <ShieldCheck className="h-3.5 w-3.5" />
+                                  <span className="hidden 2xl:inline">Verifikasi &amp; WA</span>
+                                </Button>
+                              )}
                               {/* Open Detail Modal */}
                               <Button
                                 variant="ghost"
@@ -1160,8 +1248,82 @@ export default function AdminOrdersPage() {
             </Button>
           </div>
 
-          {/* Customers Table */}
-          <div className="border border-[var(--vt-edge-lo-2)] rounded-xs bg-[var(--vt-edge-lo-1)] overflow-hidden">
+          {/* Customers Mobile Cards (<md) */}
+          <div className="md:hidden space-y-2.5">
+            {isLoading ? (
+              <div className="p-8 text-center border border-[var(--vt-edge-lo-2)] rounded-xs bg-[var(--vt-edge-lo-1)] text-xs font-mono text-[var(--vt-ink-mute)]">
+                <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-primary" />
+                Memuat data direktori pelanggan...
+              </div>
+            ) : filteredCustomers.length === 0 ? (
+              <div className="p-8 text-center border border-[var(--vt-edge-lo-2)] rounded-xs bg-[var(--vt-edge-lo-1)] text-xs font-mono text-[var(--vt-ink-mute)]">
+                <User className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                Belum ada data pelanggan yang tercatat.
+              </div>
+            ) : (
+              filteredCustomers.map((cust) => {
+                const tagsList = Array.isArray(cust.tags) ? cust.tags : [];
+                const lastOrderDate = cust.lastOrderAt
+                  ? new Date(cust.lastOrderAt).toLocaleDateString("id-ID", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })
+                  : "-";
+                return (
+                  <div
+                    key={`mc-${cust.id}`}
+                    className="p-3 border border-[var(--vt-edge-lo-2)] rounded-xs bg-[var(--vt-card)] space-y-2 font-mono text-xs"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-bold text-[var(--vt-ink)] truncate">{cust.name}</p>
+                        <p className="text-[10px] text-[var(--vt-ink-mute)]">
+                          Terakhir order: {lastOrderDate}
+                        </p>
+                      </div>
+                      <Badge variant="secondary" className="font-mono text-[10px] shrink-0">
+                        {cust.totalOrders}x order
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <a
+                        href={`https://wa.me/${cust.phone.replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-emerald-700 dark:text-emerald-400 font-bold hover:underline flex items-center gap-1"
+                      >
+                        <Phone className="h-3 w-3" />
+                        <span>{cust.phone}</span>
+                      </a>
+                      <span className="font-bold text-[var(--vt-ink)]">{formatIdr(cust.totalSpent)}</span>
+                    </div>
+                    {tagsList.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {tagsList.map((tag, idx) => (
+                          <Badge key={idx} variant="outline" className="text-[9px] h-4 px-1.5 font-mono">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenPromoChat(cust)}
+                      className="w-full min-h-[44px] h-9 text-xs font-mono gap-1.5 text-emerald-800 dark:text-emerald-300 font-semibold"
+                    >
+                      <MessageCircle className="h-3.5 w-3.5" />
+                      <span>Chat Promo WhatsApp</span>
+                    </Button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Customers Table (Desktop >=md) */}
+          <div className="hidden md:block border border-[var(--vt-edge-lo-2)] rounded-xs bg-[var(--vt-edge-lo-1)] overflow-hidden">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader className="bg-[var(--vt-edge-hi-2)]">
@@ -1556,6 +1718,37 @@ export default function AdminOrdersPage() {
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Proof Zoom Dialog */}
+      <Dialog open={Boolean(proofZoomUrl)} onOpenChange={(open) => !open && setProofZoomUrl(null)}>
+        <DialogContent className="max-w-xl font-mono text-xs">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-primary" />
+              <span>Pratinjau Bukti Transfer</span>
+            </DialogTitle>
+          </DialogHeader>
+          {proofZoomUrl && (
+            <div className="space-y-3">
+              <div className="max-h-[70vh] overflow-auto rounded border border-border bg-black/20 flex items-center justify-center p-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={proofZoomUrl} alt="Bukti Transfer Pembeli" className="max-h-[65vh] object-contain" />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" size="sm" asChild className="font-mono text-xs">
+                  <a href={proofZoomUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                    <span>Buka Tab Baru</span>
+                  </a>
+                </Button>
+                <Button size="sm" onClick={() => setProofZoomUrl(null)} className="font-mono text-xs">
+                  Tutup
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

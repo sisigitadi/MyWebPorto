@@ -1,7 +1,12 @@
 {
   "ci": {
     "collect": {
-      "url": ["https://sigitadi.id/", "https://sigitadi.id/proyek", "https://sigitadi.id/artikel"],
+      "url": [
+        "https://sigitadi.id/",
+        "https://sigitadi.id/proyek",
+        "https://sigitadi.id/artikel",
+        "https://sigitadi.id/toko"
+      ],
       "numberOfRuns": 2,
       "settings": {
         "onlyCategories": ["performance", "accessibility", "best-practices", "seo"],

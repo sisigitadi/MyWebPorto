@@ -204,9 +204,9 @@ export function ArticlesCatalogContent({ articles }: ArticlesCatalogContentProps
                         </span>
                         <Link
                           href={`/artikel/${article.slug}`}
-                          className="vt-btn vt-btn-pink px-3 py-1 text-[11px] font-bold inline-flex items-center gap-1 text-white shadow-sm"
+                          className="vt-btn vt-btn-pink px-3 py-1.5 sm:py-1 text-[11px] font-bold inline-flex items-center gap-1 text-white shadow-sm"
                         >
-                          <span style={{ color: "#1a1512" }}>{t.articles_read_more}</span>
+                          <span>{t.articles_read_more}</span>
                           <ArrowRight className="h-3 w-3" />
                         </Link>
                       </div>

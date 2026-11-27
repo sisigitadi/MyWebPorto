@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ShoppingCart,
@@ -12,7 +11,6 @@ import {
   QrCode,
   Building2,
   MessageCircle,
-  CheckCircle2,
   CreditCard,
   ExternalLink,
   Maximize2,
@@ -33,6 +31,7 @@ import { STORE_NAME, storeName, platformLabelFromUrl, isExternalStoreUrl } from 
 import { useTranslation } from "@/lib/i18n";
 import { useFeature } from "@/lib/features-context";
 import { OSWindow } from "@/components/public/os/os-window";
+import { recordRecentInvoice } from "@/components/public/order-tracker-modal";
 import { playOS } from "@/lib/os-sound";
 import { toast } from "sonner";
 import { getStoreConfig, createOrder, StoreConfig } from "@/lib/order-actions";
@@ -46,13 +45,14 @@ const CUSTOMER_STORAGE_KEY = "sigitos_customer_data_v1";
 
 export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
   const router = useRouter();
+  const enableStoreCart = useFeature("enable_store_cart");
   const { items, isOpen, setIsOpen, removeItem, updateQuantity, clearCart, totalCount, totalAmount, initialStep } = useCart();
   const { language } = useTranslation();
   const isEn = language === "en";
 
   const hasExternal = items.some(({ product }) => isExternalStoreUrl(product.ctaUrl));
 
-  const [step, setStep] = useState<"cart" | "checkout" | "done">("cart");
+  const [step, setStep] = useState<"cart" | "checkout">("cart");
   const [channel, setChannel] = useState<"whatsapp" | "external">("whatsapp");
   const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(initialStoreConfig || null);
   const [qrisZoomOpen, setQrisZoomOpen] = useState(false);
@@ -67,7 +67,6 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
     notes: "",
     paymentMethod: "qris",
   });
-  const [lastInvoice, setLastInvoice] = useState("");
   const [showTrackInput, setShowTrackInput] = useState(false);
   const [trackInvoiceInput, setTrackInvoiceInput] = useState("");
 
@@ -208,9 +207,7 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isOpen, qrisZoomOpen, handleClose]);
 
-  const enableStoreCart = useFeature("enable_store_cart");
-  if (!enableStoreCart) return null;
-  if (!isOpen) return null;
+  if (!enableStoreCart || !isOpen) return null;
 
   const handleProceedCheckout = () => {
     if (items.length === 0) return;
@@ -313,7 +310,7 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
       });
 
       const inv = orderRes.invoiceNumber || `INV-${Date.now().toString().slice(-6)}`;
-      setLastInvoice(inv);
+      recordRecentInvoice(inv);
 
       playOS("success");
       clearCart();
@@ -479,8 +476,8 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
                               <button
                                 type="button"
                                 onClick={() => updateQuantity(product.id, quantity - 1)}
-                                className="vt-btn vt-btn-chrome h-6 w-6 p-0 flex items-center justify-center cursor-pointer"
-                                aria-label="Kurangi jumlah"
+                                className="vt-btn vt-btn-chrome min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-7 sm:w-7 p-0 flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vt-cyan)]"
+                                aria-label={isEn ? "Decrease quantity" : "Kurangi jumlah"}
                               >
                                 <Minus className="h-3 w-3" />
                               </button>
@@ -488,8 +485,8 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
                               <button
                                 type="button"
                                 onClick={() => updateQuantity(product.id, quantity + 1)}
-                                className="vt-btn vt-btn-chrome h-6 w-6 p-0 flex items-center justify-center cursor-pointer"
-                                aria-label="Tambah jumlah"
+                                className="vt-btn vt-btn-chrome min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-7 sm:w-7 p-0 flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vt-cyan)]"
+                                aria-label={isEn ? "Increase quantity" : "Tambah jumlah"}
                               >
                                 <Plus className="h-3 w-3" />
                               </button>
@@ -670,7 +667,7 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
                             value={customer.name}
                             onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
                             placeholder={isEn ? "Your full name" : "Nama lengkap Anda"}
-                            className="w-full p-2 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)] rounded-xs text-xs outline-none"
+                            className="w-full p-2 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)] rounded-xs text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vt-cyan)] focus-visible:border-[var(--vt-cyan)]"
                           />
                         </div>
                         <div>
@@ -683,7 +680,7 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
                             value={customer.phone}
                             onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
                             placeholder="08xxxxxxxxxx / +62..."
-                            className="w-full p-2 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)] rounded-xs text-xs outline-none"
+                            className="w-full p-2 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)] rounded-xs text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vt-cyan)] focus-visible:border-[var(--vt-cyan)]"
                           />
                         </div>
                       </div>
@@ -701,7 +698,7 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
                             value={customer.email || ""}
                             onChange={(e) => setCustomer({ ...customer, email: e.target.value })}
                             placeholder="nama@domain.com"
-                            className="w-full p-2 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)] rounded-xs text-xs outline-none"
+                            className="w-full p-2 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)] rounded-xs text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vt-cyan)] focus-visible:border-[var(--vt-cyan)]"
                           />
                         </div>
                         <div>
@@ -713,7 +710,7 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
                             value={customer.notes || ""}
                             onChange={(e) => setCustomer({ ...customer, notes: e.target.value })}
                             placeholder={isEn ? "Project details or license requests" : "Catatan khusus atau spesifikasi lisensi"}
-                            className="w-full p-2 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)] rounded-xs text-xs outline-none"
+                            className="w-full p-2 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)] rounded-xs text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vt-cyan)] focus-visible:border-[var(--vt-cyan)]"
                           />
                         </div>
                       </div>
@@ -1070,55 +1067,6 @@ export function CartDialog({ profile, initialStoreConfig }: CartDialogProps) {
                   )}
                 </div>
               </form>
-            )}
-
-            {/* STEP 3: SUCCESS CONFIRMATION */}
-            {step === "done" && (
-              <div className="text-center py-6 space-y-4 font-mono text-xs animate-in zoom-in-95">
-                <div className="h-12 w-12 rounded-full bg-emerald-500/20 border border-emerald-500/40 mx-auto flex items-center justify-center">
-                  <CheckCircle2 className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold font-pixel">
-                    {isEn ? "ORDER CONFIRMED!" : "PESANAN BERHASIL DICATAT!"}
-                  </h3>
-                  <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
-                    {isEn ? "Invoice " : "Invoice resmi "}
-                    <span className="font-bold text-foreground font-mono">{lastInvoice}</span>
-                    {isEn
-                      ? " has been saved to database and forwarded to WhatsApp admin for direct verification."
-                      : " telah tersimpan aman di database dan diteruskan ke WhatsApp admin untuk verifikasi pembayaran."}
-                  </p>
-                </div>
-
-                {/* Tombol Lacak Pesanan Mandiri */}
-                {lastInvoice && (
-                  <div className="p-3 bg-muted/40 rounded border border-border max-w-sm mx-auto space-y-2">
-                    <p className="text-[11px] font-bold text-foreground flex items-center justify-center gap-1.5">
-                      <Receipt className="h-3.5 w-3.5 text-primary" />
-                      <span>{isEn ? "Track Your Order Online:" : "Lacak Status Pesanan Anda:"}</span>
-                    </p>
-                    <Link
-                      href={`/order/${lastInvoice}`}
-                      onClick={handleClose}
-                      className="vt-btn vt-btn-pink w-full py-2 px-3 text-xs font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer shadow-sm hover:brightness-110"
-                    >
-                      <span>{isEn ? "Open Order Tracking Page" : "Buka Halaman Pelacakan Pesanan"}</span>
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </div>
-                )}
-
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={handleClose}
-                    className="vt-btn vt-btn-chrome px-5 py-2 text-xs font-bold cursor-pointer"
-                  >
-                    {isEn ? "Done & Close" : "Selesai & Tutup"}
-                  </button>
-                </div>
-              </div>
             )}
           </OSWindow>
         </div>

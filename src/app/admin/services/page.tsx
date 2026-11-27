@@ -320,8 +320,85 @@ export default function AdminServicesPage() {
         </Button>
       </div>
 
-      {/* Services Table */}
-      <Card className="overflow-hidden">
+      {/* Mobile Cards View (<md) */}
+      <div className="md:hidden space-y-2.5">
+        {isLoading ? (
+          <Card className="p-8 text-center text-xs text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2 text-primary" />
+            Memuat data layanan...
+          </Card>
+        ) : services.length === 0 ? (
+          <Card className="p-8 text-center text-xs text-muted-foreground">
+            Belum ada layanan yang ditambahkan.
+          </Card>
+        ) : (
+          services.map((service, index) => (
+            <Card key={`ms-${service.id}`} className="p-3.5 space-y-2.5 text-xs">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-semibold text-foreground">{service.title}</p>
+                  {service.titleEn && (
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">EN: {service.titleEn}</p>
+                  )}
+                </div>
+                <Badge variant={service.published ? "secondary" : "outline"} className="text-[10px] shrink-0">
+                  {service.published ? "Aktif" : "Draf"}
+                </Badge>
+              </div>
+              <p className="text-[11px] text-muted-foreground line-clamp-2">{service.description}</p>
+              <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/60">
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    disabled={index === 0}
+                    onClick={() => handleMove(index, "up")}
+                    className="h-9 w-9"
+                    aria-label="Pindahkan ke atas"
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    disabled={index === services.length - 1}
+                    onClick={() => handleMove(index, "down")}
+                    className="h-9 w-9"
+                    aria-label="Pindahkan ke bawah"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openEditDialog(service)}
+                    className="h-9 px-3 text-xs gap-1"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    <span>Edit</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => openDeleteDialog(service)}
+                    className="h-9 w-9 text-rose-600 hover:text-rose-700"
+                    aria-label="Hapus Layanan"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Services Table (Desktop >=md) */}
+      <Card className="hidden md:block overflow-hidden">
         <div className="overflow-x-auto">
           <Table className="admin-table">
             <TableHeader>

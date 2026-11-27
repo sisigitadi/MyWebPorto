@@ -16,6 +16,7 @@
  * JANGAN impor file ini ke komponen client — ia membawa drizzle/fs/db ke
  * bundle browser. Komponen client membaca flag lewat features-context.tsx.
  */
+import { cache } from "react";
 import { getSetting, setSetting } from "@/lib/settings";
 import {
   DEFAULT_FEATURES,
@@ -33,10 +34,10 @@ const SETTING_KEY = "features";
  * Bila options?.preview === true, periksa apakah ada draf `features:draft`
  * terlebih dahulu (God Mode Fase 4).
  */
-export async function resolveFeatures(options?: { preview?: boolean }): Promise<Features> {
+const resolveFeaturesCached = cache(async (preview: boolean): Promise<Features> => {
   try {
     let stored: unknown = null;
-    if (options?.preview) {
+    if (preview) {
       stored = await getSetting<unknown>(`${SETTING_KEY}:draft`);
     }
     if (!stored) {
@@ -46,9 +47,6 @@ export async function resolveFeatures(options?: { preview?: boolean }): Promise<
       return { ...DEFAULT_FEATURES };
     }
 
-    // Copy default, lalu timpa HANYA key terdaftar dengan boolean eksplisit.
-    // Key asing tidak diiterasi (otomatis dibuang); value "yes"/1/null/objek
-    // gagal cek typeof boolean → default key itu dipertahankan.
     const src = stored as Record<string, unknown>;
     const out: Features = { ...DEFAULT_FEATURES };
     for (const key of FEATURE_KEYS) {
@@ -60,6 +58,10 @@ export async function resolveFeatures(options?: { preview?: boolean }): Promise<
     console.warn(`Gagal membaca setting "${SETTING_KEY}":`, err);
     return { ...DEFAULT_FEATURES };
   }
+});
+
+export async function resolveFeatures(options?: { preview?: boolean }): Promise<Features> {
+  return resolveFeaturesCached(Boolean(options?.preview));
 }
 
 /**

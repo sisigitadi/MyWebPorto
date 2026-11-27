@@ -1,10 +1,9 @@
-import fs from "fs";
-import path from "path";
 import { desc } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
 import { db, isDbConnected } from "@/db";
 import * as schema from "@/db/schema";
 import { verifyAdmin } from "./admin-auth";
+import { getLocalStore, updateLocalStore } from "./local-store";
 
 /**
  * Audit log admin: best-effort, TIDAK PERNAH melempar error.
@@ -31,12 +30,6 @@ export interface LogAuditInput {
 
 const MAX_LOCAL_AUDIT = 500;
 
-const isVercel = Boolean(process.env.VERCEL);
-const DATA_DIR = isVercel
-  ? path.join("/tmp", "my-web-porto-data")
-  : path.join(process.cwd(), "data");
-const DATA_FILE = path.join(DATA_DIR, "local-store.json");
-
 async function resolveActor(): Promise<string | null> {
   try {
     const { userId } = await auth();
@@ -48,11 +41,8 @@ async function resolveActor(): Promise<string | null> {
 
 function readLocalAudits(): AuditLogData[] {
   try {
-    if (!fs.existsSync(DATA_FILE)) return [];
-    const raw = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8")) as {
-      auditLogs?: AuditLogData[];
-    };
-    return Array.isArray(raw.auditLogs) ? raw.auditLogs : [];
+    const store = getLocalStore();
+    return Array.isArray(store?.auditLogs) ? (store.auditLogs as AuditLogData[]) : [];
   } catch {
     return [];
   }
@@ -60,19 +50,8 @@ function readLocalAudits(): AuditLogData[] {
 
 function appendLocalAudit(entry: AuditLogData): void {
   try {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-    let store: Record<string, unknown> = {};
-    try {
-      if (fs.existsSync(DATA_FILE)) {
-        store = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8")) as Record<string, unknown>;
-      }
-    } catch {
-      store = {};
-    }
-    const list = Array.isArray(store.auditLogs) ? (store.auditLogs as AuditLogData[]) : [];
-    list.push(entry);
-    store.auditLogs = list.slice(-MAX_LOCAL_AUDIT);
-    fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2));
+    const list = [...readLocalAudits(), entry].slice(-MAX_LOCAL_AUDIT);
+    updateLocalStore("auditLogs", list);
   } catch {
     // Audit tidak boleh mengganggu mutasi utama — abaikan diam-diam.
   }

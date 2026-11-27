@@ -13,8 +13,8 @@ test("beranda SigitOS tampil + tanggal dd/mm/yyyy", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("katalog proyek dan artikel dapat dibuka", async ({ page }) => {
-  for (const path of ["/proyek", "/artikel"]) {
+test("katalog proyek, artikel, dan toko dapat dibuka", async ({ page }) => {
+  for (const path of ["/proyek", "/artikel", "/toko"]) {
     const res = await page.goto(path);
     expect(res?.status()).toBe(200);
   }

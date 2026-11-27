@@ -32,7 +32,8 @@ export function OSMenubar({ profile }: OSMenubarProps) {
       <div className="max-w-7xl mx-auto px-1.5 sm:px-4 flex items-center justify-between h-10 sm:h-12 md:h-14 gap-1 sm:gap-2 md:gap-4 overflow-x-auto vt-menubar-scroll">
         {/* Left Side: Retro System OS Branding & Status */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-          <div
+          <button
+            type="button"
             onClick={() => {
               if (typeof window !== "undefined") {
                 const currentClicks = Number(sessionStorage.getItem("sigitos_clicks") || "0") + 1;
@@ -43,8 +44,8 @@ export function OSMenubar({ profile }: OSMenubarProps) {
                 }
               }
             }}
-            title="Klik 9 kali untuk membuka Visitor Dashboard"
-            className="group flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-[var(--vt-card)] vt-card-inset cursor-pointer hover:opacity-90 active:scale-95 transition-all duration-200"
+            aria-label="SIGIT-OS Workstation"
+            className="group flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-[var(--vt-card)] vt-card-inset cursor-pointer hover:opacity-90 active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vt-blue)]"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -60,7 +61,7 @@ export function OSMenubar({ profile }: OSMenubarProps) {
             <span className="hidden sm:inline font-mono text-[11px] md:text-xs font-bold text-[var(--vt-ink)] opacity-80">
               Workstation
             </span>
-          </div>
+          </button>
 
           <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-[var(--vt-paper)] vt-card-inset text-xs font-mono font-bold text-[var(--vt-ink)]">
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_5px_rgba(16,185,129,0.8)]" />

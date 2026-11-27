@@ -2,9 +2,7 @@
 
 import { useRef, useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
-  ArrowRight,
   ArrowUpDown,
   ArrowUpRight,
   Check,
@@ -26,9 +24,9 @@ import { getProductSlug } from "@/lib/product-link";
 import { useFeature } from "@/lib/features-context";
 import { OSWindow } from "@/components/public/os/os-window";
 import { ShareButton } from "@/components/public/share-button";
+import { OrderTrackerModal } from "@/components/public/order-tracker-modal";
 import { useCart } from "@/lib/cart-context";
-import { getOrderByInvoice, getStoreConfig, type StoreConfig } from "@/lib/order-actions";
-import type { Order } from "@/db/schema";
+import { getStoreConfig, type StoreConfig } from "@/lib/order-actions";
 import { formatIdr } from "@/lib/whatsapp-order";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -44,7 +42,6 @@ interface ProductsCatalogContentProps {
 }
 
 export function ProductsCatalogContent({ products: propProducts, profile }: ProductsCatalogContentProps) {
-  const router = useRouter();
   const { t, language } = useTranslation();
   const { addItem, buyNow, totalCount, setIsOpen } = useCart();
   const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
@@ -55,7 +52,7 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
       .then((cfg) => {
         if (mounted && cfg) setStoreConfig(cfg);
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       mounted = false;
     };
@@ -75,10 +72,6 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
 
   // State untuk modal Lacak_Pesanan.exe
   const [showTrackerModal, setShowTrackerModal] = useState(false);
-  const [trackerInvoiceInput, setTrackerInvoiceInput] = useState("");
-  const [trackerError, setTrackerError] = useState("");
-  const [isSearchingTracker, setIsSearchingTracker] = useState(false);
-  const [trackedOrder, setTrackedOrder] = useState<Order | null>(null);
 
   const handleCopyAddress = () => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
@@ -86,40 +79,6 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
       toast.success(isEn ? "URL address copied to clipboard!" : "Alamat URL berhasil disalin!");
-    }
-  };
-
-  const handleTrackOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const raw = trackerInvoiceInput.trim().toUpperCase();
-    if (!raw) {
-      setTrackerError(isEn ? "Please enter an invoice number." : "Masukkan nomor invoice.");
-      return;
-    }
-    const match = raw.match(/INV-\d{8}-[A-Za-z0-9]{4}/);
-    if (!match) {
-      setTrackerError(
-        isEn
-          ? "Invoice format should be INV-DDMMYYYY-XXXX (e.g. INV-13102026-0001)"
-          : "Format invoice harus berupa INV-DDMMYYYY-XXXX (contoh: INV-13102026-0001)"
-      );
-      return;
-    }
-    setTrackerError("");
-    setIsSearchingTracker(true);
-    try {
-      const order = await getOrderByInvoice(match[0]);
-      if (order) {
-        setTrackedOrder(order);
-      } else {
-        setShowTrackerModal(false);
-        router.push(`/order/${match[0]}`);
-      }
-    } catch {
-      setShowTrackerModal(false);
-      router.push(`/order/${match[0]}`);
-    } finally {
-      setIsSearchingTracker(false);
     }
   };
 
@@ -253,10 +212,7 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
 
               <button
                 type="button"
-                onClick={() => {
-                  setTrackerError("");
-                  setShowTrackerModal(true);
-                }}
+                onClick={() => setShowTrackerModal(true)}
                 className="vt-btn vt-btn-chrome px-2 sm:px-2.5 py-1 text-xs font-mono font-bold flex items-center gap-1 cursor-pointer shadow-sm hover:border-[var(--vt-cyan)]"
                 title={isEn ? "Track order status by invoice" : "Lacak status pesanan invoice"}
               >
@@ -269,9 +225,8 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
                 <button
                   type="button"
                   onClick={() => setIsOpen(true)}
-                  className={`group vt-btn vt-btn-pink px-2 sm:px-3 py-1 text-xs font-mono font-bold flex items-center gap-1 cursor-pointer shadow-md ${
-                    totalCount > 0 ? "animate-pulse ring-2 ring-primary" : ""
-                  }`}
+                  className={`group vt-btn vt-btn-pink px-2 sm:px-3 py-1 text-xs font-mono font-bold flex items-center gap-1 cursor-pointer shadow-md ${totalCount > 0 ? "animate-pulse ring-2 ring-primary" : ""
+                    }`}
                   title={isEn ? "Open Shopping Cart" : "Buka Keranjang Belanja"}
                 >
                   <ShoppingCart className="h-3.5 w-3.5" />
@@ -333,11 +288,10 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
                   <button
                     type="button"
                     onClick={() => setViewMode("grid")}
-                    className={`p-1.5 transition-colors cursor-pointer rounded-2xs ${
-                      viewMode === "grid"
-                        ? "bg-primary text-primary-foreground font-bold"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
+                    className={`p-1.5 transition-colors cursor-pointer rounded-2xs ${viewMode === "grid"
+                      ? "bg-primary text-primary-foreground font-bold"
+                      : "text-muted-foreground hover:text-foreground"
+                      }`}
                     title={isEn ? "Grid View" : "Tampilan Grid Visual"}
                     aria-label="Grid View"
                   >
@@ -346,11 +300,10 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
                   <button
                     type="button"
                     onClick={() => setViewMode("list")}
-                    className={`p-1.5 transition-colors cursor-pointer rounded-2xs ${
-                      viewMode === "list"
-                        ? "bg-primary text-primary-foreground font-bold"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
+                    className={`p-1.5 transition-colors cursor-pointer rounded-2xs ${viewMode === "list"
+                      ? "bg-primary text-primary-foreground font-bold"
+                      : "text-muted-foreground hover:text-foreground"
+                      }`}
                     title={isEn ? "Compact Explorer List View" : "Tampilan Berkas Padat (Explorer)"}
                     aria-label="List View"
                   >
@@ -367,11 +320,10 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
               <button
                 type="button"
                 onClick={() => setSelectedCategory("all")}
-                className={`px-2.5 py-1 text-[11px] font-bold rounded-xs cursor-pointer transition-colors shrink-0 ${
-                  selectedCategory === "all"
-                    ? "bg-primary text-primary-foreground font-extrabold shadow-xs"
-                    : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/60"
-                }`}
+                className={`px-2.5 py-1 text-[11px] font-bold rounded-xs cursor-pointer transition-colors shrink-0 ${selectedCategory === "all"
+                  ? "bg-primary text-primary-foreground font-extrabold shadow-xs"
+                  : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/60"
+                  }`}
               >
                 {isEn ? "All" : "Semua"}
               </button>
@@ -382,23 +334,22 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
                   catLower.includes("source code") || catLower.includes("template")
                     ? "Code"
                     : catLower.includes("akun") || catLower.includes("langganan") || catLower.includes("subscription")
-                    ? isEn
-                      ? "Services"
-                      : "Layanan"
-                    : catLower.includes("tool") || catLower.includes("otomasi")
-                    ? "Tools"
-                    : cat;
+                      ? isEn
+                        ? "Services"
+                        : "Layanan"
+                      : catLower.includes("tool") || catLower.includes("otomasi")
+                        ? "Tools"
+                        : cat;
 
                 return (
                   <button
                     key={cat}
                     type="button"
                     onClick={() => setSelectedCategory(cat)}
-                    className={`px-2.5 py-1 text-[11px] font-bold rounded-xs cursor-pointer transition-colors shrink-0 ${
-                      selectedCategory.toLowerCase() === cat.toLowerCase()
-                        ? "bg-primary text-primary-foreground font-extrabold shadow-xs"
-                        : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/60"
-                    }`}
+                    className={`px-2.5 py-1 text-[11px] font-bold rounded-xs cursor-pointer transition-colors shrink-0 ${selectedCategory.toLowerCase() === cat.toLowerCase()
+                      ? "bg-primary text-primary-foreground font-extrabold shadow-xs"
+                      : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/60"
+                      }`}
                   >
                     {conciseLabel}
                   </button>
@@ -415,8 +366,8 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
                 {allProducts.length === 0
                   ? t.products_empty
                   : isEn
-                  ? "No products matched your filter."
-                  : "Tidak ada produk yang cocok dengan pencarian."}
+                    ? "No products matched your filter."
+                    : "Tidak ada produk yang cocok dengan pencarian."}
               </p>
               <p className="text-xs text-muted-foreground">
                 {isEn ? "Try another keyword or select All Products." : "Coba kata kunci lain atau pilih Semua Produk."}
@@ -430,11 +381,11 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
               <table className="w-full text-left font-mono text-xs border-collapse">
                 <thead>
                   <tr className="bg-[var(--vt-chrome)] border-b-2 border-[var(--vt-edge-lo-2)] text-[10px] text-[var(--vt-ink-mute)] uppercase tracking-wider">
-                    <th className="py-2.5 px-3 font-bold">Produk / Item</th>
-                    <th className="py-2.5 px-3 font-bold hidden sm:table-cell">Kategori</th>
-                    <th className="py-2.5 px-3 font-bold">Harga</th>
+                    <th className="py-2.5 px-3 font-bold">{isEn ? "Product / Item" : "Produk / Item"}</th>
+                    <th className="py-2.5 px-3 font-bold hidden sm:table-cell">{isEn ? "Category" : "Kategori"}</th>
+                    <th className="py-2.5 px-3 font-bold">{isEn ? "Price" : "Harga"}</th>
                     <th className="py-2.5 px-3 font-bold hidden md:table-cell">Status</th>
-                    <th className="py-2.5 px-3 font-bold text-right">Aksi</th>
+                    <th className="py-2.5 px-3 font-bold text-right">{isEn ? "Action" : "Aksi"}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--vt-edge-hi-2)] text-[var(--vt-ink)]">
@@ -477,20 +428,28 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
                         </td>
                         <td className="py-2.5 px-3 whitespace-nowrap text-[10px] hidden md:table-cell">
                           {isOutOfStock ? (
-                            <span className="text-red-500 font-bold">Habis</span>
+                            <span className="text-red-500 font-bold">{isEn ? "Out of Stock" : "Habis"}</span>
                           ) : (
-                            <span className="text-emerald-600 dark:text-emerald-400 font-bold">Tersedia</span>
+                            <span className="text-emerald-600 dark:text-emerald-400 font-bold">{isEn ? "Available" : "Tersedia"}</span>
                           )}
                         </td>
                         <td className="py-2.5 px-3 text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-1.5">
-                            {enableStoreCart && (
+                            {enableStoreCart && !storeConfig?.whatsappOnlyMode && (
                               <button
                                 type="button"
                                 onClick={() => handleAddToCart(product)}
                                 disabled={isOutOfStock}
                                 className="vt-btn vt-btn-chrome px-2 py-1 text-[11px] font-bold cursor-pointer disabled:opacity-40 inline-flex items-center"
-                                title={justAddedId === product.id ? "Ditambahkan" : "Tambah ke Keranjang"}
+                                title={
+                                  justAddedId === product.id
+                                    ? isEn
+                                      ? "Added"
+                                      : "Ditambahkan"
+                                    : isEn
+                                      ? "Add to Cart"
+                                      : "Tambah ke Keranjang"
+                                }
                               >
                                 {justAddedId === product.id ? (
                                   <Check className="h-3 w-3 text-emerald-500" />
@@ -505,7 +464,7 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
                               disabled={isOutOfStock}
                               className="vt-btn vt-btn-pink px-2.5 py-1 text-[11px] font-bold cursor-pointer disabled:opacity-40"
                             >
-                              <span>Beli</span>
+                              <span>{isEn ? "Buy" : "Beli"}</span>
                             </button>
                             <Link
                               href={productUrl}
@@ -566,9 +525,9 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
 
                         <div>
                           <Link href={productUrl} className="group block">
-                            <h3 className="font-bold text-base font-display text-[var(--vt-ink)] group-hover:text-primary transition-colors line-clamp-1 mb-1">
+                            <h2 className="font-bold text-base font-display text-[var(--vt-ink)] group-hover:text-primary transition-colors line-clamp-1 mb-1">
                               {title}
-                            </h3>
+                            </h2>
                           </Link>
                           <p className="text-xs font-mono text-[var(--vt-ink-soft)] line-clamp-2 leading-relaxed">
                             {description}
@@ -581,12 +540,11 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
                           <span className="text-base font-bold font-pixel text-primary">
                             {formatIdr(product.priceAmount || 0)}
                           </span>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-2xs border ${
-                            isOutOfStock
-                              ? "text-red-500 border-red-500/40 bg-red-500/10"
-                              : "text-emerald-600 dark:text-emerald-400 border-emerald-500/40 bg-emerald-500/10"
-                          }`}>
-                            {isOutOfStock ? "Habis" : "Tersedia"}
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-2xs border ${isOutOfStock
+                            ? "text-red-500 border-red-500/40 bg-red-500/10"
+                            : "text-emerald-600 dark:text-emerald-400 border-emerald-500/40 bg-emerald-500/10"
+                            }`}>
+                            {isOutOfStock ? (isEn ? "Out of Stock" : "Habis") : (isEn ? "Available" : "Tersedia")}
                           </span>
                         </div>
 
@@ -634,133 +592,11 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
       </div>
 
       {/* Order Tracker Modal */}
-      {showTrackerModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs overflow-y-auto vt-scrollbar"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => {
-            setShowTrackerModal(false);
-            setTrackedOrder(null);
-            setTrackerError("");
-          }}
-        >
-          <div
-            className="w-full max-w-md sm:max-w-lg my-auto max-h-[90dvh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <OSWindow
-              title={trackedOrder ? `Lacak_${trackedOrder.invoiceNumber}.exe` : "Lacak_Pesanan.exe"}
-              icon={<Search className="h-4 w-4 text-[var(--vt-cyan)]" />}
-              statusText={
-                trackedOrder
-                  ? `STATUS: ${trackedOrder.status.toUpperCase()} // LIVE`
-                  : "INVOICE_TRACKER_V1.0"
-              }
-              onClose={() => {
-                setShowTrackerModal(false);
-                setTrackedOrder(null);
-                setTrackerError("");
-              }}
-              className="w-full flex-1 flex flex-col max-h-full overflow-hidden shadow-2xl vt-window-pop"
-              bodyClassName="p-4 sm:p-5 bg-[var(--vt-paper)] text-[var(--vt-ink)] font-mono text-xs space-y-4 flex-1 min-h-0 overflow-y-auto vt-scrollbar"
-            >
-              {!trackedOrder ? (
-                <form onSubmit={handleTrackOrder} className="space-y-3">
-                  <p className="font-bold text-sm mb-1 text-[var(--vt-ink)]">
-                    {isEn ? "Track Your Digital Order" : "Lacak Status Pesanan Digital"}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {isEn
-                      ? "Enter your invoice number received after checkout (e.g. INV-13102026-4821)."
-                      : "Masukkan nomor invoice yang Anda dapatkan setelah checkout (contoh: INV-13102026-4821)."}
-                  </p>
-                  <input
-                    type="text"
-                    value={trackerInvoiceInput}
-                    onChange={(e) => {
-                      setTrackerInvoiceInput(e.target.value);
-                      if (trackerError) setTrackerError("");
-                    }}
-                    placeholder="INV-DDMMYYYY-XXXX"
-                    autoFocus
-                    disabled={isSearchingTracker}
-                    className="w-full px-3 py-2 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)] rounded-xs font-mono font-bold text-xs uppercase focus:outline-none focus:border-[var(--vt-cyan)] placeholder:text-muted-foreground/60 disabled:opacity-60"
-                  />
-                  {trackerError && (
-                    <p className="text-red-500 font-bold text-[11px] mt-1">{trackerError}</p>
-                  )}
-                  <div className="flex gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowTrackerModal(false);
-                        setTrackerError("");
-                      }}
-                      disabled={isSearchingTracker}
-                      className="vt-btn vt-btn-chrome px-3 py-2 font-bold cursor-pointer"
-                    >
-                      {isEn ? "Cancel" : "Batal"}
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isSearchingTracker}
-                      className="vt-btn vt-btn-pink flex-1 py-2 px-4 font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50"
-                    >
-                      <Search className="h-3.5 w-3.5" />
-                      <span>
-                        {isSearchingTracker
-                          ? isEn
-                            ? "Searching..."
-                            : "Mencari..."
-                          : isEn
-                          ? "Check Order Status"
-                          : "Cek Status Pesanan"}
-                      </span>
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between border-b border-border pb-3">
-                    <div>
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">
-                        NOMOR INVOICE
-                      </span>
-                      <p className="text-base font-bold font-pixel text-[var(--vt-ink)]">
-                        {trackedOrder.invoiceNumber}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="pt-2 border-t border-border flex flex-col sm:flex-row gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setTrackedOrder(null);
-                        setTrackerError("");
-                      }}
-                      className="vt-btn vt-btn-chrome px-3 py-2 text-xs font-bold cursor-pointer"
-                    >
-                      Lacak Lain
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowTrackerModal(false);
-                        router.push(`/order/${trackedOrder.invoiceNumber}`);
-                      }}
-                      className="vt-btn vt-btn-pink flex-1 py-2 px-3 text-xs font-bold text-white flex items-center justify-center gap-1.5 cursor-pointer shadow-md hover:brightness-110"
-                    >
-                      <span>Buka Halaman Lengkap & Cetak (A4)</span>
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </OSWindow>
-          </div>
-        </div>
-      )}
+      <OrderTrackerModal
+        isOpen={showTrackerModal}
+        onClose={() => setShowTrackerModal(false)}
+        language={language}
+      />
     </div>
   );
 }

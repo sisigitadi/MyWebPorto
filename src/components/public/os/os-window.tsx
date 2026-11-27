@@ -96,11 +96,11 @@ export function OSWindow({
               >
                 <div className="flex items-center gap-2 min-w-0">
                   {icon && (
-                    <span className="shrink-0 flex items-center justify-center text-white/90">
+                    <span className="shrink-0 flex items-center justify-center text-[var(--vt-titlebar-ink)] opacity-90">
                       {renderIcon()}
                     </span>
                   )}
-                  <span className="font-mono text-xs font-semibold tracking-wide text-white truncate">
+                  <span className="font-mono text-xs font-semibold tracking-wide text-[var(--vt-titlebar-ink)] truncate">
                     {title}
                   </span>
                 </div>
@@ -203,11 +203,11 @@ export function OSWindow({
       >
         <div className="flex items-center gap-2 min-w-0">
           {icon && (
-            <span className="shrink-0 flex items-center justify-center text-white/90">
+            <span className="shrink-0 flex items-center justify-center text-[var(--vt-titlebar-ink)] opacity-90">
               {renderIcon()}
             </span>
           )}
-          <span className="font-mono text-xs font-semibold tracking-wide text-white truncate">
+          <span className="font-mono text-xs font-semibold tracking-wide text-[var(--vt-titlebar-ink)] truncate">
             {title}
           </span>
         </div>

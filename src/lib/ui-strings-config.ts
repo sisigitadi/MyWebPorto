@@ -13,6 +13,7 @@
  *  - data DB usang ditoleransi per-entry (dilewati),
  *  - input form admin ditolak keras (pesan error ditampilkan ke admin).
  */
+import { cache } from "react";
 import { getSetting, setSetting } from "@/lib/settings";
 import {
   EDITABLE_KEYS,
@@ -68,10 +69,10 @@ function normalizeLang(input: unknown): LangOverlay {
   return out;
 }
 
-export async function resolveUIStrings(options?: { preview?: boolean }): Promise<UIStrings> {
+const resolveUIStringsCached = cache(async (preview: boolean): Promise<UIStrings> => {
   try {
     let stored: unknown = null;
-    if (options?.preview) {
+    if (preview) {
       stored = await getSetting<unknown>(`${SETTING_KEY}:draft`);
     }
     if (!stored) {
@@ -89,6 +90,10 @@ export async function resolveUIStrings(options?: { preview?: boolean }): Promise
     console.warn(`Gagal membaca setting "${SETTING_KEY}":`, err);
     return { ...EMPTY, id: {}, en: {} };
   }
+});
+
+export async function resolveUIStrings(options?: { preview?: boolean }): Promise<UIStrings> {
+  return resolveUIStringsCached(Boolean(options?.preview));
 }
 
 /**

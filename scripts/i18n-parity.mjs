@@ -1,26 +1,30 @@
 /**
- * Cek paritas 3-arah i18n: interface Translations ↔ blok id ↔ blok en.
+ * Cek paritas 3-arah i18n:
+ * - interface Translations (src/lib/i18n.tsx)
+ * - blok id dan en (src/lib/translations.ts)
  * Jalankan: node scripts/i18n-parity.mjs
- *
- * Menggunakan brace-counting seimbang (bukan regex) agar tahan terhadap
- * objek bersarang dan nilai multibaris.
  */
 import fs from "node:fs";
 
-const src = fs.readFileSync(new URL("../src/lib/i18n.tsx", import.meta.url), "utf8");
+const i18nSrc = fs
+  .readFileSync(new URL("../src/lib/i18n.tsx", import.meta.url), "utf8")
+  .replace(/\r\n/g, "\n");
+const dictSrc = fs
+  .readFileSync(new URL("../src/lib/translations.ts", import.meta.url), "utf8")
+  .replace(/\r\n/g, "\n");
 
 /** Ambil isi badan objek yang dimulai pada posisi `{` pertama setelah `name`. */
-function extractBlock(name) {
-  const start = src.indexOf(name);
+function extractBlock(source, name) {
+  const start = source.indexOf(name);
   if (start === -1) return null;
-  let i = src.indexOf("{", start);
+  let i = source.indexOf("{", start);
   if (i === -1) return null;
   const begin = i + 1;
   let depth = 1;
   let inStr = null;
   i++;
-  while (i < src.length && depth > 0) {
-    const ch = src[i];
+  while (i < source.length && depth > 0) {
+    const ch = source[i];
     if (inStr) {
       if (ch === "\\") { i += 2; continue; }
       if (ch === inStr) inStr = null;
@@ -34,25 +38,25 @@ function extractBlock(name) {
     i++;
   }
   if (depth !== 0) return null;
-  return src.slice(begin, i - 1);
+  return source.slice(begin, i - 1);
 }
 
 const keys = (block) =>
   block === null
     ? []
-    : [...block.matchAll(/^(\s*)([A-Za-z_][A-Za-z0-9_]*)\s*:/gm)]
+    : [...block.matchAll(/^( *)([A-Za-z_][A-Za-z0-9_]*)\s*:/gm)]
         .filter((m) => m[1].length === 4) // hanya key level-atas (indent 4 spasi)
         .map((m) => m[2]);
 
-const ifaceMatch = src.match(/interface Translations \{([\s\S]*?)\n\}/);
+const ifaceMatch = i18nSrc.match(/(?:export\s+)?interface Translations \{([\s\S]*?)\n\}/);
 if (!ifaceMatch) {
-  console.error("✗ interface Translations tidak ditemukan");
+  console.error("✗ interface Translations tidak ditemukan di src/lib/i18n.tsx");
   process.exit(1);
 }
 const ifaceKeys = [...ifaceMatch[1].matchAll(/^  ([A-Za-z_][A-Za-z0-9_]*)\s*:/gm)].map((m) => m[1]);
 
-const idKeys = keys(extractBlock("id: {"));
-const enKeys = keys(extractBlock("en: {"));
+const idKeys = keys(extractBlock(dictSrc, "id: {"));
+const enKeys = keys(extractBlock(dictSrc, "en: {"));
 
 const count = (arr) => {
   const c = new Map();

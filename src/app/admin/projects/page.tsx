@@ -439,8 +439,104 @@ export default function AdminProjectsPage() {
         </div>
       </div>
 
-      {/* Projects Table */}
-      <Card className="overflow-hidden">
+      {/* Mobile Cards View (<md) */}
+      <div className="md:hidden space-y-2.5">
+        {isLoading ? (
+          <Card className="p-8 text-center text-xs text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2 text-primary" />
+            Memuat data proyek...
+          </Card>
+        ) : filteredProjects.length === 0 ? (
+          <Card className="p-8 text-center text-xs text-muted-foreground">
+            Tidak ada proyek yang cocok dengan kata kunci pencarian.
+          </Card>
+        ) : (
+          filteredProjects.map((project, index) => (
+            <Card key={`mp-${project.id}`} className="p-3.5 space-y-2.5 text-xs">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-semibold text-foreground line-clamp-2">{project.title}</p>
+                  <p className="font-mono text-[11px] text-primary/80 truncate mt-0.5">/proyek/{project.slug}</p>
+                </div>
+                <Badge variant={project.published ? "secondary" : "outline"} className="text-[10px] shrink-0">
+                  {project.published ? "Publik" : "Draf"}
+                </Badge>
+              </div>
+              {project.techStack.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {project.techStack.slice(0, 3).map((tech) => (
+                    <Badge key={tech} variant="secondary" className="text-[10px] py-0 px-1.5 font-normal">
+                      {tech}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/60">
+                {isReorderActive ? (
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      disabled={index === 0}
+                      onClick={() => handleMove(index, "up")}
+                      className="h-9 w-9"
+                      aria-label="Pindahkan ke atas"
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      disabled={index === projects.length - 1}
+                      onClick={() => handleMove(index, "down")}
+                      className="h-9 w-9"
+                      aria-label="Pindahkan ke bawah"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <span className="text-[11px] text-muted-foreground font-mono">
+                    #{project.order || index + 1}
+                  </span>
+                )}
+                <div className="flex items-center gap-1">
+                  <Button asChild variant="outline" size="icon" className="h-9 w-9">
+                    <Link href={`/proyek/${project.slug}`} target="_blank" aria-label="Lihat Pratinjau Publik">
+                      <Eye className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => openEditDialog(project)}
+                    className="h-9 w-9"
+                    aria-label="Sunting Proyek"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => openDeleteConfirmation(project)}
+                    className="h-9 w-9 text-rose-600 hover:text-rose-700"
+                    aria-label="Hapus Proyek"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Projects Table (Desktop >=md) */}
+      <Card className="hidden md:block overflow-hidden">
         <div className="overflow-x-auto">
           <Table className="admin-table">
             <TableHeader>
@@ -473,167 +569,165 @@ export default function AdminProjectsPage() {
                   const isDragging = draggedIndex === index;
                   const isOver = dragOverIndex === index;
                   return (
-                  <TableRow
-                    key={project.id}
-                    draggable={isReorderActive}
-                    onDragStart={(e) => handleDragStart(e, index)}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                    onDragEnd={handleDragEnd}
-                    onDrop={(e) => handleDrop(e, index)}
-                    className={`transition-colors ${
-                      isDragging ? "opacity-30 bg-muted/60" : "hover:bg-muted/20"
-                    } ${isOver && !isDragging ? "border-t-2 border-primary bg-primary/5" : ""}`}
-                  >
-                    <TableCell className="py-2.5">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <span
-                          className={`p-1 rounded ${
-                            isReorderActive
-                              ? "cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground hover:bg-muted"
-                              : "cursor-not-allowed text-muted-foreground/30"
-                          }`}
-                          title={
-                            isReorderActive
-                              ? "Tahan dan geser untuk memindahkan urutan"
-                              : "Hapus pencarian untuk menggeser posisi"
-                          }
-                        >
-                          <GripVertical className="h-4 w-4" />
-                        </span>
-                        <span className="font-mono text-xs text-muted-foreground font-semibold min-w-4 text-center">
-                          {isReorderActive ? index + 1 : (project.order || "-")}
-                        </span>
-                        {isReorderActive && (
-                          <div className="flex flex-col ml-0.5">
-                            <button
-                              type="button"
-                              onClick={() => handleMove(index, "up")}
-                              disabled={index === 0}
-                              className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5 transition-opacity"
-                              title="Pindahkan ke atas"
-                            >
-                              <ChevronUp className="h-3 w-3" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleMove(index, "down")}
-                              disabled={index === projects.length - 1}
-                              className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5 transition-opacity"
-                              title="Pindahkan ke bawah"
-                            >
-                              <ChevronDown className="h-3 w-3" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-3">
-                      <div className="relative h-10 w-16 rounded overflow-hidden bg-muted border border-border shrink-0">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={project.thumbnailUrl}
-                          alt={project.title}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    </TableCell>
-
-                    <TableCell className="py-3">
-                      <div className="space-y-1 max-w-md">
-                        <div className="font-semibold text-xs text-foreground flex items-center gap-2">
-                          <span>{project.title}</span>
-                          {project.titleEn && (
-                            <Badge variant="outline" className="text-[9px] py-0 px-1 font-normal text-muted-foreground">
-                              EN
-                            </Badge>
+                    <TableRow
+                      key={project.id}
+                      draggable={isReorderActive}
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragEnd={handleDragEnd}
+                      onDrop={(e) => handleDrop(e, index)}
+                      className={`transition-colors ${isDragging ? "opacity-30 bg-muted/60" : "hover:bg-muted/20"
+                        } ${isOver && !isDragging ? "border-t-2 border-primary bg-primary/5" : ""}`}
+                    >
+                      <TableCell className="py-2.5">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <span
+                            className={`p-1 rounded ${isReorderActive
+                                ? "cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground hover:bg-muted"
+                                : "cursor-not-allowed text-muted-foreground/30"
+                              }`}
+                            title={
+                              isReorderActive
+                                ? "Tahan dan geser untuk memindahkan urutan"
+                                : "Hapus pencarian untuk menggeser posisi"
+                            }
+                          >
+                            <GripVertical className="h-4 w-4" />
+                          </span>
+                          <span className="font-mono text-xs text-muted-foreground font-semibold min-w-4 text-center">
+                            {isReorderActive ? index + 1 : (project.order || "-")}
+                          </span>
+                          {isReorderActive && (
+                            <div className="flex flex-col ml-0.5">
+                              <button
+                                type="button"
+                                onClick={() => handleMove(index, "up")}
+                                disabled={index === 0}
+                                className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5 transition-opacity"
+                                title="Pindahkan ke atas"
+                              >
+                                <ChevronUp className="h-3 w-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleMove(index, "down")}
+                                disabled={index === projects.length - 1}
+                                className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5 transition-opacity"
+                                title="Pindahkan ke bawah"
+                              >
+                                <ChevronDown className="h-3 w-3" />
+                              </button>
+                            </div>
                           )}
                         </div>
-                        <p className="text-[11px] text-muted-foreground line-clamp-1">
-                          {project.summary}
-                        </p>
-                      </div>
-                    </TableCell>
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <div className="relative h-10 w-16 rounded overflow-hidden bg-muted border border-border shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={project.thumbnailUrl}
+                            alt={project.title}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      </TableCell>
 
-                    <TableCell className="py-3">
-                      <div className="flex flex-wrap gap-1 max-w-[200px]">
-                        {project.techStack.slice(0, 3).map((tech) => (
-                          <Badge
-                            key={tech}
-                            variant="secondary"
-                            className="text-[10px] py-0 px-1.5 font-normal bg-background"
-                          >
-                            {tech}
-                          </Badge>
-                        ))}
-                        {project.techStack.length > 3 && (
-                          <span className="text-[10px] text-muted-foreground self-center">
-                            +{project.techStack.length - 3}
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
+                      <TableCell className="py-3">
+                        <div className="space-y-1 max-w-md">
+                          <div className="font-semibold text-xs text-foreground flex items-center gap-2">
+                            <span>{project.title}</span>
+                            {project.titleEn && (
+                              <Badge variant="outline" className="text-[9px] py-0 px-1 font-normal text-muted-foreground">
+                                EN
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground line-clamp-1">
+                            {project.summary}
+                          </p>
+                        </div>
+                      </TableCell>
 
-                    <TableCell className="py-3 admin-cell-meta">
-                      <Badge
-                        variant={project.published ? "secondary" : "outline"}
-                        className="text-[10px] py-0 px-2 font-normal"
-                      >
-                        {project.published ? "Publik" : "Draf"}
-                      </Badge>
-                      {isScheduled(project) && (
-                        <Badge variant="outline" className="text-[10px] py-0 px-2 font-normal border-amber-500/50 text-amber-600 dark:text-amber-400">
-                          Terjadwal
+                      <TableCell className="py-3">
+                        <div className="flex flex-wrap gap-1 max-w-[200px]">
+                          {project.techStack.slice(0, 3).map((tech) => (
+                            <Badge
+                              key={tech}
+                              variant="secondary"
+                              className="text-[10px] py-0 px-1.5 font-normal bg-background"
+                            >
+                              {tech}
+                            </Badge>
+                          ))}
+                          {project.techStack.length > 3 && (
+                            <span className="text-[10px] text-muted-foreground self-center">
+                              +{project.techStack.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="py-3 admin-cell-meta">
+                        <Badge
+                          variant={project.published ? "secondary" : "outline"}
+                          className="text-[10px] py-0 px-2 font-normal"
+                        >
+                          {project.published ? "Publik" : "Draf"}
                         </Badge>
-                      )}
-                    </TableCell>
+                        {isScheduled(project) && (
+                          <Badge variant="outline" className="text-[10px] py-0 px-2 font-normal border-amber-500/50 text-amber-600 dark:text-amber-400">
+                            Terjadwal
+                          </Badge>
+                        )}
+                      </TableCell>
 
-                    <TableCell className="py-3">
-                      {project.featured ? (
-                        <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                          ★ Ya
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
+                      <TableCell className="py-3">
+                        {project.featured ? (
+                          <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                            ★ Ya
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
 
-                    <TableCell className="py-3 text-right admin-cell-actions">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          asChild
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                          title="Lihat Pratinjau Publik"
-                        >
-                          <Link href={`/proyek/${project.slug}`} target="_blank">
-                            <Eye className="h-3.5 w-3.5" />
-                          </Link>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditDialog(project)}
-                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                          title="Sunting Proyek"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openDeleteConfirmation(project)}
-                          className="h-8 w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                          title="Hapus Proyek"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
+                      <TableCell className="py-3 text-right admin-cell-actions">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            asChild
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            title="Lihat Pratinjau Publik"
+                          >
+                            <Link href={`/proyek/${project.slug}`} target="_blank">
+                              <Eye className="h-3.5 w-3.5" />
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(project)}
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            title="Sunting Proyek"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openDeleteConfirmation(project)}
+                            className="h-8 w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                            title="Hapus Proyek"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </div>
@@ -647,7 +741,7 @@ export default function AdminProjectsPage() {
               {isEditing ? "Sunting Data Proyek" : "Tambah Proyek Portofolio Baru"}
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Isi formulir dalam Bahasa Indonesia atau Inggris. Kolom English dibiarkan apa adanya saat disimpan — gunakan tombol Terjemahkan (ID → EN) bila ingin diisi otomatis.
+              Isi formulir dalam Bahasa Indonesia atau Inggris. Kolom English dibiarkan apa adanya saat disimpan; gunakan tombol Terjemahkan (ID → EN) bila ingin diisi otomatis.
             </DialogDescription>
           </DialogHeader>
 
@@ -903,7 +997,7 @@ export default function AdminProjectsPage() {
                 </label>
 
                 <label className="flex flex-col gap-1 text-xs font-medium text-foreground">
-                  <span>Jadwal tayang (opsional — kosong = langsung)</span>
+                  <span>Jadwal tayang (opsional, kosong = langsung)</span>
                   <input
                     type="datetime-local"
                     value={formPublishAt}

@@ -34,10 +34,12 @@ export default async function RootPublicLayout({
   const dm = await draftMode();
   const isPreview = dm.isEnabled;
 
-  const profile = await getProfile();
-  const storeConfig = await getStoreConfig();
-  const uiStrings = await resolveUIStrings({ preview: isPreview });
-  const features = await resolveFeatures({ preview: isPreview });
+  const [profile, storeConfig, uiStrings, features] = await Promise.all([
+    getProfile(),
+    getStoreConfig(),
+    resolveUIStrings({ preview: isPreview }),
+    resolveFeatures({ preview: isPreview }),
+  ]);
 
   // Mode pemeliharaan: seluruh situs publik diganti halaman ringan. Language
   // Provider tetap dipasang (MaintenanceNotice memakai useTranslation).

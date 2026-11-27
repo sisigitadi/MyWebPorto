@@ -1,9 +1,10 @@
 import { ProfileData } from "@/lib/dummy-data";
 import { safeJsonLd } from "@/lib/json-ld";
 import { SITE_BRAND } from "@/lib/seo-config";
+import { canonicalBaseUrl } from "@/lib/canonical-host";
 
 export function JsonLdSchema({ profile }: { profile: ProfileData }) {
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://sigitadi.id").replace(/\/$/, "");
+  const baseUrl = canonicalBaseUrl();
 
   const personId = `${baseUrl}/#sigitadi`;
   const websiteId = `${baseUrl}/#website`;
@@ -87,7 +88,7 @@ export function JsonLdSchema({ profile }: { profile: ProfileData }) {
     description: profile.bio,
     inLanguage: ["id-ID", "en-US"],
     dateCreated: "2024-01-01T00:00:00Z",
-    dateModified: new Date().toISOString(),
+    dateModified: (profile as { updatedAt?: string }).updatedAt || "2026-11-12T00:00:00Z",
   };
 
   // 3. WebSite Schema (Bing & Google Sitelinks & Brand Knowledge Graph)

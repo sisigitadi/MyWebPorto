@@ -464,16 +464,16 @@ export function RetroBot() {
       const navApp = detectNavIntent(text);
       const navMsg: Message | null = navApp
         ? {
-            id: uid(),
-            role: "assistant",
-            text: isInputEn
-              ? `I can open that page for you:`
-              : `Saya bisa bukakan halaman itu untuk Anda:`,
-            navTo: navApp,
-            navLabel: isInputEn
-              ? NAV_LABELS_EN[navApp]
-              : NAV_LABELS_ID[navApp],
-          }
+          id: uid(),
+          role: "assistant",
+          text: isInputEn
+            ? `I can open that page for you:`
+            : `Saya bisa bukakan halaman itu untuk Anda:`,
+          navTo: navApp,
+          navLabel: isInputEn
+            ? NAV_LABELS_EN[navApp]
+            : NAV_LABELS_ID[navApp],
+        }
         : null;
       setMessages((prev) => [
         ...prev,
@@ -508,13 +508,13 @@ export function RetroBot() {
             prev.map((m) =>
               m.id === botId
                 ? {
-                    ...m,
-                    text: isInputEn
-                      ? "Rate limit reached. Please wait a moment before asking again."
-                      : t.retrobot_rate_limited,
-                    streaming: false,
-                    source: "local",
-                  }
+                  ...m,
+                  text: isInputEn
+                    ? "Rate limit reached. Please wait a moment before asking again."
+                    : t.retrobot_rate_limited,
+                  streaming: false,
+                  source: "local",
+                }
                 : m
             )
           );
@@ -531,7 +531,7 @@ export function RetroBot() {
         const decoder = new TextDecoder();
         let rawStream = "";
 
-        for (;;) {
+        for (; ;) {
           const { done, value } = await reader.read();
           if (done) break;
           rawStream += decoder.decode(value, { stream: true });
@@ -598,12 +598,12 @@ export function RetroBot() {
             prev.map((m) =>
               m.id === botId
                 ? {
-                    ...m,
-                    text: isInputEn
-                      ? "I couldn't reach the AI assistant right now. Try asking about skills, projects, services, or contact."
-                      : t.retrobot_offline,
-                    source: "local",
-                  }
+                  ...m,
+                  text: isInputEn
+                    ? "I couldn't reach the AI assistant right now. Try asking about skills, projects, services, or contact."
+                    : t.retrobot_offline,
+                  source: "local",
+                }
                 : m
             )
           );
@@ -617,13 +617,13 @@ export function RetroBot() {
           prev.map((m) =>
             m.id === botId
               ? {
-                  ...m,
-                  text: isInputEn
-                    ? "I couldn't reach the AI assistant right now. Try asking about skills, projects, services, or contact."
-                    : t.retrobot_offline,
-                  streaming: false,
-                  source: "local",
-                }
+                ...m,
+                text: isInputEn
+                  ? "I couldn't reach the AI assistant right now. Try asking about skills, projects, services, or contact."
+                  : t.retrobot_offline,
+                streaming: false,
+                source: "local",
+              }
               : m
           )
         );
@@ -878,27 +878,26 @@ export function RetroBot() {
                   title={ttsOn ? (isEn ? "Mute Voice" : "Matikan Suara") : (isEn ? "Enable Voice" : "Aktifkan Suara")}
                   aria-label={ttsOn ? (isEn ? "Mute Voice" : "Matikan Suara") : (isEn ? "Enable Voice" : "Aktifkan Suara")}
                   aria-pressed={ttsOn}
-                  className={`vt-btn vt-btn-chrome h-6 w-6 p-0 flex items-center justify-center cursor-pointer ${
-                    ttsOn ? "text-emerald-400" : "text-white/60"
-                  }`}
+                  className={`vt-btn vt-btn-chrome h-9 w-9 sm:h-7 sm:w-7 p-0 flex items-center justify-center cursor-pointer ${ttsOn ? "text-emerald-400" : "text-white/60"
+                    }`}
                 >
-                  {ttsOn ? <Volume2 className="h-3 w-3" /> : <VolumeX className="h-3 w-3" />}
+                  {ttsOn ? <Volume2 className="h-3.5 w-3.5 sm:h-3 sm:w-3" /> : <VolumeX className="h-3.5 w-3.5 sm:h-3 sm:w-3" />}
                 </button>
                 <button
                   type="button"
                   onClick={clearChat}
                   title={t.retrobot_clear}
                   aria-label={t.retrobot_clear}
-                  className="vt-btn vt-btn-chrome h-6 w-6 p-0 flex items-center justify-center cursor-pointer"
+                  className="vt-btn vt-btn-chrome h-9 w-9 sm:h-7 sm:w-7 p-0 flex items-center justify-center cursor-pointer"
                 >
-                  <Trash2 className="h-3 w-3" />
+                  <Trash2 className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                 </button>
                 <button
                   type="button"
                   onClick={closePanel}
                   title={t.retrobot_close}
                   aria-label={t.retrobot_close}
-                  className="vt-btn vt-btn-chrome h-6 w-6 p-0 flex items-center justify-center cursor-pointer hover:text-red-500"
+                  className="vt-btn vt-btn-chrome h-9 w-9 sm:h-7 sm:w-7 p-0 flex items-center justify-center cursor-pointer hover:text-red-500"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -928,11 +927,10 @@ export function RetroBot() {
                   className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`min-w-0 max-w-[92%] px-2.5 py-1.5 text-[11px] leading-relaxed whitespace-pre-line break-words overflow-wrap-anywhere ${
-                      m.role === "user"
-                        ? "vt-btn vt-btn-blue text-white"
-                        : "vt-card-inset text-[var(--vt-ink)]"
-                    }`}
+                    className={`min-w-0 max-w-[92%] px-2.5 py-1.5 text-[11px] leading-relaxed whitespace-pre-line break-words overflow-wrap-anywhere ${m.role === "user"
+                      ? "vt-btn vt-btn-blue text-white"
+                      : "vt-card-inset text-[var(--vt-ink)]"
+                      }`}
                   >
                     {m.role === "user" ? (
                       m.text
@@ -1015,11 +1013,10 @@ export function RetroBot() {
             {/* Footer: source badge + disclaimer */}
             <div className="px-2 py-1 flex items-center justify-between gap-2 border-t border-[var(--vt-edge-lo-2)] bg-[var(--vt-chrome)]">
               <span
-                className={`font-mono text-[8px] font-bold px-1.5 py-0.5 ${
-                  source === "cloud"
-                    ? "bg-sky-500/20 text-sky-600 dark:text-sky-400 border border-sky-500/40"
-                    : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40"
-                }`}
+                className={`font-mono text-[8px] font-bold px-1.5 py-0.5 ${source === "cloud"
+                  ? "bg-sky-500/20 text-sky-600 dark:text-sky-400 border border-sky-500/40"
+                  : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40"
+                  }`}
               >
                 {source === "cloud" ? t.retrobot_source_cloud : t.retrobot_source_local}
               </span>
@@ -1126,9 +1123,8 @@ export function RetroBot() {
           // sentuh untuk scroll → pointerup tidak pernah sampai → panel tidak
           // terbuka di mobile (pointercancel menggantikannya).
           // Tanpa border/kotak (vt-card-inset) — avatar mengambang bebas.
-          className={`group relative p-1 cursor-pointer hover:scale-105 active:scale-95 transition-transform touch-action-none ${
-            nudge ? "rb-nudge" : ""
-          }`}
+          className={`group relative p-1 cursor-pointer hover:scale-105 active:scale-95 transition-transform touch-action-none ${nudge ? "rb-nudge" : ""
+            }`}
         >
           <RetroBotAvatar mood={mood} size={56} />
           {/* Cincin status online: ring lembut, bukan border keras */}

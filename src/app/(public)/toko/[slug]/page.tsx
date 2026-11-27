@@ -5,7 +5,7 @@ import { getProducts, getProfile } from "@/lib/actions";
 import { safeJsonLd } from "@/lib/json-ld";
 import { getProductSlug } from "@/lib/product-link";
 import { buildProductSchema } from "@/lib/product-schema";
-import { generateDynamicMetadata, localeAlternates, shareImage } from "@/lib/seo";
+import { localeAlternates, shareImage } from "@/lib/seo";
 import { SITE_BRAND } from "@/lib/seo-config";
 import { STORE_NAME } from "@/lib/store";
 import { canonicalBaseUrl } from "@/lib/canonical-host";
@@ -16,29 +16,26 @@ interface PageProps {
 
 // Optimasi Vercel Free: cache 24 jam di CDN Edge; pembaruan ditangani on-demand oleh revalidatePath.
 export const revalidate = 86400;
-// dynamicParams = true memungkinkan produk baru yang diterbitkan di database tetap dapat diakses publik via ISR on-demand
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
   const products = await getProducts();
-  return products.map((p) => ({ slug: getProductSlug(p) }));
+  return products.filter((p) => p.published).map((p) => ({ slug: getProductSlug(p) }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const baseUrl = canonicalBaseUrl();
   const products = await getProducts();
-  const product = products.find((p) => getProductSlug(p) === slug);
-  // Sebelumnya halaman produk tidak mendefinisikan alternates, sehingga
-  // kanonikal & hreflang-nya diambil dari layout = URL root (salah untuk
-  // produk). Kembalikan ke URL produk yang sebenarnya.
-  if (!product) return generateDynamicMetadata();
+  const product = products.find((p) => getProductSlug(p) === slug && p.published);
+  if (!product) {
+    return {
+      title: `Produk Tidak Ditemukan : ${STORE_NAME}`,
+      robots: { index: false, follow: false },
+    };
+  }
   const url = `${baseUrl}/toko/${slug}`;
   const description = product.description.slice(0, 160);
-  // og & twitter WAJIB didefinisikan berdua: keduanya meng-*replace* seluruh
-  // objek sejenis di layout. Sebelumnya halaman ini hanya mengisi openGraph —
-  // akibatnya twitter:image mewarisi kartu /opengraph-image (beda dari og:image)
-  // dan twitter:title mewarisi judul profil, bukan judul produk.
   const image = shareImage(product.thumbnailUrl, baseUrl, product.title);
   return {
     title: `${product.title} : ${STORE_NAME}`,
@@ -63,24 +60,53 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function ProductDetailPage({ params }: PageProps) {
   const { slug } = await params;
   const [products, profile] = await Promise.all([getProducts(), getProfile()]);
-  const product = products.find((p) => getProductSlug(p) === slug);
+  const product = products.find((p) => getProductSlug(p) === slug && p.published);
   if (!product) notFound();
   const baseUrl = canonicalBaseUrl();
+  const pageUrl = `${baseUrl}/toko/${slug}`;
 
   const otherProducts = products
     .filter((p) => p.id !== product.id && p.published)
     .slice(0, 3);
 
-  // Structured data produk: tanpa ini halaman ini nol JSON-LD sehingga Google
-  // tidak bisa menampilkan kartu produk (nama/harga/stok) di hasil pencarian.
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Beranda",
+        item: baseUrl,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Katalog Toko",
+        item: `${baseUrl}/toko`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: product.title,
+        item: pageUrl,
+      },
+    ],
+  };
+
   const productSchema = buildProductSchema({
     product,
     baseUrl,
-    pageUrl: `${baseUrl}/toko/${slug}`,
+    pageUrl,
     brandName: SITE_BRAND,
   });
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbSchema) }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd(productSchema) }}

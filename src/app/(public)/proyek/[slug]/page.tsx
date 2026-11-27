@@ -1,7 +1,14 @@
 import { notFound } from "next/navigation";
 import { getProjects, getProfile, getArticles } from "@/lib/actions";
 import { safeJsonLd } from "@/lib/json-ld";
-import { localeAlternates, shareImage, extractFaqFromContent, buildFaqPageSchema, formatSeoTitle } from "@/lib/seo";
+import {
+  localeAlternates,
+  shareImage,
+  absoluteImageUrl,
+  extractFaqFromContent,
+  buildFaqPageSchema,
+  formatSeoTitle,
+} from "@/lib/seo";
 import { canonicalBaseUrl } from "@/lib/canonical-host";
 import { ProjectDetailContent } from "@/components/public/project-detail-content";
 
@@ -93,7 +100,16 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, 3)
-    .map((item) => item.p);
+    .map(({ p }) => ({
+      id: p.id,
+      slug: p.slug,
+      title: p.title,
+      titleEn: p.titleEn,
+      summary: p.summary,
+      summaryEn: p.summaryEn,
+      thumbnailUrl: p.thumbnailUrl,
+      techStack: p.techStack,
+    }));
 
   // Artikel teknis terkait (cross-linking proyek -> artikel)
   const relatedArticles = articles
@@ -110,7 +126,14 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
     .filter((item) => item.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, 2)
-    .map((item) => item.a);
+    .map(({ a }) => ({
+      id: a.id,
+      slug: a.slug,
+      title: a.title,
+      titleEn: a.titleEn,
+      summary: a.summary,
+      summaryEn: a.summaryEn,
+    }));
 
   const breadcrumbSchema = {
     "@context": "https://schema.org",
@@ -137,6 +160,7 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
     ],
   };
 
+  const absImage = absoluteImageUrl(project.thumbnailUrl, baseUrl);
   const faqItems = extractFaqFromContent(project.description);
   const faqSchema = buildFaqPageSchema(faqItems);
 
@@ -146,7 +170,7 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
     name: project.title,
     headline: project.title,
     description: project.summary,
-    image: project.thumbnailUrl,
+    image: absImage,
     url: pageUrl,
     applicationCategory: "DeveloperApplication, WebApplication",
     operatingSystem: "Web Browser, Cross-Platform (Windows, macOS, Linux, Android, iOS)",
@@ -170,9 +194,10 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
     headline: `${project.title} - Studi Kasus & Arsitektur Sistem`,
     description: project.summary,
     articleBody: project.description,
-    image: project.thumbnailUrl,
+    image: absImage,
     url: pageUrl,
     datePublished: new Date(project.createdAt).toISOString(),
+    dateModified: new Date(project.updatedAt || project.createdAt).toISOString(),
     inLanguage: "id-ID",
     author: {
       "@type": "Person",

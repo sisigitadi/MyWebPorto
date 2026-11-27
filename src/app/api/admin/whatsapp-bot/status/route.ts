@@ -10,6 +10,12 @@ export const runtime = "nodejs";
 export async function GET() {
   try {
     await verifyAdmin();
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Akses ditolak";
+    return NextResponse.json({ success: false, error: message }, { status: 401 });
+  }
+
+  try {
     const state = getWABotState();
     const logs = await getWAChatLogs();
     const knowledge = await buildWhatsAppBotKnowledge();
@@ -22,7 +28,7 @@ export async function GET() {
       config: knowledge.config,
     });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Akses ditolak";
-    return NextResponse.json({ success: false, error: message }, { status: 401 });
+    const message = err instanceof Error ? err.message : "Gagal mengambil status bot";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

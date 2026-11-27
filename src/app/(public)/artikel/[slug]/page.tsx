@@ -2,7 +2,14 @@ import { notFound } from "next/navigation";
 import { getArticles, getProfile } from "@/lib/actions";
 import { resolveFeatures } from "@/lib/features-config";
 import { safeJsonLd } from "@/lib/json-ld";
-import { localeAlternates, shareImage, extractFaqFromContent, buildFaqPageSchema, formatSeoTitle } from "@/lib/seo";
+import {
+  localeAlternates,
+  shareImage,
+  absoluteImageUrl,
+  extractFaqFromContent,
+  buildFaqPageSchema,
+  formatSeoTitle,
+} from "@/lib/seo";
 import { canonicalBaseUrl } from "@/lib/canonical-host";
 import { ArticleDetailContent } from "@/components/public/article-detail-content";
 
@@ -108,7 +115,14 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
       return +new Date(y.article.createdAt) - +new Date(x.article.createdAt);
     })
     .slice(0, 3)
-    .map((x) => x.article);
+    .map(({ article: rel }) => ({
+      id: rel.id,
+      slug: rel.slug,
+      title: rel.title,
+      titleEn: rel.titleEn,
+      summary: rel.summary,
+      summaryEn: rel.summaryEn,
+    }));
 
   const breadcrumbSchema = {
     "@context": "https://schema.org",
@@ -144,7 +158,7 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
     headline: article.title,
     description: article.summary,
     articleBody: article.content,
-    image: article.imageUrl || `${baseUrl}/opengraph-image`,
+    image: absoluteImageUrl(article.imageUrl, baseUrl),
     url: pageUrl,
     datePublished: new Date(article.createdAt).toISOString(),
     dateModified: new Date(article.updatedAt || article.createdAt).toISOString(),

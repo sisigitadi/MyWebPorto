@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { sql, desc, eq } from "drizzle-orm";
+import { sql, desc, eq, and, gte } from "drizzle-orm";
 import { db, isDbConnected } from "@/db";
 import { visitorHits } from "@/db/schema";
 
@@ -257,10 +257,14 @@ export async function recordVisitorHit(
     const path = rawPath.startsWith("/") ? rawPath.slice(0, 500) : `/${rawPath.slice(0, 499)}`;
 
     // Ambil IP klien dari header reverse proxy
-    const forwarded = headers?.get("x-forwarded-for");
-    const realIp = headers?.get("x-real-ip");
     const cfIp = headers?.get("cf-connecting-ip");
-    const ip = forwarded ? forwarded.split(",")[0].trim() : realIp || cfIp || "127.0.0.1";
+    const realIp = headers?.get("x-real-ip");
+    const forwarded = headers?.get("x-forwarded-for");
+    const ip =
+      (cfIp && cfIp.trim()) ||
+      (realIp && realIp.trim()) ||
+      (forwarded ? forwarded.split(",")[0].trim() : "") ||
+      "127.0.0.1";
 
     const ipHash = hashIp(ip);
 
@@ -306,6 +310,11 @@ export async function recordVisitorHit(
     const network = payload.connection || (asn ? `AS${asn}` : null);
     const readableNetwork = formatReadableNetwork(network, asn);
 
+    const rawTimezone =
+      typeof payload.timezone === "string" && payload.timezone.trim()
+        ? payload.timezone.trim().slice(0, 100)
+        : headers?.get("x-vercel-ip-timezone")?.slice(0, 100) || null;
+
     if (isDbConnected) {
       await db.insert(visitorHits).values({
         ipHash,
@@ -318,7 +327,7 @@ export async function recordVisitorHit(
         country: country ? country.slice(0, 10) : null,
         city: city ? city.slice(0, 100) : null,
         region: region ? region.slice(0, 100) : null,
-        timezone: null,
+        timezone: rawTimezone,
         asn: asn ? String(asn).slice(0, 50) : null,
         network: readableNetwork ? readableNetwork.slice(0, 150) : null,
         isBot: parsed.isBot,
@@ -652,12 +661,16 @@ export async function getVisitorAnalytics(
       .sort((a, b) => b.hits - a.hits)
       .slice(0, 10);
 
-    // Query negara, kota, jaringan, dan lokasi lengkap secara teroptimasi (omits browser, os, perangkat, and timezone)
+    // Query negara, kota, jaringan, lokasi, perangkat, browser, OS, dan zona waktu
     const [
       countryQuery,
       citiesQuery,
       networksQuery,
       locationsQuery,
+      deviceQuery,
+      browserQuery,
+      osQuery,
+      timezoneQuery,
     ] = await Promise.all([
       db.execute<{ name: string | null; count: number }>(sql`
         SELECT
@@ -702,7 +715,63 @@ export async function getVisitorAnalytics(
         ORDER BY count DESC
         LIMIT 12
       `),
+      db.execute<{ name: string | null; count: number }>(sql`
+        SELECT
+          COALESCE(NULLIF(device, ''), 'unknown') AS name,
+          COUNT(*)::int AS count
+        FROM visitor_hits
+        WHERE ${botCondition} AND ${rangeCondition}
+        GROUP BY device
+        ORDER BY count DESC
+        LIMIT 8
+      `),
+      db.execute<{ name: string | null; count: number }>(sql`
+        SELECT
+          COALESCE(NULLIF(browser, ''), 'Unknown') AS name,
+          COUNT(*)::int AS count
+        FROM visitor_hits
+        WHERE ${botCondition} AND ${rangeCondition}
+        GROUP BY browser
+        ORDER BY count DESC
+        LIMIT 10
+      `),
+      db.execute<{ name: string | null; count: number }>(sql`
+        SELECT
+          COALESCE(NULLIF(os, ''), 'Unknown') AS name,
+          COUNT(*)::int AS count
+        FROM visitor_hits
+        WHERE ${botCondition} AND ${rangeCondition}
+        GROUP BY os
+        ORDER BY count DESC
+        LIMIT 10
+      `),
+      db.execute<{ name: string | null; count: number }>(sql`
+        SELECT
+          COALESCE(NULLIF(timezone, ''), 'Unknown') AS name,
+          COUNT(*)::int AS count
+        FROM visitor_hits
+        WHERE ${botCondition} AND ${rangeCondition} AND timezone IS NOT NULL AND timezone != ''
+        GROUP BY timezone
+        ORDER BY count DESC
+        LIMIT 10
+      `),
     ]);
+
+    const toDimensionStats = (q: unknown): DimensionStat[] =>
+      toRows<{ name: string | null; count: number }>(q).map((r) => ({
+        name: String(r.name || "Unknown"),
+        count: Number(r.count),
+        percentage: totalHits > 0 ? Math.round((Number(r.count) / totalHits) * 100) : 0,
+      }));
+
+    const deviceBreakdown = toDimensionStats(deviceQuery);
+    const browserBreakdown = toDimensionStats(browserQuery);
+    const osBreakdown = toDimensionStats(osQuery);
+    const timezoneBreakdown: TimezoneStat[] = toRows<{ name: string | null; count: number }>(timezoneQuery).map((r) => ({
+      timezone: String(r.name || "Unknown"),
+      count: Number(r.count),
+      percentage: totalHits > 0 ? Math.round((Number(r.count) / totalHits) * 100) : 0,
+    }));
 
     const countryBreakdown: CountryStat[] = toRows<{ name: string | null; count: number }>(countryQuery).map((c) => {
       const info = getCountryInfo(c.name);
@@ -784,11 +853,16 @@ export async function getVisitorAnalytics(
       unique: Number(r.unique),
     }));
 
-    // 5. Recent Visits Log
+    // 5. Recent Visits Log (respecting includeBots + date range)
+    const recentConditions = [];
+    if (!includeBots) recentConditions.push(eq(visitorHits.isBot, false));
+    if (since) recentConditions.push(gte(visitorHits.createdAt, since));
+    const recentWhere = recentConditions.length > 0 ? and(...recentConditions) : undefined;
+
     const recentRows = await db
       .select()
       .from(visitorHits)
-      .where(includeBots ? undefined : eq(visitorHits.isBot, false))
+      .where(recentWhere)
       .orderBy(desc(visitorHits.createdAt))
       .limit(30);
 
@@ -829,13 +903,13 @@ export async function getVisitorAnalytics(
       todayUniq,
       topPages,
       topReferrers,
-      deviceBreakdown: [],
-      browserBreakdown: [],
-      osBreakdown: [],
+      deviceBreakdown,
+      browserBreakdown,
+      osBreakdown,
       countryBreakdown,
       cityBreakdown,
       locationBreakdown,
-      timezoneBreakdown: [],
+      timezoneBreakdown,
       networkBreakdown,
       dailyTrend,
       recentVisits,

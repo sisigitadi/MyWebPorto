@@ -78,7 +78,7 @@ export function ProductDetailContent({
           }
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const isOutOfStock = product.stock === 0;
@@ -161,11 +161,11 @@ export function ProductDetailContent({
             </Button>
 
             {/* Cart Button */}
-            {enableStoreCart && (
+            {enableStoreCart && !storeConfig?.whatsappOnlyMode && (
               <button
                 type="button"
                 onClick={() => setIsOpen(true)}
-                className="vt-btn vt-btn-pink h-8 px-2 sm:px-3 text-xs font-mono font-bold flex items-center gap-1 cursor-pointer shadow-sm"
+                className="vt-btn vt-btn-pink min-h-[44px] sm:min-h-8 sm:h-8 px-2.5 sm:px-3 text-xs font-mono font-bold flex items-center gap-1 cursor-pointer shadow-sm"
               >
                 <ShoppingCart className="h-3.5 w-3.5" />
                 <span className="hidden xs:inline">{isEn ? "Cart" : "Keranjang"}</span>
@@ -220,9 +220,8 @@ export function ProductDetailContent({
                       key={idx}
                       type="button"
                       onClick={() => setActiveImage(img)}
-                      className={`h-14 w-14 rounded-xs overflow-hidden border-2 shrink-0 cursor-pointer transition-all ${
-                        activeImage === img ? "border-primary scale-105" : "border-border opacity-70 hover:opacity-100"
-                      }`}
+                      className={`h-14 w-14 rounded-xs overflow-hidden border-2 shrink-0 cursor-pointer transition-all ${activeImage === img ? "border-primary scale-105" : "border-border opacity-70 hover:opacity-100"
+                        }`}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={img} alt={`Thumb ${idx + 1}`} className="h-full w-full object-cover" />
@@ -242,19 +241,18 @@ export function ProductDetailContent({
                   </span>
                   {product.stock !== null && product.stock !== undefined && (
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-xs ${
-                        isOutOfStock
-                          ? "bg-red-500/20 text-red-500 border border-red-500/40"
-                          : product.stock <= 5
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-xs ${isOutOfStock
+                        ? "bg-red-500/20 text-red-500 border border-red-500/40"
+                        : product.stock <= 5
                           ? "bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40"
                           : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40"
-                      }`}
+                        }`}
                     >
                       {isOutOfStock
                         ? (isEn ? "OUT OF STOCK" : "STOK HABIS")
                         : product.stock <= 5
-                        ? (isEn ? `ONLY ${product.stock} LEFT` : `SISA ${product.stock} UNIT`)
-                        : (isEn ? `IN STOCK (${product.stock})` : `STOK TERSEDIA (${product.stock})`)}
+                          ? (isEn ? `ONLY ${product.stock} LEFT` : `SISA ${product.stock} UNIT`)
+                          : (isEn ? `IN STOCK (${product.stock})` : `STOK TERSEDIA (${product.stock})`)}
                     </span>
                   )}
                 </div>
@@ -313,12 +311,12 @@ export function ProductDetailContent({
                                 ? "USE REFERRAL LINK"
                                 : "GUNAKAN KODE REFERRAL"
                               : product.purchaseType === "affiliate"
-                              ? isEn
-                                ? "BUY VIA AFFILIATE"
-                                : "BELI VIA AFFILIATE"
-                              : isEn
-                              ? "BUY ON " + (platformLabelFromUrl(product.ctaUrl) || "PARTNER STORE")
-                              : "BELI DI " + (platformLabelFromUrl(product.ctaUrl) || "TOKO ONLINE"))}
+                                ? isEn
+                                  ? "BUY VIA AFFILIATE"
+                                  : "BELI VIA AFFILIATE"
+                                : isEn
+                                  ? "BUY ON " + (platformLabelFromUrl(product.ctaUrl) || "PARTNER STORE")
+                                  : "BELI DI " + (platformLabelFromUrl(product.ctaUrl) || "TOKO ONLINE"))}
                         </span>
                         <ArrowUpRight className="h-4 w-4" />
                       </a>
@@ -395,18 +393,20 @@ export function ProductDetailContent({
                             type="button"
                             onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                             disabled={quantity <= 1}
-                            className="vt-btn vt-btn-chrome h-6 w-6 p-0 flex items-center justify-center disabled:opacity-40 cursor-pointer"
+                            aria-label={isEn ? "Decrease quantity" : "Kurangi jumlah"}
+                            className="vt-btn vt-btn-chrome min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-7 sm:w-7 p-0 flex items-center justify-center disabled:opacity-40 cursor-pointer"
                           >
-                            <Minus className="h-2.5 w-2.5" />
+                            <Minus className="h-3 w-3" />
                           </button>
                           <span className="font-extrabold w-6 text-center text-xs">{quantity}</span>
                           <button
                             type="button"
                             onClick={() => setQuantity((q) => Math.min(maxStock, q + 1))}
                             disabled={quantity >= maxStock}
-                            className="vt-btn vt-btn-chrome h-6 w-6 p-0 flex items-center justify-center disabled:opacity-40 cursor-pointer"
+                            aria-label={isEn ? "Increase quantity" : "Tambah jumlah"}
+                            className="vt-btn vt-btn-chrome min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-7 sm:w-7 p-0 flex items-center justify-center disabled:opacity-40 cursor-pointer"
                           >
-                            <Plus className="h-2.5 w-2.5" />
+                            <Plus className="h-3 w-3" />
                           </button>
                         </div>
                       </div>
@@ -429,11 +429,10 @@ export function ProductDetailContent({
                         type="button"
                         disabled={isOutOfStock}
                         onClick={handleAddToCart}
-                        className={`vt-btn vt-btn-chrome w-full justify-center items-center gap-2 py-2 px-4 text-xs font-bold font-mono transition-all cursor-pointer shadow-xs ${
-                          justAdded
-                            ? "bg-emerald-600 text-white font-extrabold"
-                            : "text-foreground hover:bg-muted"
-                        }`}
+                        className={`vt-btn vt-btn-chrome w-full justify-center items-center gap-2 py-2 px-4 text-xs font-bold font-mono transition-all cursor-pointer shadow-xs ${justAdded
+                          ? "bg-emerald-600 text-white font-extrabold"
+                          : "text-foreground hover:bg-muted"
+                          }`}
                       >
                         {justAdded ? (
                           <>
@@ -481,13 +480,13 @@ export function ProductDetailContent({
                     ? product.purchaseType === "freelanceops"
                       ? "Seamless workspace brief & project milestone tracking."
                       : product.purchaseType === "whatsapp" || !product.purchaseType
-                      ? "Safe checkout with QRIS & verified confirmation."
-                      : "Secured transaction via official partner platform."
+                        ? "Safe checkout with QRIS & verified confirmation."
+                        : "Secured transaction via official partner platform."
                     : product.purchaseType === "freelanceops"
-                    ? "Diskusi brief, milestone, dan negosiasi aman melalui FreelanceOps."
-                    : product.purchaseType === "whatsapp" || !product.purchaseType
-                    ? "Pemesanan aman dengan verifikasi QRIS / Transfer & WhatsApp resmi."
-                    : "Transaksi aman melalui platform partner resmi."}
+                      ? "Diskusi brief, milestone, dan negosiasi aman melalui FreelanceOps."
+                      : product.purchaseType === "whatsapp" || !product.purchaseType
+                        ? "Pemesanan aman dengan verifikasi QRIS / Transfer & WhatsApp resmi."
+                        : "Transaksi aman melalui platform partner resmi."}
                 </span>
               </div>
             </div>
@@ -544,26 +543,57 @@ export function ProductDetailContent({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          {product.purchaseType === "freelanceops" ? (
-            <a
-              href={buildFreelanceOpsBriefWhatsAppUrl(adminPhone, product, undefined, isEn ? "en" : "id")}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="vt-btn vt-btn-chrome h-9 px-3 text-xs font-bold font-mono text-primary flex items-center gap-1.5 cursor-pointer shadow-xs"
-            >
-              <Briefcase className="h-3.5 w-3.5" />
-              <span>{isEn ? "BRIEF PROJECT" : "KONSULTASI"}</span>
-            </a>
-          ) : product.purchaseType === "external" && product.ctaUrl ? (
+          {(product.purchaseType === "referral" ||
+            product.purchaseType === "affiliate" ||
+            product.purchaseType === "external") &&
+            product.ctaUrl ? (
             <a
               href={product.ctaUrl}
               target="_blank"
-              rel="noopener noreferrer"
-              className="vt-btn vt-btn-pink h-9 px-3 text-xs font-bold font-mono text-white flex items-center gap-1.5 cursor-pointer shadow-md"
+              rel="noopener noreferrer nofollow"
+              className="vt-btn vt-btn-pink min-h-[44px] px-3.5 text-xs font-bold font-mono text-white flex items-center gap-1.5 cursor-pointer shadow-md"
             >
-              <span>{isEn ? "BUY NOW" : "BELI"}</span>
+              <span>
+                {product.customButtonLabel ||
+                  (product.purchaseType === "referral"
+                    ? isEn
+                      ? "USE REFERRAL"
+                      : "PAKAI REFERRAL"
+                    : product.purchaseType === "affiliate"
+                      ? isEn
+                        ? "BUY AFFILIATE"
+                        : "BELI AFFILIATE"
+                      : isEn
+                        ? "BUY NOW"
+                        : "BELI")}
+              </span>
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
+          ) : product.purchaseType === "freelanceops" ? (
+            <a
+              href={product.ctaUrl || "https://freelanceops.sigitadi.id/"}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="vt-btn vt-btn-pink min-h-[44px] px-3.5 text-xs font-bold font-mono text-white flex items-center gap-1.5 cursor-pointer shadow-md"
+            >
+              <Briefcase className="h-3.5 w-3.5" />
+              <span>{product.customButtonLabel || (isEn ? "START PROJECT" : "MULAI PROYEK")}</span>
+            </a>
+          ) : product.purchaseType === "whatsapp_custom" || storeConfig?.whatsappOnlyMode ? (
+            adminPhone ? (
+              <a
+                href={buildSingleProductWhatsAppUrl(adminPhone, product, isEn ? "en" : "id")}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="vt-btn vt-btn-pink min-h-[44px] px-3.5 text-xs font-bold font-mono text-white flex items-center gap-1.5 cursor-pointer shadow-md"
+              >
+                <MessageCircle className="h-3.5 w-3.5" />
+                <span>
+                  {product.customButtonLabel ||
+                    (isEn ? "ORDER VIA WA" : "PESAN VIA WA")}
+                </span>
+              </a>
+            ) : null
           ) : (
             <>
               {enableStoreCart && (
@@ -571,9 +601,8 @@ export function ProductDetailContent({
                   type="button"
                   disabled={isOutOfStock}
                   onClick={handleAddToCart}
-                  className={`vt-btn vt-btn-chrome h-9 px-2.5 text-xs font-bold font-mono flex items-center justify-center cursor-pointer shadow-xs ${
-                    justAdded ? "bg-emerald-600 text-white" : ""
-                  }`}
+                  className={`vt-btn vt-btn-chrome min-h-[44px] min-w-[44px] px-2.5 text-xs font-bold font-mono flex items-center justify-center cursor-pointer shadow-xs ${justAdded ? "bg-emerald-600 text-white" : ""
+                    }`}
                   aria-label={isEn ? "Add to cart" : "Tambah ke keranjang"}
                 >
                   {justAdded ? <Check className="h-4 w-4 text-white" /> : <ShoppingCart className="h-4 w-4" />}
@@ -583,7 +612,7 @@ export function ProductDetailContent({
                 type="button"
                 disabled={isOutOfStock}
                 onClick={() => buyNow(product)}
-                className="vt-btn vt-btn-pink h-9 px-3.5 text-xs font-bold font-mono text-white flex items-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50"
+                className="vt-btn vt-btn-pink min-h-[44px] px-3.5 text-xs font-bold font-mono text-white flex items-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50"
               >
                 <Zap className="h-3.5 w-3.5" />
                 <span>{isEn ? "BUY NOW" : "BELI"}</span>

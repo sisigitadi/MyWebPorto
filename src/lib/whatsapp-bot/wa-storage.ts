@@ -1,9 +1,34 @@
+import { z } from "zod";
 import { getSetting, setSetting } from "@/lib/settings";
+import { ValidationError } from "@/lib/error-utils";
 import type { WABotConfig, WAChatLogItem, WAKnowledgeFAQ } from "./wa-types";
 
 const SETTING_CONFIG_KEY = "whatsapp_bot_config";
 const SETTING_LOGS_KEY = "whatsapp_bot_logs";
 const MAX_LOGS = 50;
+
+const FAQItemSchema = z.object({
+  id: z.string().min(1).max(100),
+  question: z.string().min(1).max(500),
+  answer: z.string().min(1).max(3000),
+  category: z.enum(["umum", "produk", "jasa", "pembayaran", "garansi"]),
+  enabled: z.boolean(),
+  updatedAt: z.string().optional().default(() => new Date().toISOString()),
+});
+
+const WABotConfigUpdateSchema = z.object({
+  enabled: z.boolean().optional(),
+  autoReply: z.boolean().optional(),
+  botName: z.string().trim().min(1, "Nama bot wajib diisi").max(80).optional(),
+  personaPrompt: z.string().trim().max(4000).optional(),
+  businessSOP: z.string().trim().max(4000).optional(),
+  adminExclusions: z.array(z.string().trim().max(40)).max(50).optional(),
+  delaySeconds: z.number().min(0).max(30).optional(),
+  faqs: z.array(FAQItemSchema).max(100).optional(),
+});
+
+// Serializes concurrent log mutations so two simultaneous messages don't drop entries.
+let logWriteQueue: Promise<void> = Promise.resolve();
 
 export const DEFAULT_FAQS: WAKnowledgeFAQ[] = [
   {
@@ -81,11 +106,17 @@ export async function getWABotConfig(): Promise<WABotConfig> {
 export async function saveWABotConfig(
   update: Partial<WABotConfig>
 ): Promise<WABotConfig> {
+  const parsed = WABotConfigUpdateSchema.safeParse(update);
+  if (!parsed.success) {
+    throw new ValidationError(
+      parsed.error.issues[0]?.message || "Konfigurasi WhatsApp Bot tidak valid."
+    );
+  }
   const current = await getWABotConfig();
   const merged: WABotConfig = {
     ...current,
-    ...update,
-    faqs: update.faqs || current.faqs,
+    ...parsed.data,
+    faqs: parsed.data.faqs || current.faqs,
   };
   await setSetting(SETTING_CONFIG_KEY, merged);
   return merged;
@@ -100,23 +131,31 @@ export async function getWAChatLogs(): Promise<WAChatLogItem[]> {
   }
 }
 
-export async function appendWAChatLog(
+export function appendWAChatLog(
   item: Omit<WAChatLogItem, "id" | "timestamp">
 ): Promise<void> {
-  try {
-    const logs = await getWAChatLogs();
-    const newItem: WAChatLogItem = {
-      ...item,
-      id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      timestamp: new Date().toISOString(),
-    };
-    const updated = [newItem, ...logs].slice(0, MAX_LOGS);
-    await setSetting(SETTING_LOGS_KEY, updated);
-  } catch (err) {
-    console.error("[wa-storage] Failed to append chat log:", err);
-  }
+  const run = async () => {
+    try {
+      const logs = await getWAChatLogs();
+      const newItem: WAChatLogItem = {
+        ...item,
+        id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        timestamp: new Date().toISOString(),
+      };
+      const updated = [newItem, ...logs].slice(0, MAX_LOGS);
+      await setSetting(SETTING_LOGS_KEY, updated);
+    } catch (err) {
+      console.error("[wa-storage] Failed to append chat log:", err);
+    }
+  };
+  logWriteQueue = logWriteQueue.then(run, run);
+  return logWriteQueue;
 }
 
 export async function clearWAChatLogs(): Promise<void> {
-  await setSetting(SETTING_LOGS_KEY, []);
+  const run = async () => {
+    await setSetting(SETTING_LOGS_KEY, []);
+  };
+  logWriteQueue = logWriteQueue.then(run, run);
+  return logWriteQueue;
 }

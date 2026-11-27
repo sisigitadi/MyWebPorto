@@ -21,10 +21,19 @@ import { FormattedText } from "@/components/public/formatted-text";
 import { ArticleData, ProfileData } from "@/lib/dummy-data";
 import { prefillContact, CONTACT_SECTION_HREF } from "@/lib/contact-link";
 import { ShareButton } from "@/components/public/share-button";
+export interface RelatedArticlePreview {
+  id: string;
+  slug: string;
+  title: string;
+  titleEn?: string | null;
+  summary?: string | null;
+  summaryEn?: string | null;
+}
+
 interface ArticleDetailContentProps {
   article: ArticleData;
   profile: ProfileData;
-  relatedArticles?: ArticleData[];
+  relatedArticles?: RelatedArticlePreview[];
 }
 
 export function ArticleDetailContent({

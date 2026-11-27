@@ -22,7 +22,9 @@
   --vt-violet: #7c5cff;
   --vt-navy: #0a0a5e;
   --vt-pink: #ff3e9a;
+  --vt-pink-btn: #c9186e;
   --vt-teal: #22c7a9;
+  --vt-cyan: #0891b2;
   --vt-crt: #37ff9b;
   --vt-amber: #ffd400;
   --vt-edge-hi: #ffffff;
@@ -73,7 +75,9 @@
   --vt-violet: #a48bff;
   --vt-navy: #101040;
   --vt-pink: #ff4da3;
+  --vt-pink-btn: #c2186a;
   --vt-teal: #2bd9b9;
+  --vt-cyan: #22d3ee;
   --vt-crt: #37ff9b;
   --vt-amber: #ffd400;
   --vt-edge-hi: #3a3a46;
@@ -119,7 +123,9 @@
   --vt-violet: #bb9af7;
   --vt-navy: #24283b;
   --vt-pink: #f7768e;
+  --vt-pink-btn: #bd2b4c;
   --vt-teal: #73daca;
+  --vt-cyan: #7dcfff;
   --vt-crt: #9ece6a;
   --vt-amber: #e0af68;
   --vt-edge-hi: #2f334d;
@@ -164,7 +170,9 @@
   --vt-violet: #c586c0;
   --vt-navy: #252526;
   --vt-pink: #007acc;
+  --vt-pink-btn: #006bb3;
   --vt-teal: #4ec9b0;
+  --vt-cyan: #4fc1ff;
   --vt-crt: #6a9955;
   --vt-amber: #dcdcaa;
   --vt-edge-hi: #333333;
@@ -452,18 +460,13 @@ body {
 .vt-btn-pink {
   position: relative;
   overflow: hidden;
-  background: var(--vt-pink);
+  background: var(--vt-pink-btn);
   color: #ffffff;
   font-weight: 700;
   box-shadow:
     inset 1px 1px #ffffffaa,
     inset -2px -2px #00000055,
     4px 4px 0 rgba(0, 0, 0, 0.45);
-}
-
-.vt-btn-pink,
-.vt-btn-pink span {
-  color: #ffffff;
 }
 
 .vt-btn-pink:hover {

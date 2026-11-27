@@ -3,7 +3,18 @@
 //
 // NOTE: This file must NOT have a "use server" directive — it is a pure
 // sync helper consumed by server actions in actions.ts.
+
+export class ValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ValidationError";
+  }
+}
+
 export function sanitizeError(err: unknown): string {
+  if (err instanceof ValidationError) {
+    return (err.message || "Input tidak valid.").slice(0, 500);
+  }
   if (err instanceof Error) {
     const msg = err.message || "";
     // Allowlist pesan aman yang memang ditujukan untuk user
@@ -23,6 +34,20 @@ export function sanitizeError(err: unknown): string {
       "Ukuran file",
       "Isi berkas",
       "Tidak ada file",
+      "Stok",
+      "tidak mencukupi",
+      "sudah habis",
+      "hanya tersisa",
+      "tidak ditemukan",
+      "tidak tersedia",
+      "tidak valid",
+      "tidak dikenal",
+      "Minimal",
+      "wajib",
+      "Tidak ada draf",
+      "Data riwayat",
+      "Durasi",
+      "Harap",
     ];
     if (safeMessages.some((safe) => msg.includes(safe))) {
       // Potong agar tidak bocor stack panjang walau mengandung keyword aman
