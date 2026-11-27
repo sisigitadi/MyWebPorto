@@ -525,9 +525,9 @@ export function ProductsCatalogContent({ products: propProducts, profile }: Prod
 
                         <div>
                           <Link href={productUrl} className="group block">
-                            <h3 className="font-bold text-base font-display text-[var(--vt-ink)] group-hover:text-primary transition-colors line-clamp-1 mb-1">
+                            <h2 className="font-bold text-base font-display text-[var(--vt-ink)] group-hover:text-primary transition-colors line-clamp-1 mb-1">
                               {title}
-                            </h3>
+                            </h2>
                           </Link>
                           <p className="text-xs font-mono text-[var(--vt-ink-soft)] line-clamp-2 leading-relaxed">
                             {description}
