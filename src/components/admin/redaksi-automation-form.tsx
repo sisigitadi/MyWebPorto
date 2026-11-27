@@ -300,9 +300,9 @@ export function RedaksiAutomationForm({ initial, cloudProvider }: RedaksiAutomat
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Draf otomatis ditandai tayang-langsung. Tetap harus Anda tinjau &amp;
-              simpan di Redaksi — ini hanya menentukan status publish-nya. Tanpa
-              ini, draf tersimpan sebagai draft biasa.
+              Draf otomatis ditandai tayang langsung. Tetap harus Anda tinjau dan
+              simpan di Redaksi, opsi ini hanya menentukan status publish. Tanpa
+              opsi ini, draf tersimpan sebagai draft biasa.
             </p>
           </div>
           <Toggle
@@ -330,8 +330,8 @@ export function RedaksiAutomationForm({ initial, cloudProvider }: RedaksiAutomat
             disabled={pending}
             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
           >
-            <option value="manual">Manual — draf siar saat dijalankan</option>
-            <option value="scheduled">Terjadwal — tayang pada waktu yang ditentukan</option>
+            <option value="manual">Manual (draf siar saat dijalankan)</option>
+            <option value="scheduled">Terjadwal (tayang pada waktu yang ditentukan)</option>
           </select>
           {values.scheduleMode === "scheduled" && (
             <div className="space-y-1.5 pt-1">
@@ -380,7 +380,7 @@ export function RedaksiAutomationForm({ initial, cloudProvider }: RedaksiAutomat
           <h4 className="text-xs font-bold">Hasil Run Terakhir</h4>
           {runResult.map((r, i) => (
             <p key={i} className="text-[11px] font-mono">
-              {r.ok ? "✓" : "✗"} {r.type} — {r.topic}
+              {r.ok ? "✓" : "✗"} {r.type}: {r.topic}
               {r.error ? ` · ${r.error}` : ""}
             </p>
           ))}
@@ -419,8 +419,8 @@ export function RedaksiAutomationForm({ initial, cloudProvider }: RedaksiAutomat
 
       {cloudProvider === "off" && (
         <p className="text-[11px] text-amber-600 dark:text-amber-400">
-          Catatan: Cloud AI sedang OFF — menjalankan auto-tulis akan gagal sampai
-          provider diaktifkan di God Mode → Sistem &amp; Logs.
+          Catatan: Cloud AI sedang OFF. Menjalankan auto-tulis akan gagal sampai
+          provider diaktifkan di Kecerdasan &amp; Bot → Pengaturan Cloud AI.
         </p>
       )}
 
@@ -437,7 +437,7 @@ export function RedaksiAutomationForm({ initial, cloudProvider }: RedaksiAutomat
             </AlertDialogTitle>
             <AlertDialogDescription>
               {pendingAutoPublish === "upload"
-                ? "Draf hasil otomatis akan ditandai untuk tayang langsung begitu Anda menyimpannya di Redaksi. Pastikan Anda meninjau setiap draf sebelum simpan — konten AI bisa mengandung kesalahan halus."
+                ? "Draf hasil otomatis akan ditandai untuk tayang langsung begitu Anda menyimpannya di Redaksi. Pastikan Anda meninjau setiap draf sebelum menyimpan karena konten AI bisa mengandung kesalahan halus."
                 : "Draf hasil otomatis akan ditandai published dengan jadwal tayang. Konten akan otomatis muncul di situs publik saat waktunya tiba tanpa langkah tambahan dari Anda."}
             </AlertDialogDescription>
           </AlertDialogHeader>

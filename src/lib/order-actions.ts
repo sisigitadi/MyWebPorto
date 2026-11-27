@@ -2,10 +2,10 @@
 
 import { db, isDbConnected } from "@/db";
 import * as schema from "@/db/schema";
-import { eq, desc, sql, and, or, ilike, inArray } from "drizzle-orm";
+import { eq, desc, sql, and, or, ilike, inArray, isNull, lt } from "drizzle-orm";
 import { headers } from "next/headers";
 import { verifyAdmin } from "@/lib/admin-auth";
-import { sanitizeError } from "@/lib/error-utils";
+import { sanitizeError, ValidationError } from "@/lib/error-utils";
 import { logAudit } from "@/lib/audit";
 import { getProfile } from "@/lib/actions";
 import { parseLegacyBankInfo, normalizeBankAccounts, type BankAccountItem } from "@/lib/whatsapp-order";
@@ -160,8 +160,8 @@ export async function saveStoreConfig(data: Partial<StoreConfig>) {
     const activeBanks = updatedBankAccounts.filter((b) => b.isActive !== false);
     const legacyBankInfoText = activeBanks.length > 0
       ? activeBanks
-          .map((b) => `${b.bankName} ${b.accountNumber}${b.accountHolder ? ` a.n. ${b.accountHolder}` : ""}${b.notes ? ` (${b.notes})` : ""}`)
-          .join("\n")
+        .map((b) => `${b.bankName} ${b.accountNumber}${b.accountHolder ? ` a.n. ${b.accountHolder}` : ""}${b.notes ? ` (${b.notes})` : ""}`)
+        .join("\n")
       : "";
 
     try {
@@ -356,7 +356,7 @@ export async function createOrder(input: CreateOrderInput) {
             )
             .returning({ id: schema.products.id });
           if (updatedStock.length === 0) {
-            throw new Error(`Stok untuk produk "${dbProd.title}" tidak mencukupi.`);
+            throw new ValidationError(`Stok untuk produk "${dbProd.title}" tidak mencukupi.`);
           }
         }
       }
@@ -372,7 +372,7 @@ export async function createOrder(input: CreateOrderInput) {
           customerNotes: data.customerNotes?.trim() || null,
           items: authoritativeItems,
           totalAmount: authoritativeTotal,
-          currency: "IDR",
+          currency: data.currency || "IDR",
           paymentMethod: data.paymentMethod,
           paymentProofUrl: data.paymentProofUrl?.trim() || null,
           status: "pending",
@@ -495,14 +495,20 @@ export async function getOrders(filters: OrderFilterParams = {}) {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const list = await db.query.orders.findMany({
-      where: whereClause,
-      orderBy: [desc(schema.orders.createdAt)],
-      limit,
-      offset,
-    });
+    const [list, countRes] = await Promise.all([
+      db.query.orders.findMany({
+        where: whereClause,
+        orderBy: [desc(schema.orders.createdAt)],
+        limit,
+        offset,
+      }),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(schema.orders)
+        .where(whereClause),
+    ]);
 
-    return { success: true, orders: list, total: list.length };
+    return { success: true, orders: list, total: countRes[0]?.count ?? list.length };
   } catch (err) {
     return { success: false, error: sanitizeError(err), orders: [], total: 0 };
   }
@@ -553,34 +559,93 @@ export async function updateOrderStatus(
       existing.status === "completed";
     const isNowPaid =
       status === "paid" || status === "processing" || status === "completed";
+    const wasCancelled = existing.status === "cancelled";
+    const isNowCancelled = status === "cancelled";
+    const orderItems = Array.isArray(existing.items) ? existing.items : [];
+    const now = new Date();
 
-    await db
-      .update(schema.orders)
-      .set({
-        status,
-        adminNotes: adminNotes !== undefined ? adminNotes.trim() : existing.adminNotes,
-        projectUrl: projectUrl !== undefined ? projectUrl.trim() : existing.projectUrl,
-        updatedAt: new Date(),
-      })
-      .where(eq(schema.orders.id, orderId));
+    await db.transaction(async (tx) => {
+      if (!wasCancelled && isNowCancelled) {
+        // Kembalikan stok produk berbatas saat pesanan dibatalkan
+        for (const item of orderItems) {
+          if (!item.productId || !Number.isFinite(item.quantity) || item.quantity <= 0) continue;
+          await tx
+            .update(schema.products)
+            .set({
+              stock: sql`${schema.products.stock} + ${item.quantity}`,
+              updatedAt: now,
+            })
+            .where(
+              and(
+                eq(schema.products.id, item.productId),
+                sql`${schema.products.stock} IS NOT NULL`
+              )
+            );
+        }
+      } else if (wasCancelled && !isNowCancelled) {
+        // Reservasi ulang stok saat pesanan dibuka kembali dari cancelled
+        const ids = Array.from(new Set(orderItems.map((it) => it.productId).filter(Boolean)));
+        const prods = ids.length
+          ? await tx.select().from(schema.products).where(inArray(schema.products.id, ids))
+          : [];
+        const prodMap = new Map(prods.map((p) => [p.id, p]));
+        for (const item of orderItems) {
+          const prod = prodMap.get(item.productId);
+          if (prod && prod.stock !== null && prod.stock !== undefined && item.quantity > 0) {
+            const updated = await tx
+              .update(schema.products)
+              .set({
+                stock: sql`${schema.products.stock} - ${item.quantity}`,
+                updatedAt: now,
+              })
+              .where(
+                and(
+                  eq(schema.products.id, item.productId),
+                  sql`${schema.products.stock} >= ${item.quantity}`
+                )
+              )
+              .returning({ id: schema.products.id });
+            if (updated.length === 0) {
+              throw new ValidationError(
+                `Stok untuk produk "${prod.title}" tidak mencukupi untuk mengaktifkan kembali pesanan.`
+              );
+            }
+          }
+        }
+      }
 
-    // Akumulasikan totalSpent pelanggan saat pesanan berubah menjadi terbayar
-    if (!wasPaid && isNowPaid && existing.totalAmount > 0) {
+      await tx
+        .update(schema.orders)
+        .set({
+          status,
+          adminNotes: adminNotes !== undefined ? adminNotes.trim() : existing.adminNotes,
+          projectUrl: projectUrl !== undefined ? projectUrl.trim() : existing.projectUrl,
+          updatedAt: now,
+        })
+        .where(eq(schema.orders.id, orderId));
+
+      // Akumulasikan atau koreksi totalSpent pelanggan secara atomik
       const cleanPhone = existing.customerPhone.replace(/\D/g, "");
-      if (cleanPhone) {
-        try {
-          await db
+      if (cleanPhone && existing.totalAmount > 0) {
+        if (!wasPaid && isNowPaid) {
+          await tx
             .update(schema.customers)
             .set({
               totalSpent: sql`${schema.customers.totalSpent} + ${existing.totalAmount}`,
-              updatedAt: new Date(),
+              updatedAt: now,
             })
             .where(eq(schema.customers.phone, cleanPhone));
-        } catch (custErr) {
-          console.warn("[order-actions] update totalSpent gagal:", custErr);
+        } else if (wasPaid && !isNowPaid) {
+          await tx
+            .update(schema.customers)
+            .set({
+              totalSpent: sql`GREATEST(0, ${schema.customers.totalSpent} - ${existing.totalAmount})`,
+              updatedAt: now,
+            })
+            .where(eq(schema.customers.phone, cleanPhone));
         }
       }
-    }
+    });
 
     await logAudit({
       action: "UPDATE",
@@ -589,6 +654,9 @@ export async function updateOrderStatus(
       detail: `Mengubah status pesanan ${existing.invoiceNumber} -> ${status.toUpperCase()}`,
     });
 
+    revalidatePath("/");
+    revalidatePath("/toko");
+    revalidatePath("/admin/products");
     revalidatePath("/admin/orders");
     revalidatePath("/admin/customers");
     revalidatePath(`/order/${existing.invoiceNumber}`);
@@ -638,20 +706,26 @@ export async function getCustomers(searchQuery?: string) {
       );
     }
 
-    const list = await db.query.customers.findMany({
-      where: whereClause,
-      orderBy: [desc(schema.customers.lastOrderAt)],
-      limit: 100,
-    });
+    const [list, countRes] = await Promise.all([
+      db.query.customers.findMany({
+        where: whereClause,
+        orderBy: [desc(schema.customers.lastOrderAt)],
+        limit: 100,
+      }),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(schema.customers)
+        .where(whereClause),
+    ]);
 
-    return { success: true, customers: list, total: list.length };
+    return { success: true, customers: list, total: countRes[0]?.count ?? list.length };
   } catch (err) {
     return { success: false, error: sanitizeError(err), customers: [], total: 0 };
   }
 }
 
 /**
- * Menghapus pesanan oleh admin.
+ * Menghapus pesanan oleh admin dan mengembalikan stok yang belum dibatalkan.
  */
 export async function deleteOrder(orderId: string) {
   try {
@@ -668,7 +742,47 @@ export async function deleteOrder(orderId: string) {
       return { success: false, error: "Pesanan tidak ditemukan" };
     }
 
-    await db.delete(schema.orders).where(eq(schema.orders.id, orderId));
+    const now = new Date();
+    const orderItems = Array.isArray(existing.items) ? existing.items : [];
+    const wasPaid =
+      existing.status === "paid" ||
+      existing.status === "processing" ||
+      existing.status === "completed";
+
+    await db.transaction(async (tx) => {
+      if (existing.status !== "cancelled") {
+        for (const item of orderItems) {
+          if (!item.productId || !Number.isFinite(item.quantity) || item.quantity <= 0) continue;
+          await tx
+            .update(schema.products)
+            .set({
+              stock: sql`${schema.products.stock} + ${item.quantity}`,
+              updatedAt: now,
+            })
+            .where(
+              and(
+                eq(schema.products.id, item.productId),
+                sql`${schema.products.stock} IS NOT NULL`
+              )
+            );
+        }
+      }
+
+      if (wasPaid && existing.totalAmount > 0) {
+        const cleanPhone = existing.customerPhone.replace(/\D/g, "");
+        if (cleanPhone) {
+          await tx
+            .update(schema.customers)
+            .set({
+              totalSpent: sql`GREATEST(0, ${schema.customers.totalSpent} - ${existing.totalAmount})`,
+              updatedAt: now,
+            })
+            .where(eq(schema.customers.phone, cleanPhone));
+        }
+      }
+
+      await tx.delete(schema.orders).where(eq(schema.orders.id, orderId));
+    });
 
     await logAudit({
       action: "DELETE",
@@ -677,12 +791,98 @@ export async function deleteOrder(orderId: string) {
       detail: `Menghapus pesanan ${existing.invoiceNumber}`,
     });
 
+    revalidatePath("/");
+    revalidatePath("/toko");
+    revalidatePath("/admin/products");
     revalidatePath("/admin/orders");
+    revalidatePath("/admin/customers");
     revalidatePath(`/order/${existing.invoiceNumber}`);
 
     return { success: true, message: `Pesanan ${existing.invoiceNumber} berhasil dihapus!` };
   } catch (err) {
     return { success: false, error: sanitizeError(err) };
+  }
+}
+
+/**
+ * Membatalkan pesanan `pending` tanpa bukti bayar yang sudah melewati TTL jam
+ * dan melepaskan kembali stok produk berbatas secara atomik.
+ */
+export async function expireStalePendingOrders(ttlHours = 24) {
+  try {
+    await verifyAdmin();
+    if (!isDbConnected) {
+      return { success: false, expiredCount: 0, error: "Database tidak terhubung" };
+    }
+    if (!Number.isFinite(ttlHours) || ttlHours <= 0) {
+      return { success: false, expiredCount: 0, error: "Durasi kedaluwarsa tidak valid" };
+    }
+
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - ttlHours * 3600_000);
+
+    const expiredOrders = await db.transaction(async (tx) => {
+      const stale = await tx
+        .update(schema.orders)
+        .set({
+          status: "cancelled",
+          adminNotes: sql`CASE WHEN COALESCE(${schema.orders.adminNotes}, '') = '' THEN ${`Kedaluwarsa otomatis (> ${ttlHours} jam tanpa bukti bayar)`} ELSE ${schema.orders.adminNotes} || ${`\nKedaluwarsa otomatis (> ${ttlHours} jam tanpa bukti bayar)`} END`,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(schema.orders.status, "pending"),
+            or(isNull(schema.orders.paymentProofUrl), eq(schema.orders.paymentProofUrl, "")),
+            lt(schema.orders.createdAt, cutoff)
+          )
+        )
+        .returning();
+
+      for (const ord of stale) {
+        const ordItems = Array.isArray(ord.items) ? ord.items : [];
+        for (const item of ordItems) {
+          if (!item.productId || !Number.isFinite(item.quantity) || item.quantity <= 0) continue;
+          await tx
+            .update(schema.products)
+            .set({
+              stock: sql`${schema.products.stock} + ${item.quantity}`,
+              updatedAt: now,
+            })
+            .where(
+              and(
+                eq(schema.products.id, item.productId),
+                sql`${schema.products.stock} IS NOT NULL`
+              )
+            );
+        }
+      }
+
+      return stale;
+    });
+
+    if (expiredOrders.length > 0) {
+      await logAudit({
+        action: "EXPIRE",
+        entity: "ORDER",
+        entityId: "batch",
+        detail: `Kedaluwarsa otomatis ${expiredOrders.length} pesanan pending (> ${ttlHours} jam)`,
+      });
+      revalidatePath("/");
+      revalidatePath("/toko");
+      revalidatePath("/admin/products");
+      revalidatePath("/admin/orders");
+    }
+
+    return {
+      success: true,
+      expiredCount: expiredOrders.length,
+      message:
+        expiredOrders.length > 0
+          ? `${expiredOrders.length} pesanan pending kedaluwarsa dibatalkan dan stoknya dikembalikan.`
+          : "Tidak ada pesanan pending kedaluwarsa yang perlu dibersihkan.",
+    };
+  } catch (err) {
+    return { success: false, expiredCount: 0, error: sanitizeError(err) };
   }
 }
 

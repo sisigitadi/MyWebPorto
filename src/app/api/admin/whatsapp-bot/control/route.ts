@@ -14,9 +14,21 @@ export const runtime = "nodejs";
 export async function POST(req: NextRequest) {
   try {
     await verifyAdmin();
-    const body = await req.json().catch(() => ({}));
-    const action = body.action as string;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Akses ditolak";
+    return NextResponse.json({ success: false, error: message }, { status: 401 });
+  }
 
+  let body: Record<string, unknown> = {};
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ success: false, error: "Payload JSON tidak valid" }, { status: 400 });
+  }
+
+  const action = typeof body?.action === "string" ? body.action : "";
+
+  try {
     let result = { success: false, message: "Aksi tidak dikenal" };
 
     switch (action) {
@@ -46,6 +58,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(result);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Gagal memproses aksi";
-    return NextResponse.json({ success: false, error: message }, { status: 401 });
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

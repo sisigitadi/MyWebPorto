@@ -8,19 +8,16 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
-        // Catatan: /_next/ sengaja TIDAK diblokir. Situs ini sangat bergantung
-        // pada JS (shell OS desktop, window manager, RetroBot) — memblokir
-        // /_next/static/*.js membuat crawler render halaman kosong.
-        // Parameter URL lama (seperti ?contactSubject=) sengaja TIDAK didisallow
-        // di sini agar crawler Googlebot dapat menelusuri redirect 301/308 ke URL kanonik
-        // dan segera memvalidasi konsolidasi halaman di Search Console.
+        // /_next/ sengaja TIDAK diblokir agar crawler JS bisa render UI.
+        // /api/media/ dan /api/og diizinkan agar thumbnail & OpenGraph card di sitemap/JSON-LD terindeks.
         userAgent: "*",
-        allow: "/",
+        allow: ["/", "/api/media/", "/api/og"],
         disallow: [
           "/admin/",
           "/sign-in/",
           "/sign-up/",
           "/api/",
+          "/order/",
         ],
       },
       {
@@ -35,12 +32,13 @@ export default function robots(): MetadataRoute.Robots {
           "Baiduspider",
           "YandexBot",
         ],
-        allow: "/",
+        allow: ["/", "/api/media/", "/api/og"],
         disallow: [
           "/admin/",
           "/sign-in/",
           "/sign-up/",
           "/api/",
+          "/order/",
         ],
       },
       // Search-oriented Generative AI Bots & Copilot
@@ -55,14 +53,13 @@ export default function robots(): MetadataRoute.Robots {
           "anthropic-ai",
           "Applebot-Extended",
         ],
-        // allow: "/" sudah mencakup semuanya — list ini deklaratif: konten
-        // yang sengaja dipromosikan ke mesin jawab AI.
-        allow: ["/", "/proyek/", "/artikel/", "/toko/", "/feed.xml", "/llms.txt"],
+        allow: ["/", "/proyek/", "/artikel/", "/toko/", "/feed.xml", "/llms.txt", "/api/media/", "/api/og"],
         disallow: [
           "/admin/",
           "/sign-in/",
           "/sign-up/",
           "/api/",
+          "/order/",
         ],
       },
     ],

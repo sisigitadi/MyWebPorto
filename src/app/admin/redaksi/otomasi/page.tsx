@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Bot } from "lucide-react";
 import { getCloudAIConfigForAdmin } from "@/lib/cloud-ai-config";
 import { getRedaksiAutomationForAdmin } from "@/lib/redaksi-automation";
@@ -34,8 +35,11 @@ export default async function AdminRedaksiOtomasiPage() {
         <div className="border-l-4 border-amber-500 bg-amber-500/10 p-3 rounded-r-md">
           <p className="text-xs text-amber-700 dark:text-amber-300">
             <strong>Cloud AI sedang OFF.</strong> Otomasi butuh provider AI untuk
-            membuat draf. Aktifkan di God Mode → Sistem &amp; Logs. Pengaturan di
-            bawah tetap bisa disimpan.
+            membuat draf. Aktifkan di{" "}
+            <Link href="/admin/cloud-ai" className="underline font-semibold">
+              Kecerdasan &amp; Bot → Pengaturan Cloud AI
+            </Link>
+            . Pengaturan di bawah tetap bisa disimpan.
           </p>
         </div>
       )}

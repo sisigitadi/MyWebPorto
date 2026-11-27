@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Newspaper } from "lucide-react";
 import { getCloudAIConfigForAdmin } from "@/lib/cloud-ai-config";
 import { listStagedDrafts } from "@/lib/redaksi-automation";
@@ -25,7 +26,7 @@ export default async function AdminRedaksiPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-bold flex items-center gap-2">
-          <Newspaper className="h-5 w-5 text-primary" /> Redaksi — Tulis Konten
+          <Newspaper className="h-5 w-5 text-primary" /> Redaksi: Tulis Konten
         </h1>
         <p className="text-sm text-muted-foreground">
           Satu tempat menulis semua jenis konten: dari Profil sampai produk &quot;exe&quot;.
@@ -38,7 +39,11 @@ export default async function AdminRedaksiPage() {
         <div className="border-l-4 border-amber-500 bg-amber-500/10 p-3 rounded-r-md">
           <p className="text-xs text-amber-700 dark:text-amber-300">
             <strong>Cloud AI sedang OFF.</strong> Mode manual tetap bisa dipakai sepenuhnya.
-            Untuk memakai &quot;Bantuan AI&quot;, aktifkan provider di God Mode → Sistem &amp; Logs.
+            Untuk memakai &quot;Bantuan AI&quot;, aktifkan provider di{" "}
+            <Link href="/admin/cloud-ai" className="underline font-semibold">
+              Kecerdasan &amp; Bot → Pengaturan Cloud AI
+            </Link>
+            .
           </p>
         </div>
       )}

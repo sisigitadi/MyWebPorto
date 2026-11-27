@@ -6,6 +6,7 @@ import React, {
   useInsertionEffect,
   useRef,
 } from "react";
+import { useRouter } from "next/navigation";
 import {
   User,
   Briefcase,
@@ -44,8 +45,9 @@ import { TestimonialsSection } from "@/components/public/testimonials-section";
 import { ArticlesSection } from "@/components/public/articles-section";
 import { ContactSection } from "@/components/public/contact-section";
 import { OSCrtTerminal } from "@/components/public/os/os-crt-terminal";
-import { OSCommandPalette, PaletteAction } from "@/components/public/os/os-command-palette";
+import { OSCommandPalette, PaletteAction, PaletteContentItem } from "@/components/public/os/os-command-palette";
 import { ScrollFade } from "@/components/public/os/os-scroll-fade";
+import { getProductSlug } from "@/lib/product-link";
 import { setGsapScroller, getGsapScroller } from "@/lib/gsap-scroller";
 
 interface OSDesktopManagerProps {
@@ -149,12 +151,15 @@ export function OSDesktopManager({
   articles,
   appsConfig,
 }: OSDesktopManagerProps) {
+  const router = useRouter();
   const { t, language, setLanguage } = useTranslation();
   const { theme, setTheme } = useOSTheme();
   const [mounted, setMounted] = useState(false);
   const [activeApp, setActiveApp] = useState<AppId>("profil");
   const [isMinimized, setIsMinimized] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
+  const [snapMode, setSnapMode] = useState<"none" | "left" | "right">("none");
+  const [snapPreview, setSnapPreview] = useState<"none" | "left" | "right" | "top">("none");
 
   const [startOpen, setStartOpen] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
@@ -163,28 +168,52 @@ export function OSDesktopManager({
   const [soundOn, setSoundOn] = useState(true);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
-  // Keyboard shortcut Esc untuk restore down saat maximized di desktop mode
+  // Keyboard shortcuts: Escape closes Start menu / restores maximize; Alt+W closes/minimizes window
   useEffect(() => {
-    if (!isMaximized) return;
-    const handleEscapeWhenMaximized = (e: KeyboardEvent) => {
+    const handleGlobalShortcuts = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (
-          e.defaultPrevented ||
-          paletteOpen ||
-          startOpen ||
-          themeMenuOpen ||
-          isShareModalOpen ||
-          document.querySelector('[data-os-window-maximized="true"], [role="dialog"]')
-        ) {
+        if (startOpen || themeMenuOpen) {
+          e.preventDefault();
+          setStartOpen(false);
+          setThemeMenuOpen(false);
+          setMenuQuery("");
           return;
         }
-        playOS("minimize");
+        if (
+          isMaximized &&
+          !e.defaultPrevented &&
+          !paletteOpen &&
+          !isShareModalOpen &&
+          !document.querySelector('[data-os-window-maximized="true"], [role="dialog"]')
+        ) {
+          playOS("minimize");
+          setIsMaximized(false);
+          return;
+        }
+        if (snapMode !== "none") {
+          setSnapMode("none");
+        }
+      } else if (e.altKey && e.key.toLowerCase() === "w") {
+        e.preventDefault();
+        playOS("windowClose");
         setIsMaximized(false);
+        setSnapMode("none");
+        setIsMinimized(true);
+      } else if (e.altKey && e.key === "ArrowLeft") {
+        e.preventDefault();
+        setIsMaximized(false);
+        setIsMinimized(false);
+        setSnapMode((prev) => (prev === "left" ? "none" : "left"));
+      } else if (e.altKey && e.key === "ArrowRight") {
+        e.preventDefault();
+        setIsMaximized(false);
+        setIsMinimized(false);
+        setSnapMode((prev) => (prev === "right" ? "none" : "right"));
       }
     };
-    window.addEventListener("keydown", handleEscapeWhenMaximized);
-    return () => window.removeEventListener("keydown", handleEscapeWhenMaximized);
-  }, [isMaximized, paletteOpen, startOpen, themeMenuOpen, isShareModalOpen]);
+    window.addEventListener("keydown", handleGlobalShortcuts);
+    return () => window.removeEventListener("keydown", handleGlobalShortcuts);
+  }, [isMaximized, snapMode, paletteOpen, startOpen, themeMenuOpen, isShareModalOpen]);
   // Mode tampilan: "mobile" = single-page scroll (<768px), "desktop" =
   // window manager tab (>=768px). Sengaja memakai breakpoint md Tailwind
   // (768px) agar sinkron dengan utility hidden/md:flex di JSX.
@@ -707,15 +736,16 @@ export function OSDesktopManager({
             <div className="relative shrink-0">
               <button
                 type="button"
+                aria-expanded={startOpen}
+                aria-haspopup="menu"
                 onClick={() => {
                   setStartOpen(!startOpen);
                   setThemeMenuOpen(false);
                 }}
-                className={`vt-btn px-2.5 py-1 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer select-none transition-all duration-200 group ${
-                  startOpen
-                    ? "vt-btn-inset bg-[var(--vt-card)] translate-y-0.5"
-                    : "vt-btn-chrome text-foreground hover:scale-105"
-                }`}
+                className={`vt-btn px-2.5 py-1 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer select-none transition-all duration-200 group ${startOpen
+                  ? "vt-btn-inset bg-[var(--vt-card)] translate-y-0.5"
+                  : "vt-btn-chrome text-foreground hover:scale-105"
+                  }`}
                 title={t.os_start_btn}
               >
                 <div className="grid grid-cols-2 gap-0.5 w-4 h-4 p-0.5 bg-black/20 rounded-xs group-hover:rotate-12 transition-transform shrink-0">
@@ -733,7 +763,7 @@ export function OSDesktopManager({
             <button
               type="button"
               onClick={() => scrollToSection(activeAppItem.id)}
-              title={`${appFilename(activeAppItem.id, language)} — ${language === "en" ? "tap to scroll to top of section" : "ketuk untuk kembali ke atas section"}`}
+              title={`${appFilename(activeAppItem.id, language)}: ${language === "en" ? "tap to scroll to top of section" : "ketuk untuk kembali ke atas section"}`}
               aria-label={appFilename(activeAppItem.id, language)}
               className={`vt-taskbar-tab group relative h-7 px-2 text-[10px] flex items-center justify-center gap-1 cursor-pointer shrink-0 transition-all duration-300 active shadow-md ring-2 font-extrabold -translate-y-0.5 ${activeAppItem.activeClass}`}
             >
@@ -816,9 +846,8 @@ export function OSDesktopManager({
               key={app.id}
               type="button"
               onClick={() => switchApp(app.id)}
-              className={`vt-icon text-left transition-all cursor-pointer ${
-                activeApp === app.id ? "scale-105" : "opacity-85 hover:opacity-100"
-              }`}
+              className={`vt-icon text-left transition-all cursor-pointer ${activeApp === app.id ? "scale-105" : "opacity-85 hover:opacity-100"
+                }`}
             >
               <div className="vt-icon-glyph relative">
                 {app.icon}
@@ -902,25 +931,95 @@ export function OSDesktopManager({
           </div>
         )}
 
+        {/* Snap Edge Ghost Preview Overlay */}
+        {snapPreview !== "none" && (
+          <div
+            aria-hidden="true"
+            className={`fixed z-[55] pointer-events-none border-2 border-dashed border-[var(--vt-blue)] bg-[var(--vt-blue)]/15 transition-all duration-75 ${snapPreview === "top"
+              ? "inset-x-2 top-12 bottom-14"
+              : snapPreview === "left"
+                ? "left-2 top-12 bottom-14 w-[calc(50%-0.75rem)]"
+                : "right-2 top-12 bottom-14 w-[calc(50%-0.75rem)]"
+              }`}
+          />
+        )}
+
         {/* Center: The Active OS Application Window (disembunyikan saat diminimize ke desktop) */}
         {!isMinimized && (
-          <div className={`flex flex-col min-w-0 ${isMaximized ? "fixed inset-x-0 top-0 bottom-10 sm:bottom-12 md:bottom-14 z-[60] overflow-hidden bg-[var(--vt-window-bg,var(--vt-chrome))]" : "flex-1 h-full relative z-20 overflow-hidden"}`}>
+          <div
+            className={`flex flex-col min-w-0 ${isMaximized
+              ? "fixed inset-x-0 top-0 bottom-10 sm:bottom-12 md:bottom-14 z-[60] overflow-hidden bg-[var(--vt-window-bg,var(--vt-chrome))]"
+              : snapMode === "left"
+                ? "fixed left-2 top-14 sm:top-16 bottom-12 sm:bottom-14 md:bottom-16 w-[calc(50%-0.75rem)] z-[50] overflow-hidden"
+                : snapMode === "right"
+                  ? "fixed right-2 top-14 sm:top-16 bottom-12 sm:bottom-14 md:bottom-16 w-[calc(50%-0.75rem)] z-[50] overflow-hidden"
+                  : "flex-1 h-full relative z-20 overflow-hidden"
+              }`}
+          >
             <div
               key={activeApp}
               className={`vt-window flex flex-col h-full vt-crt-on transition-all duration-150 ${isMaximized ? "w-full h-full rounded-none border-0 shadow-none" : "flex-1 rounded-xs shadow-2xl"}`}
             >
-              {/* 1. OS Titlebar (double-click = toggle maximize persis Windows OS) */}
+              {/* 1. OS Titlebar (drag to viewport edges to snap left/right/top; double-click toggles maximize) */}
               <div
-                className="vt-titlebar select-none py-1 sm:py-1.5 px-2 sm:px-3 flex items-center justify-between cursor-default"
+                className="vt-titlebar select-none py-1 sm:py-1.5 px-2 sm:px-3 flex items-center justify-between cursor-grab active:cursor-grabbing"
+                onPointerDown={(e) => {
+                  if ((e.target as HTMLElement).closest("button")) return;
+                  const startX = e.clientX;
+                  const startY = e.clientY;
+                  let dragged = false;
+                  let activePreview: "none" | "left" | "right" | "top" = "none";
+
+                  const onMove = (ev: PointerEvent) => {
+                    if (!dragged && Math.hypot(ev.clientX - startX, ev.clientY - startY) > 10) {
+                      dragged = true;
+                    }
+                    if (!dragged) return;
+                    if (ev.clientY <= 18) activePreview = "top";
+                    else if (ev.clientX <= 24) activePreview = "left";
+                    else if (ev.clientX >= window.innerWidth - 24) activePreview = "right";
+                    else activePreview = "none";
+                    setSnapPreview(activePreview);
+                  };
+
+                  const onUp = () => {
+                    window.removeEventListener("pointermove", onMove);
+                    window.removeEventListener("pointerup", onUp);
+                    setSnapPreview("none");
+                    if (!dragged) return;
+                    if (activePreview === "top") {
+                      playOS("maximize");
+                      setSnapMode("none");
+                      setIsMaximized(true);
+                    } else if (activePreview === "left" || activePreview === "right") {
+                      playOS("maximize");
+                      setIsMaximized(false);
+                      setSnapMode(activePreview);
+                    } else if (snapMode !== "none") {
+                      setSnapMode("none");
+                    }
+                  };
+
+                  window.addEventListener("pointermove", onMove);
+                  window.addEventListener("pointerup", onUp);
+                }}
                 onDoubleClick={() => {
+                  if (snapMode !== "none") {
+                    setSnapMode("none");
+                    return;
+                  }
                   playOS(isMaximized ? "minimize" : "maximize");
                   setIsMaximized((v) => !v);
                 }}
-                title={language === "en" ? "Double-click to toggle maximize" : "Klik 2x untuk perbesar/pulihkan"}
+                title={
+                  language === "en"
+                    ? "Double-click to toggle maximize, or drag to screen edge to snap"
+                    : "Klik 2x untuk perbesar, atau seret ke tepi layar untuk snap split-view"
+                }
               >
                 <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                   <span className="shrink-0">{currentApp.icon}</span>
-                  <span className="font-mono text-[10px] sm:text-xs font-bold text-white tracking-wide truncate">
+                  <span className="font-mono text-[10px] sm:text-xs font-bold text-[var(--vt-titlebar-ink)] tracking-wide truncate">
                     <span className="hidden sm:inline">SigitOS_Viewer :: </span>[{currentApp.number}/{apps.length}] {appFilename(currentApp.id, language)}
                   </span>
                 </div>
@@ -1045,8 +1144,38 @@ export function OSDesktopManager({
         open={paletteOpen}
         apps={apps.map((a) => ({ id: a.id, label: appFilename(a.id, language), icon: a.icon }))}
         actions={paletteActions}
+        contentItems={[
+          ...projects
+            .filter((p) => p.published)
+            .map((p): PaletteContentItem => ({
+              id: p.id,
+              kind: "project",
+              label: language === "en" && p.titleEn ? p.titleEn : p.title,
+              subtitle: p.techStack?.join(" "),
+              href: `/proyek/${p.slug}`,
+            })),
+          ...articles
+            .filter((a) => a.published)
+            .map((a): PaletteContentItem => ({
+              id: a.id,
+              kind: "article",
+              label: language === "en" && a.titleEn ? a.titleEn : a.title,
+              subtitle: a.tags?.join(" "),
+              href: `/artikel/${a.slug}`,
+            })),
+          ...products
+            .filter((p) => p.published)
+            .map((p): PaletteContentItem => ({
+              id: p.id,
+              kind: "product",
+              label: language === "en" && p.titleEn ? p.titleEn : p.title,
+              subtitle: p.category || undefined,
+              href: `/toko/${getProductSlug(p)}`,
+            })),
+        ]}
         language={language}
         onSelectApp={(id) => switchApp(id as AppId)}
+        onSelectContent={(href) => router.push(href)}
         onClose={() => setPaletteOpen(false)}
       />
 
@@ -1103,9 +1232,8 @@ export function OSDesktopManager({
                     setStartOpen(false);
                     setMenuQuery("");
                   }}
-                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors text-left cursor-pointer ${
-                    activeApp === app.id ? "bg-[var(--vt-blue)]/20 font-bold text-[var(--vt-blue)]" : ""
-                  }`}
+                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors text-left cursor-pointer ${activeApp === app.id ? "bg-[var(--vt-blue)]/20 font-bold text-[var(--vt-blue)]" : ""
+                    }`}
                 >
                   <span className="shrink-0">{app.icon}</span>
                   <span className="font-bold">{appFilename(app.id, language)}</span>
@@ -1186,11 +1314,10 @@ export function OSDesktopManager({
                           setTheme(th.id);
                           setStartOpen(false);
                         }}
-                        className={`w-full flex items-center justify-between px-2 py-1 text-[11px] rounded-xs font-bold cursor-pointer ${
-                          theme === th.id
-                            ? "bg-[var(--vt-blue)] text-white"
-                            : "hover:bg-muted text-foreground"
-                        }`}
+                        className={`w-full flex items-center justify-between px-2 py-1 text-[11px] rounded-xs font-bold cursor-pointer ${theme === th.id
+                          ? "bg-[var(--vt-blue)] text-white"
+                          : "hover:bg-muted text-foreground"
+                          }`}
                       >
                         <span>{th.label}</span>
                         <span className="text-[9px] opacity-75">[{th.tag}]</span>
@@ -1224,15 +1351,16 @@ export function OSDesktopManager({
           <div className="relative shrink-0">
             <button
               type="button"
+              aria-expanded={startOpen}
+              aria-haspopup="menu"
               onClick={() => {
                 setStartOpen(!startOpen);
                 setThemeMenuOpen(false);
               }}
-              className={`vt-btn px-2.5 sm:px-4 py-1 sm:py-1.5 md:py-2 text-[11px] sm:text-xs md:text-sm font-bold flex items-center gap-1.5 sm:gap-2 cursor-pointer select-none transition-all duration-200 group ${
-                startOpen
-                  ? "vt-btn-inset bg-[var(--vt-card)] translate-y-0.5"
-                  : "vt-btn-chrome text-foreground hover:scale-105"
-              }`}
+              className={`vt-btn px-2.5 sm:px-4 py-1 sm:py-1.5 md:py-2 text-[11px] sm:text-xs md:text-sm font-bold flex items-center gap-1.5 sm:gap-2 cursor-pointer select-none transition-all duration-200 group ${startOpen
+                ? "vt-btn-inset bg-[var(--vt-card)] translate-y-0.5"
+                : "vt-btn-chrome text-foreground hover:scale-105"
+                }`}
               title={t.os_start_btn}
             >
               <div className="grid grid-cols-2 gap-0.5 w-5 h-5 sm:w-5 sm:h-5 md:w-5 md:h-5 p-0.5 bg-black/20 rounded-xs group-hover:rotate-12 transition-transform shrink-0">
@@ -1265,15 +1393,14 @@ export function OSDesktopManager({
                 }}
                 title={
                   isMinimized
-                    ? `${appFilename(currentApp.id, language)} (${language === "en" ? "minimized — click to restore" : "minimize — klik untuk pulihkan"})`
-                    : `${appFilename(currentApp.id, language)} (${language === "en" ? "active — click to minimize" : "aktif — klik untuk minimize"})`
+                    ? `${appFilename(currentApp.id, language)} (${language === "en" ? "minimized, click to restore" : "minimize, klik untuk pulihkan"})`
+                    : `${appFilename(currentApp.id, language)} (${language === "en" ? "active, click to minimize" : "aktif, klik untuk minimize"})`
                 }
                 aria-label={appFilename(currentApp.id, language)}
-                className={`vt-taskbar-tab group relative h-6 sm:h-9 md:h-10 px-2 sm:px-3 text-[9px] sm:text-[11px] md:text-xs flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer shrink-0 transition-all duration-300 ${
-                  isMinimized
-                    ? "vt-btn-chrome text-foreground opacity-85 hover:opacity-100"
-                    : `active shadow-md ring-2 font-extrabold -translate-y-0.5 ${currentApp.activeClass}`
-                }`}
+                className={`vt-taskbar-tab group relative h-6 sm:h-9 md:h-10 px-2 sm:px-3 text-[9px] sm:text-[11px] md:text-xs flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer shrink-0 transition-all duration-300 ${isMinimized
+                  ? "vt-btn-chrome text-foreground opacity-85 hover:opacity-100"
+                  : `active shadow-md ring-2 font-extrabold -translate-y-0.5 ${currentApp.activeClass}`
+                  }`}
               >
                 <span className="shrink-0">{currentApp.icon}</span>
                 <span className="hidden md:inline truncate max-w-[120px] lg:max-w-none">
@@ -1388,9 +1515,8 @@ function StartMenuMobile({
                   onScrollTo(app.id);
                 }
               }}
-              className={`w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors text-left cursor-pointer ${
-                app.id === "terminal" ? "" : ""
-              }`}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-[var(--vt-blue)] hover:text-white rounded-xs transition-colors text-left cursor-pointer ${app.id === "terminal" ? "" : ""
+                }`}
             >
               <span className="shrink-0">{app.icon}</span>
               <span className="font-bold">{appFilename(app.id, language)}</span>
@@ -1471,11 +1597,10 @@ function StartMenuMobile({
                       setTheme(th.id);
                       close();
                     }}
-                    className={`w-full flex items-center justify-between px-2 py-1 text-[11px] rounded-xs font-bold cursor-pointer ${
-                      theme === th.id
-                        ? "bg-[var(--vt-blue)] text-white"
-                        : "hover:bg-muted text-foreground"
-                    }`}
+                    className={`w-full flex items-center justify-between px-2 py-1 text-[11px] rounded-xs font-bold cursor-pointer ${theme === th.id
+                      ? "bg-[var(--vt-blue)] text-white"
+                      : "hover:bg-muted text-foreground"
+                      }`}
                   >
                     <span>{th.label}</span>
                     <span className="text-[9px] opacity-75">[{th.tag}]</span>

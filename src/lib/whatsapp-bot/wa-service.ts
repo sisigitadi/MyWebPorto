@@ -23,7 +23,14 @@ interface GlobalWABotContainer {
   isStarting: boolean;
   manualStop?: boolean;
   reconnectTimer?: ReturnType<typeof setTimeout> | null;
+  reconnectAttempts: number;
+  lastReplyAtByJid: Map<string, number>;
+  inFlightJids: Set<string>;
 }
+
+const JID_COOLDOWN_MS = 4000;
+const BASE_RECONNECT_MS = 3000;
+const MAX_RECONNECT_MS = 60_000;
 
 const g = globalThis as unknown as { __waBotContainer?: GlobalWABotContainer };
 
@@ -44,10 +51,16 @@ if (!g.__waBotContainer) {
     },
     socket: null,
     isStarting: false,
+    reconnectAttempts: 0,
+    lastReplyAtByJid: new Map(),
+    inFlightJids: new Set(),
   };
 }
 
 const container = g.__waBotContainer;
+if (!container.lastReplyAtByJid) container.lastReplyAtByJid = new Map();
+if (!container.inFlightJids) container.inFlightJids = new Set();
+if (typeof container.reconnectAttempts !== "number") container.reconnectAttempts = 0;
 
 export function getWABotState(): WABotState {
   return { ...container.state };
@@ -161,18 +174,24 @@ export async function startWABot(): Promise<{ success: boolean; message: string 
               : lastDisconnect?.error?.message || "Koneksi terputus.",
           });
           if (shouldReconnect) {
-            console.log("[wa-service] Mencoba rekoneksi dalam 5 detik...");
+            container.reconnectAttempts += 1;
+            const delayMs = Math.min(
+              MAX_RECONNECT_MS,
+              BASE_RECONNECT_MS * Math.pow(2, Math.min(container.reconnectAttempts - 1, 5))
+            );
+            console.log(`[wa-service] Mencoba rekoneksi ke-${container.reconnectAttempts} dalam ${delayMs}ms...`);
             if (container.reconnectTimer) clearTimeout(container.reconnectTimer);
             container.reconnectTimer = setTimeout(() => {
               container.reconnectTimer = null;
               if (!container.manualStop) {
                 startWABot().catch(console.error);
               }
-            }, 5000);
+            }, delayMs);
           }
         }
       } else if (connection === "open") {
         container.isStarting = false;
+        container.reconnectAttempts = 0;
         const userJid = sock.user?.id || "";
         const phone = userJid.split(":")[0] || userJid.split("@")[0] || "Terhubung";
         const pushName = sock.user?.name || "Admin";
@@ -245,6 +264,20 @@ export async function startWABot(): Promise<{ success: boolean; message: string 
             continue;
           }
 
+          // Guard anti-loop & per-JID cooldown
+          const nowTs = Date.now();
+          const lastReplyTs = container.lastReplyAtByJid.get(remoteJid) ?? 0;
+          if (container.inFlightJids.has(remoteJid) || nowTs - lastReplyTs < JID_COOLDOWN_MS) {
+            console.log(`[wa-service] Pesan dari ${remoteJid} dilewati oleh cooldown/in-flight guard.`);
+            continue;
+          }
+          // Prune expired JID entries periodically
+          if (container.lastReplyAtByJid.size > 500) {
+            for (const [k, ts] of container.lastReplyAtByJid.entries()) {
+              if (nowTs - ts > 60_000) container.lastReplyAtByJid.delete(k);
+            }
+          }
+
           // 4. Periksa konfigurasi bot
           const botConfig = await getWABotConfig();
           if (!botConfig.enabled) {
@@ -274,50 +307,56 @@ export async function startWABot(): Promise<{ success: boolean; message: string 
             `[wa-service] Menerima pesan dari ${senderName} (${senderPhone}): "${messageContent}"`
           );
 
-          updateState({
-            messagesCount: {
-              incoming: container.state.messagesCount.incoming + 1,
-              replied: container.state.messagesCount.replied,
-            },
-          });
-
-          // 5. Simulasi Mengetik (Typing indicator)
+          container.inFlightJids.add(remoteJid);
           try {
-            await sock.sendPresenceUpdate("composing", remoteJid);
-          } catch {
-            // abaikan bila presence gagal
-          }
-
-          const delayMs = Math.max(1000, (botConfig.delaySeconds || 2) * 1000);
-          await new Promise((r) => setTimeout(r, delayMs));
-
-          // 6. Generate Balasan AI berbasis Knowledge & Data
-          const aiResult = await generateWhatsAppReply(
-            messageContent,
-            senderPhone,
-            senderName
-          );
-
-          if (aiResult && aiResult.reply) {
-            await sock.sendMessage(remoteJid, { text: aiResult.reply });
-            console.log(
-              `[wa-service] Sukses mengirim balasan ke ${senderPhone} [Sumber: ${aiResult.source}, Model: ${aiResult.modelUsed}]`
-            );
-
-            try {
-              await sock.sendPresenceUpdate("paused", remoteJid);
-            } catch {
-              // abaikan
-            }
-
             updateState({
               messagesCount: {
-                incoming: container.state.messagesCount.incoming,
-                replied: container.state.messagesCount.replied + 1,
+                incoming: container.state.messagesCount.incoming + 1,
+                replied: container.state.messagesCount.replied,
               },
             });
-          } else {
-            console.warn(`[wa-service] Engine AI tidak menghasilkan balasan untuk ${senderPhone}`);
+
+            // 5. Simulasi Mengetik (Typing indicator)
+            try {
+              await sock.sendPresenceUpdate("composing", remoteJid);
+            } catch {
+              // abaikan bila presence gagal
+            }
+
+            const delayMs = Math.max(1000, (botConfig.delaySeconds || 2) * 1000);
+            await new Promise((r) => setTimeout(r, delayMs));
+
+            // 6. Generate Balasan AI berbasis Knowledge & Data
+            const aiResult = await generateWhatsAppReply(
+              messageContent,
+              senderPhone,
+              senderName
+            );
+
+            if (aiResult && aiResult.reply) {
+              await sock.sendMessage(remoteJid, { text: aiResult.reply });
+              container.lastReplyAtByJid.set(remoteJid, Date.now());
+              console.log(
+                `[wa-service] Sukses mengirim balasan ke ${senderPhone} [Sumber: ${aiResult.source}, Model: ${aiResult.modelUsed}]`
+              );
+
+              try {
+                await sock.sendPresenceUpdate("paused", remoteJid);
+              } catch {
+                // abaikan
+              }
+
+              updateState({
+                messagesCount: {
+                  incoming: container.state.messagesCount.incoming,
+                  replied: container.state.messagesCount.replied + 1,
+                },
+              });
+            } else {
+              console.warn(`[wa-service] Engine AI tidak menghasilkan balasan untuk ${senderPhone}`);
+            }
+          } finally {
+            container.inFlightJids.delete(remoteJid);
           }
         }
       } catch (msgErr) {

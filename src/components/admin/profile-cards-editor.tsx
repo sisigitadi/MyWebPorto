@@ -605,7 +605,7 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
           </div>
 
           <div className="space-y-3">
-            {cards.careerTimeline.slice(0, 2).map((item, idx) => (
+            {cards.careerTimeline.map((item, idx) => (
               <div
                 key={item.id || idx}
                 className="p-3.5 bg-background border border-[var(--vt-edge-lo-2)] rounded-xs space-y-2.5"
@@ -694,7 +694,7 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
                     <Input
                       value={item.period}
                       onChange={(e) => handleUpdateCareerItem(idx, "period", e.target.value)}
-                      placeholder="Contoh: 2024 — Sekarang"
+                      placeholder="Contoh: 2024 - Sekarang"
                       className="text-xs h-7"
                     />
                   </div>
@@ -703,7 +703,7 @@ export function ProfileCardsEditor({ cards, onChange }: ProfileCardsEditorProps)
                     <Input
                       value={item.periodEn || ""}
                       onChange={(e) => handleUpdateCareerItem(idx, "periodEn", e.target.value)}
-                      placeholder="e.g. 2024 — Present"
+                      placeholder="e.g. 2024 - Present"
                       className="text-xs h-7"
                     />
                   </div>

@@ -435,7 +435,109 @@ export default function AdminArticlesPage() {
           </div>
         </div>
 
-        <div className="rounded-md border border-border overflow-x-auto">
+        {/* Mobile Cards View (<md) */}
+        <div className="md:hidden space-y-2.5 mb-4">
+          {isLoading ? (
+            <div className="p-8 text-center rounded-md border border-border text-xs text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+              Memuat data artikel...
+            </div>
+          ) : filteredArticles.length === 0 ? (
+            <div className="p-8 text-center rounded-md border border-border text-xs text-muted-foreground">
+              Belum ada artikel yang sesuai kriteria pencarian.
+            </div>
+          ) : (
+            filteredArticles.map((article, index) => (
+              <div key={`ma-${article.id}`} className="p-3 rounded-md border border-border bg-card space-y-2.5 text-xs">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-foreground line-clamp-2">{article.title}</p>
+                    <p className="font-mono text-[11px] text-primary/80 truncate mt-0.5">/artikel/{article.slug}</p>
+                  </div>
+                  {article.published ? (
+                    <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] shrink-0">
+                      Terbit
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-muted-foreground text-[10px] shrink-0">
+                      Draft
+                    </Badge>
+                  )}
+                </div>
+                {article.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {article.tags.slice(0, 3).map((tag, idx) => (
+                      <Badge key={idx} variant="secondary" className="text-[10px] py-0 px-1.5 font-normal">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/60">
+                  {isReorderActive ? (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        disabled={index === 0}
+                        onClick={() => handleMove(index, "up")}
+                        className="h-9 w-9"
+                        aria-label="Pindahkan ke atas"
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        disabled={index === articles.length - 1}
+                        onClick={() => handleMove(index, "down")}
+                        className="h-9 w-9"
+                        aria-label="Pindahkan ke bawah"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <span className="text-[11px] text-muted-foreground font-mono">
+                      #{article.order || index + 1}
+                    </span>
+                  )}
+                  <div className="flex items-center gap-1">
+                    <Button asChild variant="outline" size="icon" className="h-9 w-9">
+                      <Link href={`/artikel/${article.slug}`} target="_blank" aria-label="Lihat Halaman Publik">
+                        <Eye className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleOpenEditDialog(article)}
+                      className="h-9 w-9"
+                      aria-label="Edit Artikel"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => openDeleteConfirmation(article)}
+                      className="h-9 w-9 text-destructive hover:text-destructive"
+                      aria-label="Hapus Artikel"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="hidden md:block rounded-md border border-border overflow-x-auto">
           <Table className="admin-table">
             <TableHeader>
               <TableRow>
@@ -852,7 +954,7 @@ export default function AdminArticlesPage() {
                 </label>
 
                 <label className="flex flex-col gap-1 text-sm text-foreground select-none">
-                  <span>Jadwal tayang (opsional — kosong = langsung)</span>
+                  <span>Jadwal tayang (opsional, kosong = langsung)</span>
                   <input
                     type="datetime-local"
                     value={formPublishAt}

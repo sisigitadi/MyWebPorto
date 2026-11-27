@@ -100,6 +100,6 @@ export function detailUrl(kind: "proyek" | "artikel" | "toko", slug: string): st
 }
 
 /** URL katalog untuk auto-ping setelah delete. */
-export function catalogUrl(kind: "proyek" | "artikel"): string {
+export function catalogUrl(kind: "proyek" | "artikel" | "toko"): string {
   return `${getIndexNowBaseUrl()}/${kind}`;
 }

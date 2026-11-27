@@ -5,6 +5,7 @@
  * disimpan di tabel `settings` dengan key "profile_cards".
  * Tanpa migrasi SQL Drizzle, tahan banting, dan aman dengan fallback default.
  */
+import { cache } from "react";
 import { getSetting, setSetting } from "@/lib/settings";
 import {
   DEFAULT_PROFILE_CARDS,
@@ -19,10 +20,10 @@ const SETTING_KEY = "profile_cards";
  * Tidak pernah melempar error — bila data kosong/korup, otomatis fallback
  * ke DEFAULT_PROFILE_CARDS.
  */
-export async function resolveProfileCards(options?: { preview?: boolean }): Promise<ProfileCardsConfig> {
+const resolveProfileCardsCached = cache(async (preview: boolean): Promise<ProfileCardsConfig> => {
   try {
     let stored: unknown = null;
-    if (options?.preview) {
+    if (preview) {
       stored = await getSetting<unknown>(`${SETTING_KEY}:draft`);
     }
     if (!stored) {
@@ -36,6 +37,10 @@ export async function resolveProfileCards(options?: { preview?: boolean }): Prom
     console.warn(`Gagal membaca setting "${SETTING_KEY}":`, err);
     return { ...DEFAULT_PROFILE_CARDS };
   }
+});
+
+export async function resolveProfileCards(options?: { preview?: boolean }): Promise<ProfileCardsConfig> {
+  return resolveProfileCardsCached(Boolean(options?.preview));
 }
 
 /**

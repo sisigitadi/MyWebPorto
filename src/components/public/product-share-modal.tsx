@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import QRCode from "qrcode";
 import {
   Share2,
   Copy,
@@ -26,7 +27,7 @@ import {
 import { InstagramIcon } from "@/components/public/social-icons";
 import { toast } from "sonner";
 
-const emptySubscribe = () => () => {};
+const emptySubscribe = () => () => { };
 
 interface ProductShareModalProps {
   product: ProductData;
@@ -46,9 +47,30 @@ export function ProductShareModal({ product, isOpen, onClose, isEn = false }: Pr
   const [copiedBroadcast, setCopiedBroadcast] = useState(false);
   const [customRef, setCustomRef] = useState("");
   const [showQr, setShowQr] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState("");
   const [failedThumb, setFailedThumb] = useState<string | null>(null);
   const baseThumb = product.thumbnailUrl || "/toko/opengraph-image";
   const previewThumb = failedThumb === baseThumb ? "/api/og?section=toko" : baseThumb;
+
+  const slug = getProductSlug(product);
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://sigitadi.id";
+  const baseUrl = `${origin}/toko/${slug}`;
+  const shareUrl = customRef.trim()
+    ? `${baseUrl}?ref=${encodeURIComponent(customRef.trim())}`
+    : baseUrl;
+
+  useEffect(() => {
+    if (!isOpen || !showQr) return;
+    let active = true;
+    QRCode.toDataURL(shareUrl, { width: 300, margin: 2 })
+      .then((url) => {
+        if (active) setQrDataUrl(url);
+      })
+      .catch(() => { });
+    return () => {
+      active = false;
+    };
+  }, [isOpen, showQr, shareUrl]);
 
   // Body scroll lock
   useEffect(() => {
@@ -71,13 +93,6 @@ export function ProductShareModal({ product, isOpen, onClose, isEn = false }: Pr
 
   if (!isOpen || !mounted) return null;
 
-  const slug = getProductSlug(product);
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://sigitadi.id";
-  const baseUrl = `${origin}/toko/${slug}`;
-  const shareUrl = customRef.trim()
-    ? `${baseUrl}?ref=${encodeURIComponent(customRef.trim())}`
-    : baseUrl;
-
   const broadcastText = buildProductPromoShareText(product, shareUrl, isEn);
 
   const handleCopyLink = () => {
@@ -94,23 +109,18 @@ export function ProductShareModal({ product, isOpen, onClose, isEn = false }: Pr
     toast.success(isEn ? "Broadcast copywriting copied!" : "Teks copywriting promosi berhasil disalin!");
   };
 
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(shareUrl)}`;
-
   const handleDownloadQr = async () => {
     try {
-      const res = await fetch(qrImageUrl);
-      const blob = await res.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
+      const dataUrl = qrDataUrl || (await QRCode.toDataURL(shareUrl, { width: 300, margin: 2 }));
       const a = document.createElement("a");
-      a.href = blobUrl;
+      a.href = dataUrl;
       a.download = `QR-${slug}.png`;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(blobUrl);
       document.body.removeChild(a);
       toast.success(isEn ? "QR Code downloaded!" : "QR Code berhasil diunduh!");
     } catch {
-      window.open(qrImageUrl, "_blank");
+      toast.error(isEn ? "Failed to generate QR Code." : "Gagal membuat gambar QR Code.");
     }
   };
 
@@ -153,7 +163,7 @@ export function ProductShareModal({ product, isOpen, onClose, isEn = false }: Pr
           <button
             type="button"
             onClick={onClose}
-            className="h-7 w-7 min-h-[32px] min-w-[32px] rounded-xs bg-muted/60 flex items-center justify-center hover:bg-muted cursor-pointer"
+            className="h-9 w-9 min-h-[44px] min-w-[44px] sm:min-h-[32px] sm:min-w-[32px] rounded-xs bg-muted/60 flex items-center justify-center hover:bg-muted cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vt-cyan)]"
             aria-label="Tutup"
           >
             <X className="h-4 w-4" />
@@ -210,14 +220,13 @@ export function ProductShareModal({ product, isOpen, onClose, isEn = false }: Pr
               type="text"
               readOnly
               value={shareUrl}
-              className="flex-1 p-2 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)] rounded-xs text-[11px] font-mono outline-none select-all"
+              className="flex-1 p-2 bg-[var(--vt-card)] border border-[var(--vt-edge-lo-2)] rounded-xs text-[11px] font-mono select-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vt-cyan)]"
             />
             <button
               type="button"
               onClick={handleCopyLink}
-              className={`vt-btn px-3 py-2 text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0 ${
-                copiedLink ? "bg-emerald-600 text-white" : "vt-btn-pink text-white hover:brightness-110"
-              }`}
+              className={`vt-btn px-3 py-2 text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0 ${copiedLink ? "bg-emerald-600 text-white" : "vt-btn-pink text-white hover:brightness-110"
+                }`}
             >
               {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
               <span>{copiedLink ? (isEn ? "Copied!" : "Tersalin!") : isEn ? "Copy" : "Salin Link"}</span>
@@ -232,7 +241,7 @@ export function ProductShareModal({ product, isOpen, onClose, isEn = false }: Pr
               value={customRef}
               onChange={(e) => setCustomRef(e.target.value)}
               placeholder={isEn ? "partner_name (optional)" : "nama_mitra (opsional)"}
-              className="p-1 px-2 bg-[var(--vt-card)] border border-border rounded-xs text-[10px] font-mono flex-1 outline-none"
+              className="p-1 px-2 bg-[var(--vt-card)] border border-border rounded-xs text-[10px] font-mono flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vt-cyan)]"
             />
           </div>
         </div>
@@ -353,8 +362,14 @@ export function ProductShareModal({ product, isOpen, onClose, isEn = false }: Pr
 
           {showQr && (
             <div className="p-3 bg-white rounded border border-border text-center space-y-2 animate-in fade-in max-w-[200px] mx-auto">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrImageUrl} alt="Product QR Code" className="w-36 h-36 mx-auto object-contain" />
+              {qrDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={qrDataUrl} alt="Product QR Code" className="w-36 h-36 mx-auto object-contain" />
+              ) : (
+                <div className="w-36 h-36 mx-auto flex items-center justify-center text-[10px] text-gray-500 font-mono">
+                  Generating QR...
+                </div>
+              )}
               <p className="text-[10px] text-gray-500 font-mono">Scan to open product</p>
             </div>
           )}

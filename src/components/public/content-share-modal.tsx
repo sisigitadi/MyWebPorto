@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import QRCode from "qrcode";
 import {
   Share2,
   Copy,
@@ -49,7 +50,31 @@ export function ContentShareModal({
   const [copiedText, setCopiedText] = useState(false);
   const [customRef] = useState("");
   const [showQr, setShowQr] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState("");
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
+
+  const cleanUrl = url.replace(/#.*$/, "") || "/";
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://sigitadi.id";
+  const absoluteUrl = cleanUrl.startsWith("http")
+    ? cleanUrl
+    : `${origin}${cleanUrl.startsWith("/") ? "" : "/"}${cleanUrl}`;
+
+  const finalUrl = customRef.trim()
+    ? `${absoluteUrl}${absoluteUrl.includes("?") ? "&" : "?"}ref=${encodeURIComponent(customRef.trim())}`
+    : absoluteUrl;
+
+  useEffect(() => {
+    if (!isOpen || !showQr) return;
+    let active = true;
+    QRCode.toDataURL(finalUrl, { width: 300, margin: 2 })
+      .then((resUrl) => {
+        if (active) setQrDataUrl(resUrl);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [isOpen, showQr, finalUrl]);
 
   // Body scroll lock
   useEffect(() => {
@@ -73,17 +98,6 @@ export function ContentShareModal({
 
   if (!isOpen || !mounted) return null;
 
-  // Resolve absolute URL dan bersihkan hash fragment (#) agar share link dan copy text selalu konsisten
-  const cleanUrl = url.replace(/#.*$/, "") || "/";
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://sigitadi.id";
-  const absoluteUrl = cleanUrl.startsWith("http")
-    ? cleanUrl
-    : `${origin}${cleanUrl.startsWith("/") ? "" : "/"}${cleanUrl}`;
-
-  const finalUrl = customRef.trim()
-    ? `${absoluteUrl}${absoluteUrl.includes("?") ? "&" : "?"}ref=${encodeURIComponent(customRef.trim())}`
-    : absoluteUrl;
-
   const cleanSummary = summary?.trim() || "";
   const shareBroadcastText = [
     `**${title}**`,
@@ -97,8 +111,6 @@ export function ContentShareModal({
   const telegramShareUrl = buildTelegramShareUrl(finalUrl, shareBroadcastText);
   const linkedInShareUrl = buildLinkedInShareUrl(finalUrl);
   const facebookShareUrl = buildFacebookShareUrl(finalUrl);
-
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(finalUrl)}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(finalUrl);
@@ -133,20 +145,17 @@ export function ContentShareModal({
 
   const handleDownloadQr = async () => {
     try {
-      const res = await fetch(qrImageUrl);
-      const blob = await res.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
+      const dataUrl = qrDataUrl || (await QRCode.toDataURL(finalUrl, { width: 300, margin: 2 }));
       const a = document.createElement("a");
-      a.href = blobUrl;
+      a.href = dataUrl;
       const slugName = title.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 30);
       a.download = `QR-${slugName}.png`;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(blobUrl);
       document.body.removeChild(a);
       toast.success(isEn ? "QR Code downloaded!" : "QR Code berhasil diunduh!");
     } catch {
-      window.open(qrImageUrl, "_blank");
+      toast.error(isEn ? "Failed to generate QR Code." : "Gagal membuat gambar QR Code.");
     }
   };
 
@@ -232,7 +241,7 @@ export function ContentShareModal({
               type="text"
               readOnly
               value={finalUrl}
-              className="flex-1 bg-background border border-border rounded-xs px-2.5 py-2 text-xs font-mono select-all truncate text-foreground focus:outline-none"
+              className="flex-1 bg-background border border-border rounded-xs px-2.5 py-2 text-xs font-mono select-all truncate text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vt-cyan)]"
             />
             <button
               type="button"
@@ -361,8 +370,14 @@ export function ContentShareModal({
 
           {showQr && (
             <div className="mt-2 p-4 rounded-xs bg-white text-black flex flex-col items-center justify-center space-y-3 animate-in fade-in">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrImageUrl} alt="QR Code" className="h-44 w-44 object-contain border border-neutral-300 p-1" />
+              {qrDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={qrDataUrl} alt="QR Code" className="h-44 w-44 object-contain border border-neutral-300 p-1" />
+              ) : (
+                <div className="h-44 w-44 flex items-center justify-center border border-neutral-300 text-xs font-mono text-neutral-500">
+                  Generating QR...
+                </div>
+              )}
               <button
                 type="button"
                 onClick={handleDownloadQr}

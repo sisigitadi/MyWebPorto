@@ -439,8 +439,95 @@ export default function AdminTestimonialsPage() {
         </div>
       </div>
 
-      {/* Testimonials Table */}
-      <Card className="overflow-hidden">
+      {/* Mobile Cards View (<md) */}
+      <div className="md:hidden space-y-2.5">
+        {isLoading ? (
+          <Card className="p-8 text-center text-xs text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+            Memuat testimoni...
+          </Card>
+        ) : filteredTestimonials.length === 0 ? (
+          <Card className="p-8 text-center text-xs text-muted-foreground">
+            Tidak ada testimoni yang sesuai kriteria pencarian.
+          </Card>
+        ) : (
+          filteredTestimonials.map((item, index) => (
+            <Card key={`mt-${item.id}`} className="p-3.5 space-y-2.5 text-xs">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-semibold text-foreground">{item.clientName}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{item.clientRole}</p>
+                </div>
+                <Badge
+                  variant="outline"
+                  className={`text-[10px] shrink-0 ${item.published
+                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
+                    : "bg-muted text-muted-foreground"
+                    }`}
+                >
+                  {item.published ? "Diterbitkan" : "Draft"}
+                </Badge>
+              </div>
+              <p className="text-[11px] text-muted-foreground line-clamp-3">&quot;{item.content}&quot;</p>
+              <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/60">
+                {isReorderActive ? (
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      disabled={index === 0}
+                      onClick={() => handleMove(index, "up")}
+                      className="h-9 w-9"
+                      aria-label="Pindahkan ke atas"
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      disabled={index === testimonials.length - 1}
+                      onClick={() => handleMove(index, "down")}
+                      className="h-9 w-9"
+                      aria-label="Pindahkan ke bawah"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <span className="text-[11px] text-muted-foreground font-mono">
+                    #{item.order || index + 1}
+                  </span>
+                )}
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openEditDialog(item)}
+                    className="h-9 px-3 text-xs gap-1"
+                  >
+                    <PencilIcon className="h-3.5 w-3.5" />
+                    <span>Edit</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => openDeleteConfirmation(item)}
+                    className="h-9 w-9 text-destructive hover:text-destructive"
+                    aria-label="Hapus Testimoni"
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Testimonials Table (Desktop >=md) */}
+      <Card className="hidden md:block overflow-hidden">
         <div className="overflow-x-auto">
           <Table className="admin-table">
             <TableHeader>
@@ -472,141 +559,138 @@ export default function AdminTestimonialsPage() {
                   const isDragging = draggedIndex === index;
                   const isOver = dragOverIndex === index;
                   return (
-                  <TableRow
-                    key={item.id}
-                    draggable={isReorderActive}
-                    onDragStart={(e) => handleDragStart(e, index)}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                    onDragEnd={handleDragEnd}
-                    onDrop={(e) => handleDrop(e, index)}
-                    className={`transition-colors ${
-                      isDragging ? "opacity-30 bg-muted/60" : "hover:bg-muted/30"
-                    } ${isOver && !isDragging ? "border-t-2 border-primary bg-primary/5" : ""}`}
-                  >
-                    <TableCell className="py-2.5">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <span
-                          className={`p-1 rounded ${
-                            isReorderActive
+                    <TableRow
+                      key={item.id}
+                      draggable={isReorderActive}
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragEnd={handleDragEnd}
+                      onDrop={(e) => handleDrop(e, index)}
+                      className={`transition-colors ${isDragging ? "opacity-30 bg-muted/60" : "hover:bg-muted/30"
+                        } ${isOver && !isDragging ? "border-t-2 border-primary bg-primary/5" : ""}`}
+                    >
+                      <TableCell className="py-2.5">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <span
+                            className={`p-1 rounded ${isReorderActive
                               ? "cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground hover:bg-muted"
                               : "cursor-not-allowed text-muted-foreground/30"
-                          }`}
-                          title={
-                            isReorderActive
-                              ? "Tahan dan geser untuk memindahkan urutan"
-                              : "Hapus pencarian untuk menggeser posisi"
-                          }
-                        >
-                          <GripVertical className="h-4 w-4" />
-                        </span>
-                        <span className="font-mono text-xs text-muted-foreground font-semibold min-w-4 text-center">
-                          {isReorderActive ? index + 1 : (item.order || "-")}
-                        </span>
-                        {isReorderActive && (
-                          <div className="flex flex-col ml-0.5">
-                            <button
-                              type="button"
-                              onClick={() => handleMove(index, "up")}
-                              disabled={index === 0}
-                              className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5 transition-opacity"
-                              title="Pindahkan ke atas"
-                            >
-                              <ChevronUp className="h-3 w-3" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleMove(index, "down")}
-                              disabled={index === testimonials.length - 1}
-                              className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5 transition-opacity"
-                              title="Pindahkan ke bawah"
-                            >
-                              <ChevronDown className="h-3 w-3" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="relative h-10 w-10 rounded-full overflow-hidden bg-muted shrink-0 border border-border">
-                          {item.avatarUrl ? (
-                            <Image
-                              src={item.avatarUrl}
-                              alt={item.clientName}
-                              fill
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-xs font-semibold text-muted-foreground uppercase">
-                              {item.clientName.slice(0, 2)}
+                              }`}
+                            title={
+                              isReorderActive
+                                ? "Tahan dan geser untuk memindahkan urutan"
+                                : "Hapus pencarian untuk menggeser posisi"
+                            }
+                          >
+                            <GripVertical className="h-4 w-4" />
+                          </span>
+                          <span className="font-mono text-xs text-muted-foreground font-semibold min-w-4 text-center">
+                            {isReorderActive ? index + 1 : (item.order || "-")}
+                          </span>
+                          {isReorderActive && (
+                            <div className="flex flex-col ml-0.5">
+                              <button
+                                type="button"
+                                onClick={() => handleMove(index, "up")}
+                                disabled={index === 0}
+                                className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5 transition-opacity"
+                                title="Pindahkan ke atas"
+                              >
+                                <ChevronUp className="h-3 w-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleMove(index, "down")}
+                                disabled={index === testimonials.length - 1}
+                                className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5 transition-opacity"
+                                title="Pindahkan ke bawah"
+                              >
+                                <ChevronDown className="h-3 w-3" />
+                              </button>
                             </div>
                           )}
                         </div>
-                        <div className="text-xs">
-                          <div className="font-medium text-foreground flex items-center gap-1.5">
-                            {item.clientName}
-                            {(item.clientRoleEn || item.contentEn) && (
-                              <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 border-emerald-500/40 text-emerald-600 bg-emerald-500/5 font-mono">
-                                EN
-                              </Badge>
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="relative h-10 w-10 rounded-full overflow-hidden bg-muted shrink-0 border border-border">
+                            {item.avatarUrl ? (
+                              <Image
+                                src={item.avatarUrl}
+                                alt={item.clientName}
+                                fill
+                                className="object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-xs font-semibold text-muted-foreground uppercase">
+                                {item.clientName.slice(0, 2)}
+                              </div>
                             )}
                           </div>
-                          <div className="text-muted-foreground">
-                            {item.clientRole}
+                          <div className="text-xs">
+                            <div className="font-medium text-foreground flex items-center gap-1.5">
+                              {item.clientName}
+                              {(item.clientRoleEn || item.contentEn) && (
+                                <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 border-emerald-500/40 text-emerald-600 bg-emerald-500/5 font-mono">
+                                  EN
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-muted-foreground">
+                              {item.clientRole}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-3">
-                      <div className="flex items-center gap-0.5 text-amber-500">
-                        {Array.from({ length: item.rating }).map((_, i) => (
-                          <StarIcon key={i} className="w-3.5 h-3.5 fill-current" />
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-3 max-w-xs">
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        &#34;{item.content}&#34;
-                      </p>
-                    </TableCell>
-                    <TableCell className="py-3 admin-cell-meta">
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] font-medium ${
-                          item.published
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <div className="flex items-center gap-0.5 text-amber-500">
+                          {Array.from({ length: item.rating }).map((_, i) => (
+                            <StarIcon key={i} className="w-3.5 h-3.5 fill-current" />
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3 max-w-xs">
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          &#34;{item.content}&#34;
+                        </p>
+                      </TableCell>
+                      <TableCell className="py-3 admin-cell-meta">
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] font-medium ${item.published
                             ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
                             : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {item.published ? "Diterbitkan" : "Draft"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="py-3 text-right admin-cell-actions">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditDialog(item)}
-                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                          title="Edit"
+                            }`}
                         >
-                          <PencilIcon className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openDeleteConfirmation(item)}
-                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                          title="Hapus"
-                        >
-                          <TrashIcon className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
+                          {item.published ? "Diterbitkan" : "Draft"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="py-3 text-right admin-cell-actions">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(item)}
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                            title="Edit"
+                          >
+                            <PencilIcon className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openDeleteConfirmation(item)}
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            title="Hapus"
+                          >
+                            <TrashIcon className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </div>
@@ -689,7 +773,7 @@ export default function AdminTestimonialsPage() {
               <TabsContent value="en" className="space-y-4">
                 <div className="flex items-center justify-between bg-muted/40 p-2.5 rounded-md border border-border/60">
                   <p className="text-[11px] text-muted-foreground leading-tight">
-                    💡 Terjemahkan teks Indonesia ke bahasa Inggris secara instan menggunakan AI Google Translate.
+                    Terjemahkan teks Indonesia ke bahasa Inggris secara instan menggunakan layanan terjemahan otomatis.
                   </p>
                   <Button
                     type="button"
@@ -697,9 +781,9 @@ export default function AdminTestimonialsPage() {
                     size="sm"
                     onClick={handleAutoTranslateToEn}
                     disabled={isTranslating || (!clientRole.trim() && !content.trim())}
-                    className="shrink-0 ml-2 text-xs h-7 px-2.5 gap-1 font-medium bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
+                    className="shrink-0 ml-2 text-xs h-8 sm:h-7 px-2.5 gap-1 font-medium bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
                   >
-                    {isTranslating ? "Menerjemahkan..." : "⚡ Terjemahkan (ID → EN)"}
+                    {isTranslating ? "Menerjemahkan..." : "Terjemahkan (ID -> EN)"}
                   </Button>
                 </div>
 

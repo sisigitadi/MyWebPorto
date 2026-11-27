@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminHeader } from "@/components/admin/admin-header";
 import { X } from "lucide-react";
@@ -21,6 +21,17 @@ export function AdminLayoutShell({
 }: AdminLayoutShellProps) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
+  useEffect(() => {
+    if (!mobileSidebarOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMobileSidebarOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [mobileSidebarOpen]);
+
   return (
     <div className="min-h-[100dvh] lg:h-[100dvh] lg:overflow-hidden flex desktop-wallpaper text-[var(--vt-ink)] pb-[env(safe-area-inset-bottom,0px)]">
       {/* Desktop Sidebar */}
@@ -33,17 +44,22 @@ export function AdminLayoutShell({
 
       {/* Mobile Drawer Sidebar */}
       {mobileSidebarOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden flex">
+        <div
+          className="fixed inset-0 z-50 lg:hidden flex"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu Navigasi Admin"
+        >
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
             onClick={() => setMobileSidebarOpen(false)}
           />
           <div className="relative flex flex-col w-72 max-w-[85vw] bg-[var(--vt-chrome)] border-r-2 border-[var(--vt-edge-lo-2)] h-full shadow-2xl z-10 animate-in slide-in-from-left duration-200">
-            <div className="absolute top-3 right-3 z-20">
+            <div className="absolute top-2.5 right-2.5 z-20">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-[var(--vt-ink)] hover:bg-[var(--vt-edge-hi-2)]"
+                className="h-11 w-11 text-[var(--vt-ink)] hover:bg-[var(--vt-edge-hi-2)]"
                 onClick={() => setMobileSidebarOpen(false)}
                 aria-label="Tutup Menu"
               >

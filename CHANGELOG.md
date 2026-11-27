@@ -4,6 +4,27 @@ Format: `Added / Changed / Fixed / Security`. Tag rilis: `git tag -a vX.Y.Z`.
 
 ## [Unreleased]
 
+### Fixed, Hardened & Upgraded: 6-Phase Audit Remediation, Live DB Normalization & UX/SEO Upgrades
+
+- **Integritas Data Live Postgres & Transaksi DB (`src/lib/text-normalize.ts`, `src/lib/local-store.ts`, `src/lib/actions.ts`, `src/lib/audit.ts`, `src/lib/seo-remediate.ts`)**:
+  - Memperbaiki data live PostgreSQL dan fallback lokal: menormalkan kolom JSONB *double-encoded* (`products.gallery` pada 3 baris dan `articles.tags` pada 12 dari 17 artikel), serta membersihkan trailing backslash menggantung (`\`) dan duplikasi blok pasca-FAQ pada 6 deskripsi proyek.
+  - Menambahkan helper murni `normalizeStringArray` dan `sanitizeNarrativeMarkdown` di `src/lib/text-normalize.ts`, mengonsolidasikan I/O & cache local store di `src/lib/local-store.ts`, serta membungkus `reorderProjects`, `reorderServices`, `reorderProducts`, `reorderTestimonials`, dan `reorderArticles` ke dalam `db.transaction`.
+- **Ketahanan Order, Visitor Analytics, & WhatsApp Bot (`src/lib/order-actions.ts`, `src/lib/error-utils.ts`, `src/lib/visitor-analytics.ts`, `src/lib/whatsapp-bot/`)**:
+  - Menambahkan `ValidationError` di `src/lib/error-utils.ts`, transaksi reservasi/pemulihan stok atomik pada `updateOrderStatus` dan `deleteOrder`, sinkronisasi `customers.totalSpent`, perhitungan `total` paralel, serta `expireStalePendingOrders(24)`.
+  - Memperbaiki persistensi `timezone` (dengan fallback `x-vercel-ip-timezone`), prioritas header IP (`cf-connecting-ip` -> `x-real-ip` -> `x-forwarded-for`), agregasi `device`/`browser`/`os`/`timezone`, filter tanggal pada `recentRows`, dan pemakaian rate limiter bersama di `/api/visitor-hit`.
+  - Menambahkan exponential backoff reconnect, cooldown 4 detik & guard anti-loop pada `wa-service.ts`, validasi Zod + mutex antrean tulis log pada `wa-storage.ts`, dan pemisahan HTTP `401`/`400`/`500` pada route handler admin WhatsApp Bot.
+- **Unifikasi UI Toko, Lacak Pesanan, & QR Lokal (`src/components/public/`)**:
+  - Menyatukan modal pelacakan pesanan ke `order-tracker-modal.tsx` (riwayat invoice `localStorage`, shortcut unggah bukti bayar, dukungan `Escape`) pada section dan katalog produk.
+  - Menyelaraskan hook & focus ring pada `cart-dialog.tsx`, menyelaraskan mobile sticky bottom dock dengan desktop `purchaseType` di `product-detail-content.tsx`, dan mengganti QR generator eksternal menjadi `qrcode` lokal pada `product-share-modal.tsx` dan `content-share-modal.tsx`.
+- **Upgrade Desktop SIGIT-OS, Command Palette, & Aksesibilitas (`src/components/public/os/`)**:
+  - Menambahkan Window Snapping (`left`/`right`/maximize dengan shortcut `Alt+ArrowLeft`, `Alt+ArrowRight`, `Alt+W`, `Escape`) serta pencarian konten live (proyek, artikel, produk) di `os-command-palette.tsx` dan `os-desktop-manager.tsx`.
+  - Menyelaraskan kontras titlebar (`--vt-titlebar-ink`) di `os-window.tsx` dan mengubah tombol merek menubar di `os-menubar.tsx` menjadi `<button>` aksesibel.
+- **Perbaikan Tema 4-Theme, Workflow Admin, & Gate Antislop (`src/app/globals.css`, `src/components/admin/`, `src/app/admin/`, `src/lib/translations.ts`)**:
+  - Mendefinisikan `--vt-cyan` pada keempat tema di `globals.css` dan menghapus override inline `#1a1512` pada `.vt-btn-pink` di katalog proyek & artikel.
+  - Menambahkan mode editor `Split` Markdown di `content-editor.tsx`, auto-save draf lokal di `redaksi-composer.tsx`, 1-click verifikasi WA & bersihkan order kedaluwarsa + preview bukti bayar di `/admin/orders`, konfirmasi `AlertDialog` FAQ di `/admin/whatsapp-bot`, tampilan kartu mobile pada tabel admin, serta membersihkan karakter em-dash pada copy UI.
+- **SEO, Isolasi Draft, Performa SSR, & Paritas CI (`src/app/robots.ts`, `src/app/feed.xml/route.ts`, `src/app/(public)/toko/`, `scripts/i18n-parity.mjs`, `tests/audit-remediation-fixes.test.ts`)**:
+  - Mengizinkan `/api/media/` & `/api/og` sekaligus melarang `/order/` di `robots.ts`, menormalkan `dateModified` & `absoluteImageUrl` JSON-LD, memfilter ketat `published` di `/toko` dan beranda publik, mempercepat SSR `layout.tsx` & beranda dengan React `cache()` + `Promise.all`, memperbaiki `scripts/i18n-parity.mjs` untuk CRLF (`299 key` lulus), menambahkan `/toko` di Lighthouse & E2E, dan menambah 9 unit test regresi di `tests/audit-remediation-fixes.test.ts` (total `51 file / 645 test`).
+
 ### Updated & Fixed: Full Audit 5 Pilar, Resolusi Anti-Slop #002 & Upgrade Dependensi Tier 1
 
 - **Pembaruan Dependensi Stabil Tier 1 (`package.json`, pnpm lock)**:

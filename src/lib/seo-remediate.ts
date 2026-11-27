@@ -34,6 +34,7 @@ import {
   pickPrimaryKeyword,
   tokenize,
 } from "@/lib/seo-keywords";
+import { sanitizeNarrativeMarkdown } from "@/lib/text-normalize";
 
 /** Field yang menyimpan isi panjang, mengikuti redaksi-meta.ts. */
 export type BodyField = "content" | "description" | "bio";
@@ -663,19 +664,19 @@ function ensureContentDepth(
 
     ...(!hasFaqAlready
       ? [
-          [
-            `## Pertanyaan Umum Seputar ${topicCap} (FAQ)`,
-            ``,
-            `### Apa aspek paling penting dalam memahami ${topic}?`,
-            `Faktor terpenting meliputi pemahaman mendalam terhadap konteks dasar, penerapan metodologi yang teruji, serta ketelitian dalam mengevaluasi setiap detail indikator terkait.${relatedLinkText}`,
-            ``,
-            `### Bagaimana cara mengantisipasi kendala umum yang sering dihadapi?`,
-            `Kendala umum biasanya diatasi dengan menyusun panduan terarah, melakukan verifikasi bertahap pada setiap siklus, dan menjaga keteraturan dokumentasi di setiap tahapan.`,
-            ``,
-            `### Kapan waktu yang tepat untuk melakukan peninjauan berkala?`,
-            `Peninjauan berkala disarankan dilakukan pada setiap fase penting atau setiap kali terdapat pembaruan informasi yang signifikan, guna memastikan pendekatan tetap selaras dengan perkembangan kebutuhan pengguna.`,
-          ].join("\n"),
-        ]
+        [
+          `## Pertanyaan Umum Seputar ${topicCap} (FAQ)`,
+          ``,
+          `### Apa aspek paling penting dalam memahami ${topic}?`,
+          `Faktor terpenting meliputi pemahaman mendalam terhadap konteks dasar, penerapan metodologi yang teruji, serta ketelitian dalam mengevaluasi setiap detail indikator terkait.${relatedLinkText}`,
+          ``,
+          `### Bagaimana cara mengantisipasi kendala umum yang sering dihadapi?`,
+          `Kendala umum biasanya diatasi dengan menyusun panduan terarah, melakukan verifikasi bertahap pada setiap siklus, dan menjaga keteraturan dokumentasi di setiap tahapan.`,
+          ``,
+          `### Kapan waktu yang tepat untuk melakukan peninjauan berkala?`,
+          `Peninjauan berkala disarankan dilakukan pada setiap fase penting atau setiap kali terdapat pembaruan informasi yang signifikan, guna memastikan pendekatan tetap selaras dengan perkembangan kebutuhan pengguna.`,
+        ].join("\n"),
+      ]
       : []),
 
     [
@@ -814,7 +815,7 @@ export function remediateDraft(input: RemediationInput): RemediationResult {
   }
 
   const metaBase = fitMetaLength(input.meta || "");
-  let body = tidy(input.body || "");
+  let body = sanitizeNarrativeMarkdown(tidy(input.body || ""));
 
   // Rapikan format heading: normalkan level dan buang bold yang membungkus sub-judul
   const headingCleaned = cleanHeadingFormatting(body);

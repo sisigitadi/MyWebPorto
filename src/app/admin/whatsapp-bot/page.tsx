@@ -34,6 +34,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import type { WABotState, WABotConfig, WAKnowledgeFAQ, WAChatLogItem } from "@/lib/whatsapp-bot/wa-types";
 
@@ -72,9 +82,10 @@ export default function WhatsAppBotAdminPage() {
   // Action Pending
   const [isActionPending, startAction] = useTransition();
 
-  // FAQ Modal State
+  // FAQ Modal & Delete Confirmation State
   const [faqModalOpen, setFaqModalOpen] = useState(false);
   const [editingFaq, setEditingFaq] = useState<WAKnowledgeFAQ | null>(null);
+  const [faqToDelete, setFaqToDelete] = useState<WAKnowledgeFAQ | null>(null);
   const [faqQuestion, setFaqQuestion] = useState("");
   const [faqAnswer, setFaqAnswer] = useState("");
   const [faqCategory, setFaqCategory] = useState<WAKnowledgeFAQ["category"]>("umum");
@@ -178,12 +189,12 @@ export default function WhatsAppBotAdminPage() {
       updatedFaqs = updatedFaqs.map((f) =>
         f.id === editingFaq.id
           ? {
-              ...f,
-              question: faqQuestion.trim(),
-              answer: faqAnswer.trim(),
-              category: faqCategory,
-              updatedAt: new Date().toISOString(),
-            }
+            ...f,
+            question: faqQuestion.trim(),
+            answer: faqAnswer.trim(),
+            category: faqCategory,
+            updatedAt: new Date().toISOString(),
+          }
           : f
       );
     } else {
@@ -288,23 +299,22 @@ export default function WhatsAppBotAdminPage() {
             </h1>
             <Badge
               variant="outline"
-              className={`font-mono text-[10px] uppercase font-bold ${
-                state.status === "CONNECTED"
-                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                  : state.status === "QR_READY"
+              className={`font-mono text-[10px] uppercase font-bold ${state.status === "CONNECTED"
+                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                : state.status === "QR_READY"
                   ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 animate-pulse"
                   : state.status === "CONNECTING"
-                  ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30"
-                  : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30"
-              }`}
+                    ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30"
+                    : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30"
+                }`}
             >
               {state.status === "CONNECTED"
                 ? "● Online & Terhubung"
                 : state.status === "QR_READY"
-                ? "▲ Siap Scan QR"
-                : state.status === "CONNECTING"
-                ? "◌ Menghubungkan..."
-                : "■ Terputus"}
+                  ? "▲ Siap Scan QR"
+                  : state.status === "CONNECTING"
+                    ? "◌ Menghubungkan..."
+                    : "■ Terputus"}
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
@@ -468,8 +478,8 @@ export default function WhatsAppBotAdminPage() {
                   {state.status === "CONNECTED"
                     ? "WhatsApp Web Terhubung"
                     : state.status === "QR_READY"
-                    ? "Scan Kode QR WhatsApp"
-                    : "Mulai Sesi WhatsApp"}
+                      ? "Scan Kode QR WhatsApp"
+                      : "Mulai Sesi WhatsApp"}
                 </CardTitle>
                 <CardDescription className="text-xs">
                   {state.status === "CONNECTED"
@@ -713,11 +723,10 @@ export default function WhatsAppBotAdminPage() {
                     {config.faqs.map((faq) => (
                       <div
                         key={faq.id}
-                        className={`p-3 rounded-md border text-xs font-mono transition-all ${
-                          faq.enabled
-                            ? "bg-[var(--vt-card)] border-border"
-                            : "bg-muted/40 border-border/50 opacity-60"
-                        }`}
+                        className={`p-3 rounded-md border text-xs font-mono transition-all ${faq.enabled
+                          ? "bg-[var(--vt-card)] border-border"
+                          : "bg-muted/40 border-border/50 opacity-60"
+                          }`}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="space-y-1 min-w-0 flex-1">
@@ -738,18 +747,18 @@ export default function WhatsAppBotAdminPage() {
                             <button
                               type="button"
                               onClick={() => handleToggleFAQ(faq.id)}
-                              className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                                faq.enabled
-                                  ? "bg-emerald-500/20 text-emerald-600"
-                                  : "bg-gray-500/20 text-gray-500"
-                              }`}
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${faq.enabled
+                                ? "bg-emerald-500/20 text-emerald-600"
+                                : "bg-gray-500/20 text-gray-500"
+                                }`}
                             >
                               {faq.enabled ? "Aktif" : "Mati"}
                             </button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                              aria-label="Edit FAQ"
+                              className="h-9 w-9 sm:h-7 sm:w-7 text-muted-foreground hover:text-foreground"
                               onClick={() => {
                                 setEditingFaq(faq);
                                 setFaqQuestion(faq.question);
@@ -758,15 +767,16 @@ export default function WhatsAppBotAdminPage() {
                                 setFaqModalOpen(true);
                               }}
                             >
-                              <Edit2 className="h-3 w-3" />
+                              <Edit2 className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 text-red-500 hover:text-red-700"
-                              onClick={() => handleDeleteFAQ(faq.id)}
+                              aria-label="Hapus FAQ"
+                              className="h-9 w-9 sm:h-7 sm:w-7 text-red-500 hover:text-red-700"
+                              onClick={() => setFaqToDelete(faq)}
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Trash2 className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                             </Button>
                           </div>
                         </div>
@@ -996,6 +1006,33 @@ export default function WhatsAppBotAdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={Boolean(faqToDelete)} onOpenChange={(open) => !open && setFaqToDelete(null)}>
+        <AlertDialogContent className="font-mono text-xs">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-sm font-bold text-rose-600">
+              Hapus Item FAQ Ini?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs">
+              Pertanyaan &quot;{faqToDelete?.question}&quot; akan dihapus dari knowledge base bot WhatsApp.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="text-xs">Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (faqToDelete) {
+                  handleDeleteFAQ(faqToDelete.id);
+                  setFaqToDelete(null);
+                }
+              }}
+              className="bg-rose-600 hover:bg-rose-700 text-white text-xs"
+            >
+              Ya, Hapus FAQ
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -162,8 +162,8 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
                   language === "en" && project.summaryEn
                     ? project.summaryEn
                     : language === "en" && project.descriptionEn
-                    ? project.descriptionEn
-                    : project.summary;
+                      ? project.descriptionEn
+                      : project.summary;
 
                 return (
                   <div
@@ -229,10 +229,10 @@ export function ProjectsCatalogContent({ projects }: ProjectsCatalogContentProps
                           <Button
                             asChild
                             size="sm"
-                            className="vt-btn-pink h-7 px-2.5 text-[11px] font-mono uppercase font-bold"
+                            className="vt-btn-pink h-8 sm:h-7 px-3 sm:px-2.5 text-[11px] font-mono uppercase font-bold"
                           >
                             <Link href={`/proyek/${project.slug}`}>
-                              <span style={{ color: "#1a1512" }}>Open</span>
+                              <span>{isEn ? "Open" : "Buka"}</span>
                               <ArrowRight className="h-3 w-3 ml-1" />
                             </Link>
                           </Button>

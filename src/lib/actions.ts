@@ -1,12 +1,12 @@
 "use server";
 
 import { cache } from "react";
-import fs from "fs";
-import path from "path";
 import { revalidatePath } from "next/cache";
 import { asc, desc, eq } from "drizzle-orm";
 import { db, isDbConnected } from "@/db";
 import * as schema from "@/db/schema";
+import { getLocalStore, updateLocalStore } from "@/lib/local-store";
+import { normalizeStringArray, sanitizeNarrativeMarkdown } from "@/lib/text-normalize";
 import {
   ProfileSchema,
   ProjectSchema,
@@ -105,88 +105,7 @@ import {
 // ==========================================
 // PERSISTENT LOCAL FILE STORE (OFFLINE & BACKUP)
 // ==========================================
-// Di Vercel serverless, direktori root bersifat read-only sehingga gunakan /tmp
-const isVercel = Boolean(process.env.VERCEL);
-const DATA_DIR = isVercel
-  ? path.join("/tmp", "my-web-porto-data")
-  : path.join(process.cwd(), "data");
-const DATA_FILE = path.join(DATA_DIR, "local-store.json");
-
-interface LocalStoreData {
-  profile: ProfileData;
-  projects: ProjectData[];
-  services: ServiceData[];
-  products: ProductData[];
-  testimonials: TestimonialData[];
-  articles: ArticleData[];
-  auditLogs?: unknown[];
-}
-
-function ensureStoreExists(): void {
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    if (!fs.existsSync(DATA_FILE)) {
-      const initialData: LocalStoreData = {
-        profile: DUMMY_PROFILE,
-        projects: DUMMY_PROJECTS,
-        services: DUMMY_SERVICES,
-        products: DUMMY_PRODUCTS,
-        testimonials: DUMMY_TESTIMONIALS,
-        articles: DUMMY_ARTICLES,
-      };
-      fs.writeFileSync(DATA_FILE, JSON.stringify(initialData, null, 2), "utf-8");
-    }
-  } catch (err) {
-    console.warn("Inisialisasi local store dilewati (lingkungan read-only):", err);
-  }
-}
-
-let localStoreMemoryCache: { data: LocalStoreData; mtime: number } | null = null;
-
-function getLocalStore(): LocalStoreData | null {
-  try {
-    ensureStoreExists();
-    if (fs.existsSync(DATA_FILE)) {
-      const stats = fs.statSync(DATA_FILE);
-      if (localStoreMemoryCache && localStoreMemoryCache.mtime === stats.mtimeMs) {
-        return localStoreMemoryCache.data;
-      }
-      const raw = fs.readFileSync(DATA_FILE, "utf-8");
-      const parsed = JSON.parse(raw) as LocalStoreData;
-      localStoreMemoryCache = { data: parsed, mtime: stats.mtimeMs };
-      return parsed;
-    }
-  } catch (err) {
-    console.warn("Gagal membaca local store:", err);
-  }
-  return null;
-}
-
-function updateLocalStore<K extends keyof LocalStoreData>(key: K, data: LocalStoreData[K]): void {
-  try {
-    ensureStoreExists();
-    const store = getLocalStore() || {
-      profile: DUMMY_PROFILE,
-      projects: DUMMY_PROJECTS,
-      services: DUMMY_SERVICES,
-      products: DUMMY_PRODUCTS,
-      testimonials: DUMMY_TESTIMONIALS,
-      articles: DUMMY_ARTICLES,
-    };
-    store[key] = data;
-    fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2), "utf-8");
-    try {
-      const stats = fs.statSync(DATA_FILE);
-      localStoreMemoryCache = { data: store, mtime: stats.mtimeMs };
-    } catch {
-      localStoreMemoryCache = null;
-    }
-  } catch (err) {
-    console.warn("Gagal menulis ke local store:", err);
-  }
-}
+// Delegated to src/lib/local-store.ts so audit logging and CRUD share one cache.
 
 // ==========================================
 // SLUG UNIQUENESS GUARD
@@ -460,7 +379,10 @@ const getProfileInternal = cache(async (): Promise<ProfileData> => {
       availableForHire: res.availableForHire ?? baseProfile.availableForHire,
       availabilityBadge: res.availabilityBadge?.trim() ? res.availabilityBadge : null,
       availabilityBadgeEn: res.availabilityBadgeEn?.trim() ? res.availabilityBadgeEn : null,
-      skills: (res.skills as string[])?.length ? (res.skills as string[]) : baseProfile.skills,
+      skills: (() => {
+        const parsedSkills = normalizeStringArray(res.skills);
+        return parsedSkills.length ? parsedSkills : baseProfile.skills;
+      })(),
       stats: (res.stats as typeof DUMMY_PROFILE.stats)?.length
         ? (res.stats as typeof DUMMY_PROFILE.stats)
         : baseProfile.stats,
@@ -676,10 +598,13 @@ const getProjectsInternal = cache(async (includeScheduled: boolean): Promise<Pro
           slug: p.slug,
           summary: summaryId,
           summaryEn: summaryEn,
-          description: p.description,
-          descriptionEn: p.descriptionEn && !isTranslationErrorPayload(p.descriptionEn) ? p.descriptionEn : null,
+          description: sanitizeNarrativeMarkdown(p.description),
+          descriptionEn:
+            p.descriptionEn && !isTranslationErrorPayload(p.descriptionEn)
+              ? sanitizeNarrativeMarkdown(p.descriptionEn)
+              : null,
           thumbnailUrl: p.imageUrl?.trim() || "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=800&auto=format&fit=crop",
-          techStack: (p.techStacks as string[]) || [],
+          techStack: normalizeStringArray(p.techStacks),
           demoUrl: p.demoUrl || undefined,
           repoUrl: p.repoUrl || undefined,
           featured: p.featured,
@@ -697,9 +622,14 @@ const getProjectsInternal = cache(async (includeScheduled: boolean): Promise<Pro
     return visible(sorted.map((p, idx) => ({
       ...p,
       order: p.order ?? idx + 1,
+      description: sanitizeNarrativeMarkdown(p.description),
       titleEn: p.titleEn && !isTranslationErrorPayload(p.titleEn) ? p.titleEn : null,
       summaryEn: p.summaryEn && !isTranslationErrorPayload(p.summaryEn) ? p.summaryEn : null,
-      descriptionEn: p.descriptionEn && !isTranslationErrorPayload(p.descriptionEn) ? p.descriptionEn : null,
+      descriptionEn:
+        p.descriptionEn && !isTranslationErrorPayload(p.descriptionEn)
+          ? sanitizeNarrativeMarkdown(p.descriptionEn)
+          : null,
+      techStack: normalizeStringArray(p.techStack),
     })));
   }
 });
@@ -926,12 +856,15 @@ export async function reorderProjects(items: { id: string; order: number }[]) {
 
   if (isDbConnected) {
     try {
-      for (const item of items) {
-        await db
-          .update(schema.projects)
-          .set({ order: item.order, updatedAt: new Date() })
-          .where(eq(schema.projects.id, item.id));
-      }
+      await db.transaction(async (tx) => {
+        for (const item of items) {
+          if (!item.id || !Number.isFinite(item.order)) continue;
+          await tx
+            .update(schema.projects)
+            .set({ order: Math.trunc(item.order), updatedAt: new Date() })
+            .where(eq(schema.projects.id, item.id));
+        }
+      });
     } catch (error) {
       console.error("Gagal memperbarui urutan proyek di DB:", error);
       return { success: false, error: "Gagal memperbarui urutan proyek di database." };
@@ -1196,12 +1129,15 @@ export async function reorderServices(items: { id: string; order: number }[]) {
 
   if (isDbConnected) {
     try {
-      for (const item of items) {
-        await db
-          .update(schema.services)
-          .set({ order: item.order, updatedAt: new Date() })
-          .where(eq(schema.services.id, item.id));
-      }
+      await db.transaction(async (tx) => {
+        for (const item of items) {
+          if (!item.id || !Number.isFinite(item.order)) continue;
+          await tx
+            .update(schema.services)
+            .set({ order: Math.trunc(item.order), updatedAt: new Date() })
+            .where(eq(schema.services.id, item.id));
+        }
+      });
     } catch (error) {
       console.error("Gagal memperbarui urutan layanan di DB:", error);
       return { success: false, error: "Gagal memperbarui urutan layanan di database." };
@@ -1249,6 +1185,7 @@ const getProductsInternal = cache(async (): Promise<ProductData[]> => {
 
   const sanitizeProduct = (p: ProductData): ProductData => ({
     ...p,
+    gallery: normalizeStringArray(p.gallery),
     titleEn: p.titleEn && !isTranslationErrorPayload(p.titleEn) ? p.titleEn : null,
     descriptionEn: p.descriptionEn && !isTranslationErrorPayload(p.descriptionEn) ? p.descriptionEn : null,
   });
@@ -1305,7 +1242,7 @@ const getProductsInternal = cache(async (): Promise<ProductData[]> => {
       badge: p.badge || null,
       category: p.category || null,
       stock: typeof p.stock === "number" ? p.stock : null,
-      gallery: (Array.isArray(p.gallery) ? p.gallery : []).filter((u) => typeof u === "string" && u.trim()),
+      gallery: normalizeStringArray(p.gallery),
       thumbnailUrl: p.imageUrl?.trim() || "https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=600&auto=format&fit=crop",
       ctaUrl: p.ctaUrl || "#kontak",
       purchaseType: normalizePurchaseType(p.purchaseType),
@@ -1545,12 +1482,15 @@ export async function reorderProducts(items: { id: string; order: number }[]) {
 
   if (isDbConnected) {
     try {
-      for (const item of items) {
-        await db
-          .update(schema.products)
-          .set({ order: item.order, updatedAt: new Date() })
-          .where(eq(schema.products.id, item.id));
-      }
+      await db.transaction(async (tx) => {
+        for (const item of items) {
+          if (!item.id || !Number.isFinite(item.order)) continue;
+          await tx
+            .update(schema.products)
+            .set({ order: Math.trunc(item.order), updatedAt: new Date() })
+            .where(eq(schema.products.id, item.id));
+        }
+      });
     } catch (error) {
       console.error("Gagal memperbarui urutan produk di DB:", error);
       return { success: false, error: "Gagal memperbarui urutan produk di database." };
@@ -1828,12 +1768,15 @@ export async function reorderTestimonials(items: { id: string; order: number }[]
 
   if (isDbConnected) {
     try {
-      for (const item of items) {
-        await db
-          .update(schema.testimonials)
-          .set({ order: item.order, updatedAt: new Date() })
-          .where(eq(schema.testimonials.id, item.id));
-      }
+      await db.transaction(async (tx) => {
+        for (const item of items) {
+          if (!item.id || !Number.isFinite(item.order)) continue;
+          await tx
+            .update(schema.testimonials)
+            .set({ order: Math.trunc(item.order), updatedAt: new Date() })
+            .where(eq(schema.testimonials.id, item.id));
+        }
+      });
     } catch (error) {
       console.error("Gagal memperbarui urutan testimoni di DB:", error);
       return { success: false, error: "Gagal memperbarui urutan testimoni di database." };
@@ -1944,7 +1887,7 @@ const getArticlesInternal = cache(async (
         content: a.content,
         contentEn: a.contentEn && !isTranslationErrorPayload(a.contentEn) ? a.contentEn : null,
         imageUrl: a.imageUrl || null,
-        tags: (Array.isArray(a.tags) ? a.tags : []) as string[],
+        tags: normalizeStringArray(a.tags),
         featured: a.featured,
         published: a.published,
         publishAt: a.publishAt ? a.publishAt.toISOString() : null,
@@ -1959,6 +1902,7 @@ const getArticlesInternal = cache(async (
     return visible(sorted.map((a, idx) => ({
       ...a,
       order: a.order ?? idx + 1,
+      tags: normalizeStringArray(a.tags),
       titleEn: a.titleEn && !isTranslationErrorPayload(a.titleEn) ? a.titleEn : null,
       summaryEn: a.summaryEn && !isTranslationErrorPayload(a.summaryEn) ? a.summaryEn : null,
       contentEn: a.contentEn && !isTranslationErrorPayload(a.contentEn) ? a.contentEn : null,
@@ -2207,12 +2151,15 @@ export async function reorderArticles(items: { id: string; order: number }[]) {
 
   if (isDbConnected) {
     try {
-      for (const item of items) {
-        await db
-          .update(schema.articles)
-          .set({ order: item.order, updatedAt: new Date() })
-          .where(eq(schema.articles.id, item.id));
-      }
+      await db.transaction(async (tx) => {
+        for (const item of items) {
+          if (!item.id || !Number.isFinite(item.order)) continue;
+          await tx
+            .update(schema.articles)
+            .set({ order: Math.trunc(item.order), updatedAt: new Date() })
+            .where(eq(schema.articles.id, item.id));
+        }
+      });
     } catch (error) {
       console.error("Gagal memperbarui urutan artikel di DB:", error);
       return { success: false, error: "Gagal memperbarui urutan artikel di database." };

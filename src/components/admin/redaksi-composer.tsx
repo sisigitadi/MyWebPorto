@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useEffect, useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Loader2,
@@ -334,13 +334,72 @@ export function RedaksiComposer({
   // Laporan sinkronisasi SEO+GEO dari draf AI terakhir: apa yang diperbaiki
   // otomatis dan apa yang masih perlu tangan manusia.
   const [seoReport, setSeoReport] = useState<DraftSeoReport | null>(null);
+  const [recoverableDraft, setRecoverableDraft] = useState<{
+    values: Record<string, unknown>;
+    brief: string;
+    savedAt: string;
+  } | null>(null);
 
   const tdef = getRedaksiType(type);
   const fields = COMPOSER_FIELDS[type];
+  const autosaveKey = `sigitos_redaksi_autosave_v1_${type}`;
 
   // Guard navigasi (sama dengan 7 form admin lain) — lihat ui-strings-form.tsx.
   const baseline = initialFormValues(type, profile);
   useUnsavedChanges(JSON.stringify(baseline), values);
+
+  // Periksa draf auto-save lokal secara asinkron saat tipe konten berubah / halaman dibuka
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      try {
+        const raw = window.localStorage?.getItem(autosaveKey);
+        if (!raw) {
+          setRecoverableDraft(null);
+          return;
+        }
+        const parsed = JSON.parse(raw) as {
+          values?: Record<string, unknown>;
+          brief?: string;
+          savedAt?: string;
+        };
+        if (parsed && parsed.values && typeof parsed.values === "object") {
+          setRecoverableDraft({
+            values: parsed.values,
+            brief: typeof parsed.brief === "string" ? parsed.brief : "",
+            savedAt: typeof parsed.savedAt === "string" ? parsed.savedAt : "",
+          });
+        } else {
+          setRecoverableDraft(null);
+        }
+      } catch {
+        setRecoverableDraft(null);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [autosaveKey]);
+
+  // Simpan otomatis ke localStorage secara debounced ketika form berubah dari baseline
+  useEffect(() => {
+    const baselineJson = JSON.stringify(initialFormValues(type, profile));
+    const currentJson = JSON.stringify(values);
+    if (currentJson === baselineJson && !brief.trim()) return;
+
+    const timer = setTimeout(() => {
+      try {
+        window.localStorage?.setItem(
+          autosaveKey,
+          JSON.stringify({
+            values,
+            brief,
+            savedAt: new Date().toISOString(),
+          })
+        );
+      } catch {
+        // Abaikan jika storage penuh / diblokir
+      }
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [autosaveKey, brief, profile, type, values]);
 
   const setField = (key: string, value: unknown): void => {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -430,6 +489,12 @@ export function RedaksiComposer({
         return;
       }
       toast.success(`${tdef?.label ?? "Konten"} berhasil disimpan.`);
+      try {
+        window.localStorage?.removeItem(autosaveKey);
+      } catch {
+        // abaikan
+      }
+      setRecoverableDraft(null);
       setValues(initialFormValues(type, profile));
       setBrief("");
       router.refresh();
@@ -829,7 +894,7 @@ export function RedaksiComposer({
               >
                 <div className="min-w-0">
                   <p className="text-xs font-semibold truncate">
-                    {AUTOMATION_SECTION_LABELS[s.type]?.label ?? s.type} — {s.topic}
+                    {AUTOMATION_SECTION_LABELS[s.type]?.label ?? s.type}: {s.topic}
                   </p>
                   <p className="text-[10px] font-mono text-muted-foreground">
                     {new Date(s.createdAt).toLocaleString("id-ID")}
@@ -892,6 +957,53 @@ export function RedaksiComposer({
         {tdef && <p className="text-[11px] text-muted-foreground">{tdef.description}</p>}
       </div>
 
+      {recoverableDraft && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-sky-500/40 bg-sky-500/10 p-3 text-xs">
+          <div>
+            <p className="font-semibold text-foreground">
+              Draf auto-save lokal tersedia ({tdef?.label ?? type})
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Disimpan otomatis di browser pada{" "}
+              {recoverableDraft.savedAt
+                ? new Date(recoverableDraft.savedAt).toLocaleString("id-ID")
+                : "sesi sebelumnya"}
+              .
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setValues(recoverableDraft.values);
+                setBrief(recoverableDraft.brief);
+                setRecoverableDraft(null);
+                toast.info("Draf auto-save dipulihkan.");
+              }}
+              className="h-8 text-xs"
+            >
+              Pulihkan Draf
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                try {
+                  window.localStorage?.removeItem(autosaveKey);
+                } catch { }
+                setRecoverableDraft(null);
+              }}
+              className="h-8 text-xs text-muted-foreground hover:text-destructive"
+            >
+              Abaikan
+            </Button>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSave} className="space-y-4">
         {/* Brief + bantuan AI */}
         <div className="space-y-1.5 border-2 rounded-md p-3" style={{ borderColor: "var(--border)" }}>
@@ -924,7 +1036,7 @@ export function RedaksiComposer({
             </Button>
             <span className="text-[11px] text-muted-foreground">
               {cloudProvider === "off"
-                ? "Cloud AI OFF — aktifkan di God Mode → Pengaturan Cloud AI."
+                ? "Cloud AI OFF. Aktifkan di Kecerdasan & Bot -> Pengaturan Cloud AI."
                 : `Provider: ${cloudProvider} · model: ${cloudModel}`}
             </span>
             <Button
@@ -961,8 +1073,8 @@ export function RedaksiComposer({
                 </p>
                 <p className="text-[11px] text-muted-foreground">
                   Provider AI tidak merespons, jadi yang dimuat hanyalah kerangka
-                  berisi — bukan tulisan AI. Struktur SEO/GEO-nya sudah disiapkan,
-                  tapi isi dan faktanya wajib kamu tulis sendiri.
+                  berisi, bukan tulisan AI. Struktur SEO/GEO sudah disiapkan,
+                  tetapi isi dan faktanya wajib Anda tulis sendiri.
                 </p>
                 {seoReport.providerError ? (
                   <p className="rounded border border-destructive/40 bg-destructive/5 p-2 font-mono text-[11px] break-words">

@@ -37,7 +37,8 @@ export const metadata: Metadata = {
 export const revalidate = 86400;
 
 export default async function ProductsPage() {
-  const [products, profile] = await Promise.all([getProducts(), getProfile()]);
+  const [rawProducts, profile] = await Promise.all([getProducts(), getProfile()]);
+  const products = rawProducts.filter((p) => p.published);
 
   const breadcrumbSchema = {
     "@context": "https://schema.org",

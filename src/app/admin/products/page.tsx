@@ -491,16 +491,18 @@ export default function AdminProductsPage() {
 
       {/* BANNER PENGATURAN TOKO & METODE PEMBAYARAN TERPUSAT */}
       <Card className="bg-[var(--vt-card)] border-[var(--vt-edge-lo-2)] overflow-hidden">
-        <div
-          className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/40 transition-colors"
+        <button
+          type="button"
+          aria-expanded={storeConfigOpen}
+          className="w-full p-4 flex items-center justify-between text-left cursor-pointer hover:bg-muted/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           onClick={() => setStoreConfigOpen(!storeConfigOpen)}
         >
           <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
               <Settings className="h-4 w-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <h2 className="text-sm font-bold text-foreground flex items-center gap-2 flex-wrap">
                 <span>Pengaturan Metode Pembayaran &amp; Rekening Toko</span>
                 <Badge variant="outline" className="text-[10px] font-mono">
                   Multi Rekening &amp; Toggle Aktif/Nonaktif
@@ -514,11 +516,11 @@ export default function AdminProductsPage() {
             </div>
           </div>
 
-          <Button variant="ghost" size="sm" className="gap-1 text-xs">
-            <span>{storeConfigOpen ? "Tutup Pengaturan" : "Buka Pengaturan"}</span>
+          <span className="inline-flex items-center gap-1 text-xs font-medium shrink-0 ml-2">
+            <span className="hidden sm:inline">{storeConfigOpen ? "Tutup Pengaturan" : "Buka Pengaturan"}</span>
             {storeConfigOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </Button>
-        </div>
+          </span>
+        </button>
 
         {storeConfigOpen && (
           <div className="p-4 pt-0 border-t border-border animate-in fade-in">
@@ -696,22 +698,19 @@ export default function AdminProductsPage() {
                     onDragOver={(e) => handleDragOver(e, index)}
                     onDragEnd={handleDragEnd}
                     onDrop={(e) => handleDrop(e, index)}
-                    className={`transition-colors hover:bg-[var(--vt-edge-hi-2)] ${
-                      draggedIndex === index ? "opacity-40 bg-muted/60" : ""
-                    } ${
-                      dragOverIndex === index && draggedIndex !== index
+                    className={`transition-colors hover:bg-[var(--vt-edge-hi-2)] ${draggedIndex === index ? "opacity-40 bg-muted/60" : ""
+                      } ${dragOverIndex === index && draggedIndex !== index
                         ? "border-t-2 border-primary"
                         : ""
-                    }`}
+                      }`}
                   >
                     <TableCell className="py-3">
                       <div className="flex items-center gap-1.5">
                         <span
-                          className={`inline-flex items-center justify-center text-muted-foreground ${
-                            isReorderActive
-                              ? "cursor-grab active:cursor-grabbing hover:text-foreground"
-                              : "opacity-40 cursor-not-allowed"
-                          }`}
+                          className={`inline-flex items-center justify-center text-muted-foreground ${isReorderActive
+                            ? "cursor-grab active:cursor-grabbing hover:text-foreground"
+                            : "opacity-40 cursor-not-allowed"
+                            }`}
                           title={
                             isReorderActive
                               ? "Tahan dan geser untuk mengubah urutan"
@@ -1116,10 +1115,10 @@ export default function AdminProductsPage() {
                     isCustomCategory
                       ? "__custom__"
                       : availableCategories.includes(formCategory)
-                      ? formCategory
-                      : formCategory
-                      ? "__custom__"
-                      : ""
+                        ? formCategory
+                        : formCategory
+                          ? "__custom__"
+                          : ""
                   }
                   onChange={(e) => {
                     const val = e.target.value;
@@ -1138,7 +1137,7 @@ export default function AdminProductsPage() {
                       {cat}
                     </option>
                   ))}
-                  <option value="__custom__">✏️ + Tambah Kategori Baru (Kustom)...</option>
+                  <option value="__custom__">+ Tambah Kategori Baru (Kustom)...</option>
                 </select>
 
                 {/* Input teks kustom bila memilih opsi kustom atau kategori belum terdaftar */}
@@ -1191,11 +1190,10 @@ export default function AdminProductsPage() {
                               setIsCustomCategory(false);
                             }
                           }}
-                          className={`px-2.5 py-1 rounded-md text-[11px] transition-all border inline-flex items-center gap-1 cursor-pointer ${
-                            isSelected
-                              ? "bg-[var(--vt-accent)] text-white border-[var(--vt-accent)] font-semibold shadow-xs"
-                              : "bg-[var(--vt-paper)] text-[var(--vt-ink)] border-[var(--vt-edge-lo-2)] hover:border-[var(--vt-accent)] hover:bg-[var(--vt-paper-hi)]"
-                          }`}
+                          className={`px-2.5 py-1 rounded-md text-[11px] transition-all border inline-flex items-center gap-1 cursor-pointer ${isSelected
+                            ? "bg-[var(--vt-accent)] text-white border-[var(--vt-accent)] font-semibold shadow-xs"
+                            : "bg-[var(--vt-paper)] text-[var(--vt-ink)] border-[var(--vt-edge-lo-2)] hover:border-[var(--vt-accent)] hover:bg-[var(--vt-paper-hi)]"
+                            }`}
                         >
                           {isSelected && <Check className="w-3 h-3 text-white" />}
                           <span>{cat}</span>
@@ -1207,11 +1205,10 @@ export default function AdminProductsPage() {
                       onClick={() => {
                         setIsCustomCategory(true);
                       }}
-                      className={`px-2.5 py-1 rounded-md text-[11px] transition-all border border-dashed inline-flex items-center gap-1 cursor-pointer ${
-                        isCustomCategory
-                          ? "bg-[var(--vt-accent-lo)] text-[var(--vt-accent)] border-[var(--vt-accent)] font-semibold"
-                          : "bg-transparent text-[var(--vt-ink-mute)] border-[var(--vt-edge-lo-2)] hover:border-[var(--vt-accent)] hover:text-[var(--vt-ink)]"
-                      }`}
+                      className={`px-2.5 py-1 rounded-md text-[11px] transition-all border border-dashed inline-flex items-center gap-1 cursor-pointer ${isCustomCategory
+                        ? "bg-[var(--vt-accent-lo)] text-[var(--vt-accent)] border-[var(--vt-accent)] font-semibold"
+                        : "bg-transparent text-[var(--vt-ink-mute)] border-[var(--vt-edge-lo-2)] hover:border-[var(--vt-accent)] hover:text-[var(--vt-ink)]"
+                        }`}
                     >
                       <span>+ Lainnya...</span>
                     </button>
@@ -1308,7 +1305,7 @@ export default function AdminProductsPage() {
                       <button
                         type="button"
                         onClick={() => setFormGallery((prev) => prev.filter((u) => u !== url))}
-                        className="absolute top-0.5 right-0.5 h-5 w-5 rounded-full bg-black/70 text-white text-[10px] leading-none cursor-pointer"
+                        className="absolute top-0.5 right-0.5 h-7 w-7 sm:h-5 sm:w-5 rounded-full bg-black/75 text-white text-xs sm:text-[10px] leading-none flex items-center justify-center cursor-pointer"
                         title="Hapus gambar ini"
                         aria-label="Hapus gambar galeri"
                       >

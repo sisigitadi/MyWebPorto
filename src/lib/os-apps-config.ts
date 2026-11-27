@@ -11,6 +11,7 @@
  * minimal satu app harus aktif, kalau tidak, pengunjung tidak bisa pindah
  * jendela sama sekali.
  */
+import { cache } from "react";
 import { z } from "zod";
 import { getSetting, setSetting } from "@/lib/settings";
 import {
@@ -73,9 +74,9 @@ function normalize(input: unknown): OSAppConfig[] {
   return ordered.map((a, i) => ({ id: a.id, enabled: a.enabled, order: i }));
 }
 
-export async function resolveOSApps(options?: { preview?: boolean }): Promise<ResolvedOSApps> {
+const resolveOSAppsCached = cache(async (preview: boolean): Promise<ResolvedOSApps> => {
   let stored: unknown = null;
-  if (options?.preview) {
+  if (preview) {
     stored = await getSetting<unknown>(`${SETTING_KEY}:draft`);
   }
   if (!stored) {
@@ -83,10 +84,6 @@ export async function resolveOSApps(options?: { preview?: boolean }): Promise<Re
   }
   const apps = normalize(stored);
 
-  // Jaminan keras: minimal satu app aktif. Tanpa ini admin bisa mengunci
-  // dirinya sendiri keluar dari semua jendela (tidak ada cara bawaan untuk
-  // navigasi). Pengaman ini juga mengembalikan kondisi bila satu-satunya app
-  // aktif dimatikan.
   if (!apps.some((a) => a.enabled)) {
     return {
       apps: DEFAULT_OS_APPS.map((a) => ({ ...a })),
@@ -100,6 +97,10 @@ export async function resolveOSApps(options?: { preview?: boolean }): Promise<Re
     enabled: apps.filter((a) => a.enabled),
     source: stored ? "admin" : "default",
   };
+});
+
+export async function resolveOSApps(options?: { preview?: boolean }): Promise<ResolvedOSApps> {
+  return resolveOSAppsCached(Boolean(options?.preview));
 }
 
 /**

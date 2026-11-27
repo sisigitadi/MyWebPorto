@@ -34,7 +34,7 @@ export const metadata = {
 
 export default async function HomePage() {
   const { isEnabled: isPreview } = await draftMode();
-  const [profile, profileCards, services, projects, products, testimonials, articles] = await Promise.all([
+  const [profile, profileCards, services, projects, rawProducts, testimonials, articles, appsResult] = await Promise.all([
     getProfile(),
     resolveProfileCards({ preview: isPreview }),
     getServices(),
@@ -42,12 +42,11 @@ export default async function HomePage() {
     getProducts(),
     getTestimonials(),
     getArticles(),
+    resolveOSApps({ preview: isPreview }),
   ]);
 
-  // Konfigurasi app SigitOS (settings.os_apps): app mana yang aktif + urutan.
-  // Dijalankan paralel dengan fetch konten di atas; gagal/belum diatur jatuh
-  // ke default 8 app (lihat resolveOSApps).
-  const { enabled: appsConfig } = await resolveOSApps({ preview: isPreview });
+  const products = isPreview ? rawProducts : rawProducts.filter((p) => p.published);
+  const { enabled: appsConfig } = appsResult;
 
   return (
     <div className="flex-1 flex-col h-full w-full overflow-hidden relative">

@@ -197,11 +197,10 @@ export function ArticlesSection({ articles: propArticles, compact = false }: Art
                     setSelectedTag(cat.id);
                     setVisibleCount(INITIAL_LIMIT);
                   }}
-                  className={`px-2 py-0.5 text-[11px] font-mono transition-all uppercase cursor-pointer ${
-                    isActive
-                      ? "bg-[var(--vt-amber)] text-black font-bold border-2 border-t-[#000] border-l-[#000] border-r-[#fff] border-b-[#fff] shadow-[inset_1px_1px_0_rgba(0,0,0,0.5)]"
-                      : "bg-[var(--vt-card)] text-[var(--vt-ink)] border-2 border-t-[var(--vt-edge-hi)] border-l-[var(--vt-edge-hi)] border-r-[var(--vt-edge-lo)] border-b-[var(--vt-edge-lo)] hover:bg-[var(--vt-edge-hi-2)]"
-                  }`}
+                  className={`px-2 py-0.5 text-[11px] font-mono transition-all uppercase cursor-pointer ${isActive
+                    ? "bg-[var(--vt-amber)] text-black font-bold border-2 border-t-[#000] border-l-[#000] border-r-[#fff] border-b-[#fff] shadow-[inset_1px_1px_0_rgba(0,0,0,0.5)]"
+                    : "bg-[var(--vt-card)] text-[var(--vt-ink)] border-2 border-t-[var(--vt-edge-hi)] border-l-[var(--vt-edge-hi)] border-r-[var(--vt-edge-lo)] border-b-[var(--vt-edge-lo)] hover:bg-[var(--vt-edge-hi-2)]"
+                    }`}
                 >
                   {label}
                 </button>
@@ -230,11 +229,10 @@ export function ArticlesSection({ articles: propArticles, compact = false }: Art
               <button
                 type="button"
                 onClick={() => setViewMode("grid")}
-                className={`p-1.5 transition-colors cursor-pointer ${
-                  viewMode === "grid"
-                    ? "bg-[var(--vt-amber)] text-black font-bold"
-                    : "text-[var(--vt-ink-mute)] hover:text-[var(--vt-ink)]"
-                }`}
+                className={`p-1.5 transition-colors cursor-pointer ${viewMode === "grid"
+                  ? "bg-[var(--vt-amber)] text-black font-bold"
+                  : "text-[var(--vt-ink-mute)] hover:text-[var(--vt-ink)]"
+                  }`}
                 title={language === "en" ? "Grid View" : "Tampilan Grid 16:9"}
                 aria-label="Grid View"
               >
@@ -243,11 +241,10 @@ export function ArticlesSection({ articles: propArticles, compact = false }: Art
               <button
                 type="button"
                 onClick={() => setViewMode("list")}
-                className={`p-1.5 transition-colors cursor-pointer ${
-                  viewMode === "list"
-                    ? "bg-[var(--vt-amber)] text-black font-bold"
-                    : "text-[var(--vt-ink-mute)] hover:text-[var(--vt-ink)]"
-                }`}
+                className={`p-1.5 transition-colors cursor-pointer ${viewMode === "list"
+                  ? "bg-[var(--vt-amber)] text-black font-bold"
+                  : "text-[var(--vt-ink-mute)] hover:text-[var(--vt-ink)]"
+                  }`}
                 title={language === "en" ? "Compact Explorer List View" : "Tampilan Berkas Padat (Explorer)"}
                 aria-label="List View"
               >
@@ -282,11 +279,11 @@ export function ArticlesSection({ articles: propArticles, compact = false }: Art
               <table className="w-full text-left font-mono text-xs border-collapse">
                 <thead>
                   <tr className="bg-[var(--vt-chrome)] border-b-2 border-[var(--vt-edge-lo-2)] text-[10px] text-[var(--vt-ink-mute)] uppercase tracking-wider">
-                    <th className="py-2 px-3 font-bold">Dokumen / Judul</th>
-                    <th className="py-2 px-3 font-bold hidden md:table-cell">Topik &amp; Tag</th>
-                    <th className="py-2 px-3 font-bold hidden sm:table-cell">Tanggal</th>
-                    <th className="py-2 px-3 font-bold hidden lg:table-cell">Waktu</th>
-                    <th className="py-2 px-3 font-bold text-right">Aksi</th>
+                    <th className="py-2 px-3 font-bold">{language === "en" ? "Document / Title" : "Dokumen / Judul"}</th>
+                    <th className="py-2 px-3 font-bold hidden md:table-cell">{language === "en" ? "Topics & Tags" : "Topik & Tag"}</th>
+                    <th className="py-2 px-3 font-bold hidden sm:table-cell">{language === "en" ? "Date" : "Tanggal"}</th>
+                    <th className="py-2 px-3 font-bold hidden lg:table-cell">{language === "en" ? "Read Time" : "Waktu"}</th>
+                    <th className="py-2 px-3 font-bold text-right">{language === "en" ? "Action" : "Aksi"}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--vt-edge-hi-2)] bg-[var(--vt-paper)] text-[var(--vt-ink)]">
@@ -340,7 +337,7 @@ export function ArticlesSection({ articles: propArticles, compact = false }: Art
                             href={`/artikel/${article.slug}`}
                             className="vt-btn vt-btn-chrome px-2.5 py-1 text-[11px] font-bold inline-flex items-center gap-1 group-hover:border-[var(--vt-blue)]"
                           >
-                            <span>BACA</span>
+                            <span>{language === "en" ? "READ" : "BACA"}</span>
                             <ArrowRight className="h-3 w-3" />
                           </Link>
                         </td>
